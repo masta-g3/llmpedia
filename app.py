@@ -2,53 +2,116 @@ from plotly_calplot import calplot
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
+from streamlit_plotly_events import plotly_events
+
 from typing import Union, Dict, Any, List
 import pandas as pd
+import numpy as np
 import json
 import os
+
+import plotly.io as pio
+
+pio.templates.default = "plotly"
 
 ## Page config.
 st.set_page_config(
     layout="wide",
-    page_title="📚 LLMPedia",
+    page_title="📚 LLMpedia",
     page_icon="📚",
     initial_sidebar_state="expanded",
 )
 
-def plot_activity_map(df: pd.DataFrame, year: Union[int, str]) -> go.Figure:
-    """ Function to generate a Github-style activity heatmap for a given year. """
-    df['Published'] = pd.to_datetime(df['Published'])
-    df.set_index('Published', inplace=True)
-    df_year = df[df.index.year == int(year)].copy()
-    first_day_of_year = pd.Timestamp(year=int(year), month=1, day=1)
-    df_year['week'] = ((df_year.index - first_day_of_year) / pd.Timedelta(days=7)).astype(int)
-    df_year['weekday'] = df_year.index.weekday
-    heatmap_data = pd.DataFrame(0, index=pd.MultiIndex.from_product([range(53), range(7)], names=['week', 'weekday']), columns=['Count'])
-    for index, row in df_year.iterrows():
-        heatmap_data.loc[(row['week'], row['weekday']), 'Count'] = row['Count']
-    fig = go.Figure(data=go.Heatmap(z=heatmap_data['Count'].values.reshape(53, 7).T, x=["W" + str(i) for i in range(1, 54)], y=["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],  showscale=False))
-    fig.update_layout(title=f'Activity Map for {year}', height=350)
+
+def prepare_calendar_data(df: pd.DataFrame, year: int) -> pd.DataFrame:
+    """Prepares data for the creation of a calendar heatmap."""
+    df["Published"] = pd.to_datetime(df["Published"])
+    df_year = df[df["Published"].dt.year == year].copy()
+    df_year["week"] = df_year["Published"].dt.isocalendar().week
+    df_year["weekday"] = df_year["Published"].dt.weekday
+
+    all_dates = pd.DataFrame(
+        [(week, weekday) for week in range(1, 54) for weekday in range(7)],
+        columns=["week", "weekday"],
+    )
+    heatmap_data = (
+        df_year.groupby(["week", "weekday"])
+        .agg({"Count": "sum", "Published": "first"})
+        .reset_index()
+    )
+    heatmap_data = pd.merge(all_dates, heatmap_data, how="left", on=["week", "weekday"])
+    heatmap_data["Count"] = heatmap_data["Count"].fillna(0)
+    heatmap_data["Published"] = heatmap_data["Published"].fillna(pd.NaT)
+
+    return heatmap_data
+
+
+def plot_activity_map(df_year: pd.DataFrame) -> go.Figure:
+    """Creates a calendar heatmap plot."""
+    df_year["hovertext"] = np.where(
+        df_year["Published"].isna(), "", df_year["Published"].dt.strftime("%b %d, %Y")
+    )
+
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=df_year["Count"].values.reshape(53, 7).T,
+            x=["W" + str(i) for i in range(1, 54)],
+            y=["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+            hoverongaps=False,
+            hovertext=df_year["hovertext"].values.reshape(53, 7).T,
+            colorscale="amp",
+            showscale=False,
+        )
+    )
+    fig.update_layout(
+        height=200,
+        margin=dict(t=0, b=0, l=0, r=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+    )
     return fig
+
+
+def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
+    fig = px.scatter(
+        df,
+        x="dim1",
+        y="dim2",
+        color="topic",
+        hover_name="Title",
+    )
+    fig.update_layout(
+        autosize=False,
+        width=1200,
+        height=500,
+        font=dict(
+            size=16,
+        ),
+        legend=dict(
+            title=None,
+            font=dict(
+                size=14,
+            ),
+        ),
+        margin=dict(t=0, b=0, l=0, r=0),
+    )
+    fig.update_xaxes(title_text="UMAP Dim 1")
+    fig.update_yaxes(title_text="UMAP Dim 2")
+    fig.update_traces(marker=dict(line=dict(width=1, color="DarkSlateGrey"), size=10))
+    return fig
+
 
 @st.cache_data
 def load_data():
-    ## ToDo: Replace with DF from DB.
-    fnames = os.listdir("summaries")
-    result_dict = {}
-    for fname in fnames:
-        with open(f"summaries/{fname}", "r") as f:
-            result_dict[fname] = json.load(f)
-
-    result_df = pd.DataFrame(result_dict).T
-    result_df["Published"] = pd.to_datetime(result_df["Published"])
+    """Load data from compiled dataframe."""
+    result_df = pd.read_pickle("papers_df.pkl")
     result_df = result_df[result_df["Published"] > "2021-01-01"]
-    result_df = result_df.sort_values("Published", ascending=False)
 
     ## Remapping with emotion.
     classification_map = {
         "TRAINING": "🏋️‍ TRAINING",
         "FINE-TUNING": "🔧 FINE-TUNING",
-        "ARCHITECTURES": "🏗️ ARCHITECTURE",
+        "ARCHITECTURES": "🏗️ ARCHS",
         "BEHAVIOR": "🔮 BEHAVIOR",
         "PROMPTING": "📣 PROMPTING",
         "USE CASES": "💰 USE CASES",
@@ -57,9 +120,10 @@ def load_data():
     result_df["category"] = result_df["category"].apply(lambda x: classification_map[x])
     return result_df
 
+
 @st.cache_data
 def generate_calendar_df(df: pd.DataFrame):
-    """ Daily counts of papers."""
+    """Daily counts of papers."""
     published_df = df.groupby("Published").count()["Title"]
     published_df = published_df.reindex(
         pd.date_range(
@@ -72,55 +136,151 @@ def generate_calendar_df(df: pd.DataFrame):
 
 
 def create_paper_card(paper: Dict):
-    """ Creates card UI for paper details. """
+    """Creates card UI for paper details."""
     title_cols = st.columns((10, 1))
-    title_cols[0].markdown(f"## {paper['Title']}")
-    title_cols[1].markdown(f"{paper['category']}")
+    title_cols[0].markdown(f"## 📄 [{paper['Title']}]({paper['arxiv_link']})")
+    title_cols[1].markdown(f"###### {paper['category']}")
 
     date = pd.to_datetime(paper["Published"]).strftime("%B %d, %Y")
     st.markdown(f"#### {date}")
     st.markdown(f"*{paper['Authors']}*")
-    with st.expander("Summary"):
+
+    with st.expander("💭 Summary"):
         st.markdown(paper["Summary"])
-    with st.expander("Main Contribution"):
-        st.markdown(f"{paper['main_contribution']}")
-    with st.expander("Takeaways"):
-        st.markdown(f"{paper['takeaways']}")
-    novelty_cols = st.columns((1, 10))
-    novelty_cols[0].metric("Novelty", f"{paper['novelty_score']}/3", "🚀")
-    novelty_cols[1].markdown(f"{paper['novelty_analysis']}")
 
-    tech_cols = st.columns((1, 10))
-    tech_cols[0].metric("Technical Depth", f"{paper['technical_score']}/3", "🔧")
-    tech_cols[1].markdown(f"{paper['technical_analysis']}")
+    with st.expander(f"➕ **Contributions** - {paper['main_contribution']['headline']}"):
+        st.markdown(f"{paper['main_contribution']['description']}")
 
-    enjoy_cols = st.columns((1, 10))
-    enjoy_cols[0].metric("Readability", f"{paper['enjoyable_score']}/3", "📚")
-    enjoy_cols[1].markdown(f"{paper['enjoyable_analysis']}")
+    with st.expander(f"✏️ **Takeaways** - {paper['takeaways']['headline']}"):
+        st.markdown(f"{paper['takeaways']['description']}")
+        st.markdown(f"{paper['takeaways']['example']}")
+
+    with st.expander("🥉 **GPT Assessments**"):
+        ## GPT Cluster category.
+        st.markdown(f"**GPT Cluster Group**: {paper['topic']}")
+
+        novelty_cols = st.columns((1, 10))
+        novelty_cols[0].metric("Novelty", f"{paper['novelty_score']}/3", "🚀")
+        novelty_cols[1].markdown(f"{paper['novelty_analysis']}")
+
+        tech_cols = st.columns((1, 10))
+        tech_cols[0].metric("Technical Depth", f"{paper['technical_score']}/3", "🔧")
+        tech_cols[1].markdown(f"{paper['technical_analysis']}")
+
+        enjoy_cols = st.columns((1, 10))
+        enjoy_cols[0].metric("Readability", f"{paper['enjoyable_score']}/3", "📚")
+        enjoy_cols[1].markdown(f"{paper['enjoyable_analysis']}")
+
     st.markdown("---")
 
 
 def main():
+    st.title("📚 LLMpedia")
+    st.markdown(
+        "##### A collection of papers on Language Models curated by the GPT maestro itself."
+    )
+    ## Humorous and poetic introduction.
+    st.markdown(
+        "Every week hundreds of papers are published on Language Models. It is impossible to keep up with the latest research. "
+        "That's why we created LLMpedia, a collection of papers on Language Models curated by the GPT maestro itself.\n\n"
+        "Each week GPT-4 will sweep through the latest LLM related papers and select the most interesting ones. "
+        "The maestro will then summarize the papers and provide his own analysis, including a novelty, technical depth and readability score. "
+        "We hope you enjoy this collection and find it useful. Leave a comment on the sidebar if you have any feedback or suggestions.\n\n"
+        "*Bonne lecture!*"
+    )
+
+    ## Main content.
     papers_df = load_data()
-    published_df = generate_calendar_df(papers_df)
-    papers = papers_df.to_dict("records")
 
-    ## Search sidebar.
-    search_term = st.sidebar.text_input("Search", "")
-
-    ## Category multi-select, for display show only 2 categories max.
+    ## Filter sidebar.
+    st.sidebar.markdown("# 📁 Filters")
+    search_term = st.sidebar.text_input("Search Term", "")
     categories = st.sidebar.multiselect(
-        "Categories", list(papers_df["category"].unique()),
+        "Categories",
+        list(papers_df["category"].unique()),
+    )
+    cluster = st.sidebar.multiselect(
+        "Cluster Group",
+        list(papers_df["topic"].unique()),
     )
 
     ## Calendar selector.
-    release_calendar = plot_activity_map(published_df, 2023)
-    st.plotly_chart(release_calendar, use_container_width=True)
+    published_df = generate_calendar_df(papers_df)
+    heatmap_data = prepare_calendar_data(published_df, 2023)
 
+    release_calendar = plot_activity_map(heatmap_data)
+    st.markdown("### 📅 Release Calendar")
+    calendar_select = plotly_events(release_calendar, override_height=200)
 
-    for i, paper in enumerate(papers[:10]):
-        create_paper_card(paper)
+    ## Cluster map
+    with st.expander("📊 Cluster Map"):
+        cluster_map = plot_cluster_map(papers_df)
+        st.plotly_chart(cluster_map, use_container_width=True)
+
+    st.markdown("---")
+
+    # papers = papers_df.to_dict("records")
+
+    ## Search terms.
+    if len(search_term) > 0:
+        papers_df = papers_df[
+            papers_df["Title"].str.lower().str.contains(search_term)
+            | papers_df["Summary"].str.lower().str.contains(search_term)
+            | papers_df["main_contribution"].map(
+                lambda l: search_term.lower() in l["description"].lower()
+            )
+            | papers_df["takeaways"].map(
+                lambda l: search_term.lower() in l["description"].lower()
+            )
+        ]
+
+    ## Categories.
+    if len(categories) > 0:
+        papers_df = papers_df[papers_df["category"].isin(categories)]
+
+    ## Cluster.
+    if len(cluster) > 0:
+        papers_df = papers_df[papers_df["topic"].isin(cluster)]
+
+    ## Published date.
+    if len(calendar_select) > 0:
+        week_num = calendar_select[0]["x"]
+        weekday = calendar_select[0]["y"]
+        week_num = int(week_num[1:])
+        weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].index(weekday)
+
+        publish_date = heatmap_data[
+            (heatmap_data["week"] == week_num) & (heatmap_data["weekday"] == weekday)
+        ]["Published"].values[0]
+        publish_date = pd.to_datetime(publish_date)
+
+        if len(papers_df[papers_df["Published"] == publish_date]) > 0:
+            papers_df = papers_df[papers_df["Published"] == publish_date]
+            ## Add option to clear filter on sidebar.
+            if st.sidebar.button(f"📅 **Publish Date Filter:** {publish_date.strftime('%B %d, %Y')}"):
+                st.experimental_rerun()
+
+    if len(papers_df) == 0:
+        st.markdown("No papers found.")
+        return
+
+    papers = papers_df.to_dict("records")
+
+    for i, paper in enumerate(papers[:100]):
+        try:
+            create_paper_card(paper)
+        except TypeError as e:
+            print(paper["index"])
 
 
 if __name__ == "__main__":
     main()
+
+
+## Aug  $4,851.23
+## Sept $4,959.23
+## Oct  $5,094.23
+
+## 4851.53+4959.23+5095.23+5067.22
+
+## 14664.69
