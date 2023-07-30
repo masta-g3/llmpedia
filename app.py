@@ -1,14 +1,11 @@
-from plotly_calplot import calplot
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 from streamlit_plotly_events import plotly_events
 
-from typing import Union, Dict, Any, List
+from typing import Dict
 import pandas as pd
 import numpy as np
-import json
-import os
 
 import plotly.io as pio
 
@@ -177,7 +174,7 @@ def create_paper_card(paper: Dict):
 def main():
     st.title("📚 LLMpedia")
     st.markdown(
-        "##### A collection of papers on Language Models curated by the GPT maestro itself."
+        "##### A collection of research papers on Language Models curated by the GPT maestro itself."
     )
     ## Humorous and poetic introduction.
     st.markdown(
