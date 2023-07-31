@@ -206,7 +206,7 @@ def main():
     heatmap_data = prepare_calendar_data(published_df, 2023)
 
     release_calendar = plot_activity_map(heatmap_data)
-    st.markdown("### 📅 Release Calendar")
+    st.markdown("### 📅 2023 Release Calendar")
     calendar_select = plotly_events(release_calendar, override_height=200)
 
     ## Cluster map
