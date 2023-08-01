@@ -6,6 +6,7 @@ from streamlit_plotly_events import plotly_events
 from typing import Dict
 import pandas as pd
 import numpy as np
+import json
 
 import plotly.io as pio
 
@@ -18,6 +19,19 @@ st.set_page_config(
     page_icon="📚",
     initial_sidebar_state="expanded",
 )
+
+if 'page_number' not in st.session_state:
+    st.session_state.page_number = 0
+
+def combine_input_data():
+    with open("arxiv_code_map.json", "r") as f:
+        arxiv_code_map = json.load(f)
+    arxiv_df = pd.read_pickle("data/arxiv.pkl")
+    reviews_df = pd.read_pickle("data/reviews.pkl")
+    topics_df = pd.read_pickle("data/topics.pkl")
+    papers_df = pd.concat([arxiv_df, reviews_df, topics_df], axis=1)
+    papers_df.sort_values("Updated", ascending=False, inplace=True)
+    return papers_df
 
 
 def prepare_calendar_data(df: pd.DataFrame, year: int) -> pd.DataFrame:
@@ -70,6 +84,7 @@ def plot_activity_map(df_year: pd.DataFrame) -> go.Figure:
 
 
 def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
+    """ Creates a scatter plot of the UMAP embeddings of the papers."""
     fig = px.scatter(
         df,
         x="dim1",
@@ -101,7 +116,7 @@ def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
 @st.cache_data
 def load_data():
     """Load data from compiled dataframe."""
-    result_df = pd.read_pickle("papers_df.pkl")
+    result_df = combine_input_data()
     result_df = result_df[result_df["Published"] > "2021-01-01"]
 
     ## Remapping with emotion.
@@ -114,6 +129,10 @@ def load_data():
         "USE CASES": "💰 USE CASES",
         "OTHER": "🤷 OTHER",
     }
+    ## Round published and updated columns.
+    result_df["Updated"] = pd.to_datetime(result_df["Updated"]).dt.date
+    result_df["Published"] = pd.to_datetime(result_df["Published"]).dt.date
+    result_df["Published"] = result_df["Updated"]
     result_df["category"] = result_df["category"].apply(lambda x: classification_map[x])
     return result_df
 
@@ -135,17 +154,21 @@ def generate_calendar_df(df: pd.DataFrame):
 def create_paper_card(paper: Dict):
     """Creates card UI for paper details."""
     title_cols = st.columns((10, 1))
-    title_cols[0].markdown(f"## 📄 [{paper['Title']}]({paper['arxiv_link']})")
+    paper_title = paper['Title'].replace("\n","")
+    paper_url = paper['URL'].replace("http","https")
+    title_cols[0].markdown(f"## 📄 [{paper_title}]({paper_url})")
     title_cols[1].markdown(f"###### {paper['category']}")
 
     date = pd.to_datetime(paper["Published"]).strftime("%B %d, %Y")
     st.markdown(f"#### {date}")
-    st.markdown(f"*{paper['Authors']}*")
+    authors_str = ", ".join(paper["Authors"])
+    st.markdown(f"*{authors_str}*")
 
     with st.expander("💭 Summary"):
         st.markdown(paper["Summary"])
 
-    with st.expander(f"➕ **Contributions** - {paper['main_contribution']['headline']}"):
+    with st.expander(f"➕ **Contributions** - {paper['main_contribution']['headline']}",
+                     expanded=True):
         st.markdown(f"{paper['main_contribution']['description']}")
 
     with st.expander(f"✏️ **Takeaways** - {paper['takeaways']['headline']}"):
@@ -254,7 +277,9 @@ def main():
         if len(papers_df[papers_df["Published"] == publish_date]) > 0:
             papers_df = papers_df[papers_df["Published"] == publish_date]
             ## Add option to clear filter on sidebar.
-            if st.sidebar.button(f"📅 **Publish Date Filter:** {publish_date.strftime('%B %d, %Y')}"):
+            if st.sidebar.button(
+                f"📅 **Publish Date Filter:** {publish_date.strftime('%B %d, %Y')}"
+            ):
                 st.experimental_rerun()
 
     if len(papers_df) == 0:
@@ -263,11 +288,27 @@ def main():
 
     papers = papers_df.to_dict("records")
 
-    for i, paper in enumerate(papers[:100]):
-        try:
-            create_paper_card(paper)
-        except TypeError as e:
-            print(paper["index"])
+    items_per_page = 5
+    num_pages = len(papers) // items_per_page
+    if len(papers) % items_per_page:
+        num_pages += 1
+
+    prev_button, _, next_button = st.columns((1, 10, 1))
+    if prev_button.button("Prev"):
+        st.session_state.page_number = max(0, st.session_state.page_number - 1)
+    if next_button.button("Next"):
+        st.session_state.page_number = min(num_pages - 1, st.session_state.page_number + 1)
+
+    # Display the page number
+    st.markdown(f"**Pg. {st.session_state.page_number + 1} of {num_pages}**")
+
+    # Get the indices of the items for the current page
+    start_index = st.session_state.page_number * items_per_page
+    end_index = start_index + items_per_page
+
+    # Display items for the current page
+    for paper in papers[start_index:end_index]:
+        create_paper_card(paper)
 
 
 if __name__ == "__main__":
