@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from streamlit_plotly_events import plotly_events
 
-from typing import Dict
+from typing import Dict, List, Tuple
 import pandas as pd
 import numpy as np
 import json
@@ -20,8 +20,17 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+if 'papers' not in st.session_state:
+    st.session_state.papers = None
+
 if 'page_number' not in st.session_state:
     st.session_state.page_number = 0
+
+st.markdown("""
+    <style>
+    a { color: #333333; }
+    </style>
+""", unsafe_allow_html=True)
 
 def combine_input_data():
     with open("arxiv_code_map.json", "r") as f:
@@ -151,10 +160,25 @@ def generate_calendar_df(df: pd.DataFrame):
     return published_df
 
 
+def get_similar_titles(title: str, df: pd.DataFrame, n: int = 5) -> Tuple[List[str], str]:
+    """Returns titles of papers from the same cluster, along with cluster name"""
+    title = title.lower()
+    if title in df["Title"].str.lower().values:
+        cluster = df[df["Title"].str.lower() == title]["topic"].values[0]
+        similar_titles = df[df["topic"] == cluster]["Title"].sample(n).tolist()
+        similar_titles = [t for t in similar_titles if t != title]
+        return similar_titles, cluster
+    else:
+        return [], ""
+
+
+
 def create_paper_card(paper: Dict):
     """Creates card UI for paper details."""
     title_cols = st.columns((10, 1))
     paper_title = paper['Title'].replace("\n","")
+    similar_titles, cluster_name = get_similar_titles(paper_title, st.session_state["papers"], n=5)
+
     paper_url = paper['URL'].replace("http","https")
     title_cols[0].markdown(f"## 📄 [{paper_title}]({paper_url})")
     title_cols[1].markdown(f"###### {paper['category']}")
@@ -191,6 +215,10 @@ def create_paper_card(paper: Dict):
         enjoy_cols[0].metric("Readability", f"{paper['enjoyable_score']}/3", "📚")
         enjoy_cols[1].markdown(f"{paper['enjoyable_analysis']}")
 
+    with st.expander(f"📚 **Similar Papers** (Topic: {cluster_name})"):
+        for title in similar_titles:
+            st.markdown(f"* {title}")
+
     st.markdown("---")
 
 
@@ -211,6 +239,7 @@ def main():
 
     ## Main content.
     papers_df = load_data()
+    st.session_state["papers"] = papers_df
 
     ## Filter sidebar.
     st.sidebar.markdown("# 📁 Filters")
@@ -287,6 +316,7 @@ def main():
         return
 
     papers = papers_df.to_dict("records")
+    st.data_editor(papers)
 
     items_per_page = 5
     num_pages = len(papers) // items_per_page
