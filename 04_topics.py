@@ -87,10 +87,10 @@ def create_topic_model(
     """Create topic model."""
     load_dotenv()
     umap_model = UMAP(
-        n_neighbors=5, n_components=7, min_dist=0.0, metric="cosine", random_state=42
+        n_neighbors=10, n_components=10, min_dist=0.0, metric="cosine", random_state=42
     )
     hdbscan_model = HDBSCAN(
-        min_cluster_size=5,
+        min_cluster_size=4,
         metric="euclidean",
         cluster_selection_method="eom",
         prediction_data=True,
@@ -148,7 +148,7 @@ def store_topics_and_embeddings(
     df[["topic", "dim1", "dim2"]].to_pickle("data/topics.pkl")
 
 
-def run_pipeline():
+def main():
     """Main function."""
     title_map = load_title_map()
     df = load_and_process_data(title_map)
@@ -158,7 +158,8 @@ def run_pipeline():
         all_content, embeddings, topic_model
     )
     store_topics_and_embeddings(df, topics, reduced_embeddings, topic_model)
+    print("Done!")
 
 
 if __name__ == "__main__":
-    run_pipeline()
+    main()

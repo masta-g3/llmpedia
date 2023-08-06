@@ -1,6 +1,6 @@
-import os
+import json
 import arxiv
-import shutil
+import requests
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -38,5 +38,37 @@ def get_arxiv_info(title):
         else:
             return None
     return None
+
+
+def update_gist(
+    token: str,
+    gist_id: str,
+    gist_filename: str,
+    gist_description: str,
+    gist_content: str,
+):
+    """ Upload a text file as a GitHub gist. """
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json",
+    }
+    params = {
+        "description": gist_description,
+        "files": {gist_filename: {"content": gist_content}},
+    }
+    response = requests.patch(
+        f"https://api.github.com/gists/{gist_id}",
+        headers=headers,
+        data=json.dumps(params),
+    )
+
+    if response.status_code == 200:
+        print(f"Gist {gist_filename} updated successfully.")
+        return response.json()["html_url"]
+    else:
+        print(f"Failed to update gist. Status code: {response.status_code}.")
+        return None
+
+
 
 

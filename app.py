@@ -7,6 +7,7 @@ from typing import Dict, List, Tuple
 import pandas as pd
 import numpy as np
 import json
+import re
 
 import plotly.io as pio
 
@@ -28,9 +29,15 @@ if 'page_number' not in st.session_state:
 
 st.markdown("""
     <style>
-    a { color: #333333; }
+        @import 'https://fonts.googleapis.com/css2?family=Orbitron&display=swap';
+        .pixel-font {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 32px;
+            margin-bottom: 1rem;
+        }
     </style>
 """, unsafe_allow_html=True)
+
 
 def combine_input_data():
     with open("arxiv_code_map.json", "r") as f:
@@ -68,6 +75,7 @@ def prepare_calendar_data(df: pd.DataFrame, year: int) -> pd.DataFrame:
 
 def plot_activity_map(df_year: pd.DataFrame) -> go.Figure:
     """Creates a calendar heatmap plot."""
+    colors = ['#2e8b57', '#3cb371', '#90ee90', '#dcdcaa', '#f5deb3', '#deb887']
     df_year["hovertext"] = np.where(
         df_year["Published"].isna(), "", df_year["Published"].dt.strftime("%b %d, %Y")
     )
@@ -79,7 +87,7 @@ def plot_activity_map(df_year: pd.DataFrame) -> go.Figure:
             y=["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
             hoverongaps=False,
             hovertext=df_year["hovertext"].values.reshape(53, 7).T,
-            colorscale="amp",
+            colorscale=colors,
             showscale=False,
         )
     )
@@ -89,6 +97,8 @@ def plot_activity_map(df_year: pd.DataFrame) -> go.Figure:
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
     )
+    fig.update_xaxes(tickfont=dict(color='grey'), showgrid=False, zeroline=False)
+    fig.update_yaxes(tickfont=dict(color='grey'), showgrid=False, zeroline=False)
     return fig
 
 
@@ -103,22 +113,25 @@ def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
     )
     fig.update_layout(
         autosize=False,
-        width=1200,
-        height=500,
+        # width=1200,
+        # height=600,
         font=dict(
             size=16,
         ),
         legend=dict(
             title=None,
             font=dict(
-                size=14,
+                size=12,
             ),
+            # x=0.5,  # Adjust this as needed
+            y=-0.4,  # Adjust this as needed
+            orientation="h",
         ),
         margin=dict(t=0, b=0, l=0, r=0),
     )
-    fig.update_xaxes(title_text="UMAP Dim 1")
-    fig.update_yaxes(title_text="UMAP Dim 2")
-    fig.update_traces(marker=dict(line=dict(width=1, color="DarkSlateGrey"), size=10))
+    fig.update_xaxes(title_text=None)
+    fig.update_yaxes(title_text=None)
+    fig.update_traces(marker=dict(line=dict(width=1, color="DarkSlateGrey"), size=5))
     return fig
 
 
@@ -132,9 +145,9 @@ def load_data():
     classification_map = {
         "TRAINING": "🏋️‍ TRAINING",
         "FINE-TUNING": "🔧 FINE-TUNING",
-        "ARCHITECTURES": "🏗️ ARCHS",
-        "BEHAVIOR": "🔮 BEHAVIOR",
-        "PROMPTING": "📣 PROMPTING",
+        "ARCHITECTURES": "⚗️MODELS",
+        "BEHAVIOR": "🧠 BEHAVIOR",
+        "PROMPTING": "✍️ PROMPTING",
         "USE CASES": "💰 USE CASES",
         "OTHER": "🤷 OTHER",
     }
@@ -175,18 +188,25 @@ def get_similar_titles(title: str, df: pd.DataFrame, n: int = 5) -> Tuple[List[s
 
 def create_paper_card(paper: Dict):
     """Creates card UI for paper details."""
-    title_cols = st.columns((10, 1))
+    img_cols = st.columns((1, 3))
+    paper_code = re.sub(r'v\d+$', '', paper["URL"].split("/")[-1])
+    try:
+        img_cols[0].image(f"img/{paper_code}.png", use_column_width=True)
+    except:
+        pass
+
     paper_title = paper['Title'].replace("\n","")
     similar_titles, cluster_name = get_similar_titles(paper_title, st.session_state["papers"], n=5)
 
     paper_url = paper['URL'].replace("http","https")
-    title_cols[0].markdown(f"## 📄 [{paper_title}]({paper_url})")
-    title_cols[1].markdown(f"###### {paper['category']}")
+    img_cols[1].markdown(f'<h2><a href="{paper_url}" style="color: #2e8b57;">{paper_title}</a></h2>',
+                           unsafe_allow_html=True)
 
     date = pd.to_datetime(paper["Published"]).strftime("%B %d, %Y")
-    st.markdown(f"#### {date}")
+    img_cols[1].markdown(f"#### Last Update: {date}")
+
     authors_str = ", ".join(paper["Authors"])
-    st.markdown(f"*{authors_str}*")
+    img_cols[1].markdown(f"*{authors_str}*")
 
     with st.expander("💭 Summary"):
         st.markdown(paper["Summary"])
@@ -223,7 +243,8 @@ def create_paper_card(paper: Dict):
 
 
 def main():
-    st.title("📚 LLMpedia")
+    st.markdown("""<div class="pixel-font">LLMpedia</div>
+    """, unsafe_allow_html=True)
     st.markdown(
         "##### A collection of research papers on Language Models curated by the GPT maestro itself."
     )
@@ -248,27 +269,15 @@ def main():
         "Categories",
         list(papers_df["category"].unique()),
     )
-    cluster = st.sidebar.multiselect(
-        "Cluster Group",
-        list(papers_df["topic"].unique()),
-    )
+    # cluster = st.sidebar.multiselect(
+    #     "Cluster Group",
+    #     list(papers_df["topic"].unique()),
+    # )
 
-    ## Calendar selector.
-    published_df = generate_calendar_df(papers_df)
-    heatmap_data = prepare_calendar_data(published_df, 2023)
-
-    release_calendar = plot_activity_map(heatmap_data)
-    st.markdown("### 📅 2023 Release Calendar")
-    calendar_select = plotly_events(release_calendar, override_height=200)
-
-    ## Cluster map
-    with st.expander("📊 Cluster Map"):
-        cluster_map = plot_cluster_map(papers_df)
-        st.plotly_chart(cluster_map, use_container_width=True)
-
-    st.markdown("---")
-
-    # papers = papers_df.to_dict("records")
+    ## Cluster map.
+    st.sidebar.markdown("### Topic Model Map")
+    cluster_map = plot_cluster_map(papers_df)
+    st.sidebar.plotly_chart(cluster_map, use_container_width=True)
 
     ## Search terms.
     if len(search_term) > 0:
@@ -288,8 +297,16 @@ def main():
         papers_df = papers_df[papers_df["category"].isin(categories)]
 
     ## Cluster.
-    if len(cluster) > 0:
-        papers_df = papers_df[papers_df["topic"].isin(cluster)]
+    # if len(cluster) > 0:
+    #     papers_df = papers_df[papers_df["topic"].isin(cluster)]
+
+    ## Calendar selector.
+    published_df = generate_calendar_df(papers_df)
+    heatmap_data = prepare_calendar_data(published_df, 2023)
+
+    release_calendar = plot_activity_map(heatmap_data)
+    st.markdown("### 📅 2023 Release Calendar")
+    calendar_select = plotly_events(release_calendar, override_height=200)
 
     ## Published date.
     if len(calendar_select) > 0:
@@ -298,10 +315,13 @@ def main():
         week_num = int(week_num[1:])
         weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].index(weekday)
 
+        st.write(week_num, weekday)
+
         publish_date = heatmap_data[
             (heatmap_data["week"] == week_num) & (heatmap_data["weekday"] == weekday)
         ]["Published"].values[0]
-        publish_date = pd.to_datetime(publish_date)
+        publish_date = pd.to_datetime(publish_date).date()
+        st.write(publish_date)
 
         if len(papers_df[papers_df["Published"] == publish_date]) > 0:
             papers_df = papers_df[papers_df["Published"] == publish_date]
@@ -316,29 +336,36 @@ def main():
         return
 
     papers = papers_df.to_dict("records")
-    st.data_editor(papers)
 
-    items_per_page = 5
-    num_pages = len(papers) // items_per_page
-    if len(papers) % items_per_page:
-        num_pages += 1
+    ## Content tabs.
+    content_tabs = st.tabs(["Main", "Summaries", "Table View"])
 
-    prev_button, _, next_button = st.columns((1, 10, 1))
-    if prev_button.button("Prev"):
-        st.session_state.page_number = max(0, st.session_state.page_number - 1)
-    if next_button.button("Next"):
-        st.session_state.page_number = min(num_pages - 1, st.session_state.page_number + 1)
+    with content_tabs[1]:
+        items_per_page = 5
+        num_pages = len(papers) // items_per_page
+        if len(papers) % items_per_page:
+            num_pages += 1
 
-    # Display the page number
-    st.markdown(f"**Pg. {st.session_state.page_number + 1} of {num_pages}**")
+        st.markdown(f"**{len(papers)} papers found.**")
+        prev_button, _, next_button = st.columns((1, 10, 1))
+        if prev_button.button("Prev"):
+            st.session_state.page_number = max(0, st.session_state.page_number - 1)
+        if next_button.button("Next"):
+            st.session_state.page_number = min(num_pages - 1, st.session_state.page_number + 1)
 
-    # Get the indices of the items for the current page
-    start_index = st.session_state.page_number * items_per_page
-    end_index = start_index + items_per_page
+        ## Display the page number.
+        st.markdown(f"**Pg. {st.session_state.page_number + 1} of {num_pages}**")
 
-    # Display items for the current page
-    for paper in papers[start_index:end_index]:
-        create_paper_card(paper)
+        ## Get the indices of the items for the current page.
+        start_index = st.session_state.page_number * items_per_page
+        end_index = start_index + items_per_page
+
+        ## Display items for the current page.
+        for paper in papers[start_index:end_index]:
+            create_paper_card(paper)
+
+    with content_tabs[2]:
+        st.data_editor(papers_df[["Title", "Authors", "Published", "category", "topic"]])
 
 
 if __name__ == "__main__":

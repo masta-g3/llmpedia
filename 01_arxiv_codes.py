@@ -1,7 +1,7 @@
 from arxiv_utils import tfidf_similarity, get_arxiv_info
 import json
 import shutil
-import os
+import os, re
 
 
 def rename_file(fname: str, arxiv_code: str):
@@ -46,7 +46,7 @@ def main():
                 print(f"ERROR: Could not find {data_title} in Arxiv. Please verify.")
                 continue
             arxiv_url = arxiv_info.entry_id
-            arxiv_code = arxiv_url.split("/")[-1]
+            arxiv_code = re.sub(r'v\d+$', '', arxiv_url.split("/")[-1])
 
             ## Store arxiv object.
             with open(f"arxiv_objects/{arxiv_code}.json", "w") as f:
