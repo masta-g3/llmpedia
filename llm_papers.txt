@@ -4,7 +4,6 @@ Prompt Programming for Large Language Models: Beyond the Few-Shot Paradigm
 Augmenting Language Models with Long-Term Memory
 Code Generation Tools (Almost) for Free? A Study of Few-Shot, Pre-Trained Language Models on Code
 Bring Your Own Data! Self-Supervised Evaluation for Large Language Models
-Why Johnny Still, Still Can't Encrypt: Evaluating the Usability of a Modern PGP Client
 Generative AI for Programming Education: Benchmarking ChatGPT, GPT-4, and Human Tutors
 In-context Autoencoder for Context Compression in a Large Language Model
 Educational data augmentation in physics education research using ChatGPT
@@ -242,3 +241,19 @@ Large Language Models Struggle to Learn Long-Tail Knowledge
 SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models
 SKILL: Structured Knowledge Infusion for Large Language Models
 TrueTeacher: Learning Factual Consistency Evaluation with Large Language Models
+Med-Flamingo: a Multimodal Medical Few-shot Learner
+From Sparse to Soft Mixtures of Experts
+Scaling Relationship on Learning Mathematical Reasoning with Large Language Models
+ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs
+SelfCheck: Using LLMs to Zero-Shot Check Their Own Step-by-Step Reasoning
+Tool Documentation Enables Zero-Shot Tool-Usage with Large Language Models
+DeepSpeed-Chat: Easy, Fast and Affordable RLHF Training of ChatGPT-like Models at All Scales
+On the Tool Manipulation Capability of Open-source Large Language Models
+Skills-in-Context Prompting: Unlocking Compositionality in Large Language Models
+LLM-Rec: Personalized Recommendation via Prompting Large Language Models
+Three Bricks to Consolidate Watermarks for Large Language Models
+OpenFlamingo: An Open-Source Framework for Training Large Autoregressive Vision-Language Models
+Learning to Model the World with Language
+MetaGPT: Meta Programming for Multi-Agent Collaborative Framework
+The Hydra Effect: Emergent Self-repair in Language Model Computations
+Ambient Adventures: Teaching ChatGPT on Developing Complex Stories
