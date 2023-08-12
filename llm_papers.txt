@@ -257,3 +257,16 @@ Learning to Model the World with Language
 MetaGPT: Meta Programming for Multi-Agent Collaborative Framework
 The Hydra Effect: Emergent Self-repair in Language Model Computations
 Ambient Adventures: Teaching ChatGPT on Developing Complex Stories
+Simple synthetic data reduces sycophancy in large language models
+Studying Large Language Model Generalization with Influence Functions
+UniversalNER: Targeted Distillation from Large Language Models for Open Named Entity Recognition
+Trustworthy LLMs: a Survey and Guideline for Evaluating Large Language Models' Alignment
+TPTU: Task Planning and Tool Usage of Large Language Model-based AI Agents
+Retroformer: Retrospective Large Language Agents with Policy Gradient Optimization
+Pre-Trained Large Language Models for Industrial Control
+Tiny LVLM-eHub: Early Multimodal Experiments with Bard
+AgentBench: Evaluating LLMs as Agents
+Alexa, play with robot: Introducing the First Alexa Prize SimBot Challenge on Embodied AI
+Accelerating LLM Inference with Staged Speculative Decoding
+FLIRT: Feedback Loop In-context Red Teaming
+Shepherd: A Critic for Language Model Generation
