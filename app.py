@@ -455,7 +455,7 @@ def main():
 
     with content_tabs[3]:
         st.data_editor(
-            papers_df[["Title", "Authors", "Published", "category", "topic"]]
+            papers_df[["Title", "Authors", "Published", "Updated", "category", "topic"]]
         )
 
 
