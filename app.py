@@ -328,8 +328,8 @@ def main():
         "Every week dozens of papers are published on Language Models. It is impossible to keep up with the latest research. "
         "That's why we created LLMpedia, a collection of papers on Language Models curated by the GPT maestro itself.\n\n"
         "Each week GPT-4 will sweep through the latest LLM related papers and select the most interesting ones. "
-        "The maestro will then summarize the papers and provide his own analysis, including a novelty, technical depth and readability score. "
-        "We hope you enjoy this collection and find it useful. Leave a comment on the sidebar if you have any feedback or suggestions.\n\n"
+        "The maestro will then summarize the papers and provide its own analysis, including a novelty, technical depth and readability score. "
+        "We hope you enjoy this collection and find it useful.\n\n"
         "*Bonne lecture!*"
     )
 
