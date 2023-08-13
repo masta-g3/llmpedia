@@ -119,7 +119,7 @@ def plot_activity_map(df_year: pd.DataFrame) -> go.Figure:
         )
     )
     fig.update_layout(
-        height=200,
+        height=210,
         margin=dict(t=0, b=0, l=0, r=0),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
@@ -197,7 +197,8 @@ def get_similar_titles(
     title = title.lower()
     if title in df["Title"].str.lower().values:
         cluster = df[df["Title"].str.lower() == title]["topic"].values[0]
-        similar_titles = df[df["topic"] == cluster]["Title"].sample(n).tolist()
+        size = df[df["topic"] == cluster].shape[0]
+        similar_titles = df[df["topic"] == cluster]["Title"].sample(min(n,size)).tolist()
         similar_titles = [t for t in similar_titles if t != title]
         return similar_titles, cluster
     else:
@@ -263,6 +264,54 @@ def create_paper_card(paper: Dict):
             st.markdown(f"* {title}")
 
     st.markdown("---")
+
+
+def generate_grid_gallery(df, n_cols=4):
+    """ Create streamlit grid gallery of paper cards with thumbnail. """
+    n_rows = int(np.ceil(len(df) / n_cols))
+    for i in range(n_rows):
+        cols = st.columns(n_cols)
+        for j in range(n_cols):
+            if i * n_cols + j < len(df):
+                with cols[j]:
+                    st.image(f"img/{df.iloc[i*n_cols+j].name}.png")
+                    paper_url = df.iloc[i*n_cols+j]["URL"].replace("http", "https")
+                    paper_title = df.iloc[i*n_cols+j]["Title"].replace("\n", "")
+                    st.markdown(
+                        f'<h5><a href="{paper_url}" style="color: #2e8b57;">{paper_title}</a></h5>',
+                        unsafe_allow_html=True,
+                    )
+                    last_updated = pd.to_datetime(df.iloc[i*n_cols+j]["Published"]).strftime("%B %d, %Y")
+                    st.markdown(f"{last_updated}")
+                    authors_str = ", ".join(df.iloc[i*n_cols+j]['Authors'])
+                    authors_str = authors_str[:30] + "..." if len(authors_str) > 30 else authors_str
+                    st.markdown(authors_str)
+
+
+def create_pagination(items, items_per_page, label="summaries"):
+    num_items = len(items)
+    num_pages = num_items // items_per_page
+    if num_items % items_per_page != 0:
+        num_pages += 1
+
+    st.markdown(f"**{num_items} items found.**")
+    prev_button, _, next_button = st.columns((1, 10, 1))
+    prev_clicked = prev_button.button("Prev", key=f"prev_{label}")
+    next_clicked = next_button.button("Next", key=f"next_{label}")
+
+    if prev_clicked and "page_number" in st.session_state:
+        st.session_state.page_number = max(0, st.session_state.page_number - 1)
+    if next_clicked and "page_number" in st.session_state:
+        st.session_state.page_number = min(
+            num_pages - 1, st.session_state.page_number + 1
+        )
+
+    st.markdown(f"**Pg. {st.session_state.page_number + 1} of {num_pages}**")
+
+    start_index = st.session_state.page_number * items_per_page
+    end_index = min(start_index + items_per_page, num_items)
+
+    return items[start_index:end_index]
 
 
 def main():
@@ -337,7 +386,7 @@ def main():
 
     release_calendar = plot_activity_map(heatmap_data)
     st.markdown(f"### 📅 {year} Release Calendar")
-    calendar_select = plotly_events(release_calendar, override_height=200)
+    calendar_select = plotly_events(release_calendar, override_height=220)
 
     ## Published date.
     if len(calendar_select) > 0:
@@ -346,13 +395,10 @@ def main():
         week_num = int(week_num[1:])
         weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].index(weekday)
 
-        st.write(week_num, weekday)
-
         publish_date = heatmap_data[
             (heatmap_data["week"] == week_num) & (heatmap_data["weekday"] == weekday)
         ]["Published"].values[0]
         publish_date = pd.to_datetime(publish_date).date()
-        st.write(publish_date)
 
         if len(papers_df[papers_df["Published"] == publish_date]) > 0:
             papers_df = papers_df[papers_df["Published"] == publish_date]
@@ -369,15 +415,16 @@ def main():
     papers = papers_df.to_dict("records")
 
     ## Content tabs.
-    content_tabs = st.tabs(["Main", "Paper Summaries", "Table View"])
+    content_tabs = st.tabs(["Main", "Paper Summaries", "Grid View", "Table View"])
 
     with content_tabs[0]:
         ## Publication counts.
         total_papers = len(papers_df)
-        st.markdown(f"### 📈 Publication Counts (Total: {total_papers})")
+        st.markdown(f"### 📈 Publication Counts (Total Tracked: {total_papers})")
         plot_type = st.radio(
             label="Plot Type",
             options=["Daily", "Cumulative"],
+            index=1 ,
             label_visibility="collapsed",
             horizontal=True,
         )
@@ -391,32 +438,22 @@ def main():
         st.plotly_chart(cluster_map, use_container_width=True)
 
     with content_tabs[1]:
-        items_per_page = 5
-        num_pages = len(papers) // items_per_page
-        if len(papers) % items_per_page:
-            num_pages += 1
-
+        if "page_number" not in st.session_state:
+            st.session_state.page_number = 0
+    
+        papers_subset = create_pagination(papers, items_per_page=5, label="summaries")
         st.markdown(f"**{len(papers)} papers found.**")
-        prev_button, _, next_button = st.columns((1, 10, 1))
-        if prev_button.button("Prev"):
-            st.session_state.page_number = max(0, st.session_state.page_number - 1)
-        if next_button.button("Next"):
-            st.session_state.page_number = min(
-                num_pages - 1, st.session_state.page_number + 1
-            )
-
-        ## Display the page number.
-        st.markdown(f"**Pg. {st.session_state.page_number + 1} of {num_pages}**")
-
-        ## Get the indices of the items for the current page.
-        start_index = st.session_state.page_number * items_per_page
-        end_index = start_index + items_per_page
-
-        ## Display items for the current page.
-        for paper in papers[start_index:end_index]:
+        for paper in papers_subset:
             create_paper_card(paper)
-
+    
     with content_tabs[2]:
+        if "page_number" not in st.session_state:
+            st.session_state.page_number = 0
+    
+        papers_df_subset = create_pagination(papers_df, items_per_page=20, label="grid")
+        generate_grid_gallery(papers_df_subset)
+
+    with content_tabs[3]:
         st.data_editor(
             papers_df[["Title", "Authors", "Published", "category", "topic"]]
         )
