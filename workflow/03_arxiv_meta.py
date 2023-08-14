@@ -11,14 +11,14 @@ def get_author_list(authors):
 def main():
     """Load summaries and add missing ones."""
     try:
-        with open("arxiv_code_map.json", "r") as f:
+        with open("../arxiv_code_map.json", "r") as f:
             staging_dict = json.load(f)
     except FileNotFoundError:
         print("File arxiv_code_map.json not found.")
         return
 
     try:
-        df = pd.read_pickle("data/arxiv.pkl")
+        df = pd.read_pickle("../data/arxiv.pkl")
     except FileNotFoundError:
         df = pd.DataFrame(
             columns=[
