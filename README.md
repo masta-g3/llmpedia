@@ -12,6 +12,7 @@ A streamlit app for keeping up with LLM related research.
 6. Streamlit app is updated and deployed with new content.
 
 ## To-Do
-- [ ] Add `arxiv` library to `requirements.txt`.
-- [ ] Add `ArxivLoader` to `requirements.txt`.
+- [ ] Upload doc breakdown and summarization process.
+- [ ] Fetch google scholar details.
+- [ ] Schdeduler.
 
