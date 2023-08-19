@@ -4,15 +4,15 @@ import os
 
 def main():
     ## Load the name file.
-    with open("../llm_papers.txt") as f:
+    with open("llm_papers.txt") as f:
         names = f.readlines()
-    with open("../arxiv_code_map.json") as f:
+    with open("arxiv_code_map.json") as f:
         title_dict = json.load(f)
         code_dict = {v: k for k, v in title_dict.items()}
 
     names = [name.strip() for name in names]
-    staging_dict = {f"paper__{str(k+1).zfill(4)}.png": v for k, v in enumerate(names)}
-    img_dir = '../img/'
+    staging_dict = {f"paper_{str(k).zfill(4)}.png": v for k, v in enumerate(names)}
+    img_dir = 'llm_cards_v3/'
 
     for filename in os.listdir(img_dir):
         if filename.endswith('.png'):

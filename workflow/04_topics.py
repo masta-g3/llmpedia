@@ -87,13 +87,13 @@ def create_topic_model(
     """Create topic model."""
     load_dotenv()
     umap_model = UMAP(
-        n_neighbors=10, n_components=10, min_dist=0.0, metric="cosine", random_state=42
+        n_neighbors=15, n_components=10, min_dist=0.0, metric="cosine", random_state=200
     )
     hdbscan_model = HDBSCAN(
         min_cluster_size=4,
         metric="euclidean",
         cluster_selection_method="eom",
-        prediction_data=True,
+        prediction_data=False,
     )
     vectorizer_model = CountVectorizer(
         stop_words=stop_words,

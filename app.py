@@ -210,7 +210,7 @@ def create_paper_card(paper: Dict):
     img_cols = st.columns((1, 3))
     paper_code = re.sub(r"v\d+$", "", paper["URL"].split("/")[-1])
     try:
-        img_cols[0].image(f"img/{paper_code}.png", use_column_width=True)
+        img_cols[0].image(f"llm_cards_v4/{paper_code}.png", use_column_width=True)
     except:
         pass
 
@@ -274,7 +274,7 @@ def generate_grid_gallery(df, n_cols=4):
         for j in range(n_cols):
             if i * n_cols + j < len(df):
                 with cols[j]:
-                    st.image(f"img/{df.iloc[i*n_cols+j].name}.png")
+                    st.image(f"llm_cards_v4/{df.iloc[i*n_cols+j].name}.png")
                     paper_url = df.iloc[i*n_cols+j]["URL"].replace("http", "https")
                     paper_title = df.iloc[i*n_cols+j]["Title"].replace("\n", "")
                     st.markdown(
