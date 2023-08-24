@@ -296,7 +296,7 @@ def create_paper_card(paper: Dict):
     st.markdown("---")
 
 
-def generate_grid_gallery(df, n_cols=7):
+def generate_grid_gallery(df, n_cols=5):
     """ Create streamlit grid gallery of paper cards with thumbnail. """
     n_rows = int(np.ceil(len(df) / n_cols))
     for i in range(n_rows):
