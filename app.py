@@ -9,21 +9,12 @@ import numpy as np
 import psycopg2
 import json
 import re, os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 import plotly.io as pio
 
 pio.templates.default = "plotly"
 
-db_params = {
-    'dbname': os.environ['DB_NAME'],
-    'user': os.environ['DB_USER'],
-    'password': os.environ['DB_PASS'],
-    'host': os.environ['DB_HOST'],
-    'port': os.environ['DB_PORT']
-}
+db_params = {**st.secrets["postgres"]}
 
 ## Page config.
 st.set_page_config(
