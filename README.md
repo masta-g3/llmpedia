@@ -13,6 +13,8 @@ A streamlit app for keeping up with LLM related research.
 
 ## To-Do
 - [ ] Upload doc breakdown and summarization process.
+- [ ] Upload SDXL pipeline.
+- [ ] Redo workflow with DB connection.
 - [ ] Fetch google scholar details.
 - [ ] Schdeduler.
 

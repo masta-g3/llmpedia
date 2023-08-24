@@ -11,8 +11,8 @@ def main():
         code_dict = {v: k for k, v in title_dict.items()}
 
     names = [name.strip() for name in names]
-    staging_dict = {f"paper_{str(k).zfill(4)}.png": v for k, v in enumerate(names)}
-    img_dir = 'llm_cards_v3/'
+    staging_dict = {f"paper_{str(1+k).zfill(4)}.png": v for k, v in enumerate(names)}
+    img_dir = 'llm_cards_v6/'
 
     for filename in os.listdir(img_dir):
         if filename.endswith('.png'):
