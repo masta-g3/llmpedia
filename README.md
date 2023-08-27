@@ -11,9 +11,12 @@ A streamlit app for keeping up with LLM related research.
 5. SDXL pipeline runs to generate paper thumbnail.
 6. Streamlit app is updated and deployed with new content.
 
+## Dependencies
+- ComfyUI (https://github.com/comfyanonymous/ComfyUI)
+- And all under `requirements.txt`.
+
 ## To-Do
 - [ ] Upload doc breakdown and summarization process.
-- [ ] Upload SDXL pipeline.
 - [ ] Redo workflow with DB connection.
 - [ ] Fetch google scholar details.
 - [ ] Schdeduler.

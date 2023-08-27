@@ -308,3 +308,72 @@ FLASK: Fine-grained Language Model Evaluation based on Alignment Skill Sets
 SPAE: Semantic Pyramid AutoEncoder for Multimodal Generation with Frozen LLMs
 Secrets of RLHF in Large Language Models Part I: PPO
 Let's Verify Step by Step
+Learning to Reason and Memorize with Self-Notes
+AGIEval: A Human-Centric Benchmark for Evaluating Foundation Models
+Large Language Models as Corporate Lobbyists
+Harnessing the Power of LLMs in Practice: A Survey on ChatGPT and Beyond
+Active Retrieval Augmented Generation
+Better Language Models of Code through Self-Improvement
+Prismer: A Vision-Language Model with An Ensemble of Experts
+Searching for Needles in a Haystack: On the Role of Incidental Bilingualism in PaLM's Translation Capability
+TidyBot: Personalized Robot Assistance with Large Language Models
+Unnatural Instructions: Tuning Language Models with (Almost) No Human Labor
+OpenICL: An Open-Source Framework for In-context Learning
+The Capacity for Moral Self-Correction in Large Language Models
+StructGPT: A General Framework for Large Language Model to Reason over Structured Data
+MultiModal-GPT: A Vision and Language Model for Dialogue with Humans
+Hyena Hierarchy: Towards Larger Convolutional Language Models
+Do the Rewards Justify the Means? Measuring Trade-Offs Between Rewards and Ethical Behavior in the MACHIAVELLI Benchmark
+MusicLM: Generating Music From Text
+Minding Language Models' (Lack of) Theory of Mind: A Plug-and-Play Multi-Character Belief Tracker
+Hungry Hungry Hippos: Towards Language Modeling with State Space Models
+Recitation-Augmented Language Models
+A Comprehensive Capability Analysis of GPT-3 and GPT-3.5 Series Models
+REPLUG: Retrieval-Augmented Black-Box Language Models
+PaLM-E: An Embodied Multimodal Language Model
+A Survey on Model Compression for Large Language Models
+Memory Augmented Large Language Models are Computationally Universal
+Poisoning Language Models During Instruction Tuning
+Active Prompting with Chain-of-Thought for Large Language Models
+Visual ChatGPT: Talking, Drawing and Editing with Visual Foundation Models
+GPTutor: a ChatGPT-powered programming tool for code explanation
+Evaluating ChatGPT's Information Extraction Capabilities: An Assessment of Performance, Explainability, Calibration, and Faithfulness
+LLaMA-Adapter: Efficient Fine-tuning of Language Models with Zero-init Attention
+Auditing large language models: a three-layered approach
+Artificial muses: Generative Artificial Intelligence Chatbots Have Risen to Human-Level Creativity
+Towards Expert-Level Medical Question Answering with Large Language Models
+PMC-LLaMA: Further Finetuning LLaMA on Medical Papers
+Why do Nearest Neighbor Language Models Work?
+Multimodal Chain-of-Thought Reasoning in Language Models
+Rethinking with Retrieval: Faithful Large Language Model Inference
+Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection
+Prompt2Model: Generating Deployable Models from Natural Language Instructions
+Scaling Transformer to 1M tokens and beyond with RMT
+SparseGPT: Massive Language Models Can Be Accurately Pruned in One-Shot
+A Categorical Archive of ChatGPT Failures
+Eight Things to Know about Large Language Models
+Emergence of Maps in the Memories of Blind Navigation Agents
+Augmented Language Models: a Survey
+DERA: Enhancing Large Language Model Completions with Dialog-Enabled Resolving Agents
+ChatDoctor: A Medical Chat Model Fine-Tuned on a Large Language Model Meta-AI (LLaMA) Using Medical Domain Knowledge
+ChemCrow: Augmenting large-language models with chemistry tools
+DetectGPT: Zero-Shot Machine-Generated Text Detection using Probability Curvature
+Larger language models do in-context learning differently
+UPRISE: Universal Prompt Retrieval for Improving Zero-Shot Evaluation
+DoReMi: Optimizing Data Mixtures Speeds Up Language Model Pretraining
+PanGu-Σ: Towards Trillion Parameter Language Model with Sparse Heterogeneous Computing
+ChatGPT: Applications, Opportunities, and Threats
+Unlimiformer: Long-Range Transformers with Unlimited Length Input
+Learning to Compress Prompts with Gist Tokens
+Enabling Conversational Interaction with Mobile UI using Large Language Models
+Evaluating Verifiability in Generative Search Engines
+Context-faithful Prompting for Large Language Models
+Baize: An Open-Source Chat Model with Parameter-Efficient Tuning on Self-Chat Data
+LLM As DBA
+Symbol tuning improves in-context learning in language models
+Toolformer: Language Models Can Teach Themselves to Use Tools
+Offsite-Tuning: Transfer Learning without Full Model
+Evidence of Meaning in Language Models Trained on Programs
+Giraffe: Adventures in Expanding Context Lengths in LLMs
+Data Selection for Language Models via Importance Resampling
+PaLM 2 Technical Report

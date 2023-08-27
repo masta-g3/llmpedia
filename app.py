@@ -47,6 +47,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+
 def load_arxiv():
     query = "SELECT * FROM arxiv_details;"
     conn = psycopg2.connect(**db_params)
@@ -54,6 +55,7 @@ def load_arxiv():
     arxiv_df.set_index("arxiv_code", inplace=True)
     conn.close()
     return arxiv_df
+
 
 def load_reviews():
     query = "SELECT * FROM summaries;"
@@ -63,6 +65,7 @@ def load_reviews():
     conn.close()
     return summaries_df
 
+
 def load_topics():
     query = "SELECT * FROM topics;"
     conn = psycopg2.connect(**db_params)
@@ -71,6 +74,7 @@ def load_topics():
     conn.close()
     return topics_df
 
+
 def combine_input_data():
     with open("arxiv_code_map.json", "r") as f:
         arxiv_code_map = json.load(f)
@@ -78,8 +82,10 @@ def combine_input_data():
     reviews_df = load_reviews()
     topics_df = load_topics()
     papers_df = pd.concat([arxiv_df, reviews_df, topics_df], axis=1).reset_index()
-    papers_df["url"] = papers_df["arxiv_code"].map(lambda l: f"https://arxiv.org/abs/{l}")
-    papers_df.sort_values("updated", ascending=False, inplace=True)
+    papers_df["url"] = papers_df["arxiv_code"].map(
+        lambda l: f"https://arxiv.org/abs/{l}"
+    )
+    papers_df.sort_values("published", ascending=False, inplace=True)
     return papers_df
 
 
@@ -87,27 +93,21 @@ def prepare_calendar_data(df: pd.DataFrame, year: int) -> pd.DataFrame:
     """Prepares data for the creation of a calendar heatmap."""
     df["published"] = pd.to_datetime(df["published"])
     df_year = df[df["published"].dt.year == year].copy()
-    df_year["week"] = df_year["published"].dt.isocalendar().week
-    df_year["weekday"] = df_year["published"].dt.weekday
-
-    all_dates = pd.DataFrame(
-        [(week, weekday) for week in range(1, 54) for weekday in range(7)],
-        columns=["week", "weekday"],
-    )
-    heatmap_data = (
-        df_year.groupby(["week", "weekday"])
-        .agg({"Count": "sum", "published": "first"})
+    ## publishes dates with zero 'Counts' with full year dates.
+    df_year = (
+        df_year.set_index("published")
+        .reindex(pd.date_range(start=f"{year}-01-01", end=f"{year}-12-31", freq="D"))
+        .fillna(0)
         .reset_index()
     )
-    heatmap_data = pd.merge(all_dates, heatmap_data, how="left", on=["week", "weekday"])
-    heatmap_data["Count"] = heatmap_data["Count"].fillna(0)
-    heatmap_data["published"] = heatmap_data["published"].fillna(pd.NaT)
-
-    return heatmap_data
+    df_year.columns = ["published", "Count"]
+    df_year["week"] = df_year["published"].dt.isocalendar().week - 1
+    df_year["weekday"] = df_year["published"].dt.weekday
+    return df_year
 
 
 def plot_publication_counts(df: pd.DataFrame, cumulative=False) -> go.Figure:
-    """ Plot line chart of total number of papers updated per day."""
+    """Plot line chart of total number of papers updated per day."""
     df["published"] = pd.to_datetime(df["published"])
     df["published"] = df["published"].dt.date
     df = df.groupby("published")["title"].nunique().reset_index()
@@ -130,20 +130,31 @@ def plot_publication_counts(df: pd.DataFrame, cumulative=False) -> go.Figure:
         )
     return fig
 
-def plot_activity_map(df_year: pd.DataFrame) -> go.Figure:
-    """Creates a calendar heatmap plot."""
-    colors = ["#2e8b57", "#3cb371", "#90ee90", "#dcdcaa", "#f5deb3", "#deb887"]
-    df_year["hovertext"] = np.where(
-        df_year["published"].isna(), "", df_year["published"].dt.strftime("%b %d, %Y")
+
+def plot_activity_map(df_year: pd.DataFrame) -> (go.Figure, pd.DataFrame):
+    """ Creates a calendar heatmap plot along with corresponding map of dates in a DF. """
+    colors = ["#003366", "#005599", "#0077CC", "#3399FF", "#66B2FF", "#99CCFF"]
+
+    week_max_dates = (
+        df_year.groupby(df_year["published"].dt.isocalendar().week)["published"]
+        .max()
+        .dt.strftime("%b %d")
+        .tolist()
     )
+
+    padded_count = df_year.pivot_table(index='weekday', columns='week', values='Count', aggfunc='sum').fillna(0)
+    padded_date = df_year.pivot_table(index='weekday', columns='week', values='published', aggfunc='last').fillna(pd.NaT)
+    padded_date = padded_date.applymap(lambda x: x.strftime("%b %d") if pd.notna(x) else "")
+    padded_count = padded_count.iloc[::-1]
+    padded_date = padded_date.iloc[::-1]
 
     fig = go.Figure(
         data=go.Heatmap(
-            z=df_year["Count"].values.reshape(53, 7).T,
-            x=["W" + str(i) for i in range(1, 54)],
-            y=["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+            z=padded_count.values, #df_year["Count"].values.reshape(54, 7).T,
+            x=padded_date.iloc[0].values, #df_year["weekday"].values.reshape(54, 7).T,
+            y=["Sun", "Sat", "Fri", "Thu", "Wed", "Tue", "Mon"],
             hoverongaps=False,
-            hovertext=df_year["hovertext"].values.reshape(53, 7).T,
+            hovertext=padded_date.values, # df_year["hovertext"].values.reshape(53, 7).T,
             colorscale=colors,
             showscale=False,
         )
@@ -156,7 +167,9 @@ def plot_activity_map(df_year: pd.DataFrame) -> go.Figure:
     )
     fig.update_xaxes(tickfont=dict(color="grey"), showgrid=False, zeroline=False)
     fig.update_yaxes(tickfont=dict(color="grey"), showgrid=False, zeroline=False)
-    return fig
+    padded_date = padded_date.iloc[::-1]
+
+    return fig, padded_date
 
 
 def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
@@ -198,9 +211,9 @@ def load_data():
         "OTHER": "🤷 OTHER",
     }
     ## Round published and updated columns.
-    result_df["updated"] = pd.to_datetime(pd.to_datetime(result_df["updated"]).dt.date)
-    result_df["published"] = pd.to_datetime(pd.to_datetime(result_df["published"]).dt.date)
-    result_df["published"] = result_df["updated"]
+    result_df["updated"] = pd.to_datetime(result_df["updated"]).dt.date
+
+    result_df["published"] = pd.to_datetime(result_df["published"].dt.date)
     result_df["category"] = result_df["category"].apply(lambda x: classification_map[x])
 
     return result_df
@@ -228,8 +241,10 @@ def get_similar_titles(
     if title in df["title"].str.lower().values:
         cluster = df[df["title"].str.lower() == title]["topic"].values[0]
         size = df[df["topic"] == cluster].shape[0]
-        similar_titles = df[df["topic"] == cluster]["title"].sample(min(n,size)).tolist()
-        similar_titles = [t for t in similar_titles if t != title]
+        similar_titles = (
+            df[df["topic"] == cluster]["title"].sample(min(n, size)).tolist()
+        )
+        similar_titles = [t for t in similar_titles if t.lower() != title]
         return similar_titles, cluster
     else:
         return [], ""
@@ -249,19 +264,20 @@ def create_paper_card(paper: Dict):
         paper_title, st.session_state["papers"], n=5
     )
 
-    paper_url = paper['url']
+    paper_url = paper["url"]
     img_cols[1].markdown(
         f'<h2><a href="{paper_url}" style="color: #2e8b57;">{paper_title}</a></h2>',
         unsafe_allow_html=True,
     )
 
-    date = pd.to_datetime(paper["published"]).strftime("%B %d, %Y")
-    img_cols[1].markdown(f"#### Last Update: {date}")
-
-    authors_str = ", ".join(paper["authors"])
+    pub_date = pd.to_datetime(paper["published"]).strftime("%B %d, %Y")
+    upd_date = pd.to_datetime(paper["updated"]).strftime("%B %d, %Y")
+    img_cols[1].markdown(f"#### Published: {pub_date}")
+    if pub_date != upd_date:
+        img_cols[1].caption(f"Last Updated: {upd_date}")
     img_cols[1].markdown(f"*{paper['authors']}*")
 
-    with st.expander("💭 Summary"):
+    with st.expander(f"💭 Abstract (arXiv:{paper_code})"):
         st.markdown(paper["summary"])
 
     with st.expander(
@@ -297,7 +313,7 @@ def create_paper_card(paper: Dict):
 
 
 def generate_grid_gallery(df, n_cols=5):
-    """ Create streamlit grid gallery of paper cards with thumbnail. """
+    """Create streamlit grid gallery of paper cards with thumbnail."""
     n_rows = int(np.ceil(len(df) / n_cols))
     for i in range(n_rows):
         cols = st.columns(n_cols)
@@ -308,16 +324,22 @@ def generate_grid_gallery(df, n_cols=5):
                         st.image(f"imgs/{df.iloc[i*n_cols+j]['arxiv_code']}.png")
                     except:
                         pass
-                    paper_url = df.iloc[i*n_cols+j]["url"]
-                    paper_title = df.iloc[i*n_cols+j]["title"].replace("\n", "")
+                    paper_url = df.iloc[i * n_cols + j]["url"]
+                    paper_title = df.iloc[i * n_cols + j]["title"].replace("\n", "")
                     st.markdown(
                         f'<h6><a href="{paper_url}" style="color: #2e8b57;">{paper_title}</a></h6>',
                         unsafe_allow_html=True,
                     )
-                    last_updated = pd.to_datetime(df.iloc[i*n_cols+j]["published"]).strftime("%B %d, %Y")
+                    last_updated = pd.to_datetime(
+                        df.iloc[i * n_cols + j]["published"]
+                    ).strftime("%B %d, %Y")
                     # st.markdown(f"{last_updated}")
-                    authors_str = df.iloc[i*n_cols+j]["authors"]
-                    authors_str = authors_str[:30] + "..." if len(authors_str) > 30 else authors_str
+                    authors_str = df.iloc[i * n_cols + j]["authors"]
+                    authors_str = (
+                        authors_str[:30] + "..."
+                        if len(authors_str) > 30
+                        else authors_str
+                    )
                     # st.markdown(authors_str)
 
 
@@ -330,7 +352,8 @@ def create_pagination(items, items_per_page, label="summaries"):
     st.session_state["num_pages"] = num_pages
 
     st.markdown(f"**{num_items} items found.**")
-    prev_button, _, next_button = st.columns((1, 10, 1))
+    st.markdown(f"**Pg. {st.session_state.page_number + 1} of {num_pages}**")
+    prev_button, mid, next_button = st.columns((1, 10, 1))
     prev_clicked = prev_button.button("Prev", key=f"prev_{label}")
     next_clicked = next_button.button("Next", key=f"next_{label}")
 
@@ -340,8 +363,6 @@ def create_pagination(items, items_per_page, label="summaries"):
         st.session_state.page_number = min(
             num_pages - 1, st.session_state.page_number + 1
         )
-
-    st.markdown(f"**Pg. {st.session_state.page_number + 1} of {num_pages}**")
 
     start_index = st.session_state.page_number * items_per_page
     end_index = min(start_index + items_per_page, num_items)
@@ -359,7 +380,9 @@ def create_bottom_navigation(label):
         st.session_state.page_number = max(0, st.session_state.page_number - 1)
         st.experimental_rerun()
     if next_clicked_btm and "page_number" in st.session_state:
-        st.session_state.page_number = min(num_pages - 1, st.session_state.page_number + 1)
+        st.session_state.page_number = min(
+            num_pages - 1, st.session_state.page_number + 1
+        )
         st.experimental_rerun()
 
 
@@ -376,10 +399,10 @@ def main():
     st.markdown(
         "Every week dozens of papers are published on Language Models. It is impossible to keep up with the latest research. "
         "That's why we created LLMpedia, a collection of papers on Language Models curated by the GPT maestro itself.\n\n"
-        "Each week GPT-4 will sweep through the latest LLM related papers and select the most interesting ones. "
+        "Each week GPT will sweep through the latest LLM related papers and select the most interesting ones. "
         "The maestro will then summarize the papers and provide its own analysis, including a novelty, technical depth and readability score. "
         "We hope you enjoy this collection and find it useful.\n\n"
-        "*Bonne lecture!*"
+        "*Buona lettura!*"
     )
 
     ## Main content.
@@ -395,7 +418,8 @@ def main():
         value=2023,
         step=1,
     )
-    search_term = st.sidebar.text_input("Search Term", "")
+    search_term = st.sidebar.text_input("Search", "")
+    title_only = st.sidebar.checkbox("Title Only", value=False)
     categories = st.sidebar.multiselect(
         "Categories",
         list(papers_df["category"].unique()),
@@ -415,9 +439,15 @@ def main():
     papers_df = papers_df[papers_df["published"].dt.year == year]
 
     ## Search terms.
-    if len(search_term) > 0:
+    if len(search_term) > 0 and title_only:
+        search_term = search_term.lower()
+        papers_df = papers_df[papers_df["title"].str.lower().str.contains(search_term)]
+    elif len(search_term) > 0:
+        search_term = search_term.lower()
         papers_df = papers_df[
             papers_df["title"].str.lower().str.contains(search_term)
+            | papers_df["arxiv_code"].str.lower().str.contains(search_term)
+            | papers_df["authors"].str.lower().str.contains(search_term)
             | papers_df["summary"].str.lower().str.contains(search_term)
             | papers_df["contribution_title"].str.lower().str.contains(search_term)
             | papers_df["contribution_content"].str.lower().str.contains(search_term)
@@ -441,25 +471,23 @@ def main():
     elif sort_by == "Random":
         papers_df = papers_df.sample(frac=1)
 
+    if len(papers_df) == 0:
+        st.error("No papers found.")
+        return
+
     ## Calendar selector.
     published_df = generate_calendar_df(papers_df)
     heatmap_data = prepare_calendar_data(published_df, year)
-
-    release_calendar = plot_activity_map(heatmap_data)
+    release_calendar, padded_date = plot_activity_map(heatmap_data)
     st.markdown(f"### 📅 {year} Release Calendar")
     calendar_select = plotly_events(release_calendar, override_height=220)
 
     ## Published date.
     if len(calendar_select) > 0:
-        week_num = calendar_select[0]["x"]
-        weekday = calendar_select[0]["y"]
-        week_num = int(week_num[1:])
-        weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].index(weekday)
-
-        publish_date = heatmap_data[
-            (heatmap_data["week"] == week_num) & (heatmap_data["weekday"] == weekday)
-        ]["published"].values[0]
-        publish_date = pd.to_datetime(publish_date).date()
+        ## Select from padded dates.
+        x_coord = 6 - calendar_select[0]["pointNumber"][0]
+        y_coord = calendar_select[0]["pointNumber"][1]
+        publish_date = pd.to_datetime(padded_date.loc[x_coord, y_coord] + f" {year}")
 
         if len(papers_df[papers_df["published"] == publish_date]) > 0:
             papers_df = papers_df[papers_df["published"] == publish_date]
@@ -476,16 +504,16 @@ def main():
     papers = papers_df.to_dict("records")
 
     ## Content tabs.
-    content_tabs = st.tabs(["Main", "Paper Summaries", "Grid View", "Table View"])
+    content_tabs = st.tabs(["Papers", "Grid View", "Table View", "Summary"])
 
-    with content_tabs[0]:
+    with content_tabs[3]:
         ## Publication counts.
         total_papers = len(papers_df)
         st.markdown(f"### 📈 Publication Counts (Total Tracked: {total_papers})")
         plot_type = st.radio(
             label="Plot Type",
             options=["Daily", "Cumulative"],
-            index=1 ,
+            index=1,
             label_visibility="collapsed",
             horizontal=True,
         )
@@ -498,26 +526,25 @@ def main():
         cluster_map = plot_cluster_map(papers_df)
         st.plotly_chart(cluster_map, use_container_width=True)
 
-    with content_tabs[1]:
+    with content_tabs[0]:
         if "page_number" not in st.session_state:
             st.session_state.page_number = 0
-    
-        papers_subset = create_pagination(papers, items_per_page=5, label="summaries")
+
+        papers_subset = create_pagination(papers, items_per_page=7, label="summaries")
         st.markdown(f"**{len(papers)} papers found.**")
         for paper in papers_subset:
             create_paper_card(paper)
         create_bottom_navigation(label="summaries")
 
-    
-    with content_tabs[2]:
+    with content_tabs[1]:
         if "page_number" not in st.session_state:
             st.session_state.page_number = 0
-    
+
         papers_df_subset = create_pagination(papers_df, items_per_page=25, label="grid")
         generate_grid_gallery(papers_df_subset)
         create_bottom_navigation(label="grid")
 
-    with content_tabs[3]:
+    with content_tabs[2]:
         st.data_editor(
             papers_df[["title", "authors", "published", "updated", "category", "topic"]]
         )
