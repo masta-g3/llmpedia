@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import json
 import os
 
-from arxiv_utils import update_gist
+from utils.paper_utils import update_gist
 
 
 def main():

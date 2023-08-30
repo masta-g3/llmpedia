@@ -1,7 +1,16 @@
-from arxiv_utils import tfidf_similarity, get_arxiv_info
+import utils.paper_utils as pu
 import json
 import shutil
 import os, re
+
+
+db_params = {
+    'dbname': os.environ['DB_NAME'],
+    'user': os.environ['DB_USER'],
+    'password': os.environ['DB_PASS'],
+    'host': os.environ['DB_HOST'],
+    'port': os.environ['DB_PORT']
+}
 
 
 def rename_file(fname: str, arxiv_code: str):
@@ -35,12 +44,12 @@ def main():
                 continue
 
             ## Check similarity against all titles
-            title_sim = [tfidf_similarity(data_title, t) for t in titles]
+            title_sim = [pu.tfidf_similarity(data_title, t) for t in titles]
             if max(title_sim) > 0.9:
                 continue
 
             ## Extract arxiv code.
-            arxiv_info = get_arxiv_info(data_title)
+            arxiv_info = pu.get_arxiv_info(data_title)
             if arxiv_info is None:
                 errors += 1
                 print(f"ERROR: Could not find {data_title} in Arxiv. Please verify.")
@@ -51,6 +60,11 @@ def main():
             ## Store arxiv object.
             with open(f"arxiv_objects/{arxiv_code}.json", "w") as f:
                 json.dump(arxiv_info._raw, f)
+
+            ## Store in DB.
+            if not pu.check_in_db(arxiv_code, db_params, "arxiv_details"):
+                processed_data = pu.process_arxiv_data(data)
+                pu.upload_to_db(processed_data, db_params, "arxiv_details")
 
             ## Rename file if needed.
             if arxiv_code not in fname:

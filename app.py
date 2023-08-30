@@ -75,13 +75,24 @@ def load_topics():
     return topics_df
 
 
+def load_citations():
+    query = "SELECT * FROM semantic_details;"
+    conn = psycopg2.connect(**db_params)
+    citations_df = pd.read_sql(query, conn)
+    citations_df.set_index("arxiv_code", inplace=True)
+    citations_df.drop(columns=["paper_id"], inplace=True)
+    conn.close()
+    return citations_df
+
+
 def combine_input_data():
     with open("arxiv_code_map.json", "r") as f:
         arxiv_code_map = json.load(f)
     arxiv_df = load_arxiv()
     reviews_df = load_reviews()
     topics_df = load_topics()
-    papers_df = pd.concat([arxiv_df, reviews_df, topics_df], axis=1).reset_index()
+    citations_df = load_citations()
+    papers_df = pd.concat([arxiv_df, reviews_df, topics_df, citations_df], axis=1).reset_index()
     papers_df["url"] = papers_df["arxiv_code"].map(
         lambda l: f"https://arxiv.org/abs/{l}"
     )
@@ -212,7 +223,6 @@ def load_data():
     }
     ## Round published and updated columns.
     result_df["updated"] = pd.to_datetime(result_df["updated"]).dt.date
-
     result_df["published"] = pd.to_datetime(result_df["published"].dt.date)
     result_df["category"] = result_df["category"].apply(lambda x: classification_map[x])
 
@@ -276,6 +286,7 @@ def create_paper_card(paper: Dict):
     if pub_date != upd_date:
         img_cols[1].caption(f"Last Updated: {upd_date}")
     img_cols[1].markdown(f"*{paper['authors']}*")
+    img_cols[1].markdown(f"`{int(paper['citation_count'])} citations`")
 
     with st.expander(f"💭 Abstract (arXiv:{paper_code})"):
         st.markdown(paper["summary"])
@@ -429,10 +440,16 @@ def main():
         list(papers_df["topic"].unique()),
     )
 
+    min_citations = st.sidebar.select_slider(
+        "Min Citations",
+        options=[0, 1, 5, 10, 100],
+        value=0,
+    )
+
     ## Sort by.
     sort_by = st.sidebar.selectbox(
         "Sort By",
-        ["Last Updated", "Published Date", "Random"],
+        ["Published Date", "Last Updated", "Citations", "Random"],
     )
 
     ## Year filter.
@@ -463,11 +480,16 @@ def main():
     if len(topics) > 0:
         papers_df = papers_df[papers_df["topic"].isin(topics)]
 
+    ## Citations.
+    papers_df = papers_df[papers_df["citation_count"] >= min_citations]
+
     ## Order.
     if sort_by == "Last Updated":
         papers_df = papers_df.sort_values("updated", ascending=False)
     elif sort_by == "Published Date":
         papers_df = papers_df.sort_values("published", ascending=False)
+    elif sort_by == "Citations":
+        papers_df = papers_df.sort_values("citation_count", ascending=False)
     elif sort_by == "Random":
         papers_df = papers_df.sample(frac=1)
 
@@ -546,7 +568,7 @@ def main():
 
     with content_tabs[2]:
         st.data_editor(
-            papers_df[["title", "authors", "published", "updated", "category", "topic"]]
+            papers_df[["title", "authors", "published", "updated", "citation_count", "category", "topic"]],
         )
 
 
