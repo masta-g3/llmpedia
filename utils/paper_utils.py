@@ -6,9 +6,35 @@ import psycopg2
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+PROJECT_PATH = os.environ.get("PROJECT_PATH")
+
+db_params = {
+    'dbname': os.environ['DB_NAME'],
+    'user': os.environ['DB_USER'],
+    'password': os.environ['DB_PASS'],
+    'host': os.environ['DB_HOST'],
+    'port': os.environ['DB_PORT']
+}
+
+summary_col_mapping = {
+    'arxiv_code': 'arxiv_code',
+    'main_contribution_headline': 'contribution_title',
+    'main_contribution_description': 'contribution_content',
+    'takeaways_headline': 'takeaway_title',
+    'takeaways_description': 'takeaway_content',
+    'takeaways_example': 'takeaway_example',
+    'category': 'category',
+    'novelty_score': 'novelty_score',
+    'novelty_analysis': 'novelty_analysis',
+    'technical_score': 'technical_score',
+    'technical_analysis': 'technical_analysis',
+    'enjoyable_score': 'enjoyable_score',
+    'enjoyable_analysis': 'enjoyable_analysis'
+}
 
 def store_local(data, arxiv_code, data_path):
     """ Store JSON data locally. """
+    data_path = os.path.join(PROJECT_PATH, data_path)
     with open(os.path.join(data_path, f"{arxiv_code}.json"), 'w') as f:
         json.dump(data, f)
 
@@ -65,6 +91,7 @@ def get_arxiv_info(title):
 
 def process_arxiv_data(data):
     """Transform the arxiv data for database insertion."""
+    data = {k.lower(): v for k, v in data.items()}
     flat_data = flatten_dict(data)
     desired_fields = [
         "id",
@@ -98,6 +125,27 @@ def get_semantic_scholar_info(arxiv_code):
     else:
         return None
 
+
+def get_arxiv_id_list(db_params, table_name):
+    """Get a list of all arxiv codes in the database."""
+    with psycopg2.connect(**db_params) as conn:
+        with conn.cursor() as cur:
+            cur.execute(f"SELECT arxiv_code FROM {table_name}")
+            return [row[0] for row in cur.fetchall()]
+
+
+def get_arxiv_title_dict(db_params):
+    """Get a list of all arxiv titles in the database."""
+    with psycopg2.connect(**db_params) as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+            SELECT a.arxiv_code, a.title 
+            FROM arxiv_details a
+            RIGHT JOIN summaries s ON a.arxiv_code = s.arxiv_code
+            WHERE a.title IS NOT NULL
+            """)
+            title_map = {row[0]: row[1] for row in cur.fetchall()}
+            return title_map
 
 def check_in_db(arxiv_code, db_params, table_name):
     """Check if an arxiv code is in the database."""

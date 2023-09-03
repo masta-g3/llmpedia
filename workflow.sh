@@ -2,8 +2,8 @@
 
 echo ">> [1] Collecting codes..."
 python workflow/01_arxiv_codes.py
-echo ">> [2] Organizing reviews..."
-python workflow/02_reviews.py
+echo ">> [2] Collecting citations..."
+python workflow/02_semantic_citations.py
 echo ">> [3] Processing metadata..."
 python workflow/03_arxiv_meta.py
 echo ">> [4] Running topic model..."

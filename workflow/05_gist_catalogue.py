@@ -1,22 +1,23 @@
+import sys, os
 from datetime import datetime
 from dotenv import load_dotenv
 import json
 import os
 
-from utils.paper_utils import update_gist
+load_dotenv()
+PROJECT_PATH = os.environ.get("PROJECT_PATH")
+sys.path.append(PROJECT_PATH)
+
+import utils.paper_utils as pu
 
 
 def main():
     ## Check key is on env.
-    load_dotenv()
     if "GITHUB_TOKEN" not in os.environ:
         raise ValueError("Please set GITHUB_TOKEN in .env file.")
-    with open("arxiv_code_map.json") as f:
-        data = json.load(f)
 
     ## Params.
-    codes = list(data.keys())
-    titles = list(data.values())
+    titles = list(pu.get_arxiv_title_dict(pu.db_params).values())
     token = os.environ["GITHUB_TOKEN"]
     gist_id = "8f7227397b1053b42e727bbd6abf1d2e"
     gist_filename = "llm_papers.txt"
@@ -24,11 +25,12 @@ def main():
     gist_content = "\n".join(titles)
 
     ## Write to disk.
-    with open("llm_papers.txt", "w") as f:
+    gist_path = os.path.join(PROJECT_PATH, gist_filename)
+    with open(gist_path, "w") as f:
         f.write(gist_content)
 
     ## Execute.
-    gist_url = update_gist(token, gist_id, gist_filename, gist_description, gist_content)
+    gist_url = pu.update_gist(token, gist_id, gist_filename, gist_description, gist_content)
     print(f"Done! Gist URL: {gist_url}")
 
 

@@ -38,7 +38,7 @@ def main():
     with open("arxiv_code_map.json", "r") as f:
         arxiv_code_map = json.load(f)
 
-    reviews_df = load_or_create_reviews_df()
+    # reviews_df = load_or_create_reviews_df()
 
     items_added = 0
     for arxiv_code in arxiv_code_map.keys():

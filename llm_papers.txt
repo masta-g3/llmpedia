@@ -1,379 +1,451 @@
-Large Language Models are Few-shot Testers: Exploring LLM-based General Bug Reproduction
-Language models are weak learners
-Prompt Programming for Large Language Models: Beyond the Few-Shot Paradigm
-Augmenting Language Models with Long-Term Memory
-Code Generation Tools (Almost) for Free? A Study of Few-Shot, Pre-Trained Language Models on Code
-Bring Your Own Data! Self-Supervised Evaluation for Large Language Models
-Generative AI for Programming Education: Benchmarking ChatGPT, GPT-4, and Human Tutors
-In-context Autoencoder for Context Compression in a Large Language Model
-Educational data augmentation in physics education research using ChatGPT
-Llama 2: Open Foundation and Fine-Tuned Chat Models
-Demystifying GPT Self-Repair for Code Generation
-Parsel: Algorithmic Reasoning with Language Models by Composing Decompositions
-Teaching Algorithmic Reasoning via In-context Learning
-WebGLM: Towards An Efficient Web-Enhanced Question Answering System with Human Preferences
-Language Models Don't Always Say What They Think: Unfaithful Explanations in Chain-of-Thought Prompting
-Code Prompting: a Neural Symbolic Method for Complex Reasoning in Large Language Models
-Unleashing Cognitive Synergy in Large Language Models: A Task-Solving Agent through Multi-Persona Self-Collaboration
 Cedille: A large autoregressive French language model
-Retentive Network: A Successor to Transformer for Large Language Models
-Measuring and Narrowing the Compositionality Gap in Language Models
-Seeing ChatGPT Through Students' Eyes: An Analysis of TikTok Data
-PoET: A generative model of protein families as sequences-of-sequences
-Connecting Neural Response measurements & Computational Models of language: a non-comprehensive guide
-One-shot Machine Teaching: Cost Very Few Examples to Converge Faster
-Learning to Retrieve In-Context Examples for Large Language Models
-PanGu-Coder2: Boosting Large Language Models for Code with Ranking Feedback
-A Systematic Survey of Prompt Engineering on Vision-Language Foundation Models
-Beyond Chain-of-Thought, Effective Graph-of-Thought Reasoning in Large Language Models
-Extending Context Window of Large Language Models via Positional Interpolation
-KoLA: Carefully Benchmarking World Knowledge of Large Language Models
-Stack More Layers Differently: High-Rank Training Through Low-Rank Updates
-Inspecting and Editing Knowledge Representations in Language Models
-TableGPT: Towards Unifying Tables, Nature Language and Commands into One GPT
-Differentially Private Fine-tuning of Language Models
-Large Language Models Can Be Easily Distracted by Irrelevant Context
-Automatic Generation of Programming Exercises and Code Explanations using Large Language Models
-LLMs as Workers in Human-Computational Algorithms? Replicating Crowdsourcing Pipelines with LLMs
-Say What You Mean! Large Language Models Speak Too Positively about Negative Commonsense Knowledge
-GPTs are GPTs: An Early Look at the Labor Market Impact Potential of Large Language Models
-Urdu text in natural scene images: a new dataset and preliminary text detection
-Co-Writing with Opinionated Language Models Affects Users' Views
-BuboGPT: Enabling Visual Grounding in Multi-Modal LLMs
-Is GPT-4 a Good Data Analyst?
-LoraHub: Efficient Cross-Task Generalization via Dynamic LoRA Composition
-Machine Psychology: Investigating Emergent Capabilities and Behavior in Large Language Models Using Psychological Methods
-KI-BERT: Infusing Knowledge Context for Better Language and Domain Understanding
-Questioning the Survey Responses of Large Language Models
-Beyond Black Box AI-Generated Plagiarism Detection: From Sentence to Document Level
-Guiding Pretraining in Reinforcement Learning with Large Language Models
-Using DeepSpeed and Megatron to Train Megatron-Turing NLG 530B, A Large-Scale Generative Language Model
-Quantifying Memorization Across Neural Language Models
-Becoming self-instruct: introducing early stopping criteria for minimal instruct tuning
-A Stitch in Time Saves Nine: Detecting and Mitigating Hallucinations of LLMs by Validating Low-Confidence Generation
-One-for-All: Generalized LoRA for Parameter-Efficient Fine-tuning
-Building Cooperative Embodied Agents Modularly with Large Language Models
-Mind's Eye: Grounded Language Model Reasoning through Simulation
-ChatGPT and a New Academic Reality: Artificial Intelligence-Written Research Papers and the Ethics of the Large Language Models in Scholarly Publishing
-Large Language Models Are Implicitly Topic Models: Explaining and Finding Good Demonstrations for In-Context Learning
-Constitutional AI: Harmlessness from AI Feedback
-Large Language Models for Supply Chain Optimization
-Images in Language Space: Exploring the Suitability of Large Language Models for Vision & Language Tasks
-The Internal State of an LLM Knows When its Lying
-ALERT: Adapting Language Models to Reasoning Tasks
-Challenges and Applications of Large Language Models
-Emergent autonomous scientific research capabilities of large language models
-LLMs as Factual Reasoners: Insights from Existing Benchmarks and Beyond
-Pythia: A Suite for Analyzing Large Language Models Across Training and Scaling
-StarCoder: may the source be with you!
-Open-Source Large Language Models Outperform Crowd Workers and Approach ChatGPT in Text-Annotation Tasks
-OpenAGI: When LLM Meets Domain Experts
-Causal Reasoning and Large Language Models: Opening a New Frontier for Causality
-Using Large Language Models to Simulate Multiple Humans and Replicate Human Subject Studies
-LIMA: Less Is More for Alignment
 The Wisdom of Hindsight Makes Language Models Better Instruction Followers
-LongNet: Scaling Transformers to 1,000,000,000 Tokens
-Large Language Models Still Can't Plan (A Benchmark for LLMs on Planning and Reasoning about Change)
-Causal-Discovery Performance of ChatGPT in the context of Neuropathic Pain Diagnosis
-Automatic Evaluation of Attribution by Large Language Models
-Explainable Verbal Reasoner Plus (EVR+): A Natural Language Reasoning Framework that Supports Diverse Compositional Reasoning
-Solving Quantitative Reasoning Problems with Language Models
-Towards Revealing the Mystery behind Chain of Thought: A Theoretical Perspective
-Is Your Code Generated by ChatGPT Really Correct? Rigorous Evaluation of Large Language Models for Code Generation
-Invariant Language Modeling
-CascadER: Cross-Modal Cascading for Knowledge Graph Link Prediction
-Interactive Fashion Content Generation Using LLMs and Latent Diffusion Models
-Describe, Explain, Plan and Select: Interactive Planning with Large Language Models Enables Open-World Multi-Task Agents
-ARB: Advanced Reasoning Benchmark for Large Language Models
-Large Language Models Fail on Trivial Alterations to Theory-of-Mind Tasks
-FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving Performance
-Leveraging Large Language Models for Topic Classification in the Domain of Public Affairs
-Dissociating language and thought in large language models: a cognitive perspective
-Robot Task Planning and Situation Handling in Open Worlds
-Teaching Arithmetic to Small Transformers
-BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and Large Language Models
-FinGPT: Open-Source Financial Large Language Models
-Can ChatGPT Forecast Stock Price Movements? Return Predictability and Large Language Models
-A Watermark for Large Language Models
-ChatGPT, Can You Generate Solutions for my Coding Exercises? An Evaluation on its Effectiveness in an undergraduate Java Programming Course
-Goat: Fine-tuned LLaMA Outperforms GPT-4 on Arithmetic Tasks
-Prototypical Fine-tuning: Towards Robust Performance Under Varying Data Sizes
-WizardCoder: Empowering Code Large Language Models with Evol-Instruct
-Language models show human-like content effects on reasoning
-Can Large Language Models design a Robot?
-HuggingGPT: Solving AI Tasks with ChatGPT and its Friends in Hugging Face
-Crowd Score: A Method for the Evaluation of Jokes using Large Language Model AI Voters as Judges
-From Word Models to World Models: Translating from Natural Language to the Probabilistic Language of Thought
-Check Your Facts and Try Again: Improving Large Language Models with External Knowledge and Automated Feedback
-Measuring Faithfulness in Chain-of-Thought Reasoning
-Maieutic Prompting: Logically Consistent Reasoning with Recursive Explanations
-A Systematic Evaluation of Large Language Models of Code
-Decomposed Prompting: A Modular Approach for Solving Complex Tasks
-Large Language Models are Competitive Near Cold-start Recommenders for Language- and Item-based Preferences
-Deep Language Networks: Joint Prompt Training of Stacked LLMs using Variational Inference
-When Geometric Deep Learning Meets Pretrained Protein Language Models
-ReAct: Synergizing Reasoning and Acting in Language Models
-CodeGen: An Open Large Language Model for Code with Multi-Turn Program Synthesis
-Principle-Driven Self-Alignment of Language Models from Scratch with Minimal Human Supervision
-Summary of ChatGPT/GPT-4 Research and Perspective Towards the Future of Large Language Models
-VNHSGE: VietNamese High School Graduation Examination Dataset for Large Language Models
-Large Language Model Guided Tree-of-Thought
-Large Language Models as Tax Attorneys: A Case Study in Legal Capabilities Emergence
-Language Is Not All You Need: Aligning Perception with Language Models
-Shortcut Learning of Large Language Models in Natural Language Understanding
-Theory of Mind May Have Spontaneously Emerged in Large Language Models
-A Real-World WebAgent with Planning, Long Context Understanding, and Program Synthesis
-SPOT: Knowledge-Enhanced Language Representations for Information Extraction
-Self-Critique Prompting with Large Language Models for Inductive Instructions
-Copy Is All You Need
-TinyStories: How Small Can Language Models Be and Still Speak Coherent English?
-Evaluating Large Language Models on a Highly-specialized Topic, Radiation Oncology Physics
-Do Large Language Models know what humans know?
-Are Emergent Abilities of Large Language Models a Mirage?
-Stay on topic with Classifier-Free Guidance
-Towards Reasoning in Large Language Models: A Survey
-Understanding Social Reasoning in Language Models with Language Models
-Clinical Camel: An Open-Source Expert-Level Medical Language Model with Dialogue-Based Knowledge Encoding
-Selective Annotation Makes Language Models Better Few-Shot Learners
-The RefinedWeb Dataset for Falcon LLM: Outperforming Curated Corpora with Web Data, and Web Data Only
-Artificial Artificial Artificial Intelligence: Crowd Workers Widely Use Large Language Models for Text Production Tasks
-Performance of ChatGPT on USMLE: Unlocking the Potential of Large Language Models for AI-Assisted Medical Education
-Plan-and-Solve Prompting: Improving Zero-Shot Chain-of-Thought Reasoning by Large Language Models
-Modeling Protein Using Large-scale Pretrain Language Model
-Re-visiting Automated Topic Model Evaluation with Large Language Models
-Identifying Mentions of Pain in Mental Health Records Text: A Natural Language Processing Approach
-Large Language Models Perform Diagnostic Reasoning
-Open Problems and Fundamental Limitations of Reinforcement Learning from Human Feedback
-Orca: Progressive Learning from Complex Explanation Traces of GPT-4
-Chain-Of-Thought Prompting Under Streaming Batch: A Case Study
-QLoRA: Efficient Finetuning of Quantized LLMs
-Social Simulacra: Creating Populated Prototypes for Social Computing Systems
-Textbooks Are All You Need
-AlpaGasus: Training A Better Alpaca with Fewer Data
-Jigsaw: Large Language Models meet Program Synthesis
-Selection-Inference: Exploiting Large Language Models for Interpretable Logical Reasoning
-Code as Policies: Language Model Programs for Embodied Control
-PolyLM: An Open Source Polyglot Large Language Model
-Ada-Ranker: A Data Distribution Adaptive Ranking Paradigm for Sequential Recommendation
-DarkBERT: A Language Model for the Dark Side of the Internet
-GrIPS: Gradient-free, Edit-based Instruction Search for Prompting Large Language Models
-Can large language models reason about medical questions?
-Entity Projection via Machine Translation for Cross-Lingual NER
-Skeleton-of-Thought: Large Language Models Can Do Parallel Decoding
-Learning ASR pathways: A sparse multilingual ASR model
-Understanding the Capabilities, Limitations, and Societal Impact of Large Language Models
-Large Language Models Are Reasoning Teachers
-Prompting Large Language Models with Speech Recognition Abilities
-Long-range Language Modeling with Self-retrieval
-Faithful Chain-of-Thought Reasoning
-From Images to Textual Prompts: Zero-shot VQA with Frozen Large Language Models
-On the Origin of LLMs: An Evolutionary Tree and Graph for 15,821 Large Language Models
-Data-Driven Approach for Formality-Sensitive Machine Translation: Language-Specific Handling and Synthetic Data Generation
-Structured information extraction from complex scientific text with fine-tuned large language models
-Getting More out of Large Language Models for Proofs
-Beyond Generating Code: Evaluating GPT on a Data Visualization Course
-WebArena: A Realistic Web Environment for Building Autonomous Agents
-Probing Factually Grounded Content Transfer with Factual Ablation
 ChatGPT: A Study on its Utility for Ubiquitous Software Engineering Tasks
-How does the pre-training objective affect what large language models learn about linguistic properties?
-Prompt Sapper: LLM-Empowered Software Engineering Infrastructure for AI-Native Services
-Towards Language Models That Can See: Computer Vision Through the LENS of Natural Language
-INT2.1: Towards Fine-Tunable Quantized Large Language Models with Error Correction through Low-Rank Adaptation
-Large language models effectively leverage document-level context for literary translation, but critical errors persist
-How is ChatGPT's behavior changing over time?
-Scaling TransNormer to 175 Billion Parameters
-News Summarization and Evaluation in the Era of GPT-3
-Kosmos-2: Grounding Multimodal Large Language Models to the World
-GPT is becoming a Turing machine: Here are some ways to program it
-Reprompting: Automated Chain-of-Thought Prompt Inference Through Gibbs Sampling
-Personality Traits in Large Language Models
-Adaptive Test Generation Using a Large Language Model
-Block Belief Propagation for Parameter Learning in Markov Random Fields
-GPT-NER: Named Entity Recognition via Large Language Models
-Complexity-Based Prompting for Multi-Step Reasoning
-Large Language Models are Zero-Shot Rankers for Recommender Systems
-Synthetic Prompting: Generating Chain-of-Thought Demonstrations for Large Language Models
-LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale
-How Many Demonstrations Do You Need for In-context Learning?
-SelfCheckGPT: Zero-Resource Black-Box Hallucination Detection for Generative Large Language Models
-Chameleon: Plug-and-Play Compositional Reasoning with Large Language Models
-Reflexion: Language Agents with Verbal Reinforcement Learning
-Tree of Thoughts: Deliberate Problem Solving with Large Language Models
-Distilling Step-by-Step! Outperforming Larger Language Models with Less Training Data and Smaller Model Sizes
-BloombergGPT: A Large Language Model for Finance
-Language Models can Solve Computer Tasks
-Automatic Chain of Thought Prompting in Large Language Models
-Large Language Models Can Self-Improve
-Model evaluation for extreme risks
-Teaching Large Language Models to Self-Debug
-Generative Agents: Interactive Simulacra of Human Behavior
-ThinkSum: Probabilistic reasoning over sets using large language models
-Teaching Small Language Models to Reason
-PaLM: Scaling Language Modeling with Pathways
-AI Chains: Transparent and Controllable Human-AI Interaction by Chaining Large Language Model Prompts
-PromptChainer: Chaining Large Language Model Prompts through Visual Programming
-Talking About Large Language Models
-Text-to-Audio Generation using Instruction-Tuned LLM and Latent Diffusion Model
-Large Language Models are Zero-Shot Reasoners
-ChatGPT Is on the Horizon: Could a Large Language Model Be All We Need for Intelligent Transportation?
-LLM-Adapters: An Adapter Family for Parameter-Efficient Fine-Tuning of Large Language Models
-ProgPrompt: Generating Situated Robot Task Plans using Large Language Models
-Galactica: A Large Language Model for Science
-The Science of Detecting LLM-Generated Texts
-Large Language Models Are Human-Level Prompt Engineers
-Large Language Models Encode Clinical Knowledge
-LLM-Planner: Few-Shot Grounded Planning for Embodied Agents with Large Language Models
-Emergent Abilities of Large Language Models
-Least-to-Most Prompting Enables Complex Reasoning in Large Language Models
-MiniGPT-4: Enhancing Vision-Language Understanding with Advanced Large Language Models
-Evaluating the Text-to-SQL Capabilities of Large Language Models
-Context-Aware Abbreviation Expansion Using Large Language Models
 Query2doc: Query Expansion with Large Language Models
-Large Language Models are Better Reasoners with Self-Verification
-Repository-Level Prompt Generation for Large Language Models of Code
-Large Language Models Struggle to Learn Long-Tail Knowledge
-SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models
-SKILL: Structured Knowledge Infusion for Large Language Models
+The Internal State of an LLM Knows When its Lying
+Structured information extraction from complex scientific text with fine-tuned large language models
 TrueTeacher: Learning Factual Consistency Evaluation with Large Language Models
-Med-Flamingo: a Multimodal Medical Few-shot Learner
-From Sparse to Soft Mixtures of Experts
-Scaling Relationship on Learning Mathematical Reasoning with Large Language Models
-ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs
-SelfCheck: Using LLMs to Zero-Shot Check Their Own Step-by-Step Reasoning
-Tool Documentation Enables Zero-Shot Tool-Usage with Large Language Models
-DeepSpeed-Chat: Easy, Fast and Affordable RLHF Training of ChatGPT-like Models at All Scales
-On the Tool Manipulation Capability of Open-source Large Language Models
-Skills-in-Context Prompting: Unlocking Compositionality in Large Language Models
-LLM-Rec: Personalized Recommendation via Prompting Large Language Models
-Three Bricks to Consolidate Watermarks for Large Language Models
-OpenFlamingo: An Open-Source Framework for Training Large Autoregressive Vision-Language Models
-Learning to Model the World with Language
-MetaGPT: Meta Programming for Multi-Agent Collaborative Framework
-The Hydra Effect: Emergent Self-repair in Language Model Computations
-Ambient Adventures: Teaching ChatGPT on Developing Complex Stories
-Simple synthetic data reduces sycophancy in large language models
-Studying Large Language Model Generalization with Influence Functions
-UniversalNER: Targeted Distillation from Large Language Models for Open Named Entity Recognition
-Trustworthy LLMs: a Survey and Guideline for Evaluating Large Language Models' Alignment
-TPTU: Task Planning and Tool Usage of Large Language Model-based AI Agents
-Retroformer: Retrospective Large Language Agents with Policy Gradient Optimization
-Pre-Trained Large Language Models for Industrial Control
-Tiny LVLM-eHub: Early Multimodal Experiments with Bard
-AgentBench: Evaluating LLMs as Agents
-Alexa, play with robot: Introducing the First Alexa Prize SimBot Challenge on Embodied AI
-Accelerating LLM Inference with Staged Speculative Decoding
-FLIRT: Feedback Loop In-context Red Teaming
-Shepherd: A Critic for Language Model Generation
-Solving Challenging Math Word Problems Using GPT-4 Code Interpreter with Code-based Self-Verification
-Teach LLMs to Personalize -- An Approach inspired by Writing Education
-BOLAA: Benchmarking and Orchestrating LLM-augmented Autonomous Agents
-The Devil is in the Errors: Leveraging Large Language Models for Fine-grained Machine Translation Evaluation
-Platypus: Quick, Cheap, and Powerful Refinement of LLMs
-Link-Context Learning for Multimodal LLMs
-PIPPA: A Partially Synthetic Conversational Dataset
-Self-Alignment with Instruction Backtranslation
-RAVEN: In-Context Learning with Retrieval Augmented Encoder-Decoder Language Models
-Enhancing Network Management Using Code Generated by Large Language Models
-CausalLM is not optimal for in-context learning
-OctoPack: Instruction Tuning Code Large Language Models
+Large Language Models Encode Clinical Knowledge
+PoET: A generative model of protein families as sequences-of-sequences
 Fine-Grained Human Feedback Gives Better Rewards for Language Model Training
-Direct Preference Optimization: Your Language Model is Secretly a Reward Model
-Focused Transformer: Contrastive Training for Context Scaling
-Lost in the Middle: How Language Models Use Long Contexts
-SQL-PaLM: Improved Large Language Model Adaptation for Text-to-SQL
-A PhD Student's Perspective on Research in NLP in the Era of Very Large Language Models
-The Larger They Are, the Harder They Fail: Language Models do not Recognize Identifier Swaps in Python
-Large Language Models are Effective Text Rankers with Pairwise Ranking Prompting
-Unifying Large Language Models and Knowledge Graphs: A Roadmap
-InterCode: Standardizing and Benchmarking Interactive Coding with Execution Feedback
-Towards Generalist Biomedical AI
-LMFlow: An Extensible Toolkit for Finetuning and Inference of Large Foundation Models
-Universal and Transferable Adversarial Attacks on Aligned Language Models
-Gorilla: Large Language Model Connected with Massive APIs
-CodeTF: One-stop Transformer Library for State-of-the-art Code LLM
-Fine-Tuning Language Models with Just Forward Passes
-Robots That Ask For Help: Uncertainty Alignment for Large Language Model Planners
-L-Eval: Instituting Standardized Evaluation for Long Context Language Models
-CodeGen2: Lessons for Training LLMs on Programming and Natural Languages
-Thought Cloning: Learning to Think while Acting by Imitating Human Thinking
-WavJourney: Compositional Audio Creation with Large Language Models
-LEACE: Perfect linear concept erasure in closed form
-From Pretraining Data to Language Models to Downstream Tasks: Tracking the Trails of Political Biases Leading to Unfair NLP Models
-Voyager: An Open-Ended Embodied Agent with Large Language Models
-A Simple and Effective Pruning Approach for Large Language Models
-FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning
-Meta-Transformer: A Unified Framework for Multimodal Learning
-ChatGPT is fun, but it is not funny! Humor is still challenging Large Language Models
-FLASK: Fine-grained Language Model Evaluation based on Alignment Skill Sets
+Prompt Sapper: LLM-Empowered Software Engineering Infrastructure for AI-Native Services
+Modeling Protein Using Large-scale Pretrain Language Model
+A Watermark for Large Language Models
+GPT is becoming a Turing machine: Here are some ways to program it
+Using DeepSpeed and Megatron to Train Megatron-Turing NLG 530B, A Large-Scale Generative Language Model
+Large Language Models are Zero-Shot Reasoners
 SPAE: Semantic Pyramid AutoEncoder for Multimodal Generation with Frozen LLMs
+From Images to Textual Prompts: Zero-shot VQA with Frozen Large Language Models
+How is ChatGPT's behavior changing over time?
+Meta-Transformer: A Unified Framework for Multimodal Learning
+Scaling Relationship on Learning Mathematical Reasoning with Large Language Models
+Getting More out of Large Language Models for Proofs
+Teaching Small Language Models to Reason
+Distilling Step-by-Step! Outperforming Larger Language Models with Less Training Data and Smaller Model Sizes
+Learning to Retrieve In-Context Examples for Large Language Models
+LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale
+Context-Aware Abbreviation Expansion Using Large Language Models
+Focused Transformer: Contrastive Training for Context Scaling
+MiniGPT-4: Enhancing Vision-Language Understanding with Advanced Large Language Models
+Long-range Language Modeling with Self-retrieval
+Alexa, play with robot: Introducing the First Alexa Prize SimBot Challenge on Embodied AI
+Towards Generalist Biomedical AI
+Quantifying Memorization Across Neural Language Models
+LMFlow: An Extensible Toolkit for Finetuning and Inference of Large Foundation Models
+Understanding the Capabilities, Limitations, and Societal Impact of Large Language Models
+Copy Is All You Need
+Automatic Chain of Thought Prompting in Large Language Models
+Synthetic Prompting: Generating Chain-of-Thought Demonstrations for Large Language Models
+Decomposed Prompting: A Modular Approach for Solving Complex Tasks
+Evaluating the Text-to-SQL Capabilities of Large Language Models
+On the Origin of LLMs: An Evolutionary Tree and Graph for 15,821 Large Language Models
+BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and Large Language Models
+Are Emergent Abilities of Large Language Models a Mirage?
+Goat: Fine-tuned LLaMA Outperforms GPT-4 on Arithmetic Tasks
+ThinkSum: Probabilistic reasoning over sets using large language models
+On the Tool Manipulation Capability of Open-source Large Language Models
+Prompt Programming for Large Language Models: Beyond the Few-Shot Paradigm
+WavJourney: Compositional Audio Creation with Large Language Models
+ChatGPT, Can You Generate Solutions for my Coding Exercises? An Evaluation on its Effectiveness in an undergraduate Java Programming Course
 Secrets of RLHF in Large Language Models Part I: PPO
+ProgPrompt: Generating Situated Robot Task Plans using Large Language Models
+One-for-All: Generalized LoRA for Parameter-Efficient Fine-tuning
+Prototypical Fine-tuning: Towards Robust Performance Under Varying Data Sizes
+SPOT: Knowledge-Enhanced Language Representations for Information Extraction
+Kosmos-2: Grounding Multimodal Large Language Models to the World
+Deep Language Networks: Joint Prompt Training of Stacked LLMs using Variational Inference
+SKILL: Structured Knowledge Infusion for Large Language Models
+Least-to-Most Prompting Enables Complex Reasoning in Large Language Models
+Understanding Social Reasoning in Language Models with Language Models
+The Science of Detecting LLM-Generated Texts
+CausalLM is not optimal for in-context learning
+Questioning the Survey Responses of Large Language Models
+Extending Context Window of Large Language Models via Positional Interpolation
+Probing Factually Grounded Content Transfer with Factual Ablation
+Teach LLMs to Personalize -- An Approach inspired by Writing Education
+Pre-Trained Large Language Models for Industrial Control
+WebGLM: Towards An Efficient Web-Enhanced Question Answering System with Human Preferences
+LongNet: Scaling Transformers to 1,000,000,000 Tokens
+Guiding Pretraining in Reinforcement Learning with Large Language Models
+Large Language Models are Zero-Shot Rankers for Recommender Systems
+Model evaluation for extreme risks
+Large Language Models Fail on Trivial Alterations to Theory-of-Mind Tasks
+SQL-PaLM: Improved Large Language Model Adaptation for Text-to-SQL
+Generative AI for Programming Education: Benchmarking ChatGPT, GPT-4, and Human Tutors
+Check Your Facts and Try Again: Improving Large Language Models with External Knowledge and Automated Feedback
+Stack More Layers Differently: High-Rank Training Through Low-Rank Updates
+TableGPT: Towards Unifying Tables, Nature Language and Commands into One GPT
+VNHSGE: VietNamese High School Graduation Examination Dataset for Large Language Models
+LLM-Adapters: An Adapter Family for Parameter-Efficient Fine-Tuning of Large Language Models
+PromptChainer: Chaining Large Language Model Prompts through Visual Programming
+PIPPA: A Partially Synthetic Conversational Dataset
 Let's Verify Step by Step
-Learning to Reason and Memorize with Self-Notes
-AGIEval: A Human-Centric Benchmark for Evaluating Foundation Models
-Large Language Models as Corporate Lobbyists
-Harnessing the Power of LLMs in Practice: A Survey on ChatGPT and Beyond
-Active Retrieval Augmented Generation
-Better Language Models of Code through Self-Improvement
-Prismer: A Vision-Language Model with An Ensemble of Experts
-Searching for Needles in a Haystack: On the Role of Incidental Bilingualism in PaLM's Translation Capability
-TidyBot: Personalized Robot Assistance with Large Language Models
-Unnatural Instructions: Tuning Language Models with (Almost) No Human Labor
-OpenICL: An Open-Source Framework for In-context Learning
-The Capacity for Moral Self-Correction in Large Language Models
-StructGPT: A General Framework for Large Language Model to Reason over Structured Data
-MultiModal-GPT: A Vision and Language Model for Dialogue with Humans
-Hyena Hierarchy: Towards Larger Convolutional Language Models
-Do the Rewards Justify the Means? Measuring Trade-Offs Between Rewards and Ethical Behavior in the MACHIAVELLI Benchmark
-MusicLM: Generating Music From Text
-Minding Language Models' (Lack of) Theory of Mind: A Plug-and-Play Multi-Character Belief Tracker
-Hungry Hungry Hippos: Towards Language Modeling with State Space Models
-Recitation-Augmented Language Models
-A Comprehensive Capability Analysis of GPT-3 and GPT-3.5 Series Models
-REPLUG: Retrieval-Augmented Black-Box Language Models
-PaLM-E: An Embodied Multimodal Language Model
-A Survey on Model Compression for Large Language Models
-Memory Augmented Large Language Models are Computationally Universal
-Poisoning Language Models During Instruction Tuning
-Active Prompting with Chain-of-Thought for Large Language Models
-Visual ChatGPT: Talking, Drawing and Editing with Visual Foundation Models
-GPTutor: a ChatGPT-powered programming tool for code explanation
-Evaluating ChatGPT's Information Extraction Capabilities: An Assessment of Performance, Explainability, Calibration, and Faithfulness
-LLaMA-Adapter: Efficient Fine-tuning of Language Models with Zero-init Attention
-Auditing large language models: a three-layered approach
-Artificial muses: Generative Artificial Intelligence Chatbots Have Risen to Human-Level Creativity
-Towards Expert-Level Medical Question Answering with Large Language Models
-PMC-LLaMA: Further Finetuning LLaMA on Medical Papers
-Why do Nearest Neighbor Language Models Work?
-Multimodal Chain-of-Thought Reasoning in Language Models
-Rethinking with Retrieval: Faithful Large Language Model Inference
-Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection
-Prompt2Model: Generating Deployable Models from Natural Language Instructions
-Scaling Transformer to 1M tokens and beyond with RMT
-SparseGPT: Massive Language Models Can Be Accurately Pruned in One-Shot
-A Categorical Archive of ChatGPT Failures
-Eight Things to Know about Large Language Models
-Emergence of Maps in the Memories of Blind Navigation Agents
-Augmented Language Models: a Survey
-DERA: Enhancing Large Language Model Completions with Dialog-Enabled Resolving Agents
-ChatDoctor: A Medical Chat Model Fine-Tuned on a Large Language Model Meta-AI (LLaMA) Using Medical Domain Knowledge
-ChemCrow: Augmenting large-language models with chemistry tools
-DetectGPT: Zero-Shot Machine-Generated Text Detection using Probability Curvature
-Larger language models do in-context learning differently
-UPRISE: Universal Prompt Retrieval for Improving Zero-Shot Evaluation
-DoReMi: Optimizing Data Mixtures Speeds Up Language Model Pretraining
-PanGu-Σ: Towards Trillion Parameter Language Model with Sparse Heterogeneous Computing
-ChatGPT: Applications, Opportunities, and Threats
-Unlimiformer: Long-Range Transformers with Unlimited Length Input
-Learning to Compress Prompts with Gist Tokens
-Enabling Conversational Interaction with Mobile UI using Large Language Models
-Evaluating Verifiability in Generative Search Engines
-Context-faithful Prompting for Large Language Models
+Evaluating Large Language Models on a Highly-specialized Topic, Radiation Oncology Physics
+Large Language Models Are Reasoning Teachers
+GrIPS: Gradient-free, Edit-based Instruction Search for Prompting Large Language Models
+Large Language Models as Tax Attorneys: A Case Study in Legal Capabilities Emergence
+Maieutic Prompting: Logically Consistent Reasoning with Recursive Explanations
+Connecting Neural Response measurements & Computational Models of language: a non-comprehensive guide
+Large Language Models for Supply Chain Optimization
+Do Large Language Models know what humans know?
+Large Language Models are Few-shot Testers: Exploring LLM-based General Bug Reproduction
+Faithful Chain-of-Thought Reasoning
+AI Chains: Transparent and Controllable Human-AI Interaction by Chaining Large Language Model Prompts
+Learning to Model the World with Language
+SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models
+Unifying Large Language Models and Knowledge Graphs: A Roadmap
+RAVEN: In-Context Learning with Retrieval Augmented Encoder-Decoder Language Models
+QLoRA: Efficient Finetuning of Quantized LLMs
+Trustworthy LLMs: a Survey and Guideline for Evaluating Large Language Models' Alignment
+Co-Writing with Opinionated Language Models Affects Users' Views
+Language models show human-like content effects on reasoning
+Thought Cloning: Learning to Think while Acting by Imitating Human Thinking
+Code Generation Tools (Almost) for Free? A Study of Few-Shot, Pre-Trained Language Models on Code
+OpenAGI: When LLM Meets Domain Experts
+Using Large Language Models to Simulate Multiple Humans and Replicate Human Subject Studies
+Bring Your Own Data! Self-Supervised Evaluation for Large Language Models
+Beyond Generating Code: Evaluating GPT on a Data Visualization Course
+Pythia: A Suite for Analyzing Large Language Models Across Training and Scaling
+UniversalNER: Targeted Distillation from Large Language Models for Open Named Entity Recognition
+LLM-Rec: Personalized Recommendation via Prompting Large Language Models
+Studying Large Language Model Generalization with Influence Functions
+Large Language Models Still Can't Plan (A Benchmark for LLMs on Planning and Reasoning about Change)
+From Sparse to Soft Mixtures of Experts
+A Simple and Effective Pruning Approach for Large Language Models
+Retroformer: Retrospective Large Language Agents with Policy Gradient Optimization
+INT2.1: Towards Fine-Tunable Quantized Large Language Models with Error Correction through Low-Rank Adaptation
+Code Prompting: a Neural Symbolic Method for Complex Reasoning in Large Language Models
+Large Language Model Guided Tree-of-Thought
+Open Problems and Fundamental Limitations of Reinforcement Learning from Human Feedback
+LoraHub: Efficient Cross-Task Generalization via Dynamic LoRA Composition
+When Geometric Deep Learning Meets Pretrained Protein Language Models
+Beyond Black Box AI-Generated Plagiarism Detection: From Sentence to Document Level
+Language models are weak learners
+How Many Demonstrations Do You Need for In-context Learning?
+Direct Preference Optimization: Your Language Model is Secretly a Reward Model
+TinyStories: How Small Can Language Models Be and Still Speak Coherent English?
+Gorilla: Large Language Model Connected with Massive APIs
+Automatic Generation of Programming Exercises and Code Explanations using Large Language Models
+Can ChatGPT Forecast Stock Price Movements? Return Predictability and Large Language Models
+Interactive Fashion Content Generation Using LLMs and Latent Diffusion Models
+WebArena: A Realistic Web Environment for Building Autonomous Agents
+Language Models can Solve Computer Tasks
+ChatGPT Is on the Horizon: Could a Large Language Model Be All We Need for Intelligent Transportation?
+Reprompting: Automated Chain-of-Thought Prompt Inference Through Gibbs Sampling
+Invariant Language Modeling
+Solving Quantitative Reasoning Problems with Language Models
+Personality Traits in Large Language Models
+Prompting Large Language Models with Speech Recognition Abilities
+Selective Annotation Makes Language Models Better Few-Shot Learners
+Accelerating LLM Inference with Staged Speculative Decoding
+Fine-Tuning Language Models with Just Forward Passes
+In-context Autoencoder for Context Compression in a Large Language Model
+Entity Projection via Machine Translation for Cross-Lingual NER
+OctoPack: Instruction Tuning Code Large Language Models
+AlpaGasus: Training A Better Alpaca with Fewer Data
+Enhancing Network Management Using Code Generated by Large Language Models
+Large Language Models Are Human-Level Prompt Engineers
+DeepSpeed-Chat: Easy, Fast and Affordable RLHF Training of ChatGPT-like Models at All Scales
+CascadER: Cross-Modal Cascading for Knowledge Graph Link Prediction
+WizardCoder: Empowering Code Large Language Models with Evol-Instruct
+FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning
+Identifying Mentions of Pain in Mental Health Records Text: A Natural Language Processing Approach
+Large Language Models Can Self-Improve
+Images in Language Space: Exploring the Suitability of Large Language Models for Vision & Language Tasks
+Describe, Explain, Plan and Select: Interactive Planning with Large Language Models Enables Open-World Multi-Task Agents
+Tool Documentation Enables Zero-Shot Tool-Usage with Large Language Models
+Teaching Algorithmic Reasoning via In-context Learning
+SelfCheck: Using LLMs to Zero-Shot Check Their Own Step-by-Step Reasoning
+BuboGPT: Enabling Visual Grounding in Multi-Modal LLMs
+The Larger They Are, the Harder They Fail: Language Models do not Recognize Identifier Swaps in Python
+Selection-Inference: Exploiting Large Language Models for Interpretable Logical Reasoning
+Shortcut Learning of Large Language Models in Natural Language Understanding
+KI-BERT: Infusing Knowledge Context for Better Language and Domain Understanding
+Plan-and-Solve Prompting: Improving Zero-Shot Chain-of-Thought Reasoning by Large Language Models
+Tree of Thoughts: Deliberate Problem Solving with Large Language Models
+Automatic Evaluation of Attribution by Large Language Models
+Generative Agents: Interactive Simulacra of Human Behavior
+ChatGPT and a New Academic Reality: Artificial Intelligence-Written Research Papers and the Ethics of the Large Language Models in Scholarly Publishing
+ALERT: Adapting Language Models to Reasoning Tasks
+How does the pre-training objective affect what large language models learn about linguistic properties?
+PanGu-Coder2: Boosting Large Language Models for Code with Ranking Feedback
+LLM-Planner: Few-Shot Grounded Planning for Embodied Agents with Large Language Models
+From Word Models to World Models: Translating from Natural Language to the Probabilistic Language of Thought
+Causal Reasoning and Large Language Models: Opening a New Frontier for Causality
+FLIRT: Feedback Loop In-context Red Teaming
+News Summarization and Evaluation in the Era of GPT-3
+Galactica: A Large Language Model for Science
+Towards Reasoning in Large Language Models: A Survey
+Chain-Of-Thought Prompting Under Streaming Batch: A Case Study
+Open-Source Large Language Models Outperform Crowd Workers and Approach ChatGPT in Text-Annotation Tasks
+Shepherd: A Critic for Language Model Generation
+Emergent autonomous scientific research capabilities of large language models
+Towards Language Models That Can See: Computer Vision Through the LENS of Natural Language
+Social Simulacra: Creating Populated Prototypes for Social Computing Systems
+HuggingGPT: Solving AI Tasks with ChatGPT and its Friends in Hugging Face
+LLMs as Workers in Human-Computational Algorithms? Replicating Crowdsourcing Pipelines with LLMs
+A Real-World WebAgent with Planning, Long Context Understanding, and Program Synthesis
+Universal and Transferable Adversarial Attacks on Aligned Language Models
+CodeGen2: Lessons for Training LLMs on Programming and Natural Languages
+Complexity-Based Prompting for Multi-Step Reasoning
+The RefinedWeb Dataset for Falcon LLM: Outperforming Curated Corpora with Web Data, and Web Data Only
+FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving Performance
+Scaling TransNormer to 175 Billion Parameters
+CodeTF: One-stop Transformer Library for State-of-the-art Code LLM
+A Stitch in Time Saves Nine: Detecting and Mitigating Hallucinations of LLMs by Validating Low-Confidence Generation
+Text-to-Audio Generation using Instruction-Tuned LLM and Latent Diffusion Model
+Challenges and Applications of Large Language Models
+Learning ASR pathways: A sparse multilingual ASR model
+Stay on topic with Classifier-Free Guidance
+Constitutional AI: Harmlessness from AI Feedback
+Causal-Discovery Performance of ChatGPT in the context of Neuropathic Pain Diagnosis
+Teaching Arithmetic to Small Transformers
+Performance of ChatGPT on USMLE: Unlocking the Potential of Large Language Models for AI-Assisted Medical Education
+Link-Context Learning for Multimodal LLMs
+Large Language Models Perform Diagnostic Reasoning
+InterCode: Standardizing and Benchmarking Interactive Coding with Execution Feedback
+AgentBench: Evaluating LLMs as Agents
+Demystifying GPT Self-Repair for Code Generation
+Self-Alignment with Instruction Backtranslation
+Simple synthetic data reduces sycophancy in large language models
+Is Your Code Generated by ChatGPT Really Correct? Rigorous Evaluation of Large Language Models for Code Generation
+ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs
+Beyond Chain-of-Thought, Effective Graph-of-Thought Reasoning in Large Language Models
+Large Language Models are Effective Text Rankers with Pairwise Ranking Prompting
+Adaptive Test Generation Using a Large Language Model
+Large Language Models Are Implicitly Topic Models: Explaining and Finding Good Demonstrations for In-Context Learning
+SelfCheckGPT: Zero-Resource Black-Box Hallucination Detection for Generative Large Language Models
+Teaching Large Language Models to Self-Debug
+Building Cooperative Embodied Agents Modularly with Large Language Models
+Urdu text in natural scene images: a new dataset and preliminary text detection
+LIMA: Less Is More for Alignment
+Leveraging Large Language Models for Topic Classification in the Domain of Public Affairs
+GPT-NER: Named Entity Recognition via Large Language Models
+Say What You Mean! Large Language Models Speak Too Positively about Negative Commonsense Knowledge
+Code as Policies: Language Model Programs for Embodied Control
+Solving Challenging Math Word Problems Using GPT-4 Code Interpreter with Code-based Self-Verification
+Summary of ChatGPT/GPT-4 Research and Perspective Towards the Future of Large Language Models
+Inspecting and Editing Knowledge Representations in Language Models
+TPTU: Task Planning and Tool Usage of Large Language Model-based AI Agents
+Large language models effectively leverage document-level context for literary translation, but critical errors persist
+Med-Flamingo: a Multimodal Medical Few-shot Learner
+Re-visiting Automated Topic Model Evaluation with Large Language Models
+Jigsaw: Large Language Models meet Program Synthesis
+Large Language Models Struggle to Learn Long-Tail Knowledge
+Llama 2: Open Foundation and Fine-Tuned Chat Models
+Textbooks Are All You Need
+Crowd Score: A Method for the Evaluation of Jokes using Large Language Model AI Voters as Judges
+From Pretraining Data to Language Models to Downstream Tasks: Tracking the Trails of Political Biases Leading to Unfair NLP Models
+CodeGen: An Open Large Language Model for Code with Multi-Turn Program Synthesis
+Orca: Progressive Learning from Complex Explanation Traces of GPT-4
+Skills-in-Context Prompting: Unlocking Compositionality in Large Language Models
+Three Bricks to Consolidate Watermarks for Large Language Models
+The Devil is in the Errors: Leveraging Large Language Models for Fine-grained Machine Translation Evaluation
+FLASK: Fine-grained Language Model Evaluation based on Alignment Skill Sets
+One-shot Machine Teaching: Cost Very Few Examples to Converge Faster
+Theory of Mind May Have Spontaneously Emerged in Large Language Models
+Chameleon: Plug-and-Play Compositional Reasoning with Large Language Models
+Language Models Don't Always Say What They Think: Unfaithful Explanations in Chain-of-Thought Prompting
+PaLM: Scaling Language Modeling with Pathways
+Tiny LVLM-eHub: Early Multimodal Experiments with Bard
+Language Is Not All You Need: Aligning Perception with Language Models
+Mind's Eye: Grounded Language Model Reasoning through Simulation
+StarCoder: may the source be with you!
+Self-Critique Prompting with Large Language Models for Inductive Instructions
+Repository-Level Prompt Generation for Large Language Models of Code
+L-Eval: Instituting Standardized Evaluation for Long Context Language Models
+Measuring and Narrowing the Compositionality Gap in Language Models
+Differentially Private Fine-tuning of Language Models
+Reflexion: Language Agents with Verbal Reinforcement Learning
+Ambient Adventures: Teaching ChatGPT on Developing Complex Stories
+LEACE: Perfect linear concept erasure in closed form
+Machine Psychology: Investigating Emergent Capabilities and Behavior in Large Language Models Using Psychological Methods
+A PhD Student's Perspective on Research in NLP in the Era of Very Large Language Models
+Voyager: An Open-Ended Embodied Agent with Large Language Models
+FinGPT: Open-Source Financial Large Language Models
+Block Belief Propagation for Parameter Learning in Markov Random Fields
+Lost in the Middle: How Language Models Use Long Contexts
+Artificial Artificial Artificial Intelligence: Crowd Workers Widely Use Large Language Models for Text Production Tasks
+Ada-Ranker: A Data Distribution Adaptive Ranking Paradigm for Sequential Recommendation
 Baize: An Open-Source Chat Model with Parameter-Efficient Tuning on Self-Chat Data
-LLM As DBA
-Symbol tuning improves in-context learning in language models
-Toolformer: Language Models Can Teach Themselves to Use Tools
+BOLAA: Benchmarking and Orchestrating LLM-augmented Autonomous Agents
+Skeleton-of-Thought: Large Language Models Can Do Parallel Decoding
+The Hydra Effect: Emergent Self-repair in Language Model Computations
+Educational data augmentation in physics education research using ChatGPT
+PolyLM: An Open Source Polyglot Large Language Model
+Is GPT-4 a Good Data Analyst?
+Principle-Driven Self-Alignment of Language Models from Scratch with Minimal Human Supervision
+Parsel: Algorithmic Reasoning with Language Models by Composing Decompositions
+ChatGPT is fun, but it is not funny! Humor is still challenging Large Language Models
+Seeing ChatGPT Through Students' Eyes: An Analysis of TikTok Data
+LLMs as Factual Reasoners: Insights from Existing Benchmarks and Beyond
+ReAct: Synergizing Reasoning and Acting in Language Models
+Augmenting Language Models with Long-Term Memory
+BloombergGPT: A Large Language Model for Finance
+A Systematic Evaluation of Large Language Models of Code
+GPTs are GPTs: An Early Look at the Labor Market Impact Potential of Large Language Models
+Robot Task Planning and Situation Handling in Open Worlds
+Large Language Models are Competitive Near Cold-start Recommenders for Language- and Item-based Preferences
+Emergent Abilities of Large Language Models
+Can Large Language Models design a Robot?
+KoLA: Carefully Benchmarking World Knowledge of Large Language Models
+Clinical Camel: An Open-Source Expert-Level Medical Language Model with Dialogue-Based Knowledge Encoding
+DarkBERT: A Language Model for the Dark Side of the Internet
+Measuring Faithfulness in Chain-of-Thought Reasoning
+Retentive Network: A Successor to Transformer for Large Language Models
+Dissociating language and thought in large language models: a cognitive perspective
+Large Language Models are Better Reasoners with Self-Verification
+Can large language models reason about medical questions?
+Towards Revealing the Mystery behind Chain of Thought: A Theoretical Perspective
+ARB: Advanced Reasoning Benchmark for Large Language Models
+Rethinking with Retrieval: Faithful Large Language Model Inference
+A Systematic Survey of Prompt Engineering on Vision-Language Foundation Models
+Becoming self-instruct: introducing early stopping criteria for minimal instruct tuning
+Explainable Verbal Reasoner Plus (EVR+): A Natural Language Reasoning Framework that Supports Diverse Compositional Reasoning
+Robots That Ask For Help: Uncertainty Alignment for Large Language Model Planners
+Large Language Models as Corporate Lobbyists
+MetaGPT: Meta Programming for Multi-Agent Collaborative Framework
+Data-Driven Approach for Formality-Sensitive Machine Translation: Language-Specific Handling and Synthetic Data Generation
+OpenFlamingo: An Open-Source Framework for Training Large Autoregressive Vision-Language Models
+Talking About Large Language Models
+Platypus: Quick, Cheap, and Powerful Refinement of LLMs
+Large Language Models Can Be Easily Distracted by Irrelevant Context
+Unleashing Cognitive Synergy in Large Language Models: A Task-Solving Agent through Multi-Persona Self-Collaboration
+OpenICL: An Open-Source Framework for In-context Learning
+Emergence of Maps in the Memories of Blind Navigation Agents
+PMC-LLaMA: Further Finetuning LLaMA on Medical Papers
+DoReMi: Optimizing Data Mixtures Speeds Up Language Model Pretraining
+LLaMA-Adapter: Efficient Fine-tuning of Language Models with Zero-init Attention
+UPRISE: Universal Prompt Retrieval for Improving Zero-Shot Evaluation
+Learning to Reason and Memorize with Self-Notes
+ChemCrow: Augmenting large-language models with chemistry tools
+Unnatural Instructions: Tuning Language Models with (Almost) No Human Labor
+Learning to Compress Prompts with Gist Tokens
+Unlimiformer: Long-Range Transformers with Unlimited Length Input
+StructGPT: A General Framework for Large Language Model to Reason over Structured Data
+ChatGPT: Applications, Opportunities, and Threats
+Memory Augmented Large Language Models are Computationally Universal
+PaLM-E: An Embodied Multimodal Language Model
+Harnessing the Power of LLMs in Practice: A Survey on ChatGPT and Beyond
+A Comprehensive Capability Analysis of GPT-3 and GPT-3.5 Series Models
+DetectGPT: Zero-Shot Machine-Generated Text Detection using Probability Curvature
+Auditing large language models: a three-layered approach
 Offsite-Tuning: Transfer Learning without Full Model
-Evidence of Meaning in Language Models Trained on Programs
-Giraffe: Adventures in Expanding Context Lengths in LLMs
-Data Selection for Language Models via Importance Resampling
+MusicLM: Generating Music From Text
+Context-faithful Prompting for Large Language Models
+SparseGPT: Massive Language Models Can Be Accurately Pruned in One-Shot
+Hungry Hungry Hippos: Towards Language Modeling with State Space Models
+The Costly Dilemma: Generalization, Evaluation and Cost-Optimal Deployment of Large Language Models
+GPTutor: a ChatGPT-powered programming tool for code explanation
+Larger language models do in-context learning differently
+MultiModal-GPT: A Vision and Language Model for Dialogue with Humans
+Minding Language Models' (Lack of) Theory of Mind: A Plug-and-Play Multi-Character Belief Tracker
 PaLM 2 Technical Report
+ChatDoctor: A Medical Chat Model Fine-Tuned on a Large Language Model Meta-AI (LLaMA) Using Medical Domain Knowledge
+Multimodal Chain-of-Thought Reasoning in Language Models
+Recitation-Augmented Language Models
+Hyena Hierarchy: Towards Larger Convolutional Language Models
+Eight Things to Know about Large Language Models
+PanGu-Σ: Towards Trillion Parameter Language Model with Sparse Heterogeneous Computing
+A Survey on Model Compression for Large Language Models
+Active Retrieval Augmented Generation
+Toolformer: Language Models Can Teach Themselves to Use Tools
+Evaluating Verifiability in Generative Search Engines
+Augmented Language Models: a Survey
+Towards Expert-Level Medical Question Answering with Large Language Models
+Evaluating ChatGPT's Information Extraction Capabilities: An Assessment of Performance, Explainability, Calibration, and Faithfulness
+Giraffe: Adventures in Expanding Context Lengths in LLMs
+LLM As DBA
+Scaling Transformer to 1M tokens and beyond with RMT
+TidyBot: Personalized Robot Assistance with Large Language Models
+Searching for Needles in a Haystack: On the Role of Incidental Bilingualism in PaLM's Translation Capability
+Active Prompting with Chain-of-Thought for Large Language Models
+A Categorical Archive of ChatGPT Failures
+Artificial muses: Generative Artificial Intelligence Chatbots Have Risen to Human-Level Creativity
+Better Language Models of Code through Self-Improvement
+The Capacity for Moral Self-Correction in Large Language Models
+Poisoning Language Models During Instruction Tuning
+Prompt2Model: Generating Deployable Models from Natural Language Instructions
+Data Selection for Language Models via Importance Resampling
+Enabling Conversational Interaction with Mobile UI using Large Language Models
+Evidence of Meaning in Language Models Trained on Programs
+Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection
+Visual ChatGPT: Talking, Drawing and Editing with Visual Foundation Models
+Do the Rewards Justify the Means? Measuring Trade-Offs Between Rewards and Ethical Behavior in the MACHIAVELLI Benchmark
+Algorithm of Thoughts: Enhancing Exploration of Ideas in Large Language Models
+DERA: Enhancing Large Language Model Completions with Dialog-Enabled Resolving Agents
+Symbol tuning improves in-context learning in language models
+REPLUG: Retrieval-Augmented Black-Box Language Models
+Why do Nearest Neighbor Language Models Work?
+Prismer: A Vision-Language Model with An Ensemble of Experts
+AGIEval: A Human-Centric Benchmark for Evaluating Foundation Models
+CALYPSO: LLMs as Dungeon Masters' Assistants
+Mind your Language (Model): Fact-Checking LLMs and their Role in NLP Research and Practice
+Code Llama: Open Foundation Models for Code
+Ground Manipulator Primitive Tasks to Executable Actions using Large Language Models
+Faithful to Whom? Questioning Interpretability Measures in NLP
+Evaluating Large Language Models on Graphs: Performance Insights and Comparative Analysis
+Halo: Estimation and Reduction of Hallucinations in Open-Source Weak Large Language Models
+Large Language Models on Wikipedia-Style Survey Generation: an Evaluation in NLP Concepts
+How Good Are Large Language Models at Out-of-Distribution Detection?
+Large Language Models Sensitivity to The Order of Options in Multiple-Choice Questions
+Can Large Language Models Find And Fix Vulnerable Software?
+Large Language Models for Software Engineering: A Systematic Literature Review
+Informed Named Entity Recognition Decoding for Generative Language Models
+Use of LLMs for Illicit Purposes: Threats, Prevention Measures, and Vulnerabilities
+Simple is Better and Large is Not Enough: Towards Ensembling of Foundational Language Models
+Better Zero-Shot Reasoning with Role-Play Prompting
+Exploring Equation as a Better Intermediate Meaning Representation for Numerical Reasoning
+Are ChatGPT and GPT-4 Good Poker Players? -- A Pre-Flop Analysis
+A Survey on Large Language Model based Autonomous Agents
+Using Large Language Models for Cybersecurity Capture-The-Flag Challenges and Certification Questions
+Anonymity at Risk? Assessing Re-Identification Capabilities of Large Language Models
+Evaluating ChatGPT and GPT-4 for Visual Programming
+Through the Lens of Core Competency: Survey on Evaluation of Large Language Models
+D4: Improving LLM Pretraining via Document De-Duplication and Diversification
+Cabrita: closing the gap for foreign languages
+ProAgent: Building Proactive Cooperative AI with Large Language Models
+Instruction Position Matters in Sequence Generation with Large Language Models
+Knowledge-Enhanced Multi-Label Few-Shot Product Attribute-Value Extraction
+SeamlessM4T-Massively Multilingual & Multimodal Machine Translation
+LegalBench: A Collaboratively Built Benchmark for Measuring Legal Reasoning in Large Language Models
+GPT-in-the-Loop: Adaptive Decision-Making for Multiagent Systems
+Large Language Model as Autonomous Decision Maker
+Large Language Models as Superpositions of Cultural Perspectives
+Activation Addition: Steering Language Models Without Optimization
+Enhancing Recommender Systems with Large Language Model Reasoning Graphs
+GPTEval: A Survey on Assessments of ChatGPT and GPT-4
+Forward-Backward Reasoning in Large Language Models for Verification
+Language as Reality: A Co-Creative Storytelling Game Experience in 1001 Nights using Generative AI
+Dynamic Planning with a LLM
+"Guinea Pig Trials" Utilizing GPT: A Novel Smart Agent-Based Modeling Approach for Studying Firm Competition and Collusion
+Tryage: Real-time, intelligent Routing of User Prompts to Large Language Models
+Bridging the Gap: Deciphering Tabular Data Using Large Language Model
+The Pile: An 800GB Dataset of Diverse Text for Language Modeling
+Prompting Is Programming: A Query Language for Large Language Models
+EasyEdit: An Easy-to-use Knowledge Editing Framework for Large Language Models
+Knowledge Graph Prompting for Multi-Document Question Answering
+GPT detectors are biased against non-native English writers
+GradientCoin: A Peer-to-Peer Decentralized Large Language Models
+RaLLe: A Framework for Developing and Evaluating Retrieval-Augmented Large Language Models
+IncreLoRA: Incremental Parameter Allocation Method for Parameter-Efficient Fine-tuning
+Time Travel in LLMs: Tracing Data Contamination in Large Language Models
+Can Language Models Learn to Listen?
+Detecting The Corruption Of Online Questionnaires By Artificial Intelligence
+Towards an Understanding of Large Language Models in Software Engineering Tasks
+Exploring Parameter-Efficient Fine-Tuning Techniques for Code Generation with Large Language Models
+An Examination of the Compositionality of Large Generative Vision-Language Models
+Company Similarity using Large Language Models
+LLM4TS: Two-Stage Fine-Tuning for Time-Series Forecasting with Pre-Trained LLMs
+Instruction Tuning for Large Language Models: A Survey
+Language to Rewards for Robotic Skill Synthesis
+A Study on Robustness and Reliability of Large Language Model Code Generation
+Leveraging Large Language Models for Pre-trained Recommender Systems
+Mind vs. Mouth: On Measuring Re-judge Inconsistency of Social Bias in Large Language Models
+SpikingBERT: Distilling BERT to Train Spiking Language Models Using Implicit Differentiation
+Is There Any Social Principle for LLM-Based Agents?
+Exploring the Intersection of Large Language Models and Agent-Based Modeling via Prompt Engineering
+DiagGPT: An LLM-based Chatbot with Automatic Topic Management for Task-Oriented Dialogue
+FoodGPT: A Large Language Model in Food Testing Domain with Incremental Pre-training and Knowledge Graph Prompt
+ChatEDA: A Large Language Model Powered Autonomous Agent for EDA
+Super-NaturalInstructions: Generalization via Declarative Instructions on 1600+ NLP Tasks

@@ -7,10 +7,12 @@ import warnings
 from dotenv import load_dotenv
 
 load_dotenv()
-PROJECT_PATH = os.getcwd()
+PROJECT_PATH = os.environ.get("PROJECT_PATH")
 COMFY_PATH = os.environ.get("COMFY_PATH")
 sys.path.append(COMFY_PATH)
 warnings.filterwarnings("ignore")
+
+import utils.paper_utils as pu
 
 from nodes import (
     KSampler,
@@ -67,8 +69,9 @@ def generate_image(name, img_file):
 
         cliptextencode = CLIPTextEncode()
         cliptextencode_7 = cliptextencode.encode(
-            text="low quality, ugly, distorted, blurry, deformed, watermark, text, " +
-                  "signature, depth of field, mandala, star map, photoreal, b&w, poker, modern, grainy",
+            text="low quality, ugly, distorted, blurry, deformed, watermark, " +
+                  "text, flow chart, signature, depth of field, " +
+                  "mandala, star map, photoreal, b&w, poker, modern, grainy",
             clip=get_value_at_index(loraloader_39, 1),
         )
 
@@ -131,17 +134,17 @@ def generate_image(name, img_file):
 
 def main():
     ## Load the mapping files.
-    with open("arxiv_code_map.json") as f:
-        title_dict = json.load(f)
-    img_dir = "imgs/"
+    codes = pu.get_arxiv_id_list(pu.db_params, "summaries")
+    title_dict = pu.get_arxiv_title_dict(pu.db_params)
+    img_dir = os.path.join(PROJECT_PATH, "imgs/")
 
-    for code, name in title_dict.items():
+    for idx, (code, name) in enumerate(title_dict.items()):
         img_file = img_dir + code + ".png"
         if os.path.exists(img_file):
             continue
         else:
             generate_image(name, img_file)
-            print(f"Saved {img_file}.")
+            print(f"Saved {img_file} ({idx+1}/{len(title_dict)})")
 
 
 if __name__ == "__main__":

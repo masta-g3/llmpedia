@@ -33,6 +33,9 @@ if "page_number" not in st.session_state:
 if "num_pages" not in st.session_state:
     st.session_state.num_pages = 0
 
+if 'arxiv_code' not in st.session_state:
+    st.session_state.arxiv_code = None
+
 st.markdown(
     """
     <style>
@@ -92,7 +95,10 @@ def combine_input_data():
     reviews_df = load_reviews()
     topics_df = load_topics()
     citations_df = load_citations()
-    papers_df = pd.concat([arxiv_df, reviews_df, topics_df, citations_df], axis=1).reset_index()
+    papers_df = reviews_df.join(arxiv_df, how="left")
+    papers_df = papers_df.join(topics_df, how="left")
+    papers_df = papers_df.join(citations_df, how="left")
+    papers_df["arxiv_code"] = papers_df.index
     papers_df["url"] = papers_df["arxiv_code"].map(
         lambda l: f"https://arxiv.org/abs/{l}"
     )
@@ -526,27 +532,7 @@ def main():
     papers = papers_df.to_dict("records")
 
     ## Content tabs.
-    content_tabs = st.tabs(["Papers", "Grid View", "Table View", "Summary"])
-
-    with content_tabs[3]:
-        ## Publication counts.
-        total_papers = len(papers_df)
-        st.markdown(f"### 📈 Publication Counts (Total Tracked: {total_papers})")
-        plot_type = st.radio(
-            label="Plot Type",
-            options=["Daily", "Cumulative"],
-            index=1,
-            label_visibility="collapsed",
-            horizontal=True,
-        )
-        cumulative = plot_type == "Cumulative"
-        ts_plot = plot_publication_counts(papers_df, cumulative=cumulative)
-        st.plotly_chart(ts_plot, use_container_width=True)
-
-        ## Cluster map.
-        st.markdown("### Topic Model Map")
-        cluster_map = plot_cluster_map(papers_df)
-        st.plotly_chart(cluster_map, use_container_width=True)
+    content_tabs = st.tabs(["Papers", "Grid View", "Table View", "Summary", "Focus"])
 
     with content_tabs[0]:
         if "page_number" not in st.session_state:
@@ -571,6 +557,35 @@ def main():
             papers_df[["title", "authors", "published", "updated", "citation_count", "category", "topic"]],
         )
 
+    with content_tabs[3]:
+        ## Publication counts.
+        total_papers = len(papers_df)
+        st.markdown(f"### 📈 Publication Counts (Total Tracked: {total_papers})")
+        plot_type = st.radio(
+            label="Plot Type",
+            options=["Daily", "Cumulative"],
+            index=1,
+            label_visibility="collapsed",
+            horizontal=True,
+        )
+        cumulative = plot_type == "Cumulative"
+        ts_plot = plot_publication_counts(papers_df, cumulative=cumulative)
+        st.plotly_chart(ts_plot, use_container_width=True)
+
+        ## Cluster map.
+        st.markdown("### Topic Model Map")
+        cluster_map = plot_cluster_map(papers_df)
+        st.plotly_chart(cluster_map, use_container_width=True)
+
+    with content_tabs[4]:
+        ## Focus on a paper.
+        arxiv_code = st.text_input("arXiv Code", "")
+        if len(arxiv_code) > 0:
+            if arxiv_code in papers_df.index:
+                paper = papers_df.loc[arxiv_code].to_dict()
+                create_paper_card(paper)
+            else:
+                st.error("Paper not found.")
 
 if __name__ == "__main__":
     main()

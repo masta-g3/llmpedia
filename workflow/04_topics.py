@@ -1,7 +1,17 @@
 import json
-import os
+import sys, os
 import pandas as pd
-from typing import Callable
+import re
+import openai
+import warnings
+from dotenv import load_dotenv
+
+load_dotenv()
+PROJECT_PATH = os.environ.get("PROJECT_PATH")
+sys.path.append(PROJECT_PATH)
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+warnings.filterwarnings("ignore")
+
 from umap import UMAP
 from bertopic import BERTopic
 from sentence_transformers import SentenceTransformer
@@ -11,13 +21,9 @@ from hdbscan import HDBSCAN
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 import nltk
-import re
-import openai
-from dotenv import load_dotenv
-import warnings
 
-warnings.filterwarnings("ignore")
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+import utils.paper_utils as pu
+db_params = pu.db_params
 
 ## Download necessary NLTK data.
 nltk.download("wordnet")
@@ -46,19 +52,12 @@ def _process_text(text: str, lemmatizer: WordNetLemmatizer, stop_words: list) ->
     )
     return text
 
-
-def load_title_map() -> dict:
-    """Load title map from json file."""
-    with open("arxiv_code_map.json") as f:
-        title_map = json.load(f)
-    return title_map
-
-
 def load_and_process_data(title_map: dict) -> pd.DataFrame:
     """Load and process data from json files, return DataFrame."""
     df = pd.DataFrame(columns=["title", "summary", "main_contribution", "takeaways"])
     for arxiv_code, title in title_map.items():
-        with open(f"summaries/{arxiv_code}.json") as f:
+        fpath = os.path.join(PROJECT_PATH, "summaries", f"{arxiv_code}.json")
+        with open(fpath) as f:
             summary = json.load(f)
         df.loc[arxiv_code] = [
             title,
@@ -145,12 +144,14 @@ def store_topics_and_embeddings(
     df["topic"] = clean_topic_names
     df["dim1"] = reduced_embeddings[:, 0]
     df["dim2"] = reduced_embeddings[:, 1]
-    df[["topic", "dim1", "dim2"]].to_pickle("data/topics.pkl")
+    topic_path = os.path.join(PROJECT_PATH, "data", "topics.pkl")
+    df[["topic", "dim1", "dim2"]].to_pickle(topic_path)
 
 
 def main():
     """Main function."""
-    title_map = load_title_map()
+    codes = pu.get_arxiv_id_list(db_params, "summaries")
+    title_map = pu.get_arxiv_title_dict(db_params)
     df = load_and_process_data(title_map)
     all_content, embedding_model, embeddings = create_embeddings(df)
     topic_model = create_topic_model(embedding_model, PROMPT, LEMMATIZER, STOP_WORDS)
