@@ -25,6 +25,7 @@ def main():
     for arxiv_code in arxiv_codes:
         if pu.check_in_db(arxiv_code, db_params, "semantic_details"):
             continue
+            # pu.remove_from_db(arxiv_code, db_params, "semantic_details")
 
         ## Get Semantic Scholar info.
         ss_info = pu.get_semantic_scholar_info(arxiv_code)

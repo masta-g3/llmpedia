@@ -59,7 +59,7 @@ def load_and_process_data(title_map: dict) -> pd.DataFrame:
         fpath = os.path.join(PROJECT_PATH, "summaries", f"{arxiv_code}.json")
         with open(fpath) as f:
             summary = json.load(f)
-        df.loc[arxiv_code] = [
+        df.loc[str(arxiv_code)] = [
             title,
             summary["Summary"],
             summary["main_contribution"],
@@ -86,10 +86,10 @@ def create_topic_model(
     """Create topic model."""
     load_dotenv()
     umap_model = UMAP(
-        n_neighbors=15, n_components=10, min_dist=0.0, metric="cosine", random_state=200
+        n_neighbors=10, n_components=8, min_dist=0.0, metric="cosine", random_state=200
     )
     hdbscan_model = HDBSCAN(
-        min_cluster_size=4,
+        min_cluster_size=5,
         metric="euclidean",
         cluster_selection_method="eom",
         prediction_data=False,
@@ -146,11 +146,14 @@ def store_topics_and_embeddings(
     df["dim2"] = reduced_embeddings[:, 1]
     topic_path = os.path.join(PROJECT_PATH, "data", "topics.pkl")
     df[["topic", "dim1", "dim2"]].to_pickle(topic_path)
+    df.index.name = "arxiv_code"
+    df.reset_index(inplace=True)
+    pu.upload_df_to_db(df[["arxiv_code", "topic", "dim1", "dim2"]],
+                       "topics", pu.db_params)
 
 
 def main():
     """Main function."""
-    codes = pu.get_arxiv_id_list(db_params, "summaries")
     title_map = pu.get_arxiv_title_dict(db_params)
     df = load_and_process_data(title_map)
     all_content, embedding_model, embeddings = create_embeddings(df)

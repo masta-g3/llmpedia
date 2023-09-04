@@ -34,7 +34,7 @@ if "num_pages" not in st.session_state:
     st.session_state.num_pages = 0
 
 if 'arxiv_code' not in st.session_state:
-    st.session_state.arxiv_code = None
+    st.session_state.arxiv_code = ""
 
 st.markdown(
     """
@@ -89,8 +89,6 @@ def load_citations():
 
 
 def combine_input_data():
-    with open("arxiv_code_map.json", "r") as f:
-        arxiv_code_map = json.load(f)
     arxiv_df = load_arxiv()
     reviews_df = load_reviews()
     topics_df = load_topics()
@@ -151,6 +149,7 @@ def plot_publication_counts(df: pd.DataFrame, cumulative=False) -> go.Figure:
 def plot_activity_map(df_year: pd.DataFrame) -> (go.Figure, pd.DataFrame):
     """ Creates a calendar heatmap plot along with corresponding map of dates in a DF. """
     colors = ["#003366", "#005599", "#0077CC", "#3399FF", "#66B2FF", "#99CCFF"]
+    colors = ["#994400", "#CC6600", "#FF8833", "#FFAA66", "#FFCC99"]
 
     week_max_dates = (
         df_year.groupby(df_year["published"].dt.isocalendar().week)["published"]
@@ -266,9 +265,12 @@ def get_similar_titles(
         return [], ""
 
 
-def create_paper_card(paper: Dict):
+def create_paper_card(paper: Dict, mode="preview"):
     """Creates card UI for paper details."""
     img_cols = st.columns((1, 3))
+    expanded = False
+    if mode == "open":
+        expanded = True
     paper_code = paper["arxiv_code"]
     try:
         img_cols[0].image(f"imgs/{paper_code}.png", use_column_width=True)
@@ -282,7 +284,7 @@ def create_paper_card(paper: Dict):
 
     paper_url = paper["url"]
     img_cols[1].markdown(
-        f'<h2><a href="{paper_url}" style="color: #2e8b57;">{paper_title}</a></h2>',
+        f'<h2><a href="{paper_url}" style="color: #FF4B4B;">{paper_title}</a></h2>',
         unsafe_allow_html=True,
     )
 
@@ -294,7 +296,7 @@ def create_paper_card(paper: Dict):
     img_cols[1].markdown(f"*{paper['authors']}*")
     img_cols[1].markdown(f"`{int(paper['citation_count'])} citations`")
 
-    with st.expander(f"💭 Abstract (arXiv:{paper_code})"):
+    with st.expander(f"💭 Abstract (arXiv:{paper_code})", expanded=expanded):
         st.markdown(paper["summary"])
 
     with st.expander(
@@ -302,11 +304,12 @@ def create_paper_card(paper: Dict):
     ):
         st.markdown(f"{paper['contribution_content']}")
 
-    with st.expander(f"✏️ **Takeaways** - {paper['takeaway_title']}"):
+    with st.expander(f"✏️ **Takeaways** - {paper['takeaway_title']}",
+                     expanded=expanded):
         st.markdown(f"{paper['takeaway_content']}")
         st.markdown(f"{paper['takeaway_example']}")
 
-    with st.expander("🥉 **GPT Assessments**"):
+    with st.expander("🥉 **GPT Assessments**", expanded=expanded):
         ## GPT Cluster category.
         st.markdown(f"**GPT Cluster Group**: {paper['topic']}")
 
@@ -341,10 +344,11 @@ def generate_grid_gallery(df, n_cols=5):
                         st.image(f"imgs/{df.iloc[i*n_cols+j]['arxiv_code']}.png")
                     except:
                         pass
-                    paper_url = df.iloc[i * n_cols + j]["url"]
+                    paper_code = df.iloc[i * n_cols + j]["arxiv_code"]
+                    paper_url = f"https://llmpedia.streamlit.app/?tab_num=3&arxiv_code={paper_code}"
                     paper_title = df.iloc[i * n_cols + j]["title"].replace("\n", "")
                     st.markdown(
-                        f'<h6><a href="{paper_url}" style="color: #2e8b57;">{paper_title}</a></h6>',
+                        f'<h6><a href="{paper_url}" style="color: #FF4B4B;">{paper_title}</a></h6>',
                         unsafe_allow_html=True,
                     )
                     last_updated = pd.to_datetime(
@@ -404,6 +408,12 @@ def create_bottom_navigation(label):
 
 
 def main():
+    ## URL info extraction.
+    url_query = st.experimental_get_query_params()
+    if "arxiv_code" in url_query:
+        arxiv_code = url_query["arxiv_code"][0]
+        st.session_state.arxiv_code = arxiv_code
+
     st.markdown(
         """<div class="pixel-font">LLMpedia</div>
     """,
@@ -532,7 +542,7 @@ def main():
     papers = papers_df.to_dict("records")
 
     ## Content tabs.
-    content_tabs = st.tabs(["Papers", "Grid View", "Table View", "Summary", "Focus"])
+    content_tabs = st.tabs(["Detailed View", "Grid View", "General Overview", "Focus"])
 
     with content_tabs[0]:
         if "page_number" not in st.session_state:
@@ -553,11 +563,6 @@ def main():
         create_bottom_navigation(label="grid")
 
     with content_tabs[2]:
-        st.data_editor(
-            papers_df[["title", "authors", "published", "updated", "citation_count", "category", "topic"]],
-        )
-
-    with content_tabs[3]:
         ## Publication counts.
         total_papers = len(papers_df)
         st.markdown(f"### 📈 Publication Counts (Total Tracked: {total_papers})")
@@ -577,15 +582,29 @@ def main():
         cluster_map = plot_cluster_map(papers_df)
         st.plotly_chart(cluster_map, use_container_width=True)
 
-    with content_tabs[4]:
+    with content_tabs[3]:
         ## Focus on a paper.
-        arxiv_code = st.text_input("arXiv Code", "")
+        arxiv_code = st.text_input("arXiv Code", st.session_state.arxiv_code)
+        st.session_state.arxiv_code = arxiv_code
         if len(arxiv_code) > 0:
             if arxiv_code in papers_df.index:
                 paper = papers_df.loc[arxiv_code].to_dict()
-                create_paper_card(paper)
+                create_paper_card(paper, mode="open")
             else:
                 st.error("Paper not found.")
+
+    ## URL tab selection.
+    if "tab_num" in url_query:
+        index_tab = int(url_query["tab_num"][0])
+        js = f"""
+        <script>
+            var tabs = window.parent.document.querySelectorAll("[id^='tabs-bui'][id$='-tab-{index_tab}']");
+            if (tabs.length > 0) {{
+                tabs[0].click();
+            }}
+        </script>
+        """
+        st.components.v1.html(js)
 
 if __name__ == "__main__":
     main()
