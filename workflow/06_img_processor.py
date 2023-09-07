@@ -134,7 +134,6 @@ def generate_image(name, img_file):
 
 def main():
     ## Load the mapping files.
-    codes = pu.get_arxiv_id_list(pu.db_params, "summaries")
     title_dict = pu.get_arxiv_title_dict(pu.db_params)
     img_dir = os.path.join(PROJECT_PATH, "imgs/")
 

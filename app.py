@@ -33,7 +33,7 @@ if "page_number" not in st.session_state:
 if "num_pages" not in st.session_state:
     st.session_state.num_pages = 0
 
-if 'arxiv_code' not in st.session_state:
+if "arxiv_code" not in st.session_state:
     st.session_state.arxiv_code = ""
 
 st.markdown(
@@ -147,7 +147,7 @@ def plot_publication_counts(df: pd.DataFrame, cumulative=False) -> go.Figure:
 
 
 def plot_activity_map(df_year: pd.DataFrame) -> (go.Figure, pd.DataFrame):
-    """ Creates a calendar heatmap plot along with corresponding map of dates in a DF. """
+    """Creates a calendar heatmap plot along with corresponding map of dates in a DF."""
     colors = ["#003366", "#005599", "#0077CC", "#3399FF", "#66B2FF", "#99CCFF"]
     colors = ["#994400", "#CC6600", "#FF8833", "#FFAA66", "#FFCC99"]
 
@@ -158,19 +158,25 @@ def plot_activity_map(df_year: pd.DataFrame) -> (go.Figure, pd.DataFrame):
         .tolist()
     )
 
-    padded_count = df_year.pivot_table(index='weekday', columns='week', values='Count', aggfunc='sum').fillna(0)
-    padded_date = df_year.pivot_table(index='weekday', columns='week', values='published', aggfunc='last').fillna(pd.NaT)
-    padded_date = padded_date.applymap(lambda x: x.strftime("%b %d") if pd.notna(x) else "")
+    padded_count = df_year.pivot_table(
+        index="weekday", columns="week", values="Count", aggfunc="sum"
+    ).fillna(0)
+    padded_date = df_year.pivot_table(
+        index="weekday", columns="week", values="published", aggfunc="last"
+    ).fillna(pd.NaT)
+    padded_date = padded_date.applymap(
+        lambda x: x.strftime("%b %d") if pd.notna(x) else ""
+    )
     padded_count = padded_count.iloc[::-1]
     padded_date = padded_date.iloc[::-1]
 
     fig = go.Figure(
         data=go.Heatmap(
-            z=padded_count.values, #df_year["Count"].values.reshape(54, 7).T,
-            x=padded_date.iloc[0].values, #df_year["weekday"].values.reshape(54, 7).T,
+            z=padded_count.values,  # df_year["Count"].values.reshape(54, 7).T,
+            x=padded_date.iloc[0].values,  # df_year["weekday"].values.reshape(54, 7).T,
             y=["Sun", "Sat", "Fri", "Thu", "Wed", "Tue", "Mon"],
             hoverongaps=False,
-            hovertext=padded_date.values, # df_year["hovertext"].values.reshape(53, 7).T,
+            hovertext=padded_date.values,  # df_year["hovertext"].values.reshape(53, 7).T,
             colorscale=colors,
             showscale=False,
         )
@@ -304,8 +310,9 @@ def create_paper_card(paper: Dict, mode="preview"):
     ):
         st.markdown(f"{paper['contribution_content']}")
 
-    with st.expander(f"✏️ **Takeaways** - {paper['takeaway_title']}",
-                     expanded=expanded):
+    with st.expander(
+        f"✏️ **Takeaways** - {paper['takeaway_title']}", expanded=expanded
+    ):
         st.markdown(f"{paper['takeaway_content']}")
         st.markdown(f"{paper['takeaway_example']}")
 
@@ -345,7 +352,13 @@ def generate_grid_gallery(df, n_cols=5):
                     except:
                         pass
                     paper_code = df.iloc[i * n_cols + j]["arxiv_code"]
-                    paper_url = f"https://llmpedia.streamlit.app/?tab_num=3&arxiv_code={paper_code}"
+                    focus_btn = st.button(
+                        "Focus", key=f"focus_{paper_code}", use_container_width=True
+                    )
+                    if focus_btn:
+                        st.session_state.arxiv_code = paper_code
+                        click_tab(3)
+                    paper_url = df.iloc[i * n_cols + j]["url"]
                     paper_title = df.iloc[i * n_cols + j]["title"].replace("\n", "")
                     st.markdown(
                         f'<h6><a href="{paper_url}" style="color: #FF4B4B;">{paper_title}</a></h6>',
@@ -405,6 +418,18 @@ def create_bottom_navigation(label):
             num_pages - 1, st.session_state.page_number + 1
         )
         st.experimental_rerun()
+
+
+def click_tab(tab_num):
+    js = f"""
+    <script>
+        var tabs = window.parent.document.querySelectorAll("[id^='tabs-bui'][id$='-tab-{tab_num}']");
+        if (tabs.length > 0) {{
+            tabs[0].click();
+        }}
+    </script>
+    """
+    st.components.v1.html(js)
 
 
 def main():
@@ -542,7 +567,7 @@ def main():
     papers = papers_df.to_dict("records")
 
     ## Content tabs.
-    content_tabs = st.tabs(["Detailed View", "Grid View", "General Overview", "Focus"])
+    content_tabs = st.tabs(["Paper View", "Grid View", "General Overview", "Focus"])
 
     with content_tabs[0]:
         if "page_number" not in st.session_state:
@@ -594,17 +619,18 @@ def main():
                 st.error("Paper not found.")
 
     ## URL tab selection.
-    if "tab_num" in url_query:
-        index_tab = int(url_query["tab_num"][0])
-        js = f"""
-        <script>
-            var tabs = window.parent.document.querySelectorAll("[id^='tabs-bui'][id$='-tab-{index_tab}']");
-            if (tabs.length > 0) {{
-                tabs[0].click();
-            }}
-        </script>
-        """
-        st.components.v1.html(js)
+    # if "tab_num" in url_query:
+    #     index_tab = int(url_query["tab_num"][0])
+    #     js = f"""
+    #     <script>
+    #         var tabs = window.parent.document.querySelectorAll("[id^='tabs-bui'][id$='-tab-{index_tab}']");
+    #         if (tabs.length > 0) {{
+    #             tabs[0].click();
+    #         }}
+    #     </script>
+    #     """
+    #     st.components.v1.html(js)
+
 
 if __name__ == "__main__":
     main()
