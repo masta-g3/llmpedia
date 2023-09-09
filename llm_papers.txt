@@ -465,3 +465,18 @@ Assigning AI: Seven Approaches for Students, with Prompts
 Conformal Prediction with Large Language Models for Multi-Choice Question Answering
 Attention: Marginal Probability is All You Need?
 Scissorhands: Exploiting the Persistence of Importance Hypothesis for LLM KV Cache Compression at Test Time
+MedAlign: A Clinician-Generated Dataset for Instruction Following with Electronic Medical Records
+Point-Bind & Point-LLM: Aligning Point Cloud with Multi-modality for 3D Understanding, Generation, and Instruction Following
+Jais and Jais-chat: Arabic-Centric Foundation and Instruction-Tuned Open Generative Large Language Models
+OmniQuant: Omnidirectionally Calibrated Quantization for Large Language Models
+LLaSM: Large Language and Speech Model
+LM-Infinite: Simple On-the-Fly Length Generalization for Large Language Models
+Can Programming Languages Boost Each Other via Instruction Tuning?
+The Belebele Benchmark: a Parallel Reading Comprehension Dataset in 122 Language Variants
+Efficient RLHF: Reducing the Memory Usage of PPO
+Universal Self-adaptive Prompting
+ModelScope-Agent: Building Your Customizable Agent System with Open-source Large Language Models
+Large Content And Behavior Models To Understand, Simulate, And Optimize Content And Behavior
+One Wide Feedforward is All You Need
+Better Zero-Shot Reasoning with Self-Adaptive Prompting
+BioCoder: A Benchmark for Bioinformatics Code Generation with Contextual Pragmatic Knowledge

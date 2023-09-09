@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 sys.path.append(os.environ.get("PROJECT_PATH"))
+os.chdir(os.environ.get("PROJECT_PATH"))
 
 import utils.paper_utils as pu
 

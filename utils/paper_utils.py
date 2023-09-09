@@ -68,7 +68,9 @@ def tfidf_similarity(title1, title2):
     """Compute cosine similarity of TF-IDF representation between 2 strings."""
     title1 = preprocess(title1)
     title2 = preprocess(title2)
-    vectorizer = TfidfVectorizer().fit_transform([title1, title2])
+    vectorizer = TfidfVectorizer(analyzer="char", ngram_range=(2, 3), use_idf=False).fit_transform(
+        [title1, title2]
+    )
     vectors = vectorizer.toarray()
     return cosine_similarity(vectors[0:1], vectors[1:2])[0][0]
 
@@ -136,7 +138,7 @@ def get_arxiv_id_list(db_params, table_name):
             return [row[0] for row in cur.fetchall()]
 
 
-def get_arxiv_title_dict(db_params):
+def get_arxiv_title_dict(db_params=db_params):
     """Get a list of all arxiv titles in the database."""
     with psycopg2.connect(**db_params) as conn:
         with conn.cursor() as cur:
@@ -181,8 +183,10 @@ def remove_from_db(arxiv_code, db_params, table_name):
 
 def upload_df_to_db(df, table_name, params):
     """Upload a dataframe to a database."""
-    db_url = f"postgresql+psycopg2://{params['user']}:{params['password']}"\
-             f"@{params['host']}:{params['port']}/{params['dbname']}"
+    db_url = (
+        f"postgresql+psycopg2://{params['user']}:{params['password']}"
+        f"@{params['host']}:{params['port']}/{params['dbname']}"
+    )
     engine = create_engine(db_url)
     df.to_sql(
         table_name, engine, if_exists="replace", index=False, index_label="arxiv_code"
