@@ -480,3 +480,91 @@ Large Content And Behavior Models To Understand, Simulate, And Optimize Content 
 One Wide Feedforward is All You Need
 Better Zero-Shot Reasoning with Self-Adaptive Prompting
 BioCoder: A Benchmark for Bioinformatics Code Generation with Contextual Pragmatic Knowledge
+XGen-7B Technical Report
+DoLa: Decoding by Contrasting Layers Improves Factuality in Large Language Models
+Graph of Thoughts: Solving Elaborate Problems with Large Language Models
+Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity
+AnomalyGPT: Detecting Industrial Anomalies using Large Vision-Language Models
+Scaling Autoregressive Multi-Modal Models: Pretraining and Instruction Tuning
+SoTaNa: The Open-Source Software Development Assistant
+GPT Can Solve Mathematical Problems Without a Calculator
+Physically Grounded Vision-Language Models for Robotic Manipulation
+FacTool: Factuality Detection in Generative AI -- A Tool Augmented Framework for Multi-Task and Multi-Domain Scenarios
+FLM-101B: An Open LLM and How to Train It with $100K Budget
+Neurons in Large Language Models: Dead, N-gram, Positional
+LMDX: Language Model-based Document Information Extraction and Localization
+Connecting Large Language Models with Evolutionary Algorithms Yields Powerful Prompt Optimizers
+The Languini Kitchen: Enabling Language Modelling Research at Different Scales of Compute
+TextBind: Multi-turn Interleaved Multimodal Instruction-following in the Wild
+Textbooks Are All You Need II: phi-1.5 technical report
+Replacing softmax with ReLU in Vision Transformers
+Investigating Answerability of LLMs for Long-Form Question Answering
+Vector Search with OpenAI Embeddings: Lucene Is All You Need
+Do Multilingual Language Models Think Better in English?
+The Rise and Potential of Large Language Model Based Agents: A Survey
+Uncovering mesa-optimization algorithms in Transformers
+Large Language Models for Compiler Optimization
+CulturaX: A Cleaned, Enormous, and Multilingual Dataset for Large Language Models in 167 Languages
+AstroLLaMA: Towards Specialized Foundation Models in Astronomy
+Compositional Foundation Models for Hierarchical Planning
+AgentVerse: Facilitating Multi-Agent Collaboration and Exploring Emergent Behaviors in Agents
+Sparse Autoencoders Find Highly Interpretable Features in Language Models
+DreamLLM: Synergistic Multimodal Comprehension and Creation
+Sorted LLaMA: Unlocking the Potential of Intermediate Layers of Large Language Models for Dynamic Inference Using Sorted Fine-Tuning (SoFT)
+Improving Language Models with Advantage-based Offline Policy Gradients
+Improving Factuality and Reasoning in Language Models through Multiagent Debate
+From Sparse to Dense: GPT-4 Summarization with Chain of Density Prompting
+BTLM-3B-8K: 7B Parameter Performance in a 3B Parameter Model
+Chain-of-Verification Reduces Hallucination in Large Language Models
+Skill-it! A Data-Driven Skills Framework for Understanding and Training Language Models
+Cure the headache of Transformers via Collinear Constrained Attention
+Are Large Language Model-based Evaluators the Solution to Scaling Up Multilingual Evaluation?
+Multimodal Foundation Models: From Specialists to General-Purpose Assistants
+Struc-Bench: Are Large Language Models Really Good at Generating Complex Structured Data?
+No Train No Gain: Revisiting Efficient Training Algorithms For Transformer-based Language Models
+LASER: LLM Agent with State-Space Exploration for Web Navigation
+An Empirical Study of Scaling Instruct-Tuned Large Multimodal Models
+Optimize Weight Rounding via Signed Gradient Descent for the Quantization of LLMs
+MetaMath: Bootstrap Your Own Mathematical Questions for Large Language Models
+Baichuan 2: Open Large-scale Language Models
+Tensor Programs V: Tuning Large Neural Networks via Zero-Shot Hyperparameter Transfer
+Efficient Benchmarking (of Language Models)
+Context is Environment
+Boolformer: Symbolic Regression of Logic Functions with Transformers
+Analyzing Transformer Dynamics as Movement through Embedding Space
+RMT: Retentive Networks Meet Vision Transformers
+Stack-and-Delay: a new codebook pattern for music generation
+Large Language Model for Science: A Study on P vs. NP
+A Latent Space Theory for Emergent Abilities in Large Language Models
+LMSYS-Chat-1M: A Large-Scale Real-World LLM Conversation Dataset
+Data Augmentation for Spoken Language Understanding via Pretrained Language Models
+DrugChat: Towards Enabling ChatGPT-Like Capabilities on Drug Molecule Graphs
+Petals: Collaborative Inference and Fine-tuning of Large Models
+Scaling Laws for Sparsely-Connected Foundation Models
+PDFTriage: Question Answering over Long, Structured Documents
+Statistical Rejection Sampling Improves Preference Optimization
+Pretraining on the Test Set Is All You Need
+Stabilizing RLHF through Advantage Model and Selective Rehearsal
+MADLAD-400: A Multilingual And Document-Level Large Audited Dataset
+Leveraging Contextual Information for Effective Entity Salience Detection
+NExT-GPT: Any-to-Any Multimodal LLM
+Are Emergent Abilities in Large Language Models just In-Context Learning?
+Large-Scale Automatic Audiobook Creation
+Recovering from Privacy-Preserving Masking with Large Language Models
+Mobile V-MoEs: Scaling Down Vision Transformers via Sparse Mixture-of-Experts
+Topic Discovery via Latent Space Clustering of Pretrained Language Model Representations
+Scaling Clinical Trial Matching Using Large Language Models: A Case Study in Oncology
+What In-Context Learning "Learns" In-Context: Disentangling Task Recognition and Task Learning
+RAIN: Your Language Models Can Align Themselves without Finetuning
+When Less is More: Investigating Data Pruning for Pretraining LLMs at Scale
+Hypothesis Search: Inductive Reasoning with Language Models
+Agents: An Open-source Framework for Autonomous Language Agents
+A Paradigm Shift in Machine Translation: Boosting Translation Performance of Large Language Models
+Gated recurrent neural networks discover attention
+Contrastive Decoding Improves Reasoning in Large Language Models
+Kosmos-2.5: A Multimodal Literate Model
+Clinical Text Summarization: Adapting Large Language Models Can Outperform Human Experts
+FIAT: Fusing learning paradigms with Instruction-Accelerated Tuning
+LongLoRA: Efficient Fine-tuning of Long-Context Large Language Models
+Adapting Large Language Models via Reading Comprehension
+MindAgent: Emergent Gaming Interaction

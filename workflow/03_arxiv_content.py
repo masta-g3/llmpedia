@@ -17,10 +17,11 @@ def main():
     items_added = 0
     for k, v in arxiv_code_map.items():
         if os.path.exists(f"../data/arxiv/{k}.txt"):
-            print(f"File {k} already exists.")
+            # print(f"File {k} already exists.")
             continue
+
         docs = ArxivLoader(
-            query=pu.preprocess(v), load_max_docs=3, doc_content_chars_max=int(1e10)
+            query=k, load_max_docs=3, doc_content_chars_max=int(1e10)
         ).load()
         docs = sorted(
             docs,

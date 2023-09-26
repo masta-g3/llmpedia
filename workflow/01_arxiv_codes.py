@@ -10,15 +10,6 @@ os.chdir(os.environ.get("PROJECT_PATH"))
 
 import utils.paper_utils as pu
 
-db_params = {
-    "dbname": os.environ["DB_NAME"],
-    "user": os.environ["DB_USER"],
-    "password": os.environ["DB_PASS"],
-    "host": os.environ["DB_HOST"],
-    "port": os.environ["DB_PORT"],
-}
-
-
 import ast
 
 def convert_string_to_dict(s):
@@ -56,17 +47,22 @@ def rename_file(fname: str, arxiv_code: str):
 
 def main():
     """Load summaries and add missing ones."""
-    titles = list(pu.get_arxiv_title_dict(db_params).values())
-
+    titles = list(pu.get_arxiv_title_dict(pu.db_params).values())
     fnames = [f for f in os.listdir("summaries") if ".json" in f]
     added_summaries = 0
     added_arxiv = 0
     errors = 0
+
     for fname in fnames:
+        arxiv_code = fname.replace(".json", "")
         with open(f"summaries/{fname}", "r") as f:
             content = f.read().strip()
         data = json.loads(content)
         data = convert_innert_dict_strings_to_actual_dicts(data)
+        if "applied_example" in data["takeaways"]:
+            data["takeaways"]["example"] = data["takeaways"]["applied_example"]
+            del data["takeaways"]["applied_example"]
+
 
         data_title = data.get("Title", None)
         if data_title is None:
@@ -74,15 +70,18 @@ def main():
             print(f"ERROR: JSON file {fname} does not contain a title.")
             continue
 
-        ## Check similarity against all titles
-        title_sim = [pu.tfidf_similarity(data_title, t) for t in titles]
-        if max(title_sim) > 0.9:
+        ## Check similarity against all titles.
+        pu.vectorizer.fit_transform([data_title] + titles)
+        title_sim = pu.compute_optimized_similarity(data_title, titles)
+        # title_sim = [pu.tfidf_similarity(data_title, t) for t in titles]
+        if max(title_sim) > 0.95:
+            print(f"ERROR: '{data_title}' is too similar to an existing title.")
             continue
 
         ## Get code.
-        arxiv_info = pu.get_arxiv_info(data_title)
+        arxiv_info = pu.get_arxiv_info(arxiv_code, data_title)
         if arxiv_info is None:
-            print(f"ERROR: Could not find {data_title} in Arxiv. Please verify.")
+            print(f"ERROR: Could not find '{data_title}' in Arxiv. Please verify.")
             errors += 1
             continue
         arxiv_url = arxiv_info.entry_id
@@ -90,25 +89,26 @@ def main():
         data["arxiv_code"] = arxiv_code
 
         ## Store summary.
-        if not pu.check_in_db(arxiv_code, db_params, "summaries"):
+        if not pu.check_in_db(arxiv_code, pu.db_params, "summaries"):
             flat_entries = pu.transform_flat_dict(
                 pu.flatten_dict(data), pu.summary_col_mapping
             )
-            pu.upload_to_db(flat_entries, db_params, "summaries")
-            print(f"Added {data_title} to summaries table.")
+            pu.upload_to_db(flat_entries, pu.db_params, "summaries")
+            print(f"Added '{data_title}' to summaries table.")
             added_summaries += 1
 
         ## Extract arxiv info.
-        if not pu.check_in_db(arxiv_code, db_params, "arxiv_details"):
+        if not pu.check_in_db(arxiv_code, pu.db_params, "arxiv_details"):
             ## Store in DB.
             processed_data = pu.process_arxiv_data(arxiv_info._raw)
-            pu.store_local(arxiv_info._raw, arxiv_code, "arxiv_objects")
-            pu.upload_to_db(processed_data, db_params, "arxiv_details")
-            print(f"Added {data_title} to arxiv_details table.")
+            pu.store_local(arxiv_info._raw, arxiv_code, "arxiv_meta")
+            pu.upload_to_db(processed_data, pu.db_params, "arxiv_details")
+            print(f"Added '{data_title}' to arxiv_details table.")
+            added_arxiv += 1
 
         ## Rename file if needed.
-        if arxiv_code not in fname:
-            rename_file(fname, arxiv_code)
+        # if arxiv_code not in fname:
+            # rename_file(fname, arxiv_code)
 
     print(
         f"Process complete. Added {added_summaries} summaries and {added_arxiv} arxiv entries."

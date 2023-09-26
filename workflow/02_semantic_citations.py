@@ -1,6 +1,6 @@
 import sys, os
 from dotenv import load_dotenv
-import json
+import random
 
 load_dotenv()
 sys.path.append(os.environ.get("PROJECT_PATH"))
@@ -24,9 +24,11 @@ def main():
     errors = 0
     for arxiv_code in arxiv_codes:
         if pu.check_in_db(arxiv_code, db_params, "semantic_details"):
-            continue
-            # pu.remove_from_db(arxiv_code, db_params, "semantic_details")
-            # print(f"Removed {arxiv_code} from semantic_details.")
+            if random.random() < 0.8:
+                continue
+            else:
+                pu.remove_from_db(arxiv_code, db_params, "semantic_details")
+                print(f"Removed {arxiv_code} from semantic_details.")
 
         ## Get Semantic Scholar info.
         ss_info = pu.get_semantic_scholar_info(arxiv_code)
@@ -36,7 +38,7 @@ def main():
             continue
         ss_info = pu.transform_flat_dict(pu.flatten_dict(ss_info), semantic_map)
         ss_info["arxiv_code"] = arxiv_code
-        pu.store_local(ss_info, arxiv_code, "semantic_objects")
+        pu.store_local(ss_info, arxiv_code, "semantic_meta")
         pu.upload_to_db(ss_info, db_params, "semantic_details")
         items_added += 1
         print(f"Added {arxiv_code} to semantic_details.")

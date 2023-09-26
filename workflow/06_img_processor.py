@@ -84,7 +84,7 @@ def generate_image(name, img_file):
         vaeloader_48 = vaeloader.load_vae(vae_name="sdxl.vae.safetensors")
 
         cliptextencode_102 = cliptextencode.encode(
-            text=f'"{name}", tarot and computers',
+            text=f'"{name}", tarot and computers, pixel art',
             clip=get_value_at_index(loraloader_39, 1),
         )
 

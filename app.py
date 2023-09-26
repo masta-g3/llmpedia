@@ -220,7 +220,7 @@ def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
 def load_data():
     """Load data from compiled dataframe."""
     result_df = combine_input_data()
-    result_df = result_df[result_df["published"] >= "2021-01-01"]
+    # result_df = result_df[result_df["published"] >= "2021-01-01"]
 
     ## Remapping with emotion.
     classification_map = {
@@ -360,8 +360,16 @@ def generate_grid_gallery(df, n_cols=5):
                         click_tab(3)
                     paper_url = df.iloc[i * n_cols + j]["url"]
                     paper_title = df.iloc[i * n_cols + j]["title"].replace("\n", "")
+                    star_count = df.iloc[i * n_cols + j]["influential_citation_count"] > 0
+                    publish_date = pd.to_datetime(
+                        df.iloc[i * n_cols + j]["published"]
+                    ).strftime("%B %d, %Y")
+                    star = ""
+                    if star_count:
+                        star = "⭐️"
+                    st.code(f"{star} {publish_date}", language="html")
                     st.markdown(
-                        f'<h6><a href="{paper_url}" style="color: #FF4B4B;">{paper_title}</a></h6>',
+                        f'<h6 style="text-align: center"><a href="{paper_url}" style="color: #FF4B4B;">{paper_title}</a></h6>',
                         unsafe_allow_html=True,
                     )
                     last_updated = pd.to_datetime(
@@ -567,9 +575,9 @@ def main():
     papers = papers_df.to_dict("records")
 
     ## Content tabs.
-    content_tabs = st.tabs(["Paper View", "Grid View", "General Overview", "Focus"])
+    content_tabs = st.tabs(["Grid View", "Feed View", "Over View", "Focus View"])
 
-    with content_tabs[0]:
+    with content_tabs[1]:
         if "page_number" not in st.session_state:
             st.session_state.page_number = 0
 
@@ -579,7 +587,7 @@ def main():
             create_paper_card(paper)
         create_bottom_navigation(label="summaries")
 
-    with content_tabs[1]:
+    with content_tabs[0]:
         if "page_number" not in st.session_state:
             st.session_state.page_number = 0
 
