@@ -12,12 +12,14 @@ import utils.paper_utils as pu
 
 import ast
 
+
 def convert_string_to_dict(s):
     try:
         # Try to convert the string representation of a dictionary to an actual dictionary
         return ast.literal_eval(s)
     except (SyntaxError, ValueError):
         return s
+
 
 def convert_innert_dict_strings_to_actual_dicts(data):
     if isinstance(data, str):
@@ -32,6 +34,7 @@ def convert_innert_dict_strings_to_actual_dicts(data):
         return data
     else:
         return data
+
 
 def rename_file(fname: str, arxiv_code: str):
     """Rename file to Arxiv code."""
@@ -48,21 +51,23 @@ def rename_file(fname: str, arxiv_code: str):
 def main():
     """Load summaries and add missing ones."""
     titles = list(pu.get_arxiv_title_dict(pu.db_params).values())
-    fnames = [f for f in os.listdir("summaries") if ".json" in f]
+    local_paper_codes = os.path.join(
+        os.environ.get("PROJECT_PATH"), "data", "summaries"
+    )
+    fnames = [f for f in os.listdir(local_paper_codes) if ".json" in f]
     added_summaries = 0
     added_arxiv = 0
     errors = 0
 
     for fname in fnames:
         arxiv_code = fname.replace(".json", "")
-        with open(f"summaries/{fname}", "r") as f:
+        with open(os.path.join(local_paper_codes, fname), "r") as f:
             content = f.read().strip()
         data = json.loads(content)
         data = convert_innert_dict_strings_to_actual_dicts(data)
         if "applied_example" in data["takeaways"]:
             data["takeaways"]["example"] = data["takeaways"]["applied_example"]
             del data["takeaways"]["applied_example"]
-
 
         data_title = data.get("Title", None)
         if data_title is None:
@@ -75,7 +80,7 @@ def main():
         title_sim = pu.compute_optimized_similarity(data_title, titles)
         # title_sim = [pu.tfidf_similarity(data_title, t) for t in titles]
         if max(title_sim) > 0.95:
-            print(f"ERROR: '{data_title}' is too similar to an existing title.")
+            # print(f"ERROR: '{data_title}' is too similar to an existing title.")
             continue
 
         ## Get code.
@@ -108,7 +113,7 @@ def main():
 
         ## Rename file if needed.
         # if arxiv_code not in fname:
-            # rename_file(fname, arxiv_code)
+        # rename_file(fname, arxiv_code)
 
     print(
         f"Process complete. Added {added_summaries} summaries and {added_arxiv} arxiv entries."

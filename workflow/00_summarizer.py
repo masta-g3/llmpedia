@@ -85,7 +85,7 @@ def main():
 
             ## Check if we have a summary locally.
             local_paper_codes = os.path.join(
-                os.environ.get("PROJECT_PATH"), "summaries"
+                os.environ.get("PROJECT_PATH"), "data", "summaries"
             )
             local_paper_codes = [
                 f.split(".json")[0] for f in os.listdir(local_paper_codes)
@@ -112,8 +112,9 @@ def main():
                     summary = chain.run(content)
                     success = True
                     break
-                except:
+                except Exception as e:
                     print(f"\nFailed to run LLM for '{paper_name}'. Attempt {i+1}/3.")
+                    print(e)
                     continue
             if not success:
                 print(f"Failed to run LLM for '{paper_name}'. Skipping...")

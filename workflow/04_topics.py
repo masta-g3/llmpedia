@@ -56,7 +56,7 @@ def load_and_process_data(title_map: dict) -> pd.DataFrame:
     """Load and process data from json files, return DataFrame."""
     df = pd.DataFrame(columns=["title", "summary", "main_contribution", "takeaways"])
     for arxiv_code, title in title_map.items():
-        fpath = os.path.join(PROJECT_PATH, "summaries", f"{arxiv_code}.json")
+        fpath = os.path.join(PROJECT_PATH, "data", "summaries", f"{arxiv_code}.json")
         with open(fpath) as f:
             summary = json.load(f)
         df.loc[str(arxiv_code)] = [
@@ -75,7 +75,7 @@ def create_embeddings(df: pd.DataFrame) -> tuple:
         df[content_cols].apply(lambda x: "\n".join(x.astype(str)), axis=1).to_dict()
     )
     all_content = list(df_dict.values())
-    embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+    embedding_model = SentenceTransformer("barisaydin/gte-large")
     embeddings = embedding_model.encode(all_content, show_progress_bar=True)
     return all_content, embedding_model, embeddings
 
@@ -149,7 +149,7 @@ def store_topics_and_embeddings(
     df.index.name = "arxiv_code"
     df.reset_index(inplace=True)
     pu.upload_df_to_db(df[["arxiv_code", "topic", "dim1", "dim2"]],
-                       "topics", pu.db_params)
+                       "topics", pu.db_params, if_exists="replace")
 
 
 def main():

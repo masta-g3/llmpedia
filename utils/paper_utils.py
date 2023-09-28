@@ -12,6 +12,7 @@ from langchain.document_loaders import ArxivLoader
 
 
 PROJECT_PATH = os.environ.get("PROJECT_PATH")
+DATA_PATH = os.path.join(PROJECT_PATH, "data")
 
 db_params = {
     "dbname": os.environ["DB_NAME"],
@@ -44,7 +45,7 @@ vectorizer = TfidfVectorizer(analyzer="char", ngram_range=(2, 3), use_idf=False)
 def store_local(data, arxiv_code, data_path, relative=True, format="json"):
     """Store data locally."""
     if relative:
-        data_path = os.path.join(PROJECT_PATH, data_path)
+        data_path = os.path.join(DATA_PATH, data_path)
     if format == "json":
         with open(os.path.join(data_path, f"{arxiv_code}.json"), "w") as f:
             json.dump(data, f)
@@ -89,7 +90,7 @@ def search_arxiv_doc(paper_name):
     new_title = docs[0].metadata["Title"]
     title_sim = tfidf_similarity(paper_name, new_title)
     if title_sim < 0.7:
-        print(f"No similar title name found for {paper_name}.")
+        # print(f"No similar title name found for {paper_name}.")
         return None
 
     return docs[0]
@@ -246,7 +247,7 @@ def remove_from_db(arxiv_code, db_params, table_name):
             cur.execute(f"DELETE FROM {table_name} WHERE arxiv_code = '{arxiv_code}'")
 
 
-def upload_df_to_db(df, table_name, params):
+def upload_df_to_db(df, table_name, params, if_exists="append"):
     """Upload a dataframe to a database."""
     db_url = (
         f"postgresql+psycopg2://{params['user']}:{params['password']}"
@@ -254,7 +255,7 @@ def upload_df_to_db(df, table_name, params):
     )
     engine = create_engine(db_url)
     df.to_sql(
-        table_name, engine, if_exists="append", index=False, method="multi", chunksize=10
+        table_name, engine, if_exists=if_exists, index=False, method="multi", chunksize=10
     )
 
     ## Commit.

@@ -479,7 +479,9 @@ def main():
         step=1,
     )
     search_term = st.sidebar.text_input("Search", "")
-    title_only = st.sidebar.checkbox("Title Only", value=False)
+    search_opt_cols = st.sidebar.columns((1, 1))
+    title_only = search_opt_cols[0].checkbox("`Title Only`", value=False)
+    code_only = search_opt_cols[1].checkbox("`Arxiv Code`", value=False)
     categories = st.sidebar.multiselect(
         "Categories",
         list(papers_df["category"].unique()),
@@ -508,6 +510,11 @@ def main():
     if len(search_term) > 0 and title_only:
         search_term = search_term.lower()
         papers_df = papers_df[papers_df["title"].str.lower().str.contains(search_term)]
+    elif len(search_term) > 0 and code_only:
+        search_term = search_term.lower()
+        papers_df = papers_df[
+            papers_df["arxiv_code"].str.lower().str.contains(search_term)
+        ]
     elif len(search_term) > 0:
         search_term = search_term.lower()
         papers_df = papers_df[
@@ -577,6 +584,14 @@ def main():
     ## Content tabs.
     content_tabs = st.tabs(["Grid View", "Feed View", "Over View", "Focus View"])
 
+    with content_tabs[0]:
+        if "page_number" not in st.session_state:
+            st.session_state.page_number = 0
+
+        papers_df_subset = create_pagination(papers_df, items_per_page=25, label="grid")
+        generate_grid_gallery(papers_df_subset)
+        create_bottom_navigation(label="grid")
+
     with content_tabs[1]:
         if "page_number" not in st.session_state:
             st.session_state.page_number = 0
@@ -586,14 +601,6 @@ def main():
         for paper in papers_subset:
             create_paper_card(paper)
         create_bottom_navigation(label="summaries")
-
-    with content_tabs[0]:
-        if "page_number" not in st.session_state:
-            st.session_state.page_number = 0
-
-        papers_df_subset = create_pagination(papers_df, items_per_page=25, label="grid")
-        generate_grid_gallery(papers_df_subset)
-        create_bottom_navigation(label="grid")
 
     with content_tabs[2]:
         ## Publication counts.

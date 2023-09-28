@@ -1,3 +1,4 @@
 .streamlit/secrets.toml
 .env
 */__pycache__/
+data/

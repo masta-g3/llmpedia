@@ -334,6 +334,7 @@ Query2doc: Query Expansion with Large Language Models
 The Internal State of an LLM Knows When its Lying
 Structured information extraction from complex scientific text with fine-tuned large language models
 TrueTeacher: Learning Factual Consistency Evaluation with Large Language Models
+Sparks of Artificial General Intelligence: Early experiments with GPT-4
 Large Language Models Encode Clinical Knowledge
 Towards Expert-Level Medical Question Answering with Large Language Models
 PoET: A generative model of protein families as sequences-of-sequences
@@ -492,6 +493,7 @@ Physically Grounded Vision-Language Models for Robotic Manipulation
 FacTool: Factuality Detection in Generative AI -- A Tool Augmented Framework for Multi-Task and Multi-Domain Scenarios
 FLM-101B: An Open LLM and How to Train It with $100K Budget
 Neurons in Large Language Models: Dead, N-gram, Positional
+Exploring Large Language Models' Cognitive Moral Development through Defining Issues Test
 LMDX: Language Model-based Document Information Extraction and Localization
 Connecting Large Language Models with Evolutionary Algorithms Yields Powerful Prompt Optimizers
 The Languini Kitchen: Enabling Language Modelling Research at Different Scales of Compute
@@ -568,3 +570,19 @@ FIAT: Fusing learning paradigms with Instruction-Accelerated Tuning
 LongLoRA: Efficient Fine-tuning of Long-Context Large Language Models
 Adapting Large Language Models via Reading Comprehension
 MindAgent: Emergent Gaming Interaction
+AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration
+Efficient Post-training Quantization with FP8 Formats
+Taken out of context: On measuring situational awareness in LLMs
+DeepSpeed-VisualChat: Multi-Round Multi-Image Interleave Chat via Multi-Modal Causal Attention
+The Reversal Curse: LLMs trained on "A is B" fail to learn "B is A"
+Curriculum Learning with Adam: The Devil Is in the Wrong Details
+OWL: A Large Language Model for IT Operations
+Faith and Fate: Limits of Transformers on Compositionality
+CodePlan: Repository-level Coding using LLMs and Planning
+AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework
+GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers
+Efficient Memory Management for Large Language Model Serving with PagedAttention
+Attention Satisfies: A Constraint-Satisfaction Lens on Factual Errors of Language Models
+Reasoning or Reciting? Exploring the Capabilities and Limitations of Language Models Through Counterfactual Tasks
+SCREWS: A Modular Framework for Reasoning with Revisions
+Small-scale proxies for large-scale Transformer training instabilities

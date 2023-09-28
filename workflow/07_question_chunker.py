@@ -60,67 +60,66 @@ def main():
     arxiv_pending = list(set(arxiv_local) - set(arxiv_done))
     print(f"Found {len(arxiv_pending)} papers pending.")
 
-    fname = fnames[3]
+    for fname in tqdm(fnames[6:20]):
+        ## Open doc and meta_data.
+        arxiv_code = fname.replace(".txt", "")
+        doc_txt = pu.load_local(arxiv_code, data_path, False, "txt")
+        doc_meta = pu.load_local(arxiv_code, meta_path, False, "json")
+        authors_str = f"{doc_meta['authors'][0]['name']}, et al."
+        year_str = doc_meta["published"][:4]
+        doc_texts = text_splitter.split_text(doc_txt)
+        doc_chunks = doc_texts[1:-1]
 
-    ## Open doc and meta_data.
-    arxiv_code = fname.replace(".txt", "")
-    doc_txt = pu.load_local(arxiv_code, data_path, False, "txt")
-    doc_meta = pu.load_local(arxiv_code, meta_path, False, "json")
-    authors_str = f"{doc_meta['authors'][0]['name']}, et al."
-    year_str = doc_meta["published"][:4]
-    doc_texts = text_splitter.split_text(doc_txt)
-    doc_chunks = doc_texts[1:-1]
-    
-    print(len(doc_chunks))
-    print(f"(Authors: {authors_str}, Year: {year_str})")
+        print(len(doc_chunks))
+        print(f"(Authors: {authors_str}, Year: {year_str})")
 
-    ## Run through Q&A pipeline.
-    doc_qna_list = []
-    
-    with get_openai_callback() as cb:
-        for tid, text in tqdm(enumerate(doc_chunks), total=len(doc_chunks)):
-            args = {
-                "authors": authors_str,
-                "year": year_str,
-                "arxiv_code": arxiv_code,
-                "text_chunk": text,
-            }
-            result_dict = chain(args)
-            qna_list = json.loads(result_dict["function"].json())["qna_pairs"]
-            [q.update({"chunk_id": tid}) for q in qna_list]
-            [q.update({"question_id": i}) for i, q in enumerate(qna_list)]
-            doc_qna_list.extend(qna_list)
+        ## Run through Q&A pipeline.
+        doc_qna_list = []
 
-    ## Price logging.
-    print(cb)
+        with get_openai_callback() as cb:
+            for tid, text in tqdm(enumerate(doc_chunks), total=len(doc_chunks)):
+                args = {
+                    "authors": authors_str,
+                    "year": year_str,
+                    "arxiv_code": arxiv_code,
+                    "text_chunk": text,
+                }
+                result_dict = chain(args)
+                qna_list = json.loads(result_dict["function"].json())["qna_pairs"]
+                [q.update({"chunk_id": tid}) for q in qna_list]
+                [q.update({"question_id": i}) for i, q in enumerate(qna_list)]
+                doc_qna_list.extend(qna_list)
 
-    ## Store QnA in DB.
-    doc_qna_df = pd.DataFrame.from_dict(doc_qna_list)
-    doc_qna_df["arxiv_code"] = arxiv_code
-    doc_qna_df["chunk_id"] = doc_qna_df["chunk_id"].astype(int)
-    doc_qna_df["question_id"] = doc_qna_df["question_id"].astype(int)
-    doc_qna_df["question"] = doc_qna_df["question"].str.replace("According to the LLM literature, ", "")
-    doc_qna_df["question"] = doc_qna_df["question"].apply(lambda x: x[0].upper() + x[1:] if x else x)
-    doc_qna_df["answer"] = doc_qna_df["answer"].str.replace("According to the LLM literature, ", "")
-    doc_qna_df["answer"] = doc_qna_df["answer"].apply(lambda x: x[0].upper() + x[1:] if x else x)
-    pu.upload_df_to_db(doc_qna_df, "arxiv_qna", pu.db_params)
+        ## Price logging.
+        print(cb)
 
-    ## Store QnA in JSON.
-    doc_qna_list_final = doc_qna_df.to_dict(orient="records")
-    pu.store_local(doc_qna_list_final, arxiv_code, qna_path, relative=False)
-    print(f"Stored {len(doc_qna_list_final)} Q&A pairs for {arxiv_code}.")
+        ## Store QnA in DB.
+        doc_qna_df = pd.DataFrame.from_dict(doc_qna_list)
+        doc_qna_df["arxiv_code"] = arxiv_code
+        doc_qna_df["chunk_id"] = doc_qna_df["chunk_id"].astype(int)
+        doc_qna_df["question_id"] = doc_qna_df["question_id"].astype(int)
+        doc_qna_df["question"] = doc_qna_df["question"].str.replace("According to the LLM literature, ", "")
+        doc_qna_df["question"] = doc_qna_df["question"].apply(lambda x: x[0].upper() + x[1:] if x else x)
+        doc_qna_df["answer"] = doc_qna_df["answer"].str.replace("According to the LLM literature, ", "")
+        doc_qna_df["answer"] = doc_qna_df["answer"].apply(lambda x: x[0].upper() + x[1:] if x else x)
+        pu.upload_df_to_db(doc_qna_df, "arxiv_qna", pu.db_params)
 
-    ## Store document chunks in DB.
-    doc_chunks_df = pd.DataFrame.from_dict(doc_chunks)
-    doc_chunks_df["arxiv_code"] = arxiv_code
-    doc_chunks_df["chunk_id"] = doc_chunks_df.index
-    doc_chunks_df.columns = ["text", "arxiv_code", "chunk_id"]
-    pu.upload_df_to_db(doc_chunks_df, "arxiv_chunks", pu.db_params)
+        ## Store QnA in JSON.
+        doc_qna_list_final = doc_qna_df.to_dict(orient="records")
+        pu.store_local(doc_qna_list_final, arxiv_code, qna_path, relative=False)
+        print(f"Stored {len(doc_qna_list_final)} Q&A pairs for {arxiv_code}.")
 
-    ## Store document chunks in JSON.
-    doc_chunks_list = doc_chunks_df.to_dict(orient="records")
-    pu.store_local(doc_chunks_list, arxiv_code, chunk_path, relative=False)
-    print(f"Stored {len(doc_chunks_list)} chunks for {arxiv_code}.")
+        ## Store document chunks in DB.
+        doc_chunks_df = pd.DataFrame.from_dict(doc_chunks)
+        doc_chunks_df["arxiv_code"] = arxiv_code
+        doc_chunks_df["chunk_id"] = doc_chunks_df.index
+        doc_chunks_df.columns = ["text", "arxiv_code", "chunk_id"]
+        pu.upload_df_to_db(doc_chunks_df, "arxiv_chunks", pu.db_params)
+
+        ## Store document chunks in JSON.
+        doc_chunks_list = doc_chunks_df.to_dict(orient="records")
+        pu.store_local(doc_chunks_list, arxiv_code, chunk_path, relative=False)
+        print(f"Stored {len(doc_chunks_list)} chunks for {arxiv_code}.")
 
 if __name__ == "__main__":
     main()

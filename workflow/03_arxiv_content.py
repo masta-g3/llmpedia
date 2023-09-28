@@ -8,6 +8,7 @@ sys.path.append(os.environ.get("PROJECT_PATH"))
 import utils.paper_utils as pu
 
 db_params = pu.db_params
+data_path = os.path.join(os.environ.get("PROJECT_PATH"), "data")
 
 
 def main():
@@ -16,7 +17,7 @@ def main():
 
     items_added = 0
     for k, v in arxiv_code_map.items():
-        if os.path.exists(f"../data/arxiv/{k}.txt"):
+        if os.path.exists(os.path.join(data_path, "arxiv_text", f"{k}.txt")):
             # print(f"File {k} already exists.")
             continue
 
@@ -34,8 +35,7 @@ def main():
             print(f"No matching title found for {v}. Most similar: {new_title}")
             continue
         doc_content = docs[0].page_content
-        with open(f"../data/arxiv/{k}.txt", "w") as f:
-            f.write(doc_content)
+        pu.store_local(doc_content, k, "arxiv_text", True, "txt")
         print(f"File {k} saved.")
         items_added += 1
 
