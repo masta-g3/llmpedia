@@ -494,6 +494,7 @@ FacTool: Factuality Detection in Generative AI -- A Tool Augmented Framework for
 FLM-101B: An Open LLM and How to Train It with $100K Budget
 Neurons in Large Language Models: Dead, N-gram, Positional
 Exploring Large Language Models' Cognitive Moral Development through Defining Issues Test
+Qwen Technical Report
 LMDX: Language Model-based Document Information Extraction and Localization
 Connecting Large Language Models with Evolutionary Algorithms Yields Powerful Prompt Optimizers
 The Languini Kitchen: Enabling Language Modelling Research at Different Scales of Compute
@@ -586,3 +587,25 @@ Attention Satisfies: A Constraint-Satisfaction Lens on Factual Errors of Languag
 Reasoning or Reciting? Exploring the Capabilities and Limitations of Language Models Through Counterfactual Tasks
 SCREWS: A Modular Framework for Reasoning with Revisions
 Small-scale proxies for large-scale Transformer training instabilities
+Effective Long-Context Scaling of Foundation Models
+VideoDirectorGPT: Consistent Multi-scene Video Generation via LLM-Guided Planning
+AnyMAL: An Efficient and Scalable Any-Modality Augmented Language Model
+Language models in molecular discovery
+Calibrating LLM-Based Evaluator
+Ambiguity-Aware In-Context Learning with Large Language Models
+An Empirical Study on Challenging Math Problem Solving with GPT-4
+GPT-Fathom: Benchmarking Large Language Models to Decipher the Evolutionary Path towards GPT-4 and Beyond
+Vision Transformers Need Registers
+Enhancing Zero-Shot Chain-of-Thought Reasoning in Large Language Models through Logic
+AutoCLIP: Auto-tuning Zero-Shot Classifiers for Vision-Language Models
+QA-LoRA: Quantization-Aware Low-Rank Adaptation of Large Language Models
+Low-rank Adaptation of Large Language Model Rescoring for Parameter-Efficient Speech Recognition
+Evaluating Cognitive Maps and Planning in Large Language Models with CogEval
+Language Modeling Is Compression
+Graph Neural Prompting with Large Language Models
+MentalLLaMA: Interpretable Mental Health Analysis on Social Media with Large Language Models
+Aligning Large Multimodal Models with Factually Augmented RLHF
+Large Language Models as Optimizers
+SlimPajama-DC: Understanding Data Combinations for LLM Training
+Jointly Training Large Autoregressive Multimodal Models
+Finite Scalar Quantization: VQ-VAE Made Simple

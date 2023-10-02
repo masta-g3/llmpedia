@@ -1,15 +1,20 @@
 import os
 import re, json
+import demjson
 import arxiv
 import requests
 import psycopg2
+import pandas as pd
+import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sqlalchemy import create_engine
 from concurrent.futures import ThreadPoolExecutor
+import dotenv
 
 from langchain.document_loaders import ArxivLoader
 
+dotenv.load_dotenv()
 
 PROJECT_PATH = os.environ.get("PROJECT_PATH")
 DATA_PATH = os.path.join(PROJECT_PATH, "data")
@@ -38,10 +43,82 @@ summary_col_mapping = {
     "enjoyable_analysis": "enjoyable_analysis",
 }
 
-
+##################
+## TXT ANALYSIS ##
+##################
 vectorizer = TfidfVectorizer(analyzer="char", ngram_range=(2, 3), use_idf=False)
 
 
+def tfidf_similarity(title1, title2, fitted=False):
+    """Compute cosine similarity of TF-IDF representation between 2 strings."""
+    title1 = preprocess(title1)
+    title2 = preprocess(title2)
+    if not fitted:
+        vectors = vectorizer.fit_transform([title1, title2])
+    else:
+        vectors = vectorizer.transform([title1, title2])
+    return cosine_similarity(vectors[0:1], vectors[1:2])[0][0]
+
+
+def compute_optimized_similarity(data_title, titles):
+    """Multithreading TF-IDF similarity computation."""
+    with ThreadPoolExecutor() as executor:
+        futures = [
+            executor.submit(tfidf_similarity, data_title, title, True)
+            for title in titles
+        ]
+    return [future.result() for future in futures]
+
+
+def dict_similarity_matrix(doc_dict, ignore_columns=["Published"]):
+    """Compute similarity matrix (DF) for elements in a dictionary."""
+    df = pd.DataFrame.from_dict(doc_dict, orient="index").T
+    df = df[[c for c in df.columns if not c.endswith("_score")]]
+    df.drop(columns=ignore_columns, inplace=True)
+
+    num_text_columns = len(df.columns)
+    similarity_matrix = np.zeros((num_text_columns, num_text_columns))
+
+    for i, col1 in enumerate(df.columns):
+        for j, col2 in enumerate(df.columns):
+            if i >= j:
+                continue
+            a = str(df[col1].values[0])
+            b = str(df[col2].values[0])
+            if len(a) < 10 or len(b) < 10:
+                continue
+            similarity_score = tfidf_similarity(a, b)
+            similarity_matrix[i, j] = similarity_score
+            similarity_matrix[j, i] = similarity_score
+
+    similarity_df = pd.DataFrame(
+        similarity_matrix, index=df.columns, columns=df.columns
+    )
+
+    return similarity_df
+
+
+def get_high_similarity_pairs(similarity_df, x):
+    """
+    Returns a list of tuples containing pairs of columns and their
+    similarity score where the similarity score is greater than x.
+    Input is a similarity DF.
+    """
+    high_similarity_pairs = []
+    cols = similarity_df.columns
+    for i in range(len(cols)):
+        for j in range(i + 1, len(cols)):
+            if similarity_df.iloc[i, j] > x:
+                high_similarity_pairs.append(
+                    ((cols[i], cols[j]), similarity_df.iloc[i, j])
+                )
+
+    return high_similarity_pairs
+
+
+#####################
+## LOCAL DATA MGMT ##
+#####################
 def store_local(data, arxiv_code, data_path, relative=True, format="json"):
     """Store data locally."""
     if relative:
@@ -70,46 +147,9 @@ def load_local(arxiv_code, data_path, relative=True, format="json"):
         raise ValueError("Format not supported.")
 
 
-def search_arxiv_doc(paper_name):
-    """Search for a paper in Arxiv and return the most similar one."""
-    docs = ArxivLoader(
-        query=preprocess(paper_name),
-        doc_content_chars_max=70000,
-        load_all_available_meta=True,
-        load_max_docs=2,
-    ).load()
-
-    if len(docs) == 0:
-        return None
-
-    docs = sorted(
-        docs,
-        key=lambda x: tfidf_similarity(paper_name, x.metadata["Title"]),
-        reverse=True,
-    )
-    new_title = docs[0].metadata["Title"]
-    title_sim = tfidf_similarity(paper_name, new_title)
-    if title_sim < 0.7:
-        # print(f"No similar title name found for {paper_name}.")
-        return None
-
-    return docs[0]
-
-
-def preprocess_arxiv_doc(doc, token_encoder=None):
-    """Preprocess an Arxiv document."""
-    doc_content = reformat_text(doc.page_content)
-    if len(doc_content.split("References")) == 2:
-        doc_content = doc_content.split("References")[0]
-
-    if token_encoder:
-        ntokens_doc = len(token_encoder.encode(doc_content))
-        if ntokens_doc > 12000:
-            doc_content = doc_content[:int(12000*3.2)]
-
-    return doc_content
-
-
+#####################
+## DATA PROCESSING ##
+#####################
 def reformat_text(doc_content):
     """Clean and simplify text string."""
     content = doc_content.replace("-\n", "")
@@ -122,6 +162,11 @@ def preprocess(text):
     """Clean and simplify text string."""
     text = "".join(c.lower() if c.isalnum() else " " for c in text)
     return text
+
+def is_arxiv_code(s):
+    """Check if a string is an Arxiv code."""
+    pattern = re.compile(r'^\d{4}\.\d+$')
+    return bool(pattern.match(s))
 
 
 def flatten_dict(d, parent_key="", sep="_"):
@@ -141,25 +186,67 @@ def transform_flat_dict(flat_data, mapping):
     return {mapping[k]: flat_data[k] for k in mapping if k in flat_data}
 
 
-def tfidf_similarity(title1, title2, fitted=False):
-    """Compute cosine similarity of TF-IDF representation between 2 strings."""
-    title1 = preprocess(title1)
-    title2 = preprocess(title2)
-    if not fitted:
-        vectors = vectorizer.fit_transform([title1, title2])
+def clean_fnc_call(json_str):
+    """Parse and re-encode the JSON string using demjson."""
+    decoded_json = demjson.decode(json_str, strict=False)["output"]
+    corrected_json_str = demjson.encode(decoded_json)
+    return corrected_json_str
+
+
+#################
+## ARXIV TOOLS ##
+#################
+def search_arxiv_doc(paper_name):
+    """Search for a paper in Arxiv and return the most similar one."""
+    is_code = is_arxiv_code(paper_name)
+    max_docs = 1
+    abs_check = True
+    if not is_code:
+        max_docs = 3
+        abs_check = False
+        paper_name = preprocess(paper_name)
+    docs = ArxivLoader(
+        query=paper_name,
+        doc_content_chars_max=70000,
+        load_all_available_meta=True,
+        load_max_docs=max_docs,
+    ).load()
+
+    if len(docs) == 0:
+        return None
+
+    if abs_check:
+        ## Arxiv code must match exactly.
+        arxiv_code = docs[0].metadata["entry_id"].split("/")[-1]
+        if paper_name not in arxiv_code:
+            return None
     else:
-        vectors = vectorizer.transform([title1, title2])
-    return cosine_similarity(vectors[0:1], vectors[1:2])[0][0]
+        ## Title must be highly similar.
+        docs = sorted(
+            docs,
+            key=lambda x: tfidf_similarity(paper_name, x.metadata["Title"]),
+            reverse=True,
+        )
+        new_title = docs[0].metadata["Title"]
+        title_sim = tfidf_similarity(paper_name, new_title)
+        if title_sim < 0.8:
+            return None
+
+    return docs[0]
 
 
-def compute_optimized_similarity(data_title, titles):
-    """ Multithreading TF-IDF similarity computation. """
-    with ThreadPoolExecutor() as executor:
-        futures = [
-            executor.submit(tfidf_similarity, data_title, title, True)
-            for title in titles
-        ]
-    return [future.result() for future in futures]
+def preprocess_arxiv_doc(doc, token_encoder=None):
+    """Preprocess an Arxiv document."""
+    doc_content = reformat_text(doc.page_content)
+    if len(doc_content.split("References")) == 2:
+        doc_content = doc_content.split("References")[0]
+
+    if token_encoder:
+        ntokens_doc = len(token_encoder.encode(doc_content))
+        if ntokens_doc > 11000:
+            doc_content = doc_content[: int(11000 * 3)] + "... [truncated]"
+
+    return doc_content
 
 
 def get_arxiv_info(arxiv_code, title):
@@ -255,7 +342,12 @@ def upload_df_to_db(df, table_name, params, if_exists="append"):
     )
     engine = create_engine(db_url)
     df.to_sql(
-        table_name, engine, if_exists=if_exists, index=False, method="multi", chunksize=10
+        table_name,
+        engine,
+        if_exists=if_exists,
+        index=False,
+        method="multi",
+        chunksize=10,
     )
 
     ## Commit.

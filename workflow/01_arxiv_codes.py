@@ -51,6 +51,7 @@ def rename_file(fname: str, arxiv_code: str):
 def main():
     """Load summaries and add missing ones."""
     titles = list(pu.get_arxiv_title_dict(pu.db_params).values())
+    codes = list(pu.get_arxiv_title_dict(pu.db_params).keys())
     local_paper_codes = os.path.join(
         os.environ.get("PROJECT_PATH"), "data", "summaries"
     )
@@ -61,6 +62,10 @@ def main():
 
     for fname in fnames:
         arxiv_code = fname.replace(".json", "")
+        if arxiv_code in codes:
+            # print(f"Skipping '{fname}' as it is already in the database.")
+            continue
+
         with open(os.path.join(local_paper_codes, fname), "r") as f:
             content = f.read().strip()
         data = json.loads(content)
@@ -80,7 +85,7 @@ def main():
         title_sim = pu.compute_optimized_similarity(data_title, titles)
         # title_sim = [pu.tfidf_similarity(data_title, t) for t in titles]
         if max(title_sim) > 0.95:
-            # print(f"ERROR: '{data_title}' is too similar to an existing title.")
+            print(f"ERROR: '{data_title}' is too similar to an existing title.")
             continue
 
         ## Get code.

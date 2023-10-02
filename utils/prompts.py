@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from langchain.prompts import PromptTemplate
 
 ################
 ## SUMMARIZER ##
@@ -44,25 +45,19 @@ class PaperReview(BaseModel):
 summarizer_system_prompt = """
 As an applied AI researcher specialized in the field of Large Language Models (LLMs), you are currently conducting a survey of the literature, building a catalogue of the main contributions and innovations of each paper, determining how they can be applied to build systems or create new products. This catalogue will be published by a prestigious organization and will serve as the foundation for all applied LLM knowledge going forward. Now, carefully read the following paper:
 
-SUMMARY
-
-{prev_summary}
-
-========================
-
 WHITEPAPER
 
 {content}
 
+========================
 
 Now answer the following questions:
 
 1. What is the `main_contribution` of this paper? (1 line headline + 8-12 sentences)
-    - If a new algorithm or technique is introduced, describe its workings clearly and step by step.
+    - Be precise. If a new algorithm or technique is introduced, describe its workings clearly and step by step.
     - Do not assume that the reader knows the meaning of new terminology presented in the paper or complex concepts. 
     - Ensure that your answer provides practical insights that offer a solid understanding of the paper.
-    - Detail the benefits or advantages of what has been presented, along with the practical implications for an LLM practitioner.
-    - Do not include anything already discussed in the summary or abstract.
+    - Detail the benefits or advantages of these contributions, along with the real world implications for an LLM practitioner.
 
 2. What is the main `takeaway`? (1 line headline + 8-12 sentences)
     - Focusing on the paper's contributions, explain how they can be used to create an interesting LLM application, improve current workflows, or increase efficiency when working with LLMs.
@@ -95,9 +90,9 @@ Now answer the following questions:
     c) A non-enjoyable paper is difficult to read, poorly written, and lacks meaningful, practical, and insightful content.
 
 When assigning numerical ratings consider these guidelines:
-- Rating 3/3: Only about 20% of papers reach this standard.
-- Rating 2/3: Most papers (50%) fall into this category.
-- Rating 1/3: Around 30% of papers belong to this category.
+- Rating 3/3: (EXCEPTIONAL) Only 10% of papers fall into this category.
+- Rating 2/3: (COMMON) Most papers (50%) fall into this category.
+- Rating 1/3: (RARE) Around 40% of papers belong to this category.
 
 Do not repeat the same comments across different answers. Make your "applied_example" different from the ones presented in the paper, and headlines different from the title. Make sure your answers are coherent, clear and truthful.
 
@@ -325,3 +320,14 @@ YOUR TURN
 Here are five question-answer pairs based on the paper, without referencing it directly:
 
 Q1: According to the LLM literature,"""
+
+
+NAIVE_JSON_FIX = """Instructions:
+--------------
+The following JSON is not valid. Please fix it and resubmit.
+
+{completion}
+--------------
+"""
+
+naive_json_fix_prompt = PromptTemplate.from_template(NAIVE_JSON_FIX)

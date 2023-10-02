@@ -17,3 +17,5 @@ torchsde~=0.2.5
 einops~=0.6.1
 transformers>=4.25.1
 safetensors>=0.3.0
+demjson~=2.2.4
+setuptools~=57.5.0

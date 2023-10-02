@@ -8,10 +8,12 @@ os.chdir(os.environ.get("PROJECT_PATH"))
 import re, json
 from tqdm import tqdm
 import tiktoken
+import copy
 
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain.callbacks import get_openai_callback
+from langchain.output_parsers.openai_functions import PydanticOutputFunctionsParser
 from langchain.chains.openai_functions import (
     create_structured_output_chain,
 )
@@ -24,7 +26,25 @@ from utils.prompts import summarizer_system_prompt, PaperReview
 
 ## LLM model.
 llm = ChatOpenAI(model_name="gpt-3.5-turbo-16k", temperature=0.4)
+llm_aux = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.)
 token_encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
+
+
+class CustomFixParser(PydanticOutputFunctionsParser):
+    """Custom output parser."""
+    def parse_result(self, result):
+        generation = result[0]
+        message = generation.message
+        func_call = copy.deepcopy(message.additional_kwargs["function_call"])
+        _result = func_call["arguments"]
+
+        if self.args_only:
+            pydantic_args = self.pydantic_schema.parse_raw(pu.clean_fnc_call(_result))
+        else:
+            fn_name = _result["name"]
+            _args = _result["arguments"]
+            pydantic_args = self.pydantic_schema[fn_name].parse_raw(_args)
+        return pydantic_args
 
 
 def main():
@@ -40,7 +60,10 @@ def main():
             ),
         ]
     )
-    chain = create_structured_output_chain(PaperReview, llm, prompt, verbose=False)
+    parser = CustomFixParser(pydantic_schema=PaperReview)
+    chain = create_structured_output_chain(PaperReview, llm, prompt,
+                                           output_parser=parser,
+                                           verbose=False)
 
     ## Get paper list.
     gist_id = "1dd189493c1890df6e04aaea6d049643"
@@ -108,7 +131,7 @@ def main():
             success = False
             for i in range(3):
                 try:
-                    content = {"content": new_content, "prev_summary": prev_summary}
+                    content = {"content": new_content}#, "prev_summary": prev_summary}
                     summary = chain.run(content)
                     success = True
                     break
@@ -143,7 +166,8 @@ def main():
                 "\n".join(paper_list),
             )
 
-    print(f"Done! Updated queue gist URL: {gist_url}")
+    if gist_url:
+        print(f"Done! Updated queue gist URL: {gist_url}")
     print(cb)
 
 

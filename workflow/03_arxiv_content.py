@@ -21,20 +21,11 @@ def main():
             # print(f"File {k} already exists.")
             continue
 
-        docs = ArxivLoader(
-            query=k, load_max_docs=3, doc_content_chars_max=int(1e10)
-        ).load()
-        docs = sorted(
-            docs,
-            key=lambda x: pu.tfidf_similarity(v, x.metadata["Title"]),
-            reverse=True,
-        )
-        new_title = docs[0].metadata["Title"]
-        title_sim = pu.tfidf_similarity(v, new_title)
-        if title_sim < 0.7:
-            print(f"No matching title found for {v}. Most similar: {new_title}")
+        doc = pu.search_arxiv_doc(k)
+        if doc is None:
+            print(f"Axiv code {v} not found.")
             continue
-        doc_content = docs[0].page_content
+        doc_content = doc.page_content
         pu.store_local(doc_content, k, "arxiv_text", True, "txt")
         print(f"File {k} saved.")
         items_added += 1

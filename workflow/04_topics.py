@@ -124,7 +124,7 @@ def extract_topics_and_embeddings(
     """Extract topics and embeddings."""
     topics, _ = topic_model.fit_transform(all_content, embeddings)
     reduced_embeddings = UMAP(
-        n_neighbors=15, n_components=2, min_dist=0.0, metric="cosine", random_state=200
+        n_neighbors=8, n_components=2, min_dist=0.0, metric="cosine", random_state=200
     ).fit_transform(embeddings)
     reduced_embeddings = (
         reduced_embeddings - reduced_embeddings.mean(axis=0)

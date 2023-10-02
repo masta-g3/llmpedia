@@ -605,7 +605,7 @@ def main():
     with content_tabs[2]:
         ## Publication counts.
         total_papers = len(papers_df)
-        st.markdown(f"### 📈 Publication Counts (Total Tracked: {total_papers})")
+        st.markdown(f"### 📈 {year} Publication Counts: {total_papers}")
         plot_type = st.radio(
             label="Plot Type",
             options=["Daily", "Cumulative"],

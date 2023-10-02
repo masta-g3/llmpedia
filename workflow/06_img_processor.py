@@ -70,7 +70,7 @@ def generate_image(name, img_file):
         cliptextencode = CLIPTextEncode()
         cliptextencode_7 = cliptextencode.encode(
             text="low quality, ugly, distorted, blurry, deformed, watermark, " +
-                  "text, flow chart, signature, depth of field, " +
+                  "cartoon, videogame, text, flow chart, signature, depth of field, " +
                   "mandala, star map, photoreal, b&w, poker, modern, grainy",
             clip=get_value_at_index(loraloader_39, 1),
         )
@@ -84,7 +84,7 @@ def generate_image(name, img_file):
         vaeloader_48 = vaeloader.load_vae(vae_name="sdxl.vae.safetensors")
 
         cliptextencode_102 = cliptextencode.encode(
-            text=f'"{name}", tarot and computers, pixel art',
+            text=f'"{name}", tarot technology and computers, surreal, pixel art',
             clip=get_value_at_index(loraloader_39, 1),
         )
 
@@ -97,7 +97,7 @@ def generate_image(name, img_file):
             ksampler_103 = ksampler.sample(
                 seed=random.randint(1, 2**64),
                 steps=20,
-                cfg=8,
+                cfg=6,
                 sampler_name="dpmpp_2m_sde_gpu",
                 scheduler="karras",
                 denoise=1,
@@ -142,7 +142,9 @@ def main():
         if os.path.exists(img_file):
             continue
         else:
-            generate_image(name, img_file)
+            clean_name = name.replace("transformer", "").replace("Transformer", "")
+            print(clean_name)
+            generate_image(clean_name, img_file)
             print(f"Saved {img_file} ({idx+1}/{len(title_dict)})")
 
 
