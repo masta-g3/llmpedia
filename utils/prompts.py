@@ -211,7 +211,7 @@ class QnaSet(BaseModel):
     qna_pairs: list[QnaPair] = Field(..., description="List of Q&A pairs.")
 
 
-qna_system_prompt = """GUIDELINES
+QNA_SYSTEM_PROMPT = """GUIDELINES
 ============
 Generate Q&A Pairs:
 - Produce five (5) applied question-answer pairs strictly grounded on the provided text snippet.
@@ -228,6 +228,7 @@ Answer Considerations:
 - Provide concise, thorough answers without adding personal opinions.
 - Use the following format for citations: Smith et al. (2022, 2209.12345).
 - Do not begin answers with "According to the LLM literature, ...".
+- Do not reference any figures.
 
 EXAMPLE 1
 ===========
@@ -269,6 +270,8 @@ TEXT
 [
 """
 
+LLAMA_DIVIDER = "Here are five self-contained, highly-specific question & answer pairs based on the paper, without referencing it directly (with citations):"
+
 
 llama_qna_system_prompt = """EXAMPLE 1
 ===========
@@ -277,9 +280,10 @@ llama_qna_system_prompt = """EXAMPLE 1
 ```
 *Source:* Williams et al. (2023, 2309.12346)
 
-"Question": "According to the LLM literature, how can I enhance the performance of Large Language Models (LLMs) in Named Entity Recognition (NER) tasks?",
-"Answer": "One way to enhance the performance of LLMs in NER tasks is through the application of Reinforcement Learning (RL). Williams et al. (2023, 2309.12346) employed an adaptive learning framework, which continually refines recognition algorithms utilizing iterative feedback, yielding a 12% improvement in entity discernment accuracy on datasets comprising financial news and social media snippets. The methodology involved sophisticated reward-based learning mechanisms to handle entity ambiguities and achieve optimal classification."
+Q1: According to the LLM literature, how can I enhance the performance of Large Language Models (LLMs) in Named Entity Recognition (NER) tasks?"
+A1: One way to enhance the performance of LLMs in NER tasks is through the application of Reinforcement Learning (RL). Williams et al. (2023, 2309.12346) employed an adaptive learning framework, which continually refines recognition algorithms utilizing iterative feedback, yielding a 12% improvement in entity discernment accuracy on datasets comprising financial news and social media snippets. The methodology involved sophisticated reward-based learning mechanisms to handle entity ambiguities and achieve optimal classification.
 
+Q2: ...
 
 EXAMPLE 2
 ===========
@@ -288,27 +292,29 @@ EXAMPLE 2
 ```
 *Source:* Mark et al. (2022, 2209.12345)
 
-"Question": "According to the LLM literature, what happens to the performance of Llama-based Large Language Model architectures in classification tasks if I remove the ReLU activation outputs?",
-"Answer": "Based on the findings of Mark et al. (2022, 2209.12345), the removal of ReLU activations in Llama-based architectures reveals an existing trade-off between interpretability and accuracy. The alteration allows for more direct insight into model decision-making, marked by a notable improvement in the clarity of feature influence mappings. However, this also induces a roughly 3% decline in classification accuracy, diminishing the model’s ability to discern intricate non-linear relationships within the datasets."
+Q1: According to the LLM literature, what happens to the performance of Llama-based Large Language Model architectures in classification tasks if I remove the ReLU activation outputs?"
+A1: Based on the findings of Mark et al. (2022, 2209.12345), the removal of ReLU activations in Llama-based architectures reveals an existing trade-off between interpretability and accuracy. The alteration allows for more direct insight into model decision-making, marked by a notable improvement in the clarity of feature influence mappings. However, this also induces a roughly 3% decline in classification accuracy, diminishing the model’s ability to discern intricate non-linear relationships within the datasets.
 
+Q2: ...
 
 GUIDELINES
 ============
 Generate Q&A Pairs:
 - Produce five (5) applied question-answer pairs strictly grounded on the provided text snippet.
-- Do not make explicit references to the paper.
+- Do not make explicit references to the paper (e.g., "the paper", "the authors", "the study", etc.).
 
 Question Considerations:
 - Cover a range of themes within the text to maintain diversity and avoid duplication.
 - Frame each question independently; assume no continuity or relationship between them.
+- Provide the necessary detail to ensure the question is self-contained and understandable.
 - Begin all your questions with "According to the LLM literature, ...". 
 
 Answer Considerations:
 - When possible borrow verbatim from the original text to maintain accuracy and style.
 - Provide concise, thorough answers without adding personal opinions.
-- Use the following format for citations: Smith et al. (2022, 2209.12345).
+- Always include citations. Use this format: Smith et al. (2022, 2209.12345).
 - Do not begin answers with "According to the LLM literature, ...".
-
+- Do not reference any figures.
 
 YOUR TURN
 ===========
@@ -317,7 +323,7 @@ YOUR TURN
 ```
 *Source:* {authors}, ({year}, {arxiv_code})
 
-Here are five question-answer pairs based on the paper, without referencing it directly:
+""" + LLAMA_DIVIDER + """
 
 Q1: According to the LLM literature,"""
 

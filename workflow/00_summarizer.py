@@ -13,7 +13,6 @@ import copy
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain.callbacks import get_openai_callback
-from langchain.output_parsers.openai_functions import PydanticOutputFunctionsParser
 from langchain.chains.openai_functions import (
     create_structured_output_chain,
 )
@@ -30,23 +29,6 @@ llm_aux = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.)
 token_encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
 
-class CustomFixParser(PydanticOutputFunctionsParser):
-    """Custom output parser."""
-    def parse_result(self, result):
-        generation = result[0]
-        message = generation.message
-        func_call = copy.deepcopy(message.additional_kwargs["function_call"])
-        _result = func_call["arguments"]
-
-        if self.args_only:
-            pydantic_args = self.pydantic_schema.parse_raw(pu.clean_fnc_call(_result))
-        else:
-            fn_name = _result["name"]
-            _args = _result["arguments"]
-            pydantic_args = self.pydantic_schema[fn_name].parse_raw(_args)
-        return pydantic_args
-
-
 def main():
     ## Initialize LLM.
     parsed_list = []
@@ -60,7 +42,7 @@ def main():
             ),
         ]
     )
-    parser = CustomFixParser(pydantic_schema=PaperReview)
+    parser = pu.CustomFixParser(pydantic_schema=PaperReview)
     chain = create_structured_output_chain(PaperReview, llm, prompt,
                                            output_parser=parser,
                                            verbose=False)

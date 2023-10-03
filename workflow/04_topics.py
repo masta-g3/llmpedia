@@ -104,7 +104,7 @@ def create_topic_model(
     mmr_model = MaximalMarginalRelevance(diversity=0.5)
     openai.api_key = os.getenv("OPENAI_API_KEY")
     openai_model = OpenAI(
-        model="gpt-4", exponential_backoff=True, chat=True, prompt=prompt, nr_docs=8
+        model="gpt-3.5-turbo", exponential_backoff=True, chat=True, prompt=prompt, nr_docs=8
     )
     topic_model = BERTopic(
         embedding_model=embeddings,

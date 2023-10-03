@@ -492,6 +492,7 @@ GPT Can Solve Mathematical Problems Without a Calculator
 Physically Grounded Vision-Language Models for Robotic Manipulation
 FacTool: Factuality Detection in Generative AI -- A Tool Augmented Framework for Multi-Task and Multi-Domain Scenarios
 FLM-101B: An Open LLM and How to Train It with $100K Budget
+Physics of Language Models: Part 3.2, Knowledge Manipulation
 Neurons in Large Language Models: Dead, N-gram, Positional
 Exploring Large Language Models' Cognitive Moral Development through Defining Issues Test
 Qwen Technical Report
@@ -609,3 +610,4 @@ Large Language Models as Optimizers
 SlimPajama-DC: Understanding Data Combinations for LLM Training
 Jointly Training Large Autoregressive Multimodal Models
 Finite Scalar Quantization: VQ-VAE Made Simple
+Physics of Language Models: Part 3.1, Knowledge Storage and Extraction

@@ -35,7 +35,7 @@ text_splitter = RecursiveCharacterTextSplitter(
 )
 
 ## LLM model.
-llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.2)
+llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.3)
 
 
 def main():
@@ -43,14 +43,17 @@ def main():
     ## Initialize chain.
     prompt = ChatPromptTemplate.from_messages(
         [
-            ("system", ps.qna_system_prompt),
+            ("system", ps.QNA_SYSTEM_PROMPT),
             (
                 "user",
                 "Tip: Remember to always include citations. Make sure your questions are detailed and stand alone.",
             ),
         ]
     )
-    chain = create_structured_output_chain(ps.QnaSet, llm, prompt, verbose=False)
+    parser = pu.CustomFixParser(pydantic_schema=ps.QnaSet)
+    chain = create_structured_output_chain(ps.QnaSet, llm, prompt,
+                                           output_parser=parser,
+                                           verbose=False)
 
     ## Get raw paper list.
     fnames = os.listdir(data_path)
@@ -60,23 +63,22 @@ def main():
     arxiv_pending = list(set(arxiv_local) - set(arxiv_done))
     print(f"Found {len(arxiv_pending)} papers pending.")
 
-    for fname in tqdm(fnames[6:20]):
-        ## Open doc and meta_data.
-        arxiv_code = fname.replace(".txt", "")
-        doc_txt = pu.load_local(arxiv_code, data_path, False, "txt")
-        doc_meta = pu.load_local(arxiv_code, meta_path, False, "json")
-        authors_str = f"{doc_meta['authors'][0]['name']}, et al."
-        year_str = doc_meta["published"][:4]
-        doc_texts = text_splitter.split_text(doc_txt)
-        doc_chunks = doc_texts[1:-1]
+    with get_openai_callback() as cb:
+        for arxiv_code in tqdm(arxiv_pending):
+            ## Open doc and meta_data.
+            doc_txt = pu.load_local(arxiv_code, data_path, False, "txt")
+            doc_meta = pu.load_local(arxiv_code, meta_path, False, "json")
+            authors_str = f"{doc_meta['authors'][0]['name']}, et al."
+            year_str = doc_meta["published"][:4]
+            doc_texts = text_splitter.split_text(doc_txt)
+            doc_chunks = doc_texts[1:-1]
 
-        print(len(doc_chunks))
-        print(f"(Authors: {authors_str}, Year: {year_str})")
+            print("\n", len(doc_chunks))
+            print(f"(Authors: {authors_str}, Year: {year_str})")
 
-        ## Run through Q&A pipeline.
-        doc_qna_list = []
+            ## Run through Q&A pipeline.
+            doc_qna_list = []
 
-        with get_openai_callback() as cb:
             for tid, text in tqdm(enumerate(doc_chunks), total=len(doc_chunks)):
                 args = {
                     "authors": authors_str,
@@ -84,7 +86,14 @@ def main():
                     "arxiv_code": arxiv_code,
                     "text_chunk": text,
                 }
-                result_dict = chain(args)
+                for _ in range(3):
+                    try:
+                        result_dict = chain(args)
+                        break
+                    except Exception as e:
+                        print(e)
+                        print("Retrying...")
+                        continue
                 qna_list = json.loads(result_dict["function"].json())["qna_pairs"]
                 [q.update({"chunk_id": tid}) for q in qna_list]
                 [q.update({"question_id": i}) for i, q in enumerate(qna_list)]

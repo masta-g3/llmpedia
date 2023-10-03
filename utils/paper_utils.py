@@ -1,4 +1,5 @@
 import os
+import copy
 import re, json
 import demjson
 import arxiv
@@ -6,6 +7,7 @@ import requests
 import psycopg2
 import pandas as pd
 import numpy as np
+from langchain.output_parsers.openai_functions import PydanticOutputFunctionsParser
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sqlalchemy import create_engine
@@ -428,3 +430,24 @@ def update_gist(
     else:
         print(f"Failed to update gist. Status code: {response.status_code}.")
         return None
+
+
+###############
+## LANGCHAIN ##
+###############
+
+class CustomFixParser(PydanticOutputFunctionsParser):
+    """Custom output parser."""
+    def parse_result(self, result):
+        generation = result[0]
+        message = generation.message
+        func_call = copy.deepcopy(message.additional_kwargs["function_call"])
+        _result = func_call["arguments"]
+
+        if self.args_only:
+            pydantic_args = self.pydantic_schema.parse_raw(clean_fnc_call(_result))
+        else:
+            fn_name = _result["name"]
+            _args = _result["arguments"]
+            pydantic_args = self.pydantic_schema[fn_name].parse_raw(_args)
+        return pydantic_args
