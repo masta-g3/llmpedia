@@ -46,7 +46,7 @@ def main():
             ("system", ps.QNA_SYSTEM_PROMPT),
             (
                 "user",
-                "Tip: Remember to always include citations. Make sure your questions are detailed and stand alone.",
+                "Tip: Remember to always include citations. Make sure your questions are detailed and stand alone. Do not reference the sample questions.",
             ),
         ]
     )
@@ -99,36 +99,36 @@ def main():
                 [q.update({"question_id": i}) for i, q in enumerate(qna_list)]
                 doc_qna_list.extend(qna_list)
 
-        ## Price logging.
-        print(cb)
+            ## Price logging.
+            print(cb)
 
-        ## Store QnA in DB.
-        doc_qna_df = pd.DataFrame.from_dict(doc_qna_list)
-        doc_qna_df["arxiv_code"] = arxiv_code
-        doc_qna_df["chunk_id"] = doc_qna_df["chunk_id"].astype(int)
-        doc_qna_df["question_id"] = doc_qna_df["question_id"].astype(int)
-        doc_qna_df["question"] = doc_qna_df["question"].str.replace("According to the LLM literature, ", "")
-        doc_qna_df["question"] = doc_qna_df["question"].apply(lambda x: x[0].upper() + x[1:] if x else x)
-        doc_qna_df["answer"] = doc_qna_df["answer"].str.replace("According to the LLM literature, ", "")
-        doc_qna_df["answer"] = doc_qna_df["answer"].apply(lambda x: x[0].upper() + x[1:] if x else x)
-        pu.upload_df_to_db(doc_qna_df, "arxiv_qna", pu.db_params)
+            ## Store QnA in DB.
+            doc_qna_df = pd.DataFrame.from_dict(doc_qna_list)
+            doc_qna_df["arxiv_code"] = arxiv_code
+            doc_qna_df["chunk_id"] = doc_qna_df["chunk_id"].astype(int)
+            doc_qna_df["question_id"] = doc_qna_df["question_id"].astype(int)
+            doc_qna_df["question"] = doc_qna_df["question"].str.replace("According to the LLM literature, ", "")
+            doc_qna_df["question"] = doc_qna_df["question"].apply(lambda x: x[0].upper() + x[1:] if x else x)
+            doc_qna_df["answer"] = doc_qna_df["answer"].str.replace("According to the LLM literature, ", "")
+            doc_qna_df["answer"] = doc_qna_df["answer"].apply(lambda x: x[0].upper() + x[1:] if x else x)
+            pu.upload_df_to_db(doc_qna_df, "arxiv_qna", pu.db_params)
 
-        ## Store QnA in JSON.
-        doc_qna_list_final = doc_qna_df.to_dict(orient="records")
-        pu.store_local(doc_qna_list_final, arxiv_code, qna_path, relative=False)
-        print(f"Stored {len(doc_qna_list_final)} Q&A pairs for {arxiv_code}.")
+            ## Store QnA in JSON.
+            doc_qna_list_final = doc_qna_df.to_dict(orient="records")
+            pu.store_local(doc_qna_list_final, arxiv_code, qna_path, relative=False)
+            print(f"Stored {len(doc_qna_list_final)} Q&A pairs for {arxiv_code}.")
 
-        ## Store document chunks in DB.
-        doc_chunks_df = pd.DataFrame.from_dict(doc_chunks)
-        doc_chunks_df["arxiv_code"] = arxiv_code
-        doc_chunks_df["chunk_id"] = doc_chunks_df.index
-        doc_chunks_df.columns = ["text", "arxiv_code", "chunk_id"]
-        pu.upload_df_to_db(doc_chunks_df, "arxiv_chunks", pu.db_params)
+            ## Store document chunks in DB.
+            doc_chunks_df = pd.DataFrame.from_dict(doc_chunks)
+            doc_chunks_df["arxiv_code"] = arxiv_code
+            doc_chunks_df["chunk_id"] = doc_chunks_df.index
+            doc_chunks_df.columns = ["text", "arxiv_code", "chunk_id"]
+            pu.upload_df_to_db(doc_chunks_df, "arxiv_chunks", pu.db_params)
 
-        ## Store document chunks in JSON.
-        doc_chunks_list = doc_chunks_df.to_dict(orient="records")
-        pu.store_local(doc_chunks_list, arxiv_code, chunk_path, relative=False)
-        print(f"Stored {len(doc_chunks_list)} chunks for {arxiv_code}.")
+            ## Store document chunks in JSON.
+            doc_chunks_list = doc_chunks_df.to_dict(orient="records")
+            pu.store_local(doc_chunks_list, arxiv_code, chunk_path, relative=False)
+            print(f"Stored {len(doc_chunks_list)} chunks for {arxiv_code}.")
 
 if __name__ == "__main__":
     main()

@@ -58,6 +58,7 @@ def main():
     existing_papers = list(existing_papers.values())
 
     ## Iterate.
+    gist_url = None
     with get_openai_callback() as cb:
         for paper_name in tqdm(paper_list_iter):
             pre_similarity = max(

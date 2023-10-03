@@ -611,3 +611,6 @@ SlimPajama-DC: Understanding Data Combinations for LLM Training
 Jointly Training Large Autoregressive Multimodal Models
 Finite Scalar Quantization: VQ-VAE Made Simple
 Physics of Language Models: Part 3.1, Knowledge Storage and Extraction
+Efficient Streaming Language Models with Attention Sinks
+The Dawn of LMMs: Preliminary Explorations with GPT-4V(ision)
+Promptbreeder: Self-Referential Self-Improvement Via Prompt Evolution
