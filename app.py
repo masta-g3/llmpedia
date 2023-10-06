@@ -236,6 +236,9 @@ def load_data():
     result_df["updated"] = pd.to_datetime(result_df["updated"]).dt.date
     result_df["published"] = pd.to_datetime(result_df["published"].dt.date)
     result_df["category"] = result_df["category"].apply(lambda x: classification_map[x])
+    result_df[["citation_count", "influential_citation_count"]] = result_df[
+        ["citation_count", "influential_citation_count"]
+    ].fillna(0)
 
     return result_df
 

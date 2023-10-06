@@ -231,7 +231,7 @@ def search_arxiv_doc(paper_name):
         )
         new_title = docs[0].metadata["Title"]
         title_sim = tfidf_similarity(paper_name, new_title)
-        if title_sim < 0.8:
+        if title_sim < 0.9:
             return None
 
     return docs[0]

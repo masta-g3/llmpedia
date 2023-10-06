@@ -25,7 +25,7 @@ def main():
     errors = 0
     for arxiv_code in arxiv_codes:
         if pu.check_in_db(arxiv_code, db_params, "semantic_details"):
-            if random.random() < 0.8:
+            if random.random() < 1:
                 continue
             else:
                 pu.remove_from_db(arxiv_code, db_params, "semantic_details")

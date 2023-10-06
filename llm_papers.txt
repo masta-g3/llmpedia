@@ -495,6 +495,7 @@ FLM-101B: An Open LLM and How to Train It with $100K Budget
 Physics of Language Models: Part 3.2, Knowledge Manipulation
 Neurons in Large Language Models: Dead, N-gram, Positional
 Exploring Large Language Models' Cognitive Moral Development through Defining Issues Test
+Who's Harry Potter? Approximate Unlearning in LLMs
 Qwen Technical Report
 LMDX: Language Model-based Document Information Extraction and Localization
 Connecting Large Language Models with Evolutionary Algorithms Yields Powerful Prompt Optimizers
@@ -614,3 +615,16 @@ Physics of Language Models: Part 3.1, Knowledge Storage and Extraction
 Efficient Streaming Language Models with Attention Sinks
 The Dawn of LMMs: Preliminary Explorations with GPT-4V(ision)
 Promptbreeder: Self-Referential Self-Improvement Via Prompt Evolution
+LLM-grounded Video Diffusion Models
+Enable Language Models to Implicitly Learn Self-Improvement From Data
+Emergent Analogical Reasoning in Large Language Models
+RA-DIT: Retrieval-Augmented Dual Instruction Tuning
+Think Before You Speak: Explicitly Generating Implicit Commonsense Knowledge for Response Generation
+Large Language Models Cannot Self-Correct Reasoning Yet
+SmartPlay : A Benchmark for LLMs as Intelligent Agents
+Language Models Represent Space and Time
+Retrieval meets Long Context Large Language Models
+Borges and AI
+Can large language models provide useful feedback on research papers? A large-scale empirical analysis
+Can Language Models be Instructed to Protect Personal Information?
+QuIP: 2-Bit Quantization of Large Language Models With Guarantees

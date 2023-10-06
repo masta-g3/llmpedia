@@ -46,7 +46,7 @@ def main():
             ("system", ps.QNA_SYSTEM_PROMPT),
             (
                 "user",
-                "Tip: Remember to always include citations. Make sure your questions are detailed and stand alone. Do not reference the sample questions.",
+                "Tip: Remember to always include citations in your answers. Make sure your questions are detailed and stand alone. Do not reference the sample questions.",
             ),
         ]
     )
