@@ -628,3 +628,17 @@ Borges and AI
 Can large language models provide useful feedback on research papers? A large-scale empirical analysis
 Can Language Models be Instructed to Protect Personal Information?
 QuIP: 2-Bit Quantization of Large Language Models With Guarantees
+Low-Resource Languages Jailbreak GPT-4
+DSPy: Compiling Declarative Language Model Calls into Self-Improving Pipelines
+Large Language Model Cascades with Mixture of Thoughts Representations for Cost-efficient Reasoning
+EcoAssistant: Using LLM Assistant More Affordably and Accurately
+How FaR Are Large Language Models From Agents with Theory-of-Mind?
+MathCoder: Seamless Code Integration in LLMs for Enhanced Mathematical Reasoning
+FreshLLMs: Refreshing Large Language Models with Search Engine Augmentation
+HeaP: Hierarchical Policies for Web Actions using LLMs
+A Long Way to Go: Investigating Length Correlations in RLHF
+Self-Taught Optimizer (STOP): Recursively Self-Improving Code Generation
+Never Train from Scratch: Fair Comparison of Long-Sequence Models Requires Data-Driven Priors
+Think before you speak: Training Language Models With Pause Tokens
+Mistral 7B
+SWE-bench: Can Language Models Resolve Real-World GitHub Issues?
