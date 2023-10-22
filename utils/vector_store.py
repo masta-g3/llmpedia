@@ -12,17 +12,23 @@ from langchain import hub
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CohereRerank
 
-import utils.paper_utils as pu
-
 
 class CustomCohereRerank(CohereRerank):
     class Config(BaseModel.Config):
         arbitrary_types_allowed = True
 
 
+db_params = {
+    "dbname": os.environ["DB_NAME"],
+    "user": os.environ["DB_USER"],
+    "password": os.environ["DB_PASS"],
+    "host": os.environ["DB_HOST"],
+    "port": os.environ["DB_PORT"],
+}
+
 CONNECTION_STRING = (
-    f"postgresql+psycopg2://{pu.db_params['user']}:{pu.db_params['password']}"
-    f"@{pu.db_params['host']}:{pu.db_params['port']}/{pu.db_params['dbname']}"
+    f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}"
+    f"@{db_params['host']}:{db_params['port']}/{db_params['dbname']}"
 )
 COLLECTION_NAME = "arxiv_vectors"
 HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
