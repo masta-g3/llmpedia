@@ -480,12 +480,12 @@ def main():
     st.session_state["papers"] = papers_df
 
     ## Config sidebar.
-    st.sidebar.markdown("# 🛠 Config")
-    st.session_state.openai_api_key = st.sidebar.text_input(
-        "OpenAI API Key",
-        value="",
-        help="Enter your OpenAI API key to chat with the GPT maestro and ask questions about the LLMPedia.",
-    )
+    # st.sidebar.markdown("# 🛠 Config")
+    # st.session_state.openai_api_key = st.sidebar.text_input(
+    #     "OpenAI API Key",
+    #     value="",
+    #     help="Enter your OpenAI API key to chat with the GPT maestro and ask questions about the LLMPedia.",
+    # )
 
     ## Filter sidebar.
     st.sidebar.markdown("# 📁 Filters")
