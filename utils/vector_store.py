@@ -9,7 +9,6 @@ from langchain.vectorstores.pgvector import PGVector
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.schema.runnable import RunnablePassthrough
-from langchain import hub
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CohereRerank
 
@@ -48,8 +47,6 @@ compressor = CustomCohereRerank(client=co, top_n=5)
 compression_retriever = ContextualCompressionRetriever(
     base_compressor=compressor, base_retriever=retriever
 )
-
-rag_prompt = hub.pull("rlm/rag-prompt")
 
 llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.1)
 
