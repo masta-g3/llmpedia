@@ -12,6 +12,8 @@ import re, os
 
 import plotly.io as pio
 
+import utils.vector_store as vs
+
 pio.templates.default = "plotly"
 
 db_params = {**st.secrets["postgres"]}
@@ -35,6 +37,9 @@ if "num_pages" not in st.session_state:
 
 if "arxiv_code" not in st.session_state:
     st.session_state.arxiv_code = ""
+
+if "openai_api_key" not in st.session_state:
+    st.session_state.openai_api_key = ""
 
 st.markdown(
     """
@@ -363,7 +368,9 @@ def generate_grid_gallery(df, n_cols=5):
                         click_tab(3)
                     paper_url = df.iloc[i * n_cols + j]["url"]
                     paper_title = df.iloc[i * n_cols + j]["title"].replace("\n", "")
-                    star_count = df.iloc[i * n_cols + j]["influential_citation_count"] > 0
+                    star_count = (
+                        df.iloc[i * n_cols + j]["influential_citation_count"] > 0
+                    )
                     publish_date = pd.to_datetime(
                         df.iloc[i * n_cols + j]["published"]
                     ).strftime("%B %d, %Y")
@@ -471,6 +478,14 @@ def main():
     ## Main content.
     papers_df = load_data()
     st.session_state["papers"] = papers_df
+
+    ## Config sidebar.
+    st.sidebar.markdown("# 🛠 Config")
+    st.session_state.openai_api_key = st.sidebar.text_input(
+        "OpenAI API Key",
+        value="",
+        help="Enter your OpenAI API key to chat with the GPT maestro and ask questions about the LLMPedia.",
+    )
 
     ## Filter sidebar.
     st.sidebar.markdown("# 📁 Filters")
@@ -585,7 +600,7 @@ def main():
     papers = papers_df.to_dict("records")
 
     ## Content tabs.
-    content_tabs = st.tabs(["Grid View", "Feed View", "Over View", "Focus View"])
+    content_tabs = st.tabs(["Grid View", "Feed View", "Over View", "Focus View", "Chat"])
 
     with content_tabs[0]:
         if "page_number" not in st.session_state:
@@ -635,6 +650,17 @@ def main():
                 create_paper_card(paper, mode="open")
             else:
                 st.error("Paper not found.")
+
+    with content_tabs[4]:
+        st.markdown("##### 🤖 Chat with the GPT maestro.")
+        user_question = st.text_area(label="Ask any question about LLMs or the arxiv papers.", value="")
+        chat_btn = st.button("Send")
+        if chat_btn:
+            if user_question != "":
+                with st.spinner("Consulting the GPT maestro..."):
+                    response = vs.query_llmpedia(user_question)
+                    with st.chat_message("ai"):
+                        st.write(f"{response}")
 
     ## URL tab selection.
     # if "tab_num" in url_query:
