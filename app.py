@@ -659,8 +659,9 @@ def main():
             if user_question != "":
                 with st.spinner("Consulting the GPT maestro..."):
                     response = vs.query_llmpedia(user_question)
-                    with st.chat_message("ai"):
-                        st.write(f"{response}")
+                    # with st.chat_message("ai"):
+                    st.divider()
+                    st.markdown(f"{response}")
 
     ## URL tab selection.
     # if "tab_num" in url_query:
