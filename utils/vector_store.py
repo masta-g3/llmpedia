@@ -2,6 +2,7 @@ import json
 import os
 from pydantic import BaseModel
 import cohere
+import dotenv
 
 from langchain.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
 from langchain.vectorstores.pgvector import PGVector
@@ -12,6 +13,7 @@ from langchain import hub
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CohereRerank
 
+dotenv.load_dotenv()
 
 class CustomCohereRerank(CohereRerank):
     class Config(BaseModel.Config):
