@@ -52,7 +52,7 @@ llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.1)
 
 template = """Use the following pieces of context to answer the question at the end. 
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
-Use as many sentences as needed to provide a thorough, complete but concise answer.
+Use as many sentences as needed to provide a thorough, complete but concise answer. If possible break down concepts and tackle them step by step.
 Be practical and reference any existing libraries or implementations mentioned on the documents if possible.
 When providing your answer add citations referencing the relevant arxiv_codes (e.g.: *reference content* (arxiv:1234.5678)).
 {context}
