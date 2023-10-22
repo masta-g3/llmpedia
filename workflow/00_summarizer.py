@@ -19,10 +19,6 @@ from langchain.chains.openai_functions import (
 import utils.paper_utils as pu
 from utils.prompts import summarizer_system_prompt, PaperReview
 
-
-
-
-
 ## LLM model.
 llm = ChatOpenAI(model_name="gpt-3.5-turbo-16k", temperature=0.4)
 llm_aux = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.)
@@ -38,7 +34,7 @@ def main():
             ("system", summarizer_system_prompt),
             (
                 "human",
-                "Tip: Make sure to provide your response in the correct format. Do not forget to iclude the 'applied_example' under 'takeaways'!",
+                "Tip: Make sure to provide your response in the correct format. Do not forget to include the 'applied_example' under 'takeaways'!",
             ),
         ]
     )
@@ -55,16 +51,15 @@ def main():
 
     ## Compare similarity with existing papers.
     existing_papers = pu.get_arxiv_title_dict(pu.db_params)
-    existing_papers = list(existing_papers.values())
+    existing_paper_names = list(existing_papers.values())
+    existing_paper_ids = list(existing_papers.keys())
 
     ## Iterate.
     gist_url = None
     with get_openai_callback() as cb:
         for paper_name in tqdm(paper_list_iter):
-            pre_similarity = max(
-                [pu.tfidf_similarity(paper_name, t) for t in existing_papers]
-            )
-            if pre_similarity > 0.9:
+            existing = pu.check_if_exists(paper_name, existing_paper_names, existing_paper_ids)
+            if existing:
                 print(f"\nSkipping '{paper_name}' as it is already in the database.")
                 ## Update gist.
                 parsed_list.append(paper_name)

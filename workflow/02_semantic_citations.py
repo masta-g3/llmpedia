@@ -43,6 +43,7 @@ def main():
         pu.upload_to_db(ss_info, db_params, "semantic_details")
         items_added += 1
         print(f"Added {arxiv_code} to semantic_details.")
+        time.sleep(1)
 
     print(f"Process complete. Added {items_added} items in total.")
     if errors > 0:

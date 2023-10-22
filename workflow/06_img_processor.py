@@ -10,6 +10,7 @@ load_dotenv()
 PROJECT_PATH = os.environ.get("PROJECT_PATH")
 COMFY_PATH = os.environ.get("COMFY_PATH")
 sys.path.append(COMFY_PATH)
+sys.path.append(PROJECT_PATH)
 warnings.filterwarnings("ignore")
 
 import utils.paper_utils as pu
@@ -69,9 +70,9 @@ def generate_image(name, img_file):
 
         cliptextencode = CLIPTextEncode()
         cliptextencode_7 = cliptextencode.encode(
-            text="low quality, ugly, distorted, blurry, deformed, watermark, " +
+            text="low quality, ugly, distorted, blurry, deformed, watermark," +
                   "cartoon, videogame, text, flow chart, signature, depth of field, " +
-                  "mandala, star map, photoreal, b&w, poker, modern, grainy",
+                  "mandala, star map, photoreal, portrait, b&w, poker, modern, grainy",
             clip=get_value_at_index(loraloader_39, 1),
         )
 
@@ -84,7 +85,7 @@ def generate_image(name, img_file):
         vaeloader_48 = vaeloader.load_vae(vae_name="sdxl.vae.safetensors")
 
         cliptextencode_102 = cliptextencode.encode(
-            text=f'"{name}", tarot technology and computers, surreal, pixel art',
+            text=f'"{name}", tarot and computers, surreal, pixel art',
             clip=get_value_at_index(loraloader_39, 1),
         )
 
@@ -142,7 +143,7 @@ def main():
         if os.path.exists(img_file):
             continue
         else:
-            clean_name = name.replace("transformer", "").replace("Transformer", "")
+            clean_name = name.replace("transformer", "processor").replace("Transformer", "Processor")
             print(clean_name)
             generate_image(clean_name, img_file)
             print(f"Saved {img_file} ({idx+1}/{len(title_dict)})")

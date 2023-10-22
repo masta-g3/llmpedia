@@ -102,6 +102,7 @@ WavJourney: Compositional Audio Creation with Large Language Models
 Language Models can Solve Computer Tasks
 Large Language Models are Effective Text Rankers with Pairwise Ranking Prompting
 Large Language Models are Better Reasoners with Self-Verification
+Context-faithful Prompting for Large Language Models
 ChatGPT, Can You Generate Solutions for my Coding Exercises? An Evaluation on its Effectiveness in an undergraduate Java Programming Course
 ChatGPT Is on the Horizon: Could a Large Language Model Be All We Need for Intelligent Transportation?
 Adaptive Test Generation Using a Large Language Model
@@ -122,6 +123,7 @@ Prototypical Fine-tuning: Towards Robust Performance Under Varying Data Sizes
 Solving Quantitative Reasoning Problems with Language Models
 Urdu text in natural scene images: a new dataset and preliminary text detection
 Becoming self-instruct: introducing early stopping criteria for minimal instruct tuning
+Why do Nearest Neighbor Language Models Work?
 SPOT: Knowledge-Enhanced Language Representations for Information Extraction
 Personality Traits in Large Language Models
 LIMA: Less Is More for Alignment
@@ -258,7 +260,6 @@ MusicLM: Generating Music From Text
 Maieutic Prompting: Logically Consistent Reasoning with Recursive Explanations
 How does the pre-training objective affect what large language models learn about linguistic properties?
 StarCoder: may the source be with you!
-Context-faithful Prompting for Large Language Models
 Evaluating ChatGPT's Information Extraction Capabilities: An Assessment of Performance, Explainability, Calibration, and Faithfulness
 Connecting Neural Response measurements & Computational Models of language: a non-comprehensive guide
 PanGu-Coder2: Boosting Large Language Models for Code with Ranking Feedback
@@ -327,6 +328,7 @@ Evaluating Verifiability in Generative Search Engines
 OpenAGI: When LLM Meets Domain Experts
 Universal and Transferable Adversarial Attacks on Aligned Language Models
 BOLAA: Benchmarking and Orchestrating LLM-augmented Autonomous Agents
+SeamlessM4T-Massively Multilingual & Multimodal Machine Translation
 Cedille: A large autoregressive French language model
 The Wisdom of Hindsight Makes Language Models Better Instruction Followers
 ChatGPT: A Study on its Utility for Ubiquitous Software Engineering Tasks
@@ -375,7 +377,6 @@ Do the Rewards Justify the Means? Measuring Trade-Offs Between Rewards and Ethic
 DERA: Enhancing Large Language Model Completions with Dialog-Enabled Resolving Agents
 Symbol tuning improves in-context learning in language models
 REPLUG: Retrieval-Augmented Black-Box Language Models
-Why do Nearest Neighbor Language Models Work?
 Prismer: A Vision-Language Model with An Ensemble of Experts
 AGIEval: A Human-Centric Benchmark for Evaluating Foundation Models
 Bridging the Gap: Deciphering Tabular Data Using Large Language Model
@@ -404,6 +405,7 @@ Through the Lens of Core Competency: Survey on Evaluation of Large Language Mode
 Dynamic Planning with a LLM
 IncreLoRA: Incremental Parameter Allocation Method for Parameter-Efficient Fine-tuning
 ChatEDA: A Large Language Model Powered Autonomous Agent for EDA
+CulturaX: A Cleaned, Enormous, and Multilingual Dataset for Large Language Models in 167 Languages
 Can Language Models Learn to Listen?
 Exploring Equation as a Better Intermediate Meaning Representation for Numerical Reasoning
 Ground Manipulator Primitive Tasks to Executable Actions using Large Language Models
@@ -448,7 +450,6 @@ How Good Are Large Language Models at Out-of-Distribution Detection?
 Time Travel in LLMs: Tracing Data Contamination in Large Language Models
 The Pile: An 800GB Dataset of Diverse Text for Language Modeling
 "Guinea Pig Trials" Utilizing GPT: A Novel Smart Agent-Based Modeling Approach for Studying Firm Competition and Collusion
-SeamlessM4T-Massively Multilingual & Multimodal Machine Translation
 D4: Improving LLM Pretraining via Document De-Duplication and Diversification
 The AI Revolution in Education: Will AI Replace or Assist Teachers in Higher Education?
 Reinforced Self-Training (ReST) for Language Modeling
@@ -509,7 +510,6 @@ Do Multilingual Language Models Think Better in English?
 The Rise and Potential of Large Language Model Based Agents: A Survey
 Uncovering mesa-optimization algorithms in Transformers
 Large Language Models for Compiler Optimization
-CulturaX: A Cleaned, Enormous, and Multilingual Dataset for Large Language Models in 167 Languages
 AstroLLaMA: Towards Specialized Foundation Models in Astronomy
 Compositional Foundation Models for Hierarchical Planning
 AgentVerse: Facilitating Multi-Agent Collaboration and Exploring Emergent Behaviors in Agents
@@ -642,3 +642,296 @@ Never Train from Scratch: Fair Comparison of Long-Sequence Models Requires Data-
 Think before you speak: Training Language Models With Pause Tokens
 Mistral 7B
 SWE-bench: Can Language Models Resolve Real-World GitHub Issues?
+Survey on Factuality in Large Language Models: Knowledge, Retrieval and Domain-Specificity
+Walking Down the Memory Maze: Beyond Context Limit through Interactive Reading
+Ring Attention with Blockwise Transformers for Near-Infinite Context
+RECOMP: Improving Retrieval-Augmented LMs with Compression and Selective Augmentation
+Large Language Models can Learn Rules
+Reason for Future, Act for Now: A Principled Framework for Autonomous LLM Agents with Provable Sample Efficiency
+Large Language Models Are Zero-Shot Time Series Forecasters
+Prometheus: Inducing Fine-grained Evaluation Capability in Language Models
+Learning Interactive Real-World Simulators
+FireAct: Toward Language Agent Fine-tuning
+InstructRetro: Instruction Tuning post Retrieval-Augmented Pretraining
+Text Embeddings Reveal (Almost) As Much As Text
+EIPE-text: Evaluation-Guided Iterative Plan Extraction for Long-Form Narrative Text Generation
+Idea2Img: Iterative Self-Refinement with GPT-4V(ision) for Automatic Image Design and Generation
+A Survey of Large Language Models for Healthcare: from Data, Technology, and Applications to Accountability and Ethics
+Meta-CoT: Generalizable Chain-of-Thought Prompting in Mixed-task Scenarios with Large Language Models
+Lemur: Harmonizing Natural Language and Code for Language Agents
+LangNav: Language as a Perceptual Representation for Navigation
+Octopus: Embodied Vision-Language Programmer from Environmental Feedback
+Toward Joint Language Modeling for Speech Units and Text
+MemGPT: Towards LLMs as Operating Systems
+A Zero-Shot Language Agent for Computer Control with Structured Reflection
+LoftQ: LoRA-Fine-Tuning-Aware Quantization for Large Language Models
+CodeChain: Towards Modular Code Generation Through Chain of Self-revisions with Representative Sub-modules
+The Consensus Game: Language Model Generation via Equilibrium Search
+Table-GPT: Table-tuned GPT for Diverse Table Tasks
+PaLI-3 Vision Language Models: Smaller, Faster, Stronger
+MiniGPT-5: Interleaved Vision-and-Language Generation via Generative Vokens
+The LAMBADA dataset: Word prediction requiring a broad discourse context
+"I'm fully who I am": Towards Centering Transgender and Non-Binary Voices to Measure Biases in Open Language Generation
+Deep Learning Scaling is Predictable, Empirically
+MLQA: Evaluating Cross-lingual Extractive Question Answering
+OpenAssistant Conversations -- Democratizing Large Language Model Alignment
+Intersectional Bias in Hate Speech and Abusive Language Datasets
+BART: Denoising Sequence-to-Sequence Pre-training for Natural Language Generation, Translation, and Comprehension
+Reducing malicious use of synthetic media research: Considerations and potential release practices for machine learning
+AI Ethics Issues in Real World: Evidence from AI Incident Database
+Robotic Skill Acquisition via Instruction Augmentation with Vision-Language Models
+BadGPT: Exploring Security Vulnerabilities of ChatGPT via Backdoor Attacks to InstructGPT
+Measuring Mathematical Problem Solving With the MATH Dataset
+Is Reinforcement Learning (Not) for Natural Language Processing: Benchmarks, Baselines, and Building Blocks for Natural Language Policy Optimization
+Can Machines Learn Morality? The Delphi Experiment
+BoolQ: Exploring the Surprising Difficulty of Natural Yes/No Questions
+UNKs Everywhere: Adapting Multilingual Language Models to New Scripts
+AndroidEnv: A Reinforcement Learning Platform for Android
+Social Bias Frames: Reasoning about Social and Power Implications of Language
+Characterising Bias in Compressed Models
+Large Batch Optimization for Deep Learning: Training BERT in 76 minutes
+Training a Helpful and Harmless Assistant with Reinforcement Learning from Human Feedback
+Towards Robust Toxic Content Classification
+Demoting Racial Bias in Hate Speech Detection
+RACE: Large-scale ReAding Comprehension Dataset From Examinations
+The Challenge of Value Alignment: from Fairer Algorithms to AI Safety
+Recipes for Safety in Open-domain Chatbots
+Towards Continual Knowledge Learning of Language Models
+The Pushshift Reddit Dataset
+Draft, Sketch, and Prove: Guiding Formal Theorem Provers with Informal Proofs
+Improving Question Answering Model Robustness with Synthetic Adversarial Data Generation
+Scaling Laws vs Model Architectures: How does Inductive Bias Influence Scaling?
+Anticipating Safety Issues in E2E Conversational AI: Framework and Tooling
+Build it Break it Fix it for Dialogue Safety: Robustness from Adversarial Human Attack
+Program Induction by Rationale Generation : Learning to Solve and Explain Algebraic Word Problems
+What's in the Box? A Preliminary Analysis of Undesirable Content in the Common Crawl Corpus
+One Epoch Is All You Need
+Conversing by Reading: Contentful Neural Conversation with On-demand Machine Reading
+Text and Patterns: For Effective Chain of Thought, It Takes Two to Tango
+Wav2Letter: an End-to-End ConvNet-based Speech Recognition System
+Plug and Play Language Models: A Simple Approach to Controlled Text Generation
+NewsQA: A Machine Comprehension Dataset
+AmbiPun: Generating Humorous Puns with Ambiguous Context
+Deal or No Deal? End-to-End Learning for Negotiation Dialogues
+Competition-Level Code Generation with AlphaCode
+STaR: Bootstrapping Reasoning With Reasoning
+Efficient Neural Architecture Search via Parameter Sharing
+Defending Against Neural Fake News
+Recursively Summarizing Books with Human Feedback
+Habitat: A Platform for Embodied AI Research
+Generate & Rank: A Multi-task Framework for Math Word Problems
+Red teaming ChatGPT via Jailbreaking: Bias, Robustness, Reliability and Toxicity
+Mitigating Statistical Bias within Differentially Private Synthetic Data
+The Flan Collection: Designing Data and Methods for Effective Instruction Tuning
+TruthfulQA: Measuring How Models Mimic Human Falsehoods
+An Empirical Study of Metrics to Measure Representational Harms in Pre-Trained Language Models
+Towards AI-Complete Question Answering: A Set of Prerequisite Toy Tasks
+Controlling Style in Generated Dialogue
+QT-Opt: Scalable Deep Reinforcement Learning for Vision-Based Robotic Manipulation
+Universal and Independent: Multilingual Probing Framework for Exhaustive Model Interpretation and Evaluation
+The State and Fate of Linguistic Diversity and Inclusion in the NLP World
+DeBERTa: Decoding-enhanced BERT with Disentangled Attention
+Societal Biases in Language Generation: Progress and Challenges
+Counterfactual Fairness in Text Classification through Robustness
+Open-Domain Conversational Agents: Current Progress, Open Problems, and Future Directions
+Don't Say What You Don't Know: Improving the Consistency of Abstractive Summarization by Constraining Beam Search
+Neural Generation Meets Real People: Towards Emotionally Engaging Mixed-Initiative Conversations
+InCoder: A Generative Model for Code Infilling and Synthesis
+Back to the Future: On Potential Histories in NLP
+Sharp Minima Can Generalize For Deep Nets
+Measuring the Carbon Intensity of AI in Cloud Instances
+SocialIQA: Commonsense Reasoning about Social Interactions
+Generating Long Sequences with Sparse Transformers
+Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer
+QAmeleon: Multilingual QA with Only 5 Examples
+Hi, my name is Martha: Using names to measure and mitigate bias in generative dialogue models
+Generating Fake Cyber Threat Intelligence Using Transformer-Based Models
+Impact of Pretraining Term Frequencies on Few-Shot Reasoning
+Is neural language acquisition similar to natural? A chronological probing study
+Is ChatGPT Good at Search? Investigating Large Language Models as Re-Ranking Agent
+OPT-IML: Scaling Language Model Instruction Meta Learning through the Lens of Generalization
+Bag of Tricks for Efficient Text Classification
+Automatic Detection of Machine Generated Text: A Critical Survey
+Adversarial Training for Large Neural Language Models
+Diffsound: Discrete Diffusion Model for Text-to-sound Generation
+TALM: Tool Augmented Language Models
+Training Language Models with Language Feedback
+Toxicity in Multilingual Machine Translation at Scale
+PEER: A Collaborative Language Model
+On the Multilingual Capabilities of Very Large-Scale English Language Models
+SECure: A Social and Environmental Certificate for AI Systems
+Gaussian Error Linear Units (GELUs)
+RoFormer: Enhanced Transformer with Rotary Position Embedding
+Measuring Massive Multitask Language Understanding
+ReCoRD: Bridging the Gap between Human and Machine Commonsense Reading Comprehension
+To Trust or to Think: Cognitive Forcing Functions Can Reduce Overreliance on AI in AI-assisted Decision-making
+Self-attention Does Not Need $O(n^2)$ Memory
+CTRL: A Conditional Transformer Language Model for Controllable Generation
+Leveraging QA Datasets to Improve Generative Data Augmentation
+Decoupled Weight Decay Regularization
+A Distributional Approach to Controlled Text Generation
+Leveraging Passage Retrieval with Generative Models for Open Domain Question Answering
+The Turking Test: Can Language Models Understand Instructions?
+Chain-of-Thought Prompting Elicits Reasoning in Large Language Models
+DialoGPT: Large-Scale Generative Pre-training for Conversational Response Generation
+Language Models (Mostly) Know What They Know
+Red Teaming Language Models to Reduce Harms: Methods, Scaling Behaviors, and Lessons Learned
+Towards Understanding and Mitigating Social Biases in Language Models
+Discovering and Categorising Language Biases in Reddit
+Reducing Sentiment Bias in Language Models via Counterfactual Evaluation
+Training Verifiers to Solve Math Word Problems
+The Curse of Recursion: Training on Generated Data Makes Models Forget
+Compositional Semantic Parsing with Large Language Models
+Transforming Question Answering Datasets Into Natural Language Inference Datasets
+Bringing the People Back In: Contesting Benchmark Machine Learning Datasets
+LLaMA: Open and Efficient Foundation Language Models
+The Values Encoded in Machine Learning Research
+InstructDial: Improving Zero and Few-shot Generalization in Dialogue through Instruction Tuning
+Semantically-Aligned Equation Generation for Solving and Reasoning Math Word Problems
+Ethical and social risks of harm from Language Models
+SuperGLUE: A Stickier Benchmark for General-Purpose Language Understanding Systems
+Understanding HTML with Large Language Models
+ExT5: Towards Extreme Multi-Task Scaling for Transfer Learning
+AudioLM: a Language Modeling Approach to Audio Generation
+Improving Multi-Task Deep Neural Networks via Knowledge Distillation for Natural Language Understanding
+Behavior Cloned Transformers are Neurosymbolic Reasoners
+Adversarial Attacks and Defenses in Images, Graphs and Text: A Review
+CrowS-Pairs: A Challenge Dataset for Measuring Social Biases in Masked Language Models
+Thou shalt not hate: Countering Online Hate Speech
+SemEval-2020 Task 12: Multilingual Offensive Language Identification in Social Media (OffensEval 2020)
+Participation is not a Design Fix for Machine Learning
+Retrieval Augmentation Reduces Hallucination in Conversation
+Advancing the State of the Art in Open Domain Dialog Systems through the Alexa Prize
+How Many Data Samples is an Additional Instruction Worth?
+Toward Trustworthy AI Development: Mechanisms for Supporting Verifiable Claims
+Crosslingual Generalization through Multitask Finetuning
+The Curious Case of Neural Text Degeneration
+UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction
+Right for the Wrong Reasons: Diagnosing Syntactic Heuristics in Natural Language Inference
+Evaluating the Social Impact of Generative AI Systems in Systems and Society
+SWAG: A Large-Scale Adversarial Dataset for Grounded Commonsense Inference
+Towards A Rigorous Science of Interpretable Machine Learning
+An Analysis of the Automatic Bug Fixing Performance of ChatGPT
+Investigating Failures of Automatic Translation in the Case of Unambiguous Gender
+Chat as Expected: Learning to Manipulate Black-box Neural Dialogue Models
+Analyzing Dynamic Adversarial Training Data in the Limit
+Criticality in Formal Languages and Statistical Physics
+Generating Wikipedia by Summarizing Long Sequences
+MS MARCO: A Human Generated MAchine Reading COmprehension Dataset
+Deep Generative Dual Memory Network for Continual Learning
+ERNIE 3.0: Large-scale Knowledge Enhanced Pre-training for Language Understanding and Generation
+Persistent Anti-Muslim Bias in Large Language Models
+Mirages: On Anthropomorphism in Dialogue Systems
+Language Models as Zero-Shot Planners: Extracting Actionable Knowledge for Embodied Agents
+A Survey On Universal Adversarial Attack
+Atlas: Few-shot Learning with Retrieval Augmented Language Models
+StructBERT: Incorporating Language Structures into Pre-training for Deep Language Understanding
+Towards the Systematic Reporting of the Energy and Carbon Footprints of Machine Learning
+A framework for the extraction of Deep Neural Networks by leveraging public data
+Gender Bias in Contextualized Word Embeddings
+Recipes for building an open-domain chatbot
+Wide Neural Networks of Any Depth Evolve as Linear Models Under Gradient Descent
+Measuring the Effects of Data Parallelism on Neural Network Training
+ChatGPT Makes Medicine Easy to Swallow: An Exploratory Case Study on Simplified Radiology Reports
+Kosmos-G: Generating Images in Context with Multimodal Large Language Models
+X-SQL: reinforce schema representation with context
+Deep Learning for Symbolic Mathematics
+Constructing Datasets for Multi-hop Reading Comprehension Across Documents
+FastText.zip: Compressing text classification models
+A General Language Assistant as a Laboratory for Alignment
+Learning Natural Language Inference using Bidirectional LSTM model and Inner-Attention
+Negated and Misprimed Probes for Pretrained Language Models: Birds Can Talk, But Cannot Fly
+LaMDA: Language Models for Dialog Applications
+MathQA: Towards Interpretable Math Word Problem Solving with Operation-Based Formalisms
+Human-in-the-Loop for Data Collection: a Multi-Target Counter Narrative Dataset to Fight Online Hate Speech
+Estimating the Carbon Footprint of BLOOM, a 176B Parameter Language Model
+Enhancing the Transformer with Explicit Relational Encoding for Math Problem Solving
+Annotators with Attitudes: How Annotator Beliefs And Identities Bias Toxic Language Detection
+Deep Learning Based Text Classification: A Comprehensive Review
+Automated Hate Speech Detection and the Problem of Offensive Language
+Multi-Dimensional Gender Bias Classification
+Extracting Training Data from Large Language Models
+ProsocialDialog: A Prosocial Backbone for Conversational Agents
+Cross-Task Generalization via Natural Language Crowdsourcing Instructions
+Learning from the Worst: Dynamically Generated Datasets to Improve Online Hate Detection
+FlowQA: Grasping Flow in History for Conversational Machine Comprehension
+Recent Advances towards Safe, Responsible, and Moral Dialogue Systems: A Survey
+Improving alignment of dialogue agents via targeted human judgements
+Closing the AI Accountability Gap: Defining an End-to-End Framework for Internal Algorithmic Auditing
+Explanation in Artificial Intelligence: Insights from the Social Sciences
+RoBERTa: A Robustly Optimized BERT Pretraining Approach
+Revealing Persona Biases in Dialogue Systems
+GeDi: Generative Discriminator Guided Sequence Generation
+Is ChatGPT better than Human Annotators? Potential and Limitations of ChatGPT in Explaining Implicit Hate Speech
+UL2: Unifying Language Learning Paradigms
+Self-Instruct: Aligning Language Models with Self-Generated Instructions
+Evaluating the Underlying Gender Bias in Contextualized Word Embeddings
+Does Gender Matter? Towards Fairness in Dialogue Systems
+Energy and Policy Considerations for Deep Learning in NLP
+Can a Suit of Armor Conduct Electricity? A New Dataset for Open Book Question Answering
+The False Promise of Imitating Proprietary LLMs
+Directional Bias Amplification
+Hierarchical Text-Conditional Image Generation with CLIP Latents
+How Close is ChatGPT to Human Experts? Comparison Corpus, Evaluation, and Detection
+ACUTE-EVAL: Improved Dialogue Evaluation with Optimized Questions and Multi-turn Comparisons
+Task-aware Retrieval with Instructions
+Do Prompt-Based Models Really Understand the Meaning of their Prompts?
+Reading Wikipedia to Answer Open-Domain Questions
+Supervising Model Attention with Human Explanations for Robust Natural Language Inference
+Measuring the Reliability of Hate Speech Annotations: The Case of the European Refugee Crisis
+Latent Retrieval for Weakly Supervised Open Domain Question Answering
+Teaching language models to support answers with verified quotes
+TriviaQA: A Large Scale Distantly Supervised Challenge Dataset for Reading Comprehension
+MasakhaNER: Named Entity Recognition for African Languages
+Predicting the Type and Target of Offensive Posts in Social Media
+Learning to Model Editing Processes
+Rainier: Reinforced Knowledge Introspector for Commonsense Question Answering
+Zero-Shot Fine-Grained Style Transfer: Leveraging Distributed Continuous Style Representations to Transfer To Unseen Styles
+Quantifying the Carbon Emissions of Machine Learning
+Fine-Tuning Pretrained Language Models: Weight Initializations, Data Orders, and Early Stopping
+Chasing Carbon: The Elusive Environmental Footprint of Computing
+Language Models that Seek for Knowledge: Modular Search & Generation for Dialogue and Prompt Completion
+Distilling Reasoning Capabilities into Smaller Language Models
+Exploiting Structured Knowledge in Text via Graph-Guided Representation Learning
+Scaling Language Models: Methods, Analysis & Insights from Training Gopher
+CodeNet: A Large-Scale AI for Code Dataset for Learning a Diversity of Coding Tasks
+Making Large Language Models Better Reasoners with Step-Aware Verifier
+Aligning Books and Movies: Towards Story-like Visual Explanations by Watching Movies and Reading Books
+SGPT: GPT Sentence Embeddings for Semantic Search
+Prompt-and-Rerank: A Method for Zero-Shot and Few-Shot Arbitrary Textual Style Transfer with Small Language Models
+Building a Conversational Agent Overnight with Dialogue Self-Play
+ChatGPT Outperforms Crowd-Workers for Text-Annotation Tasks
+WebGPT: Browser-assisted question-answering with human feedback
+Quality at a Glance: An Audit of Web-Crawled Multilingual Datasets
+A Simple Fix to Mahalanobis Distance for Improving Near-OOD Detection
+Neural Machine Translation of Rare Words with Subword Units
+ToxiGen: A Large-Scale Machine-Generated Dataset for Adversarial and Implicit Hate Speech Detection
+Queens are Powerful too: Mitigating Gender Bias in Dialogue Generation
+TeraPipe: Token-Level Pipeline Parallelism for Training Large-Scale Language Models
+CommonsenseQA: A Question Answering Challenge Targeting Commonsense Knowledge
+Know What You Don't Know: Unanswerable Questions for SQuAD
+Longformer: The Long-Document Transformer
+Documenting Large Webtext Corpora: A Case Study on the Colossal Clean Crawled Corpus
+A Constructive Prediction of the Generalization Error Across Scales
+Detecting Emergent Intersectional Biases: Contextualized Word Embeddings Contain a Distribution of Human-like Biases
+KERMIT: Generative Insertion-Based Modeling for Sequences
+mGPT: Few-Shot Learners Go Multilingual
+The Natural Language Decathlon: Multitask Learning as Question Answering
+A Crowd-based Evaluation of Abuse Response Strategies in Conversational Agents
+A Survey of Race, Racism, and Anti-Racism in NLP
+Unraveling the Hidden Environmental Impacts of AI Solutions for Environment
+SemEval-2022 Task 2: Multilingual Idiomaticity Detection and Sentence Embedding
+DistilBERT, a distilled version of BERT: smaller, faster, cheaper and lighter
+Improving the Domain Adaptation of Retrieval Augmented Generation (RAG) Models for Open Domain Question Answering
+Language Generation Models Can Cause Harm: So What Can We Do About It? An Actionable Survey
+RealToxicityPrompts: Evaluating Neural Toxic Degeneration in Language Models
+Pretraining Language Models with Human Preferences
+Inner Monologue: Embodied Reasoning through Planning with Language Models
+Racial Disparity in Natural Language Processing: A Case Study of Social Media African-American English
+MTEB: Massive Text Embedding Benchmark
+Interscript: A dataset for interactive learning of scripts through error feedback
+Looped Transformers as Programmable Computers
+No Language Left Behind: Scaling Human-Centered Machine Translation
+Collaborative Storytelling with Large-scale Neural Language Models
+Think you have Solved Question Answering? Try ARC, the AI2 Reasoning Challenge
+CONDAQA: A Contrastive Reading Comprehension Dataset for Reasoning about Negation

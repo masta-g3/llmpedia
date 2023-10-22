@@ -45,6 +45,8 @@ summary_col_mapping = {
     "enjoyable_analysis": "enjoyable_analysis",
 }
 
+llm_terms = ["language", "llm", "artificial intelligence", "transformer"]
+
 ##################
 ## TXT ANALYSIS ##
 ##################
@@ -157,6 +159,7 @@ def reformat_text(doc_content):
     content = doc_content.replace("-\n", "")
     content = re.sub(r"(?<!\n)\n(?!\n)", " ", content)
     content = re.sub(" +", " ", content)
+    content = content.replace("<|endoftext|>", "|endoftext|")
     return content
 
 
@@ -206,7 +209,7 @@ def search_arxiv_doc(paper_name):
     if not is_code:
         max_docs = 3
         abs_check = False
-        paper_name = preprocess(paper_name)
+        # paper_name = preprocess(paper_name)
     docs = ArxivLoader(
         query=paper_name,
         doc_content_chars_max=70000,
@@ -233,7 +236,10 @@ def search_arxiv_doc(paper_name):
         title_sim = tfidf_similarity(paper_name, new_title)
         if title_sim < 0.9:
             return None
-
+    ## check if any of the language terms occur.
+    # if not any([term in docs[0].page_content.lower() for term in llm_terms]):
+    #     print("Not a language paper.")
+    #     return None
     return docs[0]
 
 
@@ -306,6 +312,23 @@ def get_semantic_scholar_info(arxiv_code):
         return None
 
 
+def check_if_exists(paper_name, existing_paper_names, existing_paper_ids):
+    """Check if arxiv ID has exact match in existing papers or a very similar title."""
+    if is_arxiv_code(paper_name):
+        if paper_name in existing_paper_ids:
+            return True
+        else:
+            return False
+    else:
+        pre_similarity = max(
+            [tfidf_similarity(paper_name, t) for t in existing_paper_names]
+        )
+        if pre_similarity > 0.9:
+            return True
+        else:
+            return False
+
+
 ################
 ## DB RELATED ##
 ################
@@ -356,6 +379,10 @@ def upload_df_to_db(df, table_name, params, if_exists="append"):
     with psycopg2.connect(**params) as conn:
         with conn.cursor() as cur:
             cur.execute("COMMIT")
+
+    ## Close.
+    engine.dispose()
+
     return True
 
 
@@ -364,6 +391,16 @@ def get_arxiv_id_list(db_params, table_name):
     with psycopg2.connect(**db_params) as conn:
         with conn.cursor() as cur:
             cur.execute(f"SELECT DISTINCT arxiv_code FROM {table_name}")
+            return [row[0] for row in cur.fetchall()]
+
+
+def get_arxiv_id_embeddings(db_params):
+    with psycopg2.connect(**db_params) as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT DISTINCT cmetadata->>'arxiv_code' AS arxiv_code
+                FROM langchain_pg_embedding
+                WHERE cmetadata->>'arxiv_code' IS NOT NULL;""")
             return [row[0] for row in cur.fetchall()]
 
 
