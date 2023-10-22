@@ -1,6 +1,9 @@
 pandas~=2.0.3
+cohere~=4.31
+langchain~=0.0.285
 numpy~=1.24.4
 streamlit-plotly-events~=0.0.6
 plotly~=5.15.0
 pandas~=2.0.3
+pydantic~=1.10.7
 psycopg2-binary~=2.9.7
