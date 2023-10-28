@@ -6,7 +6,7 @@ from streamlit_plotly_events import plotly_events
 from typing import Dict, List, Tuple
 import pandas as pd
 import numpy as np
-import psycopg2
+from sqlalchemy import create_engine
 import json
 import re, os
 
@@ -17,6 +17,8 @@ import utils.vector_store as vs
 pio.templates.default = "plotly"
 
 db_params = {**st.secrets["postgres"]}
+database_url = f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}"
+
 
 ## Page config.
 st.set_page_config(
@@ -75,38 +77,34 @@ st.markdown(
 
 def load_arxiv():
     query = "SELECT * FROM arxiv_details;"
-    conn = psycopg2.connect(**db_params)
+    conn = create_engine(database_url)
     arxiv_df = pd.read_sql(query, conn)
     arxiv_df.set_index("arxiv_code", inplace=True)
-    conn.close()
     return arxiv_df
 
 
 def load_reviews():
     query = "SELECT * FROM summaries;"
-    conn = psycopg2.connect(**db_params)
+    conn = create_engine(database_url)
     summaries_df = pd.read_sql(query, conn)
     summaries_df.set_index("arxiv_code", inplace=True)
-    conn.close()
     return summaries_df
 
 
 def load_topics():
     query = "SELECT * FROM topics;"
-    conn = psycopg2.connect(**db_params)
+    conn = create_engine(database_url)
     topics_df = pd.read_sql(query, conn)
     topics_df.set_index("arxiv_code", inplace=True)
-    conn.close()
     return topics_df
 
 
 def load_citations():
     query = "SELECT * FROM semantic_details;"
-    conn = psycopg2.connect(**db_params)
+    conn = create_engine(database_url)
     citations_df = pd.read_sql(query, conn)
     citations_df.set_index("arxiv_code", inplace=True)
     citations_df.drop(columns=["paper_id"], inplace=True)
-    conn.close()
     return citations_df
 
 
@@ -500,6 +498,7 @@ def main():
         "Each week GPT will sweep through the latest LLM related papers and select the most interesting ones. "
         "The maestro will then summarize the papers and provide its own analysis, including a novelty, technical depth and readability score. "
         "We hope you enjoy this collection and find it useful.\n\n"
+        "If you have any questions, head to the *Chat* section and consult the GPT maestro.\n\n"
         "*Buona lettura!*"
     )
 
@@ -560,13 +559,8 @@ def main():
     )
 
     ## Year filter.
-    def get_filter_condition(option):
-        if option == "2016-21":
-            return full_papers_df["published"].dt.year <= 2021
-        return full_papers_df["published"].dt.year == int(option)
-
     if not st.session_state.all_years:
-        papers_df = full_papers_df[get_filter_condition(year)]
+        papers_df = full_papers_df[full_papers_df["published"].dt.year == int(year)]
     else:
         papers_df = full_papers_df.copy()
 
@@ -651,7 +645,7 @@ def main():
 
     ## Content tabs.
     content_tabs = st.tabs(
-        ["Grid View", "Feed View", "Over View", "Focus View", "Chat"]
+        ["Grid View", "Feed View", "Over View", "Focus View", "🆕 Chat"]
     )
 
     with content_tabs[0]:
@@ -675,7 +669,7 @@ def main():
     with content_tabs[2]:
         ## Publication counts.
 
-        total_papers = len(full_papers_df)
+        total_papers = len(papers_df)
         st.markdown(f"### 📈 Total Publication Counts: {total_papers}")
         plot_type = st.radio(
             label="Plot Type",
@@ -685,7 +679,7 @@ def main():
             horizontal=True,
         )
         cumulative = plot_type == "Cumulative"
-        ts_plot = plot_publication_counts(full_papers_df, cumulative=cumulative)
+        ts_plot = plot_publication_counts(papers_df, cumulative=cumulative)
         st.plotly_chart(ts_plot, use_container_width=True)
 
         ## Cluster map.

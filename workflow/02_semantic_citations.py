@@ -1,5 +1,6 @@
 import sys, os
 from dotenv import load_dotenv
+from tqdm import tqdm
 import random
 import time
 
@@ -20,10 +21,12 @@ semantic_map = {
 def main():
     """ Load summaries and add missing ones."""
     arxiv_codes = pu.get_arxiv_id_list(db_params, "summaries")
+    done_codes = pu.get_arxiv_id_list(db_params, "semantic_details")
+    arxiv_codes = list(set(arxiv_codes) - set(done_codes))
 
     items_added = 0
     errors = 0
-    for arxiv_code in arxiv_codes:
+    for arxiv_code in tqdm(arxiv_codes):
         if pu.check_in_db(arxiv_code, db_params, "semantic_details"):
             if random.random() < 1:
                 continue
@@ -34,7 +37,7 @@ def main():
         ## Get Semantic Scholar info.
         ss_info = pu.get_semantic_scholar_info(arxiv_code)
         if ss_info is None:
-            print(f"ERROR: Could not find {arxiv_code} in Semantic Scholar.")
+            print(f"\nERROR: Could not find {arxiv_code} in Semantic Scholar.")
             errors += 1
             continue
         ss_info = pu.transform_flat_dict(pu.flatten_dict(ss_info), semantic_map)
@@ -42,7 +45,7 @@ def main():
         pu.store_local(ss_info, arxiv_code, "semantic_meta")
         pu.upload_to_db(ss_info, db_params, "semantic_details")
         items_added += 1
-        print(f"Added {arxiv_code} to semantic_details.")
+        print(f"\nAdded {arxiv_code} to semantic_details.")
         # time.sleep(1)
 
     print(f"Process complete. Added {items_added} items in total.")
