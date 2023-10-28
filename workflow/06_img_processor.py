@@ -71,7 +71,7 @@ def generate_image(name, img_file):
         cliptextencode = CLIPTextEncode()
         cliptextencode_7 = cliptextencode.encode(
             text="low quality, ugly, distorted, blurry, deformed, watermark," +
-                  "cartoon, videogame, text, flow chart, signature, depth of field, " +
+                  "cartoon, videogame, text, flow chart, signature, depth of field, religious," +
                   "mandala, star map, photoreal, portrait, b&w, poker, modern, grainy",
             clip=get_value_at_index(loraloader_39, 1),
         )
@@ -85,7 +85,7 @@ def generate_image(name, img_file):
         vaeloader_48 = vaeloader.load_vae(vae_name="sdxl.vae.safetensors")
 
         cliptextencode_102 = cliptextencode.encode(
-            text=f'"{name}", tarot and computers, surreal, pixel art',
+            text=f'"{name}", tarot and computers, surreal, stunning award-winning pixel art',
             clip=get_value_at_index(loraloader_39, 1),
         )
 

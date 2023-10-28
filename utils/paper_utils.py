@@ -209,7 +209,7 @@ def search_arxiv_doc(paper_name):
     if not is_code:
         max_docs = 3
         abs_check = False
-        # paper_name = preprocess(paper_name)
+        paper_name = preprocess(paper_name)
     docs = ArxivLoader(
         query=paper_name,
         doc_content_chars_max=70000,

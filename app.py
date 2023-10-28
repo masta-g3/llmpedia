@@ -41,6 +41,10 @@ if "arxiv_code" not in st.session_state:
 if "openai_api_key" not in st.session_state:
     st.session_state.openai_api_key = ""
 
+if "all_years" not in st.session_state:
+    st.session_state.all_years = False
+
+
 st.markdown(
     """
     <style>
@@ -52,6 +56,19 @@ st.markdown(
         }
     </style>
 """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    <style>
+        .centered {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+    </style>
+    """,
     unsafe_allow_html=True,
 )
 
@@ -112,7 +129,7 @@ def combine_input_data():
 def prepare_calendar_data(df: pd.DataFrame, year: int) -> pd.DataFrame:
     """Prepares data for the creation of a calendar heatmap."""
     df["published"] = pd.to_datetime(df["published"])
-    df_year = df[df["published"].dt.year == year].copy()
+    df_year = df[df["published"].dt.year == int(year)].copy()
     ## publishes dates with zero 'Counts' with full year dates.
     df_year = (
         df_year.set_index("published")
@@ -148,6 +165,8 @@ def plot_publication_counts(df: pd.DataFrame, cumulative=False) -> go.Figure:
             x="published",
             y="Count",
         )
+    ## Remove upper margin.
+    # fig.update_layout(margin=dict(t=0, b=0, l=0, r=0))
     return fig
 
 
@@ -359,13 +378,6 @@ def generate_grid_gallery(df, n_cols=5):
                         st.image(f"imgs/{df.iloc[i*n_cols+j]['arxiv_code']}.png")
                     except:
                         pass
-                    paper_code = df.iloc[i * n_cols + j]["arxiv_code"]
-                    focus_btn = st.button(
-                        "Focus", key=f"focus_{paper_code}", use_container_width=True
-                    )
-                    if focus_btn:
-                        st.session_state.arxiv_code = paper_code
-                        click_tab(3)
                     paper_url = df.iloc[i * n_cols + j]["url"]
                     paper_title = df.iloc[i * n_cols + j]["title"].replace("\n", "")
                     star_count = (
@@ -373,18 +385,34 @@ def generate_grid_gallery(df, n_cols=5):
                     )
                     publish_date = pd.to_datetime(
                         df.iloc[i * n_cols + j]["published"]
-                    ).strftime("%B %d, %Y")
+                    ).strftime("%b %d, %Y")
                     star = ""
                     if star_count:
                         star = "⭐️"
-                    st.code(f"{star} {publish_date}", language="html")
+
+                    centered_code = f"""
+                    <div class="centered">
+                        <code>{star} {publish_date}</code>
+                    </div>
+                    """
+                    st.markdown(centered_code, unsafe_allow_html=True)
+
+                    paper_code = df.iloc[i * n_cols + j]["arxiv_code"]
+                    focus_btn = st.button(
+                        "Focus", key=f"focus_{paper_code}", use_container_width=True
+                    )
+                    if focus_btn:
+                        st.session_state.arxiv_code = paper_code
+                        click_tab(3)
+
                     st.markdown(
                         f'<h6 style="text-align: center"><a href="{paper_url}" style="color: #FF4B4B;">{paper_title}</a></h6>',
                         unsafe_allow_html=True,
                     )
+
                     last_updated = pd.to_datetime(
                         df.iloc[i * n_cols + j]["published"]
-                    ).strftime("%B %d, %Y")
+                    ).strftime("%b %d, %Y")
                     # st.markdown(f"{last_updated}")
                     authors_str = df.iloc[i * n_cols + j]["authors"]
                     authors_str = (
@@ -476,8 +504,8 @@ def main():
     )
 
     ## Main content.
-    papers_df = load_data()
-    st.session_state["papers"] = papers_df
+    full_papers_df = load_data()
+    st.session_state["papers"] = full_papers_df
 
     ## Config sidebar.
     # st.sidebar.markdown("# 🛠 Config")
@@ -489,24 +517,34 @@ def main():
 
     ## Filter sidebar.
     st.sidebar.markdown("# 📁 Filters")
-    year = st.sidebar.slider(
+    ## Add option to filter by year of select all of them.
+    year_cols = st.sidebar.columns((1, 2))
+    _ = year_cols[0].markdown("#### Year")
+    all_years = year_cols[0].checkbox("All ", value=st.session_state.all_years)
+    st.session_state.all_years = all_years
+
+    _ = year_cols[1].markdown("####")
+    year = year_cols[1].slider(
         "Year",
-        min_value=2021,
+        min_value=2016,
         max_value=2023,
         value=2023,
         step=1,
+        label_visibility="collapsed",
+        disabled=st.session_state.all_years,
     )
+
     search_term = st.sidebar.text_input("Search", "")
     search_opt_cols = st.sidebar.columns((1, 1))
     title_only = search_opt_cols[0].checkbox("`Title Only`", value=False)
     code_only = search_opt_cols[1].checkbox("`Arxiv Code`", value=False)
     categories = st.sidebar.multiselect(
         "Categories",
-        list(papers_df["category"].unique()),
+        list(full_papers_df["category"].unique()),
     )
     topics = st.sidebar.multiselect(
         "Topic Group",
-        list(papers_df["topic"].unique()),
+        list(full_papers_df["topic"].unique()),
     )
 
     min_citations = st.sidebar.select_slider(
@@ -522,7 +560,15 @@ def main():
     )
 
     ## Year filter.
-    papers_df = papers_df[papers_df["published"].dt.year == year]
+    def get_filter_condition(option):
+        if option == "2016-21":
+            return full_papers_df["published"].dt.year <= 2021
+        return full_papers_df["published"].dt.year == int(option)
+
+    if not st.session_state.all_years:
+        papers_df = full_papers_df[get_filter_condition(year)]
+    else:
+        papers_df = full_papers_df.copy()
 
     ## Search terms.
     if len(search_term) > 0 and title_only:
@@ -573,25 +619,29 @@ def main():
 
     ## Calendar selector.
     published_df = generate_calendar_df(papers_df)
-    heatmap_data = prepare_calendar_data(published_df, year)
-    release_calendar, padded_date = plot_activity_map(heatmap_data)
-    st.markdown(f"### 📅 {year} Release Calendar")
-    calendar_select = plotly_events(release_calendar, override_height=220)
+    if not st.session_state.all_years:
+        heatmap_data = prepare_calendar_data(published_df, year)
+        release_calendar, padded_date = plot_activity_map(heatmap_data)
+        st.markdown(f"### 📅 {year} Release Calendar")
+        calendar_select = plotly_events(release_calendar, override_height=220)
 
-    ## Published date.
-    if len(calendar_select) > 0:
-        ## Select from padded dates.
-        x_coord = 6 - calendar_select[0]["pointNumber"][0]
-        y_coord = calendar_select[0]["pointNumber"][1]
-        publish_date = pd.to_datetime(padded_date.loc[x_coord, y_coord] + f" {year}")
+        ## Published date.
+        if len(calendar_select) > 0:
+            ## Select from padded dates.
+            x_coord = 6 - calendar_select[0]["pointNumber"][0]
+            y_coord = calendar_select[0]["pointNumber"][1]
+            publish_date = pd.to_datetime(
+                padded_date.loc[x_coord, y_coord] + f" {year}"
+            )
 
-        if len(papers_df[papers_df["published"] == publish_date]) > 0:
-            papers_df = papers_df[papers_df["published"] == publish_date]
-            ## Add option to clear filter on sidebar.
-            if st.sidebar.button(
-                f"📅 **Publish Date Filter:** {publish_date.strftime('%B %d, %Y')}"
-            ):
-                st.experimental_rerun()
+            if len(papers_df[papers_df["published"] == publish_date]) > 0:
+                papers_df = papers_df[papers_df["published"] == publish_date]
+                ## Add option to clear filter on sidebar.
+                if st.sidebar.button(
+                    f"📅 **Publish Date Filter:** {publish_date.strftime('%B %d, %Y')}",
+                    help="Double click on calendar chart to remove date filter.",
+                ):
+                    pass
 
     if len(papers_df) == 0:
         st.markdown("No papers found.")
@@ -600,7 +650,9 @@ def main():
     papers = papers_df.to_dict("records")
 
     ## Content tabs.
-    content_tabs = st.tabs(["Grid View", "Feed View", "Over View", "Focus View", "Chat"])
+    content_tabs = st.tabs(
+        ["Grid View", "Feed View", "Over View", "Focus View", "Chat"]
+    )
 
     with content_tabs[0]:
         if "page_number" not in st.session_state:
@@ -622,8 +674,9 @@ def main():
 
     with content_tabs[2]:
         ## Publication counts.
-        total_papers = len(papers_df)
-        st.markdown(f"### 📈 {year} Publication Counts: {total_papers}")
+
+        total_papers = len(full_papers_df)
+        st.markdown(f"### 📈 Total Publication Counts: {total_papers}")
         plot_type = st.radio(
             label="Plot Type",
             options=["Daily", "Cumulative"],
@@ -632,11 +685,11 @@ def main():
             horizontal=True,
         )
         cumulative = plot_type == "Cumulative"
-        ts_plot = plot_publication_counts(papers_df, cumulative=cumulative)
+        ts_plot = plot_publication_counts(full_papers_df, cumulative=cumulative)
         st.plotly_chart(ts_plot, use_container_width=True)
 
         ## Cluster map.
-        st.markdown("### Topic Model Map")
+        st.markdown(f"### {year} Topic Model Map")
         cluster_map = plot_cluster_map(papers_df)
         st.plotly_chart(cluster_map, use_container_width=True)
 
@@ -653,7 +706,9 @@ def main():
 
     with content_tabs[4]:
         st.markdown("##### 🤖 Chat with the GPT maestro.")
-        user_question = st.text_area(label="Ask any question about LLMs or the arxiv papers.", value="")
+        user_question = st.text_area(
+            label="Ask any question about LLMs or the arxiv papers.", value=""
+        )
         chat_btn = st.button("Send")
         if chat_btn:
             if user_question != "":

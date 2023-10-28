@@ -89,7 +89,7 @@ def create_topic_model(
         n_neighbors=10, n_components=8, min_dist=0.0, metric="cosine", random_state=200
     )
     hdbscan_model = HDBSCAN(
-        min_cluster_size=5,
+        min_cluster_size=8,
         metric="euclidean",
         cluster_selection_method="eom",
         prediction_data=False,

@@ -23,6 +23,8 @@ def main():
 
         doc = pu.search_arxiv_doc(k)
         if doc is None:
+            doc = pu.search_arxiv_doc(v)
+        if doc is None:
             print(f"Axiv code {v} not found.")
             continue
         doc_content = doc.page_content
