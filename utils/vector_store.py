@@ -37,7 +37,7 @@ store = PGVector(
     embedding_function=embeddings,
 )
 
-retriever = store.as_retriever(search_type="mmr", search_kwargs={"k": 20})
+retriever = store.as_retriever(search_type="similarity", search_kwargs={"k": 20})
 
 CustomCohereRerank.update_forward_refs()
 key = os.getenv("COHERE_API_KEY")
