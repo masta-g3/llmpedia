@@ -13,7 +13,7 @@ from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CohereRerank
 
 class CustomCohereRerank(CohereRerank):
-    class Config(BaseModel.Config):
+    class Config:
         arbitrary_types_allowed = True
 
 
