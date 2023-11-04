@@ -46,6 +46,10 @@ if "openai_api_key" not in st.session_state:
 if "all_years" not in st.session_state:
     st.session_state.all_years = False
 
+collection_map = {
+    "GTE-Base": "arxiv_vectors",
+    "🆕 Cohere V3": "arxiv_vectors_cv3",
+}
 
 st.markdown(
     """
@@ -480,8 +484,9 @@ def main():
     ## URL info extraction.
     url_query = st.experimental_get_query_params()
     if "arxiv_code" in url_query:
-        arxiv_code = url_query["arxiv_code"][0]
-        st.session_state.arxiv_code = arxiv_code
+        paper_code = url_query["arxiv_code"][0]
+        st.session_state.arxiv_code = paper_code
+        click_tab(3)
 
     st.markdown(
         """<div class="pixel-font">LLMpedia</div>
@@ -573,6 +578,7 @@ def main():
         papers_df = papers_df[
             papers_df["arxiv_code"].str.lower().str.contains(search_term)
         ]
+        st.session_state.arxiv_code = search_term
     elif len(search_term) > 0:
         search_term = search_term.lower()
         papers_df = papers_df[
@@ -700,17 +706,25 @@ def main():
 
     with content_tabs[4]:
         st.markdown("##### 🤖 Chat with the GPT maestro.")
+        config_cols = st.columns((3, 3, 10))
+        embedding_name = config_cols[0]._selectbox(
+            label="Embeddings", options=["GTE-Base", "🆕 Cohere V3"]
+        )
+        collection_name = collection_map[embedding_name]
         user_question = st.text_area(
             label="Ask any question about LLMs or the arxiv papers.", value=""
         )
-        chat_btn = st.button("Send")
+        chat_btn_disabled = len(user_question) == 0
+        chat_btn = st.button("Send", disabled=chat_btn_disabled)
         if chat_btn:
             if user_question != "":
-                with st.spinner("Consulting the GPT maestro..."):
-                    response = vs.query_llmpedia(user_question)
+                with st.spinner(
+                    "Consulting the GPT maestro, this might take a minute..."
+                ):
+                    response = vs.query_llmpedia(user_question, collection_name)
                     # with st.chat_message("ai"):
                     st.divider()
-                    st.markdown(f"{response}")
+                    st.markdown(response)
 
     ## URL tab selection.
     # if "tab_num" in url_query:

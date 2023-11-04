@@ -168,9 +168,10 @@ def preprocess(text):
     text = "".join(c.lower() if c.isalnum() else " " for c in text)
     return text
 
+
 def is_arxiv_code(s):
     """Check if a string is an Arxiv code."""
-    pattern = re.compile(r'^\d{4}\.\d+$')
+    pattern = re.compile(r"^\d{4}\.\d+$")
     return bool(pattern.match(s))
 
 
@@ -196,7 +197,6 @@ def clean_fnc_call(json_str):
     decoded_json = demjson.decode(json_str, strict=False)["output"]
     corrected_json_str = demjson.encode(decoded_json)
     return corrected_json_str
-
 
 #################
 ## ARXIV TOOLS ##
@@ -251,8 +251,8 @@ def preprocess_arxiv_doc(doc, token_encoder=None):
 
     if token_encoder:
         ntokens_doc = len(token_encoder.encode(doc_content))
-        if ntokens_doc > 11000:
-            doc_content = doc_content[: int(11000 * 3)] + "... [truncated]"
+        if ntokens_doc > 10800:
+            doc_content = doc_content[: int(10800 * 3)] + "... [truncated]"
 
     return doc_content
 
@@ -394,13 +394,17 @@ def get_arxiv_id_list(db_params, table_name):
             return [row[0] for row in cur.fetchall()]
 
 
-def get_arxiv_id_embeddings(db_params):
+def get_arxiv_id_embeddings(db_params, collection_name):
     with psycopg2.connect(**db_params) as conn:
         with conn.cursor() as cur:
-            cur.execute("""
-                SELECT DISTINCT cmetadata->>'arxiv_code' AS arxiv_code
-                FROM langchain_pg_embedding
-                WHERE cmetadata->>'arxiv_code' IS NOT NULL;""")
+            cur.execute(
+                f"""
+                SELECT DISTINCT a.cmetadata->>'arxiv_code' AS arxiv_code
+                FROM langchain_pg_embedding a, langchain_pg_collection b
+                WHERE a.collection_id = b.uuid
+                AND b.name = '{collection_name}'
+                AND a.cmetadata->>'arxiv_code' IS NOT NULL;"""
+            )
             return [row[0] for row in cur.fetchall()]
 
 
@@ -435,6 +439,7 @@ def fetch_queue_gist(gist_id, gist_filename="llm_queue.txt"):
         if response.status_code == 200:
             paper_list = response.text.split("\n")
             paper_list = [p.strip() for p in paper_list if len(p.strip()) > 0]
+            paper_list = list(set(paper_list))
 
     return paper_list
 
@@ -473,8 +478,10 @@ def update_gist(
 ## LANGCHAIN ##
 ###############
 
+
 class CustomFixParser(PydanticOutputFunctionsParser):
     """Custom output parser."""
+
     def parse_result(self, result):
         generation = result[0]
         message = generation.message
