@@ -698,8 +698,8 @@ def main():
         arxiv_code = st.text_input("arXiv Code", st.session_state.arxiv_code)
         st.session_state.arxiv_code = arxiv_code
         if len(arxiv_code) > 0:
-            if arxiv_code in papers_df.index:
-                paper = papers_df.loc[arxiv_code].to_dict()
+            if arxiv_code in full_papers_df.index:
+                paper = full_papers_df.loc[arxiv_code].to_dict()
                 create_paper_card(paper, mode="open")
             else:
                 st.error("Paper not found.")

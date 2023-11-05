@@ -5,20 +5,14 @@ from pydantic import BaseModel
 import cohere
 import re
 
-from langchain.embeddings import CohereEmbeddings
 from langchain.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
-from langchain.vectorstores.pgvector import PGVector
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CohereRerank
 
-
-# class CustomCohereRerank(CohereRerank):
-    # class Config:
-        # arbitrary_types_allowed = True
-
+from utils.custom_langchain import NewCohereEmbeddings, NewPGVector
 
 db_params = {**st.secrets["postgres"]}
 
@@ -30,7 +24,7 @@ CONNECTION_STRING = (
 
 def initialize_collection(collection_name):
     if collection_name == "arxiv_vectors_cv3":
-        embeddings = CohereEmbeddings(
+        embeddings = NewCohereEmbeddings(
             cohere_api_key=os.getenv("COHERE_API_KEY"), model="embed-english-v3.0"
         )
     elif collection_name == "arxiv_vectors":
@@ -40,7 +34,7 @@ def initialize_collection(collection_name):
     else:
         raise ValueError(f"Unknown collection name: {collection_name}")
 
-    store = PGVector(
+    store = NewPGVector(
         collection_name=collection_name,
         connection_string=CONNECTION_STRING,
         embedding_function=embeddings,
@@ -50,7 +44,7 @@ def initialize_collection(collection_name):
     # CustomCohereRerank.update_forward_refs()
     # co = cohere.Client(os.getenv("COHERE_API_KEY"))
 
-    compressor = CohereRerank(top_n=6, cohere_api_key=os.getenv("COHERE_API_KEY"), user_agent="llmpedia")
+    compressor = CohereRerank(top_n=5, cohere_api_key=os.getenv("COHERE_API_KEY"), user_agent="llmpedia")
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=retriever
     )
@@ -61,8 +55,8 @@ llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.1)
 
 template = """Use the following pieces of documents to answer the user's question. 
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
-Use up to 500 words to provide a thorough, complete but concise answer. If possible break down concepts step by step.
-Be practical and reference any existing libraries or implementations mentioned on the documents if possible.
+Use up to 500 words to provide a complete but concise answer. If possible break down concepts step by step.
+Be practical and reference any existing libraries or implementations mentioned on the documents.
 When providing your answer add citations referencing the relevant arxiv_codes (e.g.: *reference content* (arxiv:1234.5678)).
 Use markdown format to organize and structure your response.
 {context}

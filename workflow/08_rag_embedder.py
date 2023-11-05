@@ -1,6 +1,8 @@
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain.vectorstores.pgvector import PGVector
 from langchain.docstore.document import Document
+from langchain.embeddings import CohereEmbeddings
+
 from sqlalchemy.exc import IntegrityError, OperationalError
 from tqdm import tqdm
 from dotenv import load_dotenv
@@ -20,24 +22,29 @@ import utils.paper_utils as pu
 
 def main():
     """Create embeddings for all arxiv chunks and upload them to DB."""
+    MODEL_NAME = "embed-english-v3.0"
     CONNECTION_STRING = (
         f"postgresql+psycopg2://{pu.db_params['user']}:{pu.db_params['password']}"
         f"@{pu.db_params['host']}:{pu.db_params['port']}/{pu.db_params['dbname']}"
     )
-    COLLECTION_NAME = "arxiv_vectors"
+    COLLECTION_NAME = "arxiv_vectors_cv3"
 
     ## Representation and storage.
-    embeddings = HuggingFaceEmbeddings(model_name="thenlper/gte-large")
+    # embeddings = HuggingFaceEmbeddings(model_name="thenlper/gte-large")
+    embeddings = CohereEmbeddings(
+        cohere_api_key=os.getenv("COHERE_API_KEY"), model=MODEL_NAME
+    )
+
     store = PGVector(
         collection_name=COLLECTION_NAME,
         connection_string=CONNECTION_STRING,
         embedding_function=embeddings,
     )
 
-    arxiv_codes = pu.get_arxiv_id_embeddings(pu.db_params)
+    arxiv_codes = pu.get_arxiv_id_embeddings(pu.db_params, COLLECTION_NAME)
     local_codes = os.listdir(chunk_path)
     local_codes = [code.replace(".json", "") for code in local_codes]
-    processing_codes = list(set(local_codes) - set(arxiv_codes)) + ["2108.13349"]
+    processing_codes = list(set(local_codes) - set(arxiv_codes))
 
     for arxiv_code in tqdm(processing_codes):
         chunks_fname = os.path.join(chunk_path, f"{arxiv_code}.json")
@@ -48,6 +55,7 @@ def main():
         for idx, row in chunks_df.iterrows():
             chunk_text = row["text"]
             metadata = row.drop("text").to_dict()
+            metadata["model"] = MODEL_NAME
 
             MAX_RETRIES = 3
             RETRY_DELAY = 2
@@ -59,7 +67,7 @@ def main():
                     )
                     add_count += 1
                     break
-                except IntegrityError:
+                except IntegrityError as e:
                     continue
                 except OperationalError as e:
                     print(f"Encountered error on paper {metadata['arxiv_code']}: {e}")
