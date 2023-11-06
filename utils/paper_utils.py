@@ -488,10 +488,5 @@ class CustomFixParser(PydanticOutputFunctionsParser):
         func_call = copy.deepcopy(message.additional_kwargs["function_call"])
         _result = func_call["arguments"]
 
-        if self.args_only:
-            pydantic_args = self.pydantic_schema.parse_raw(clean_fnc_call(_result))
-        else:
-            fn_name = _result["name"]
-            _args = _result["arguments"]
-            pydantic_args = self.pydantic_schema[fn_name].parse_raw(_args)
+        pydantic_args = self.pydantic_schema.parse_raw(clean_fnc_call(_result))
         return pydantic_args

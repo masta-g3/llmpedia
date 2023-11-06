@@ -47,7 +47,7 @@ if "all_years" not in st.session_state:
     st.session_state.all_years = False
 
 collection_map = {
-    "GTE-Base": "arxiv_vectors",
+    "GTE-Large": "arxiv_vectors",
     "🆕 Cohere V3": "arxiv_vectors_cv3",
 }
 
@@ -329,7 +329,14 @@ def create_paper_card(paper: Dict, mode="preview"):
     if pub_date != upd_date:
         img_cols[1].caption(f"Last Updated: {upd_date}")
     img_cols[1].markdown(f"*{paper['authors']}*")
-    img_cols[1].markdown(f"`{int(paper['citation_count'])} citations`")
+    influential_citations = int(paper["influential_citation_count"])
+    postpend = ""
+    if influential_citations > 0:
+        postpend = f" ({influential_citations} influential)"
+    img_cols[1].markdown(f"`{int(paper['citation_count'])} citations {postpend}`")
+    arxiv_comment = paper['arxiv_comment']
+    if arxiv_comment:
+        img_cols[1].caption(f"*{arxiv_comment}*")
 
     with st.expander(f"💭 Abstract (arXiv:{paper_code})", expanded=expanded):
         st.markdown(paper["summary"])
@@ -708,8 +715,13 @@ def main():
         st.markdown("##### 🤖 Chat with the GPT maestro.")
         config_cols = st.columns((3, 3, 10))
         embedding_name = config_cols[0]._selectbox(
-            label="Embeddings", options=["GTE-Base", "🆕 Cohere V3"]
+            label="Embeddings", options=["GTE-Large", "🆕 Cohere V3"]
         )
+
+        # llm_name = config_cols[1]._selectbox(
+        #     label="LLM", options=["GPT-3.5-Turbo", "GPT-4"]
+        # )
+
         collection_name = collection_map[embedding_name]
         user_question = st.text_area(
             label="Ask any question about LLMs or the arxiv papers.", value=""

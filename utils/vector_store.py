@@ -50,8 +50,11 @@ def initialize_collection(collection_name):
     )
     return compression_retriever
 
+llm_map = {
+    "GPT-3.5-Turbo": ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.1),
+    "GPT-4": ChatOpenAI(model_name="gpt-4", temperature=0.1),
+}
 
-llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.1)
 
 template = """Use the following pieces of documents to answer the user's question. 
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
@@ -78,7 +81,7 @@ def query_llmpedia(question: str, collection_name):
     rag_chain = (
         {"context": compression_retriever, "question": RunnablePassthrough()}
         | rag_prompt_custom
-        | llm
+        | llm_map["GPT-3.5-Turbo"]
     )
     res = rag_chain.invoke(question)
     content = json.loads(res.json())["content"]
