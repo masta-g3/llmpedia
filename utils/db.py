@@ -1,15 +1,11 @@
 from sqlalchemy import create_engine, text
+import streamlit as st
 import pandas as pd
 import uuid
 import os
 
-db_params = {
-    "dbname": os.environ["DB_NAME"],
-    "user": os.environ["DB_USER"],
-    "password": os.environ["DB_PASS"],
-    "host": os.environ["DB_HOST"],
-    "port": os.environ["DB_PORT"],
-}
+db_params = {**st.secrets["postgres"]}
+
 
 database_url = f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}"
 
