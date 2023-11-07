@@ -6,7 +6,6 @@ from streamlit_plotly_events import plotly_events
 from typing import Dict, List, Tuple
 import pandas as pd
 import numpy as np
-from sqlalchemy import create_engine, text
 import json
 import re, os
 import uuid
@@ -14,12 +13,9 @@ import uuid
 import plotly.io as pio
 
 import utils.vector_store as vs
+import utils.db as db
 
 pio.templates.default = "plotly"
-
-db_params = {**st.secrets["postgres"]}
-database_url = f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}"
-
 
 ## Page config.
 st.set_page_config(
@@ -80,89 +76,13 @@ st.markdown(
 )
 
 
-def log_error_db(error):
-    """Log error in DB along with streamlit app state."""
-    engine = create_engine(database_url)
-    with engine.begin() as conn:
-        error_id = str(uuid.uuid4())
-        tstp = pd.to_datetime("now").strftime("%Y-%m-%d %H:%M:%S")
-        query = text(
-            """
-            INSERT INTO error_logs (error_id, tstp, error)
-            VALUES (:error_id, :tstp, :error);
-        """
-        )
-        conn.execute(
-            query,
-            {
-                "error_id": str(error_id),
-                "tstp": tstp,
-                "error": str(error),
-            },
-        )
-
-
-def log_qna_db(user_question, response):
-    """Log Q&A in DB along with streamlit app state."""
-    engine = create_engine(database_url)
-    with engine.begin() as conn:
-        qna_id = str(uuid.uuid4())
-        tstp = pd.to_datetime("now").strftime("%Y-%m-%d %H:%M:%S")
-        query = text(
-            """
-            INSERT INTO qna_logs (qna_id, tstp, user_question, response)
-            VALUES (:qna_id, :tstp, :user_question, :response);
-        """
-        )
-        conn.execute(
-            query,
-            {
-                "qna_id": str(qna_id),
-                "tstp": tstp,
-                "user_question": str(user_question),
-                "response": str(response),
-            },
-        )
-
-
-def load_arxiv():
-    query = "SELECT * FROM arxiv_details;"
-    conn = create_engine(database_url)
-    arxiv_df = pd.read_sql(query, conn)
-    arxiv_df.set_index("arxiv_code", inplace=True)
-    return arxiv_df
-
-
-def load_reviews():
-    query = "SELECT * FROM summaries;"
-    conn = create_engine(database_url)
-    summaries_df = pd.read_sql(query, conn)
-    summaries_df.set_index("arxiv_code", inplace=True)
-    return summaries_df
-
-
-def load_topics():
-    query = "SELECT * FROM topics;"
-    conn = create_engine(database_url)
-    topics_df = pd.read_sql(query, conn)
-    topics_df.set_index("arxiv_code", inplace=True)
-    return topics_df
-
-
-def load_citations():
-    query = "SELECT * FROM semantic_details;"
-    conn = create_engine(database_url)
-    citations_df = pd.read_sql(query, conn)
-    citations_df.set_index("arxiv_code", inplace=True)
-    citations_df.drop(columns=["paper_id"], inplace=True)
-    return citations_df
 
 
 def combine_input_data():
-    arxiv_df = load_arxiv()
-    reviews_df = load_reviews()
-    topics_df = load_topics()
-    citations_df = load_citations()
+    arxiv_df = db.load_arxiv()
+    reviews_df = db.load_reviews()
+    topics_df = db.load_topics()
+    citations_df = db.load_citations()
     papers_df = reviews_df.join(arxiv_df, how="left")
     papers_df = papers_df.join(topics_df, how="left")
     papers_df = papers_df.join(citations_df, how="left")
@@ -780,14 +700,14 @@ def main():
                     "Consulting the GPT maestro, this might take a minute..."
                 ):
                     response = vs.query_llmpedia(user_question, collection_name)
-                    log_qna_db(user_question, response)
+                    db.log_qna_db(user_question, response)
                     st.divider()
                     st.markdown(response)
 
     ## URL tab selection.
     # if "tab_num" in url_query:
     #     index_tab = int(url_query["tab_num"][0])
-    #     js = f"""
+    #     jsgit = f"""
     #     <script>
     #         var tabs = window.parent.document.querySelectorAll("[id^='tabs-bui'][id$='-tab-{index_tab}']");
     #         if (tabs.length > 0) {{
@@ -802,5 +722,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        log_error_db(e)
+        db.log_error_db(e)
         st.error("Something went wrong. Please refresh the app and try again.")
