@@ -44,24 +44,24 @@ def initialize_collection(collection_name):
     # CustomCohereRerank.update_forward_refs()
     # co = cohere.Client(os.getenv("COHERE_API_KEY"))
 
-    compressor = CohereRerank(top_n=5, cohere_api_key=os.getenv("COHERE_API_KEY"), user_agent="llmpedia")
+    compressor = CohereRerank(top_n=7, cohere_api_key=os.getenv("COHERE_API_KEY"), user_agent="llmpedia")
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=retriever
     )
     return compression_retriever
 
 llm_map = {
-    "GPT-3.5-Turbo": ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.1),
+    "GPT-3.5-Turbo": ChatOpenAI(model_name="gpt-3.5-turbo-16k", temperature=0.1),
     "GPT-4": ChatOpenAI(model_name="gpt-4", temperature=0.1),
 }
 
 
-template = """Use the following pieces of documents to answer the user's question. 
-If you don't know the answer, just say that you don't know, don't try to make up an answer.
-Use up to 500 words to provide a complete but concise answer. If possible break down concepts step by step.
+template = """You are the GPT maestro. Use the following pieces of documents to answer the user's question about Large Language Models.
+If the answer cannot be found in the documents, acknowledge this to the user and suggest them to ask a different question.
+Use up to three paragraphs to provide a complete, direct and useful answer. If possible break down concepts step by step.
 Be practical and reference any existing libraries or implementations mentioned on the documents.
-When providing your answer add citations referencing the relevant arxiv_codes (e.g.: *reference content* (arxiv:1234.5678)).
-Use markdown format to organize and structure your response.
+When providing your answer add citations referencing the relevant arxiv_codes (e.g.: *reference content* (arxiv:1234.5678)). You do not need to quote or use all the documents presented.
+Use markdown to organize and structure your response.
 {context}
 Question: {question}
 Helpful Answer:"""

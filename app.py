@@ -6,9 +6,10 @@ from streamlit_plotly_events import plotly_events
 from typing import Dict, List, Tuple
 import pandas as pd
 import numpy as np
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import json
 import re, os
+import uuid
 
 import plotly.io as pio
 
@@ -77,6 +78,51 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+
+def log_error_db(error):
+    """Log error in DB along with streamlit app state."""
+    engine = create_engine(database_url)
+    with engine.begin() as conn:
+        error_id = str(uuid.uuid4())
+        tstp = pd.to_datetime("now").strftime("%Y-%m-%d %H:%M:%S")
+        query = text(
+            """
+            INSERT INTO error_logs (error_id, tstp, error)
+            VALUES (:error_id, :tstp, :error);
+        """
+        )
+        conn.execute(
+            query,
+            {
+                "error_id": str(error_id),
+                "tstp": tstp,
+                "error": str(error),
+            },
+        )
+
+
+def log_qna_db(user_question, response):
+    """Log Q&A in DB along with streamlit app state."""
+    engine = create_engine(database_url)
+    with engine.begin() as conn:
+        qna_id = str(uuid.uuid4())
+        tstp = pd.to_datetime("now").strftime("%Y-%m-%d %H:%M:%S")
+        query = text(
+            """
+            INSERT INTO qna_logs (qna_id, tstp, user_question, response)
+            VALUES (:qna_id, :tstp, :user_question, :response);
+        """
+        )
+        conn.execute(
+            query,
+            {
+                "qna_id": str(qna_id),
+                "tstp": tstp,
+                "user_question": str(user_question),
+                "response": str(response),
+            },
+        )
 
 
 def load_arxiv():
@@ -334,7 +380,7 @@ def create_paper_card(paper: Dict, mode="preview"):
     if influential_citations > 0:
         postpend = f" ({influential_citations} influential)"
     img_cols[1].markdown(f"`{int(paper['citation_count'])} citations {postpend}`")
-    arxiv_comment = paper['arxiv_comment']
+    arxiv_comment = paper["arxiv_comment"]
     if arxiv_comment:
         img_cols[1].caption(f"*{arxiv_comment}*")
 
@@ -734,7 +780,7 @@ def main():
                     "Consulting the GPT maestro, this might take a minute..."
                 ):
                     response = vs.query_llmpedia(user_question, collection_name)
-                    # with st.chat_message("ai"):
+                    log_qna_db(user_question, response)
                     st.divider()
                     st.markdown(response)
 
@@ -753,4 +799,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        log_error_db(e)
+        st.error("Something went wrong. Please refresh the app and try again.")
