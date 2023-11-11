@@ -89,7 +89,7 @@ def create_topic_model(
         n_neighbors=10, n_components=8, min_dist=0.0, metric="cosine", random_state=200
     )
     hdbscan_model = HDBSCAN(
-        min_cluster_size=8,
+        min_cluster_size=10,
         metric="euclidean",
         cluster_selection_method="eom",
         prediction_data=False,
@@ -104,7 +104,7 @@ def create_topic_model(
     mmr_model = MaximalMarginalRelevance(diversity=0.5)
     openai.api_key = os.getenv("OPENAI_API_KEY")
     openai_model = OpenAI(
-        model="gpt-3.5-turbo", exponential_backoff=True, chat=True, prompt=prompt, nr_docs=8
+        model="gpt-3.5-turbo-1106", exponential_backoff=True, chat=True, prompt=prompt, nr_docs=8
     )
     topic_model = BERTopic(
         embedding_model=embeddings,
@@ -124,7 +124,7 @@ def extract_topics_and_embeddings(
     """Extract topics and embeddings."""
     topics, _ = topic_model.fit_transform(all_content, embeddings)
     reduced_embeddings = UMAP(
-        n_neighbors=8, n_components=2, min_dist=0.0, metric="cosine", random_state=200
+        n_neighbors=12, n_components=2, min_dist=0.0, metric="cosine", random_state=200
     ).fit_transform(embeddings)
     reduced_embeddings = (
         reduced_embeddings - reduced_embeddings.mean(axis=0)

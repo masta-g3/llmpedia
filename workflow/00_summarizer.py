@@ -20,8 +20,8 @@ import utils.paper_utils as pu
 from utils.prompts import summarizer_system_prompt, PaperReview
 
 ## LLM model.
-llm = ChatOpenAI(model_name="gpt-3.5-turbo-16k", temperature=0.4)
-llm_aux = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.)
+llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.2)
+llm_aux = ChatOpenAI(model_name="gpt-4-1106-preview", temperature=0.2)
 token_encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
 

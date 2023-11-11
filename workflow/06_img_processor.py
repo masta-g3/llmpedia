@@ -98,7 +98,7 @@ def generate_image(name, img_file):
             ksampler_103 = ksampler.sample(
                 seed=random.randint(1, 2**64),
                 steps=20,
-                cfg=6,
+                cfg=7,
                 sampler_name="dpmpp_2m_sde_gpu",
                 scheduler="karras",
                 denoise=1,

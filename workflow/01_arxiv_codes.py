@@ -2,6 +2,7 @@ import sys, os
 import json
 import shutil
 import os, re
+from tqdm import tqdm
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -60,7 +61,7 @@ def main():
     added_arxiv = 0
     errors = 0
 
-    for fname in fnames:
+    for fname in tqdm(fnames):
         arxiv_code = fname.replace(".json", "")
         if arxiv_code in codes:
             # print(f"Skipping '{fname}' as it is already in the database.")
@@ -104,7 +105,7 @@ def main():
                 pu.flatten_dict(data), pu.summary_col_mapping
             )
             pu.upload_to_db(flat_entries, pu.db_params, "summaries")
-            print(f"Added '{data_title}' to summaries table.")
+            # print(f"Added '{data_title}' to summaries table.")
             added_summaries += 1
 
         ## Extract arxiv info.
@@ -113,7 +114,7 @@ def main():
             processed_data = pu.process_arxiv_data(arxiv_info._raw)
             pu.store_local(arxiv_info._raw, arxiv_code, "arxiv_meta")
             pu.upload_to_db(processed_data, pu.db_params, "arxiv_details")
-            print(f"Added '{data_title}' to arxiv_details table.")
+            # print(f"Added '{data_title}' to arxiv_details table.")
             added_arxiv += 1
 
         ## Rename file if needed.

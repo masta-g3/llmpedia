@@ -3,7 +3,10 @@
 # LLMpedia
 A streamlit app for keeping up with LLM related research.
 
+Up-to-date coverage: https://gist.github.com/masta-g3/8f7227397b1053b42e727bbd6abf1d2e
+
 ## Workflow
+Everything is automated.
 1. New paper title gets added to https://gist.github.com/masta-g3/1dd189493c1890df6e04aaea6d049643.
 2. Paper meta-data and content is fetched via the `arxiv` library and langchain's `ArxivLoader`.
 3. GPT runs reading and summarization process over paper content, generating template of output review.
@@ -15,6 +18,3 @@ A streamlit app for keeping up with LLM related research.
 - Custom ComfyUI (https://github.com/comfyanonymous/ComfyUI).
 - And all under `dev_requirements.txt`.
 - Custom `ArxivLoader` (to avoid rate limiting).
-
-## Roadmap
-- [Oct ]

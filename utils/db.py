@@ -86,3 +86,49 @@ def load_citations():
     citations_df.set_index("arxiv_code", inplace=True)
     citations_df.drop(columns=["paper_id"], inplace=True)
     return citations_df
+
+
+def get_arxiv_parent_chunk_ids(chunk_ids: list):
+    """Get (arxiv_code, parent_id) for a list of (arxiv_code, child_id) tuples."""
+    engine = create_engine(database_url)
+    with engine.begin() as conn:
+        # Prepare a list of conditions for matching pairs of arxiv_code and child_id
+        conditions = " OR ".join([
+            f"(arxiv_code = '{arxiv_code}' AND child_id = {child_id})"
+            for arxiv_code, child_id in chunk_ids
+        ])
+        query = text(
+            f"""
+            SELECT DISTINCT arxiv_code, parent_id
+            FROM arxiv_chunk_map
+            WHERE ({conditions});
+            """
+        )
+        result = conn.execute(query)
+        parent_ids = result.fetchall()
+    return parent_ids
+
+
+def get_arxiv_chunks(chunk_ids: list, source="child"):
+    """Get chunks with metadata for a list of (arxiv_code, chunk_id) tuples."""
+    engine = create_engine(database_url)
+    source_table = "arxiv_chunks" if source == "child" else "arxiv_parent_chunks"
+    with engine.begin() as conn:
+        # Prepare a list of conditions for matching pairs of arxiv_code and chunk_id
+        conditions = " OR ".join([
+            f"(p.arxiv_code = '{arxiv_code}' AND p.chunk_id = {chunk_id})"
+            for arxiv_code, chunk_id in chunk_ids
+        ])
+        query = text(
+            f"""
+            SELECT d.arxiv_code, d.published, s.citation_count, p.text
+            FROM {source_table} p , arxiv_details d, semantic_details s
+            WHERE p.arxiv_code = d.arxiv_code
+            AND p.arxiv_code = s.arxiv_code
+            AND ({conditions});
+            """
+        )
+        result = conn.execute(query)
+        chunks = result.fetchall()
+        chunks_df = pd.DataFrame(chunks)
+    return chunks_df

@@ -433,12 +433,12 @@ def create_bottom_navigation(label):
     next_clicked_btm = next_button_btm.button("Next", key=f"next_{label}_btm")
     if prev_clicked_btm and "page_number" in st.session_state:
         st.session_state.page_number = max(0, st.session_state.page_number - 1)
-        st.experimental_rerun()
+        st.rerun()
     if next_clicked_btm and "page_number" in st.session_state:
         st.session_state.page_number = min(
             num_pages - 1, st.session_state.page_number + 1
         )
-        st.experimental_rerun()
+        st.rerun()
 
 
 def click_tab(tab_num):
@@ -681,7 +681,8 @@ def main():
         st.markdown("##### 🤖 Chat with the GPT maestro.")
         config_cols = st.columns((3, 3, 10))
         embedding_name = config_cols[0]._selectbox(
-            label="Embeddings", options=["GTE-Large", "🆕 Cohere V3"]
+            label="Embeddings", options=["GTE-Large", "🆕 Cohere V3"],
+            index=1,
         )
 
         # llm_name = config_cols[1]._selectbox(

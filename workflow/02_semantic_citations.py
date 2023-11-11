@@ -28,11 +28,11 @@ def main():
     errors = 0
     for arxiv_code in tqdm(arxiv_codes):
         if pu.check_in_db(arxiv_code, db_params, "semantic_details"):
-            if random.random() < 1:
+            if random.random() < 0:
                 continue
             else:
                 pu.remove_from_db(arxiv_code, db_params, "semantic_details")
-                print(f"Removed {arxiv_code} from semantic_details.")
+                # print(f"Removed {arxiv_code} from semantic_details.")
 
         ## Get Semantic Scholar info.
         ss_info = pu.get_semantic_scholar_info(arxiv_code)
@@ -45,8 +45,8 @@ def main():
         pu.store_local(ss_info, arxiv_code, "semantic_meta")
         pu.upload_to_db(ss_info, db_params, "semantic_details")
         items_added += 1
-        print(f"\nAdded {arxiv_code} to semantic_details.")
-        # time.sleep(1)
+        # print(f"\nAdded {arxiv_code} to semantic_details.")
+        time.sleep(0.01)
 
     print(f"Process complete. Added {items_added} items in total.")
     if errors > 0:

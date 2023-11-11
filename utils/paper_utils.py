@@ -243,7 +243,7 @@ def search_arxiv_doc(paper_name):
     return docs[0]
 
 
-def preprocess_arxiv_doc(doc, token_encoder=None):
+def preprocess_arxiv_doc(doc, token_encoder=None, max_tokens=50000):
     """Preprocess an Arxiv document."""
     doc_content = reformat_text(doc.page_content)
     if len(doc_content.split("References")) == 2:
@@ -251,8 +251,8 @@ def preprocess_arxiv_doc(doc, token_encoder=None):
 
     if token_encoder:
         ntokens_doc = len(token_encoder.encode(doc_content))
-        if ntokens_doc > 10800:
-            doc_content = doc_content[: int(10800 * 3)] + "... [truncated]"
+        if ntokens_doc > max_tokens:
+            doc_content = doc_content[: int(max_tokens * 3)] + "... [truncated]"
 
     return doc_content
 
