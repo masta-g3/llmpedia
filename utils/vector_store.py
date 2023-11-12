@@ -4,7 +4,7 @@ import re
 
 from langchain.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
 from langchain.chat_models import ChatOpenAI
-from langchain.prompts import PromptTemplate
+from langchain.prompts.chat import ChatPromptTemplate
 from langchain.chains import LLMChain
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CohereRerank
@@ -56,13 +56,11 @@ llm_map = {
 }
 
 
-template = """You are the GPT maestro. Use the following pieces of documents to answer the user's question about Large Language Models (LLMs).
+system_template = """You are the GPT maestro. Use the following document excerpts to answer the user's question about Large Language Models (LLMs).
 
 ==========
 {context}
 ==========
-
-Question: `{question}`
 
 - If the question is unrelated to LLMs reply without referencing the documents.
 - Use up to three paragraphs to provide a complete, direct and useful answer. Break down concepts step by step and avoid using complex jargon.
@@ -71,9 +69,17 @@ Question: `{question}`
 - You do not need to quote or use all the documents presented. Prioritize most recent content and that with most citations.
 - Use markdown to organize and structure your response.
 - Reply with a subtle old-school mafia-style italo-american accent.
+"""
 
-Helpful Answer:"""
-rag_prompt_custom = PromptTemplate.from_template(template)
+human_template = "{question}"
+
+
+
+# rag_prompt_custom = PromptTemplate.from_template(template)
+rag_prompt_custom = ChatPromptTemplate.from_messages([
+    ("system", system_template),
+    ("human", human_template),
+])
 
 
 def add_links_to_response(response):
