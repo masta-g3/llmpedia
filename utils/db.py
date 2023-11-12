@@ -90,6 +90,7 @@ def load_citations():
 
 def get_arxiv_parent_chunk_ids(chunk_ids: list):
     """Get (arxiv_code, parent_id) for a list of (arxiv_code, child_id) tuples."""
+    ## ToDo: Improve version param.
     engine = create_engine(database_url)
     with engine.begin() as conn:
         # Prepare a list of conditions for matching pairs of arxiv_code and child_id
@@ -101,7 +102,9 @@ def get_arxiv_parent_chunk_ids(chunk_ids: list):
             f"""
             SELECT DISTINCT arxiv_code, parent_id
             FROM arxiv_chunk_map
-            WHERE ({conditions});
+            WHERE ({conditions})
+            AND version = '10000_1000';
+--             AND version = '5000_500';
             """
         )
         result = conn.execute(query)
