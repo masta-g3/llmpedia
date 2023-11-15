@@ -9,5 +9,4 @@ psycopg2-binary==2.9.7
 pgvector==0.2.3
 pydantic==2.4.2
 openai==0.28.0
-setuptools==58.0.0
-demjson==2.2.4
+demjson3==3.0.6
