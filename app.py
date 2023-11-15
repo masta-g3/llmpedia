@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 import utils.vector_store as vs
-import utils.paper_utils as pu
+import utils.app_utils as au
 import utils.plots as pt
 import utils.db as db
 
@@ -172,7 +172,7 @@ def get_similar_titles(
             f"{row['title']} (arxiv:{row['arxiv_code']})"
             for index, row in similar_df.iterrows()
         ]
-        similar_names = [pu.add_links_to_text_blob(title) for title in similar_names]
+        similar_names = [au.add_links_to_text_blob(title) for title in similar_names]
 
         return similar_names, cluster
     else:
@@ -640,7 +640,7 @@ def main():
             date_report = week_select - pd.Timedelta(days=week_select.weekday())
 
         weekly_report = get_weekly_summary(date_report)
-        weekly_report_dict = pu.parse_weekly_report(weekly_report)
+        weekly_report_dict = au.parse_weekly_report(weekly_report)
         title = list(weekly_report_dict.keys())[0]
 
         ## Title & developments.
@@ -652,7 +652,7 @@ def main():
         ## Highlights.
         st.markdown(f"## 🌟 {report_sections[1]}")
         report_highlights_cols = st.columns((1, 4))
-        highlight_img = pu.get_img_link_for_blob(weekly_report_dict[report_sections[1]])
+        highlight_img = au.get_img_link_for_blob(weekly_report_dict[report_sections[1]])
         report_highlights_cols[0].image(highlight_img, use_column_width=True)
         report_highlights_cols[1].markdown(weekly_report_dict[report_sections[1]])
 

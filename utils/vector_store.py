@@ -12,7 +12,7 @@ from utils.custom_langchain import NewCohereEmbeddings, NewPGVector
 
 import utils.db as db
 import utils.prompts as ps
-import utils.paper_utils as pu
+import utils.app_utils as au
 
 CONNECTION_STRING = (
     f"postgresql+psycopg2://{db.db_params['user']}:{db.db_params['password']}"
@@ -108,6 +108,6 @@ def query_llmpedia(question: str, collection_name):
     ## Create custom prompt.
     rag_context = create_rag_context(parent_docs)
     res = llm_chain.run(context=rag_context, question=question)
-    content = pu.add_links_to_text_blob(res)
+    content = au.add_links_to_text_blob(res)
 
     return content
