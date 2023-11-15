@@ -25,7 +25,7 @@ def main():
     gist_content = "\n".join(titles)
 
     ## Write to disk.
-    gist_path = os.path.join(PROJECT_PATH, gist_filename)
+    gist_path = os.path.join(PROJECT_PATH, "data", gist_filename)
     with open(gist_path, "w") as f:
         f.write(gist_content)
 
