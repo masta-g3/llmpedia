@@ -18,6 +18,7 @@ sys.path.append(os.environ.get("PROJECT_PATH"))
 chunk_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_chunks")
 
 import utils.paper_utils as pu
+import utils.db as db
 
 MAX_RETRIES = 3
 RETRY_DELAY = 2
@@ -56,7 +57,7 @@ def main():
             embedding_function=embeddings,
         )
 
-        arxiv_codes = pu.get_arxiv_id_embeddings(pu.db_params, COLLECTION_NAME)
+        arxiv_codes = db.get_arxiv_id_embeddings(pu.db_params, COLLECTION_NAME)
         local_codes = os.listdir(chunk_path)
         local_codes = [code.replace(".json", "") for code in local_codes]
         processing_codes = list(set(local_codes) - set(arxiv_codes))

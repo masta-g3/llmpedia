@@ -1,18 +1,14 @@
 import os
-import copy
 import re, json
-import demjson
 import arxiv
 import requests
-import psycopg2
 import pandas as pd
 import numpy as np
-from langchain.output_parsers.openai_functions import PydanticOutputFunctionsParser
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from sqlalchemy import create_engine
 from concurrent.futures import ThreadPoolExecutor
 import dotenv
+import ast
 
 from langchain.document_loaders import ArxivLoader
 
@@ -163,10 +159,80 @@ def reformat_text(doc_content):
     return content
 
 
+def format_paper_summary(summary_row):
+    """Format a paper summary for display."""
+    title = summary_row["title"]
+    date = summary_row["published"].strftime("%B %d, %Y")
+    arxiv_code = summary_row["arxiv_code"]
+    citations = int(summary_row["citation_count"])
+    summary = summary_row["summary"]
+    main_contribution = summary_row["contribution_content"]
+    takeaways = summary_row["takeaway_content"]
+    arxiv_comments = summary_row["arxiv_comment"]
+    arxiv_comments = "\n\n*" + arxiv_comments + "*" if arxiv_comments else ""
+    return f"### {title}\n*({date} / arxiv_code:{arxiv_code} / {citations} citations)*{arxiv_comments}\n\n**Summary:**\n{summary}\n\n**Main Contribution:**\n{main_contribution}\n\n**Takeaways:**\n{takeaways}\n\n-------------\n\n"
+
+
+def add_links_to_text_blob(response):
+    """Add links to arxiv codes in the response."""
+
+    def repl(match):
+        return f"[arxiv:{match.group(1)}](https://llmpedia.streamlit.app/?arxiv_code={match.group(1)})"
+
+    return re.sub(r"arxiv:(\d{4}\.\d{4,5})", repl, response)
+
+
+def get_img_link_for_blob(text_blob: str):
+    """Identify `arxiv_code:XXXX.XXXXX` from a text blob, and generate Markdown link to its img."""
+    arxiv_code = re.findall(r"arxiv:(\d{4}\.\d{4,5})", text_blob)
+    if len(arxiv_code) == 0:
+        return None
+    arxiv_code = arxiv_code[0]
+    return f"imgs/{arxiv_code}.png"
+
+
+def parse_weekly_report(report_md: str):
+    """Extract section of weekly report into dict."""
+    sections = report_md.split("\n## ")
+    parsed_report = {}
+    for section in sections:
+        if section.startswith("Scratchpad"):
+            continue
+        if section.strip():
+            title, *content = section.split("\n", 1)
+            clean_content = content[0].strip() if content else ""
+            clean_content = add_links_to_text_blob(clean_content)
+            parsed_report[title.strip()] = clean_content
+    return parsed_report
+
+
 def preprocess(text):
     """Clean and simplify text string."""
     text = "".join(c.lower() if c.isalnum() else " " for c in text)
     return text
+
+
+def convert_string_to_dict(s):
+    try:
+        # Try to convert the string representation of a dictionary to an actual dictionary
+        return ast.literal_eval(s)
+    except (SyntaxError, ValueError):
+        return s
+
+
+def convert_innert_dict_strings_to_actual_dicts(data):
+    if isinstance(data, str):
+        return convert_string_to_dict(data)
+    elif isinstance(data, dict):
+        for key in data:
+            data[key] = convert_innert_dict_strings_to_actual_dicts(data[key])
+        return data
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            data[i] = convert_innert_dict_strings_to_actual_dicts(item)
+        return data
+    else:
+        return data
 
 
 def is_arxiv_code(s):
@@ -191,12 +257,6 @@ def transform_flat_dict(flat_data, mapping):
     """Rename and drop columns from a flattened dictionary."""
     return {mapping[k]: flat_data[k] for k in mapping if k in flat_data}
 
-
-def clean_fnc_call(json_str):
-    """Parse and re-encode the JSON string using demjson."""
-    decoded_json = demjson.decode(json_str, strict=False)["output"]
-    corrected_json_str = demjson.encode(decoded_json)
-    return corrected_json_str
 
 #################
 ## ARXIV TOOLS ##
@@ -243,7 +303,7 @@ def search_arxiv_doc(paper_name):
     return docs[0]
 
 
-def preprocess_arxiv_doc(doc, token_encoder=None, max_tokens=50000):
+def preprocess_arxiv_doc(doc, token_encoder=None, max_tokens=10800):
     """Preprocess an Arxiv document."""
     doc_content = reformat_text(doc.page_content)
     if len(doc_content.split("References")) == 2:
@@ -329,101 +389,6 @@ def check_if_exists(paper_name, existing_paper_names, existing_paper_ids):
             return False
 
 
-################
-## DB RELATED ##
-################
-def check_in_db(arxiv_code, db_params, table_name):
-    """Check if an arxiv code is in the database."""
-    with psycopg2.connect(**db_params) as conn:
-        with conn.cursor() as cur:
-            cur.execute(f"SELECT * FROM {table_name} WHERE arxiv_code = '{arxiv_code}'")
-            return bool(cur.rowcount)
-
-
-def upload_to_db(data, db_params, table_name):
-    """Upload a dictionary to a database."""
-    with psycopg2.connect(**db_params) as conn:
-        with conn.cursor() as cur:
-            columns = ", ".join(data.keys())
-            placeholders = ", ".join(["%s"] * len(data))
-            cur.execute(
-                f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})",
-                list(data.values()),
-            )
-
-
-def remove_from_db(arxiv_code, db_params, table_name):
-    """Remove an entry from the database."""
-    with psycopg2.connect(**db_params) as conn:
-        with conn.cursor() as cur:
-            cur.execute(f"DELETE FROM {table_name} WHERE arxiv_code = '{arxiv_code}'")
-
-
-def upload_df_to_db(df, table_name, params, if_exists="append"):
-    """Upload a dataframe to a database."""
-    db_url = (
-        f"postgresql+psycopg2://{params['user']}:{params['password']}"
-        f"@{params['host']}:{params['port']}/{params['dbname']}"
-    )
-    engine = create_engine(db_url)
-    df.to_sql(
-        table_name,
-        engine,
-        if_exists=if_exists,
-        index=False,
-        method="multi",
-        chunksize=10,
-    )
-
-    ## Commit.
-    with psycopg2.connect(**params) as conn:
-        with conn.cursor() as cur:
-            cur.execute("COMMIT")
-
-    ## Close.
-    engine.dispose()
-
-    return True
-
-
-def get_arxiv_id_list(db_params, table_name):
-    """Get a list of all arxiv codes in the database."""
-    with psycopg2.connect(**db_params) as conn:
-        with conn.cursor() as cur:
-            cur.execute(f"SELECT DISTINCT arxiv_code FROM {table_name}")
-            return [row[0] for row in cur.fetchall()]
-
-
-def get_arxiv_id_embeddings(db_params, collection_name):
-    with psycopg2.connect(**db_params) as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                f"""
-                SELECT DISTINCT a.cmetadata->>'arxiv_code' AS arxiv_code
-                FROM langchain_pg_embedding a, langchain_pg_collection b
-                WHERE a.collection_id = b.uuid
-                AND b.name = '{collection_name}'
-                AND a.cmetadata->>'arxiv_code' IS NOT NULL;"""
-            )
-            return [row[0] for row in cur.fetchall()]
-
-
-def get_arxiv_title_dict(db_params=db_params):
-    """Get a list of all arxiv titles in the database."""
-    with psycopg2.connect(**db_params) as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-            SELECT a.arxiv_code, a.title 
-            FROM arxiv_details a
-            RIGHT JOIN summaries s ON a.arxiv_code = s.arxiv_code
-            WHERE a.title IS NOT NULL
-            """
-            )
-            title_map = {row[0]: row[1] for row in cur.fetchall()}
-            return title_map
-
-
 ##################
 ## GIST RELATED ##
 ##################
@@ -472,21 +437,3 @@ def update_gist(
     else:
         print(f"Failed to update gist. Status code: {response.status_code}.")
         return None
-
-
-###############
-## LANGCHAIN ##
-###############
-
-
-class CustomFixParser(PydanticOutputFunctionsParser):
-    """Custom output parser."""
-
-    def parse_result(self, result):
-        generation = result[0]
-        message = generation.message
-        func_call = copy.deepcopy(message.additional_kwargs["function_call"])
-        _result = func_call["arguments"]
-
-        pydantic_args = self.pydantic_schema.parse_raw(clean_fnc_call(_result))
-        return pydantic_args

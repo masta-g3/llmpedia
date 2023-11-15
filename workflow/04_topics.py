@@ -23,6 +23,7 @@ from nltk.corpus import stopwords
 import nltk
 
 import utils.paper_utils as pu
+import utils.db as db
 db_params = pu.db_params
 
 ## Download necessary NLTK data.
@@ -148,13 +149,13 @@ def store_topics_and_embeddings(
     df[["topic", "dim1", "dim2"]].to_pickle(topic_path)
     df.index.name = "arxiv_code"
     df.reset_index(inplace=True)
-    pu.upload_df_to_db(df[["arxiv_code", "topic", "dim1", "dim2"]],
+    db.upload_df_to_db(df[["arxiv_code", "topic", "dim1", "dim2"]],
                        "topics", pu.db_params, if_exists="replace")
 
 
 def main():
     """Main function."""
-    title_map = pu.get_arxiv_title_dict(db_params)
+    title_map = db.get_arxiv_title_dict(db_params)
     df = load_and_process_data(title_map)
     all_content, embedding_model, embeddings = create_embeddings(df)
     topic_model = create_topic_model(embedding_model, PROMPT, LEMMATIZER, STOP_WORDS)

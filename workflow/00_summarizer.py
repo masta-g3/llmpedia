@@ -1,5 +1,6 @@
 import sys, os
 from dotenv import load_dotenv
+
 load_dotenv()
 
 sys.path.append(os.environ.get("PROJECT_PATH"))
@@ -16,32 +17,34 @@ from langchain.callbacks import get_openai_callback
 from langchain.chains.openai_functions import (
     create_structured_output_chain,
 )
+import utils.custom_langchain as clc
 import utils.paper_utils as pu
-from utils.prompts import summarizer_system_prompt, PaperReview
+import utils.prompts as ps
+import utils.db as db
 
 ## LLM model.
-llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.2)
-llm_aux = ChatOpenAI(model_name="gpt-4-1106-preview", temperature=0.2)
+llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.1)
+# llm = ChatOpenAI(model_name="gpt-4-1106-preview", temperature=0.2)
 token_encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
+
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", ps.SUMMARIZER_SYSTEM_PROMPT),
+        (
+            "human",
+            "Tip: Make sure to provide your response in the correct format. Do not forget to include the 'applied_example' under 'takeaways'!",
+        ),
+    ]
+)
+parser = clc.CustomFixParser(pydantic_schema=ps.PaperReview)
+chain = create_structured_output_chain(
+    ps.PaperReview, llm, prompt, output_parser=parser, verbose=False
+)
 
 
 def main():
     ## Initialize LLM.
     parsed_list = []
-
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", summarizer_system_prompt),
-            (
-                "human",
-                "Tip: Make sure to provide your response in the correct format. Do not forget to include the 'applied_example' under 'takeaways'!",
-            ),
-        ]
-    )
-    parser = pu.CustomFixParser(pydantic_schema=PaperReview)
-    chain = create_structured_output_chain(PaperReview, llm, prompt,
-                                           output_parser=parser,
-                                           verbose=False)
 
     ## Get paper list.
     gist_id = "1dd189493c1890df6e04aaea6d049643"
@@ -50,7 +53,7 @@ def main():
     paper_list_iter = paper_list[:]
 
     ## Compare similarity with existing papers.
-    existing_papers = pu.get_arxiv_title_dict(pu.db_params)
+    existing_papers = db.get_arxiv_title_dict(pu.db_params)
     existing_paper_names = list(existing_papers.values())
     existing_paper_ids = list(existing_papers.keys())
 
@@ -58,7 +61,9 @@ def main():
     gist_url = None
     with get_openai_callback() as cb:
         for paper_name in tqdm(paper_list_iter):
-            existing = pu.check_if_exists(paper_name, existing_paper_names, existing_paper_ids)
+            existing = pu.check_if_exists(
+                paper_name, existing_paper_names, existing_paper_ids
+            )
             if existing:
                 print(f"\nSkipping '{paper_name}' as it is already in the database.")
                 ## Update gist.
@@ -109,7 +114,9 @@ def main():
             success = False
             for i in range(3):
                 try:
-                    content = {"content": new_content}#, "prev_summary": prev_summary}
+                    content = {
+                        "content": new_content
+                    }  # , "prev_summary": prev_summary}
                     summary = chain.run(content)
                     success = True
                     break

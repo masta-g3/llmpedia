@@ -1,21 +1,15 @@
 import streamlit as st
-import plotly.graph_objects as go
-import plotly.express as px
-from streamlit_plotly_events import plotly_events
 
+from streamlit_plotly_events import plotly_events
 from typing import Dict, List, Tuple
 import pandas as pd
 import numpy as np
-import json
-import re, os
-import uuid
-
-import plotly.io as pio
 
 import utils.vector_store as vs
+import utils.paper_utils as pu
+import utils.plots as pt
 import utils.db as db
 
-pio.templates.default = "plotly"
 
 ## Page config.
 st.set_page_config(
@@ -25,6 +19,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Initialization of state variables
 if "papers" not in st.session_state:
     st.session_state.papers = None
 
@@ -42,6 +37,7 @@ if "openai_api_key" not in st.session_state:
 
 if "all_years" not in st.session_state:
     st.session_state.all_years = False
+
 
 collection_map = {
     "GTE-Large": "arxiv_vectors",
@@ -74,8 +70,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
-
 
 
 def combine_input_data():
@@ -111,108 +105,10 @@ def prepare_calendar_data(df: pd.DataFrame, year: int) -> pd.DataFrame:
     return df_year
 
 
-def plot_publication_counts(df: pd.DataFrame, cumulative=False) -> go.Figure:
-    """Plot line chart of total number of papers updated per day."""
-    df["published"] = pd.to_datetime(df["published"])
-    df["published"] = df["published"].dt.date
-    df = df.groupby("published")["title"].nunique().reset_index()
-    df.columns = ["published", "Count"]
-    df["published"] = pd.to_datetime(df["published"])
-    df.sort_values("published", inplace=True)
-    df["Cumulative Count"] = df["Count"].cumsum()
-    if cumulative:
-        fig = px.area(
-            df,
-            x="published",
-            y="Cumulative Count",
-            title=None,
-        )
-    else:
-        fig = px.bar(
-            df,
-            x="published",
-            y="Count",
-        )
-    ## Remove upper margin.
-    # fig.update_layout(margin=dict(t=0, b=0, l=0, r=0))
-    return fig
-
-
-def plot_activity_map(df_year: pd.DataFrame) -> (go.Figure, pd.DataFrame):
-    """Creates a calendar heatmap plot along with corresponding map of dates in a DF."""
-    colors = ["#003366", "#005599", "#0077CC", "#3399FF", "#66B2FF", "#99CCFF"]
-    colors = ["#994400", "#CC6600", "#FF8833", "#FFAA66", "#FFCC99"]
-
-    week_max_dates = (
-        df_year.groupby(df_year["published"].dt.isocalendar().week)["published"]
-        .max()
-        .dt.strftime("%b %d")
-        .tolist()
-    )
-
-    padded_count = df_year.pivot_table(
-        index="weekday", columns="week", values="Count", aggfunc="sum"
-    ).fillna(0)
-    padded_date = df_year.pivot_table(
-        index="weekday", columns="week", values="published", aggfunc="last"
-    ).fillna(pd.NaT)
-    padded_date = padded_date.applymap(
-        lambda x: x.strftime("%b %d") if pd.notna(x) else ""
-    )
-    padded_count = padded_count.iloc[::-1]
-    padded_date = padded_date.iloc[::-1]
-
-    fig = go.Figure(
-        data=go.Heatmap(
-            z=padded_count.values,  # df_year["Count"].values.reshape(54, 7).T,
-            x=padded_date.iloc[0].values,  # df_year["weekday"].values.reshape(54, 7).T,
-            y=["Sun", "Sat", "Fri", "Thu", "Wed", "Tue", "Mon"],
-            hoverongaps=False,
-            hovertext=padded_date.values,  # df_year["hovertext"].values.reshape(53, 7).T,
-            colorscale=colors,
-            showscale=False,
-        )
-    )
-    fig.update_layout(
-        height=210,
-        margin=dict(t=0, b=0, l=0, r=0),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-    )
-    fig.update_xaxes(tickfont=dict(color="grey"), showgrid=False, zeroline=False)
-    fig.update_yaxes(tickfont=dict(color="grey"), showgrid=False, zeroline=False)
-    padded_date = padded_date.iloc[::-1]
-
-    return fig, padded_date
-
-
-def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
-    """Creates a scatter plot of the UMAP embeddings of the papers."""
-    fig = px.scatter(
-        df,
-        x="dim1",
-        y="dim2",
-        color="topic",
-        hover_name="title",
-    )
-    fig.update_layout(
-        legend=dict(
-            title=None,
-            font=dict(size=14),
-        ),
-        margin=dict(t=0, b=0, l=0, r=0),
-    )
-    fig.update_xaxes(title_text=None)
-    fig.update_yaxes(title_text=None)
-    fig.update_traces(marker=dict(line=dict(width=1, color="DarkSlateGrey"), size=8))
-    return fig
-
-
 @st.cache_data
 def load_data():
     """Load data from compiled dataframe."""
     result_df = combine_input_data()
-    # result_df = result_df[result_df["published"] >= "2021-01-01"]
 
     ## Remapping with emotion.
     classification_map = {
@@ -236,6 +132,16 @@ def load_data():
 
 
 @st.cache_data
+def get_weekly_summary(date: str):
+    return db.get_weekly_summary(date)
+
+
+@st.cache_data
+def get_max_report_date():
+    return db.get_max_table_date(db.db_params, "weekly_reviews")
+
+
+@st.cache_data
 def generate_calendar_df(df: pd.DataFrame):
     """Daily counts of papers."""
     published_df = df.groupby("published").count()["title"]
@@ -252,16 +158,23 @@ def generate_calendar_df(df: pd.DataFrame):
 def get_similar_titles(
     title: str, df: pd.DataFrame, n: int = 5
 ) -> Tuple[List[str], str]:
-    """Returns titles of papers from the same cluster, along with cluster name"""
+    """Returns titles of papers from the same cluster, along with cluster name and their arxiv codes."""
     title = title.lower()
     if title in df["title"].str.lower().values:
         cluster = df[df["title"].str.lower() == title]["topic"].values[0]
-        size = df[df["topic"] == cluster].shape[0]
-        similar_titles = (
-            df[df["topic"] == cluster]["title"].sample(min(n, size)).tolist()
-        )
-        similar_titles = [t for t in similar_titles if t.lower() != title]
-        return similar_titles, cluster
+        similar_df = df[df["topic"] == cluster]
+        similar_df = similar_df[similar_df["title"].str.lower() != title]
+
+        size = similar_df.shape[0]
+        similar_df = similar_df.sample(min(n, size))
+
+        similar_names = [
+            f"{row['title']} (arxiv:{row['arxiv_code']})"
+            for index, row in similar_df.iterrows()
+        ]
+        similar_names = [pu.add_links_to_text_blob(title) for title in similar_names]
+
+        return similar_names, cluster
     else:
         return [], ""
 
@@ -475,22 +388,15 @@ def main():
         "That's why we created LLMpedia, a collection of papers on Language Models curated by the GPT maestro itself.\n\n"
         "Each week GPT will sweep through the latest LLM related papers and select the most interesting ones. "
         "The maestro will then summarize the papers and provide its own analysis, including a novelty, technical depth and readability score. "
-        "We hope you enjoy this collection and find it useful.\n\n"
-        "If you have any questions, head to the *Chat* section and consult the GPT maestro.\n\n"
+        "A weekly report will also be published, so you can stay on top of the latest developments. "
+        "We hope you enjoy this collection and find it useful; "
+        "if you have any questions, head to the *Chat* section and consult the GPT maestro.\n\n"
         "*Buona lettura!*"
     )
 
     ## Main content.
     full_papers_df = load_data()
     st.session_state["papers"] = full_papers_df
-
-    ## Config sidebar.
-    # st.sidebar.markdown("# 🛠 Config")
-    # st.session_state.openai_api_key = st.sidebar.text_input(
-    #     "OpenAI API Key",
-    #     value="",
-    #     help="Enter your OpenAI API key to chat with the GPT maestro and ask questions about the LLMPedia.",
-    # )
 
     ## Filter sidebar.
     st.sidebar.markdown("# 📁 Filters")
@@ -594,7 +500,7 @@ def main():
     published_df = generate_calendar_df(papers_df)
     if not st.session_state.all_years:
         heatmap_data = prepare_calendar_data(published_df, year)
-        release_calendar, padded_date = plot_activity_map(heatmap_data)
+        release_calendar, padded_date = pt.plot_activity_map(heatmap_data)
         st.markdown(f"### 📅 {year} Release Calendar")
         calendar_select = plotly_events(release_calendar, override_height=220)
 
@@ -624,7 +530,14 @@ def main():
 
     ## Content tabs.
     content_tabs = st.tabs(
-        ["Grid View", "Feed View", "Over View", "Focus View", "🆕 Chat"]
+        [
+            "🧮 Grid View",
+            "🎞 Feed View",
+            "🗺️ Over View",
+            "🔍 Focus View",
+            "🤖 Chat",
+            "🗞 Weekly Report",
+        ]
     )
 
     with content_tabs[0]:
@@ -658,12 +571,12 @@ def main():
             horizontal=True,
         )
         cumulative = plot_type == "Cumulative"
-        ts_plot = plot_publication_counts(papers_df, cumulative=cumulative)
+        ts_plot = pt.plot_publication_counts(papers_df, cumulative=cumulative)
         st.plotly_chart(ts_plot, use_container_width=True)
 
         ## Cluster map.
         st.markdown(f"### {year} Topic Model Map")
-        cluster_map = plot_cluster_map(papers_df)
+        cluster_map = pt.plot_cluster_map(papers_df)
         st.plotly_chart(cluster_map, use_container_width=True)
 
     with content_tabs[3]:
@@ -681,7 +594,8 @@ def main():
         st.markdown("##### 🤖 Chat with the GPT maestro.")
         config_cols = st.columns((3, 3, 10))
         embedding_name = config_cols[0]._selectbox(
-            label="Embeddings", options=["GTE-Large", "🆕 Cohere V3"],
+            label="Embeddings",
+            options=["GTE-Large", "🆕 Cohere V3"],
             index=1,
         )
 
@@ -705,23 +619,50 @@ def main():
                     st.divider()
                     st.markdown(response)
 
-    ## URL tab selection.
-    # if "tab_num" in url_query:
-    #     index_tab = int(url_query["tab_num"][0])
-    #     jsgit = f"""
-    #     <script>
-    #         var tabs = window.parent.document.querySelectorAll("[id^='tabs-bui'][id$='-tab-{index_tab}']");
-    #         if (tabs.length > 0) {{
-    #             tabs[0].click();
-    #         }}
-    #     </script>
-    #     """
-    #     st.components.v1.html(js)
+    with content_tabs[5]:
+        report_sections = [
+            "New Developments & Findings",
+            "Highlight of the Week",
+            "Related Repos & Libraries",
+        ]
+        report_top_cols = st.columns((5, 2))
+        with report_top_cols[0]:
+            st.markdown("# 📰 LLM Weekly Review")
+        with report_top_cols[1]:
+            max_date = get_max_report_date()
+            week_select = st.date_input(
+                "Select Week",
+                value=pd.to_datetime(max_date),
+                min_value=pd.to_datetime("2023-01-01"),
+                max_value=pd.to_datetime(max_date),
+            )
+            ## convert selection to previous monday.
+            date_report = week_select - pd.Timedelta(days=week_select.weekday())
+
+        weekly_report = get_weekly_summary(date_report)
+        weekly_report_dict = pu.parse_weekly_report(weekly_report)
+        title = list(weekly_report_dict.keys())[0]
+
+        ## Title & developments.
+        title = title.replace("# Weekly Review ", "##### ")
+        st.markdown(f"{title}")
+        st.markdown(f"## 🔬 {report_sections[0]}")
+        st.markdown(weekly_report_dict[report_sections[0]])
+
+        ## Highlights.
+        st.markdown(f"## 🌟 {report_sections[1]}")
+        report_highlights_cols = st.columns((1, 4))
+        highlight_img = pu.get_img_link_for_blob(weekly_report_dict[report_sections[1]])
+        report_highlights_cols[0].image(highlight_img, use_column_width=True)
+        report_highlights_cols[1].markdown(weekly_report_dict[report_sections[1]])
+
+        st.markdown(f"## 💿 {report_sections[2]}")
+        st.markdown(weekly_report_dict[report_sections[2]])
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        db.log_error_db(e)
-        st.error("Something went wrong. Please refresh the app and try again.")
+    # try:
+    main()
+# except Exception as e:
+#     db.log_error_db(e)
+#     st.error("Something went wrong. Please refresh the app and try again.")

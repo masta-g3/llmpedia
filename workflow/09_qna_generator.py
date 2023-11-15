@@ -18,6 +18,8 @@ from langchain.chains.openai_functions import (
 
 sys.path.append(os.environ.get("PROJECT_PATH"))
 os.chdir(os.environ.get("PROJECT_PATH"))
+
+import utils.custom_langchain as clc
 import utils.paper_utils as pu
 import utils.prompts as ps
 
@@ -35,31 +37,33 @@ text_splitter = RecursiveCharacterTextSplitter(
 )
 
 ## LLM model.
-llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.3)
+llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.1)
+
+## Initialize chain.
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", ps.QNA_SYSTEM_PROMPT),
+        ("user", ps.QNA_USER_PROMPT),
+        (
+            "user",
+            "Tip: Remember to always include citations in your answers. Make sure your questions are detailed and stand alone. Do not reference the sample questions.",
+        ),
+    ]
+)
+parser = clc.CustomFixParser(pydantic_schema=ps.QnaSet)
+chain = create_structured_output_chain(
+    ps.QnaSet, llm, prompt, output_parser=parser, verbose=False
+)
 
 
 def main():
-    """Convert papers into set of QSA pairs."""
-    ## Initialize chain.
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", ps.QNA_SYSTEM_PROMPT),
-            (
-                "user",
-                "Tip: Remember to always include citations in your answers. Make sure your questions are detailed and stand alone. Do not reference the sample questions.",
-            ),
-        ]
-    )
-    parser = pu.CustomFixParser(pydantic_schema=ps.QnaSet)
-    chain = create_structured_output_chain(ps.QnaSet, llm, prompt,
-                                           output_parser=parser,
-                                           verbose=False)
-
+    """Convert papers into set of Q&A pairs."""
     ## Get raw paper list.
     fnames = os.listdir(data_path)
-    arxiv_local = [fname.replace(".txt", "")
-                   for fname in fnames if fname.endswith(".txt")]
-    arxiv_done = pu.get_arxiv_id_list(pu.db_params, "arxiv_qna")
+    arxiv_local = [
+        fname.replace(".txt", "") for fname in fnames if fname.endswith(".txt")
+    ]
+    arxiv_done = db.get_arxiv_id_list(pu.db_params, "arxiv_qna")
     arxiv_pending = list(set(arxiv_local) - set(arxiv_done))
     print(f"Found {len(arxiv_pending)} papers pending.")
 
@@ -107,11 +111,19 @@ def main():
             doc_qna_df["arxiv_code"] = arxiv_code
             doc_qna_df["chunk_id"] = doc_qna_df["chunk_id"].astype(int)
             doc_qna_df["question_id"] = doc_qna_df["question_id"].astype(int)
-            doc_qna_df["question"] = doc_qna_df["question"].str.replace("According to the LLM literature, ", "")
-            doc_qna_df["question"] = doc_qna_df["question"].apply(lambda x: x[0].upper() + x[1:] if x else x)
-            doc_qna_df["answer"] = doc_qna_df["answer"].str.replace("According to the LLM literature, ", "")
-            doc_qna_df["answer"] = doc_qna_df["answer"].apply(lambda x: x[0].upper() + x[1:] if x else x)
-            pu.upload_df_to_db(doc_qna_df, "arxiv_qna", pu.db_params)
+            doc_qna_df["question"] = doc_qna_df["question"].str.replace(
+                "According to the LLM literature, ", ""
+            )
+            doc_qna_df["question"] = doc_qna_df["question"].apply(
+                lambda x: x[0].upper() + x[1:] if x else x
+            )
+            doc_qna_df["answer"] = doc_qna_df["answer"].str.replace(
+                "According to the LLM literature, ", ""
+            )
+            doc_qna_df["answer"] = doc_qna_df["answer"].apply(
+                lambda x: x[0].upper() + x[1:] if x else x
+            )
+            db.upload_df_to_db(doc_qna_df, "arxiv_qna", pu.db_params)
 
             ## Store QnA in JSON.
             doc_qna_list_final = doc_qna_df.to_dict(orient="records")
@@ -123,12 +135,13 @@ def main():
             doc_chunks_df["arxiv_code"] = arxiv_code
             doc_chunks_df["chunk_id"] = doc_chunks_df.index
             doc_chunks_df.columns = ["text", "arxiv_code", "chunk_id"]
-            pu.upload_df_to_db(doc_chunks_df, "arxiv_chunks", pu.db_params)
+            db.upload_df_to_db(doc_chunks_df, "arxiv_chunks", pu.db_params)
 
             ## Store document chunks in JSON.
             doc_chunks_list = doc_chunks_df.to_dict(orient="records")
             pu.store_local(doc_chunks_list, arxiv_code, chunk_path, relative=False)
             print(f"Stored {len(doc_chunks_list)} chunks for {arxiv_code}.")
+
 
 if __name__ == "__main__":
     main()

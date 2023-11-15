@@ -11,6 +11,8 @@ from langchain.retrievers.document_compressors import CohereRerank
 from utils.custom_langchain import NewCohereEmbeddings, NewPGVector
 
 import utils.db as db
+import utils.prompts as ps
+import utils.paper_utils as pu
 
 CONNECTION_STRING = (
     f"postgresql+psycopg2://{db.db_params['user']}:{db.db_params['password']}"
@@ -56,39 +58,18 @@ llm_map = {
 }
 
 
-system_template = """You are the GPT maestro. Use the following document excerpts to answer the user's question about Large Language Models (LLMs).
+rag_prompt_custom = ChatPromptTemplate.from_messages(
+    [
+        ("system", ps.VS_SYSYEM_TEMPLATE),
+        ("human", "{question}"),
+    ]
+)
 
-==========
-{context}
-==========
-
-- If the question is unrelated to LLMs reply without referencing the documents.
-- Use up to three paragraphs to provide a complete, direct and useful answer. Break down concepts step by step and avoid using complex jargon.
-- Be practical and reference any existing libraries or implementations mentioned on the documents.
-- Add citations referencing the relevant arxiv_codes (e.g.: use the format `*reference content* (arxiv:1234.5678)`). 
-- You do not need to quote or use all the documents presented. Prioritize most recent content and that with most citations.
-- Use markdown to organize and structure your response.
-- Reply with a subtle old-school mafia-style italo-american accent.
-"""
-
-human_template = "{question}"
-
-
-
-# rag_prompt_custom = PromptTemplate.from_template(template)
-rag_prompt_custom = ChatPromptTemplate.from_messages([
-    ("system", system_template),
-    ("human", human_template),
-])
-
-
-def add_links_to_response(response):
-    """Add links to arxiv codes in the response."""
-
-    def repl(match):
-        return f"[arxiv:{match.group(1)}](https://llmpedia.streamlit.app/?arxiv_code={match.group(1)})"
-
-    return re.sub(r"arxiv:(\d{4}\.\d{4,5})", repl, response)
+llm_chain = LLMChain(
+    llm=llm_map["GPT-3.5-Turbo"],
+    prompt=rag_prompt_custom,
+    verbose=False,
+)
 
 
 def create_rag_context(parent_docs):
@@ -101,7 +82,7 @@ def create_rag_context(parent_docs):
         citation_count = doc["citation_count"]
         text = "..." + doc["text"] + "..."
         rag_context += (
-            f"arxiv:{arxiv_code} ({year}, {citation_count} citations)\n\{text}\n\n"
+            f"arxiv:{arxiv_code} ({year}, {citation_count} citations)\n\n{text}\n\n"
         )
 
     return rag_context
@@ -126,13 +107,7 @@ def query_llmpedia(question: str, collection_name):
 
     ## Create custom prompt.
     rag_context = create_rag_context(parent_docs)
-
-    llm_chain = LLMChain(
-        llm=llm_map["GPT-3.5-Turbo"],
-        prompt=rag_prompt_custom,
-        verbose=False,
-    )
     res = llm_chain.run(context=rag_context, question=question)
-    content = add_links_to_response(res)
+    content = pu.add_links_to_text_blob(res)
 
     return content

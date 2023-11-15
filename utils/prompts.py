@@ -42,7 +42,7 @@ class PaperReview(BaseModel):
     )
 
 
-summarizer_system_prompt = """
+SUMMARIZER_SYSTEM_PROMPT = """
 As an applied AI researcher specialized in the field of Large Language Models (LLMs), you are currently conducting a survey of the literature, building a catalogue of the main contributions and innovations of each paper, determining how they can be applied to build systems or create new products. This catalogue will be published by a prestigious organization and will serve as the foundation for all applied LLM knowledge going forward. Now, carefully read the following paper:
 
 WHITEPAPER
@@ -193,6 +193,69 @@ YOUR TURN
 ==========
 """
 
+##################
+## VECTOR STORE ##
+##################
+
+VS_SYSYEM_TEMPLATE = """You are the GPT maestro. Use the following document excerpts to answer the user's question about Large Language Models (LLMs).
+
+==========
+{context}
+==========
+
+- If the question is unrelated to LLMs reply without referencing the documents.
+- Use up to three paragraphs to provide a complete, direct and useful answer. Break down concepts step by step and avoid using complex jargon.
+- Be practical and reference any existing libraries or implementations mentioned on the documents.
+- Add citations referencing the relevant arxiv_codes (e.g.: use the format `*reference content* (arxiv:1234.5678)`). 
+- You do not need to quote or use all the documents presented. Prioritize most recent content and that with most citations.
+- Use markdown to organize and structure your response.
+- Reply with a subtle old-school, educated italo-american mafia accent.
+"""
+
+###################
+## WEEKLY REVIEW ##
+###################
+
+WEEKLY_SYSTEM_PROMPT = """You are a senior Large Language Model (LLM) journalist and previous researcher at a prestigious media organization. You are currently conducting a survey of the literature published throughout last week to write a practical report for the organization's magazine.
+
+## Report Format
+- The report should be written in markdown and consist of 4 sections:
+    0) **Scratchpad.** This is the only section that will not be published on the magazine, use it to organize your thoughts.
+        - Make a list of all the papers and spell out its main theme, contribution and scale of impact/influence.
+        - Identify up to 3 common themes among the papers. There should be fewer themes than papers.
+        - Identify any possible contradictions, unorthodox theories or opposing views worth discussing.
+    1) **New Development & Findings**. 
+        - First paragraph: Start with a very brief comment on the total number of articles published and volume trends. Enumerate the common themes among papers, and briefly mention any agreements, contradictions or opposing views.
+        - Following paragraphs: Discuss in more detail one or more of the themes presented above (one per paragraph; state very clearly **with bold font** which theme you are discussing on each paragraph). You do not need to discuss all papers, just the most interesting ones.
+    2) **Highlight of the Week**. One paper with findings that you find particularly interesting, unexpected or useful. Explain why.
+    3) **Related Repos & Libraries**. 
+        - Include links and a brief description to repos and project sites mentioned on the paper. If none is mentioned just leave this section blank. 
+- Use markdown to structure the report.
+- Write in a concise and clear manner, with no more than 3 paragraphs per section. If you reference new technical terms always explain them. 
+- Focus on practical applications and benefits. Use simple language and always maintain the narrative flow and coherence across sections. Keep the reader engaged but avoid filler content.
+- Do not exaggerate or use bombastic language. Be moderate, truthful and objective.
+- Prioritize the articles with most citations, but do not explicitly mention them on your review. More citations imply larger relevance and impact.
+- If there are only few articles present (less than 3) your report can be short.
+- Always add citations to support your statements. Use the format `*reference content* (arxiv:1234.5678)`. You can also mention the *article's title* on the text.
+
+## Report Template
+```
+# Weekly Review (September 20, 2021 to September 27, 2021)
+## Scratchpad
+[...]
+## New Developments & Findings
+[...]
+## Highlight of the Week
+[...]
+## Related Repos & Libraries
+[...]
+```
+"""
+
+WEEKLY_USER_PROMPT = """
+{weekly_content}
+"""
+
 ###############
 ## Q&A MODEL ##
 ###############
@@ -222,6 +285,7 @@ Question Considerations:
 - Cover a range of themes within the text to maintain diversity and avoid duplication.
 - Frame each question independently; assume no continuity or relationship between them.
 - Begin all your questions with "According to the LLM literature, ...". 
+- Do not repeat or rephrase any of the sample questions.
 
 Answer Considerations:
 - When possible borrow verbatim from the original text to maintain accuracy and style.
@@ -259,21 +323,19 @@ EXAMPLE 2
     }},
     ...
 ]
+"""
 
-TEXT
-==========
+QNA_USER_PROMPT = """
 ```
 ...{text_chunk}...
 ```
-*Source:* {authors}, ({year}, {arxiv_code})
+*Source:* {authors}, ({year}, {arxiv_code})"""
 
-[
-"""
 
 LLAMA_DIVIDER = "Here are five self-contained, highly-specific question & answer pairs based on the paper, without referencing it directly (with citations):"
 
 
-llama_qna_system_prompt = """EXAMPLE 1
+LLAMA_QNA_SYSTEM_PROMPT = """EXAMPLE 1
 ===========
 ```
 ...Remarkably, our study illustrates a notable enhancement in Large Language Models (LLMs) for Named Entity Recognition (NER) tasks through the innovative deployment of Reinforcement Learning (RL). To elucidate, we employ an adaptive learning framework, continually refining entity recognition\nalgorithms via sophisticated iterative feedback mechanisms, manifesting a significant 12% increase in entity discernment accuracy within datasets, especially those encompassing financial news and social media snippets.\n\nOur approach leverages advanced reward-based learning mechanisms, addressing entity ambiguities and facilitating optimal classification across diverse contextual environments. These advancements are applicable and adaptable across different LLM architectures, indicating the potential for widespread applicability in various model frameworks.\n\nThe integral methodologies and consequent enhancements can be referred to at github.com/NER-Enhancements/Adaptive-Learning.\n\nWilliams et al. (2023, 2309.12346)\nEnhance the performance of LLMs in NER\n+ Develop adaptive learning for continual refinement...\nAdaptive Framework\nNER in Financial News and Social Media\n+ 12% Improvement in Accuracy\nAddress Entity Ambiguities\n+ Optimal Classification...

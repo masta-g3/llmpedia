@@ -12,26 +12,39 @@ load_dotenv()
 
 sys.path.append(os.environ.get("PROJECT_PATH"))
 os.chdir(os.environ.get("PROJECT_PATH"))
+
 import utils.paper_utils as pu
+import utils.db as db
 
 data_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_text")
 meta_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_meta")
 child_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_chunks")
 parent_path = os.path.join(
-    os.environ.get("PROJECT_PATH"), "data", "arxiv_parent_chunks"
+    os.environ.get("PROJECT_PATH"), "data", "arxiv_large_parent_chunks"
 )
 
-## Helper splitter.
+## Splitters setup.
+CHUNK_SIZE = 2000
+CHUNK_OVERLAP = 200
+PARENT_CHUNK_SIZE = 10000
+PARENT_CHUNK_OVERLAP = 1000
+VERSION_NAME = "10000_1000"
+
+version_name_map = {
+    "10000_1000": "arxiv_large_parent_chunks",
+    "2000_200": "arxiv_parent_chunks",
+}
+
 text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=2000,
-    chunk_overlap=200,
+    chunk_size=CHUNK_SIZE,
+    chunk_overlap=CHUNK_OVERLAP,
     length_function=len,
     is_separator_regex=False,
 )
 
 parent_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=5000,
-    chunk_overlap=500,
+    chunk_size=PARENT_CHUNK_SIZE,
+    chunk_overlap=PARENT_CHUNK_OVERLAP,
     length_function=len,
     is_separator_regex=False,
 )
@@ -49,7 +62,7 @@ def process_document(arxiv_code, child_path, parent_path):
 
 def parallel_process_mapping(mapping_codes, child_path, parent_path):
     all_mappings = []
-    with ThreadPoolExecutor(max_workers=12) as executor:
+    with ThreadPoolExecutor(max_workers=20) as executor:
         future_to_arxiv = {
             executor.submit(process_document, code, child_path, parent_path): code
             for code in mapping_codes
@@ -116,7 +129,7 @@ def main():
 
     ## Child chunks.
     print("Creating child chunks...")
-    child_done = pu.get_arxiv_id_list(pu.db_params, "arxiv_chunks")
+    child_done = db.get_arxiv_id_list(pu.db_params, "arxiv_chunks")
     child_codes = list(set(local_codes) - set(child_done))
     print(f"Found {len(child_codes)} child papers pending.")
 
@@ -132,7 +145,7 @@ def main():
         doc_chunks_df["arxiv_code"] = arxiv_code
         doc_chunks_df["chunk_id"] = doc_chunks_df.index
         doc_chunks_df.columns = ["text", "arxiv_code", "chunk_id"]
-        pu.upload_df_to_db(doc_chunks_df, "arxiv_chunks", pu.db_params)
+        db.upload_df_to_db(doc_chunks_df, "arxiv_chunks", pu.db_params)
 
         ## Store document chunks in JSON.
         doc_chunks_list = doc_chunks_df.to_dict(orient="records")
@@ -140,7 +153,8 @@ def main():
 
     ## Parent chunks.
     print("Creating parent chunks...")
-    parent_done = pu.get_arxiv_id_list(pu.db_params, "arxiv_parent_chunks")
+    parent_table_name = version_name_map[VERSION_NAME]
+    parent_done = db.get_arxiv_id_list(pu.db_params, parent_table_name)
     parent_codes = list(set(local_codes) - set(parent_done))
     print(f"Found {len(parent_codes)} parent papers pending.")
 
@@ -156,7 +170,7 @@ def main():
         doc_chunks_df["arxiv_code"] = arxiv_code
         doc_chunks_df["chunk_id"] = doc_chunks_df.index
         doc_chunks_df.columns = ["text", "arxiv_code", "chunk_id"]
-        pu.upload_df_to_db(doc_chunks_df, "arxiv_parent_chunks", pu.db_params)
+        db.upload_df_to_db(doc_chunks_df, parent_table_name, pu.db_params)
 
         ## Store document chunks in JSON.
         doc_chunks_list = doc_chunks_df.to_dict(orient="records")
@@ -164,12 +178,14 @@ def main():
 
     ## Mapping of child-to-parent.
     print("Mapping child-to-parent...")
-    mapping_done = pu.get_arxiv_id_list(pu.db_params, "arxiv_chunk_map")
+    ## ToDo: Allow version param here.
+    mapping_done = db.get_arxiv_id_list(pu.db_params, "arxiv_chunk_map")
     mapping_codes = list(set(local_codes) - set(mapping_done))
     print(f"Found {len(mapping_codes)} mapping papers pending.")
 
     mapping_df = parallel_process_mapping(mapping_codes, child_path, parent_path)
-    pu.upload_df_to_db(mapping_df, "arxiv_chunk_map", pu.db_params)
+    mapping_df["version"] = VERSION_NAME
+    db.upload_df_to_db(mapping_df, "arxiv_chunk_map", pu.db_params)
 
     # for arxiv_code in tqdm(mapping_codes):
     #     ## Open doc and meta_data.
@@ -181,7 +197,7 @@ def main():
     #         for k, v in mapping.items()
     #     ]
     #     mapping_df = pd.DataFrame.from_dict(mapping)
-    #     pu.upload_df_to_db(mapping_df, "arxiv_chunk_map", pu.db_params)
+    #     db.upload_df_to_db(mapping_df, "arxiv_chunk_map", pu.db_params)
 
 
 if __name__ == "__main__":

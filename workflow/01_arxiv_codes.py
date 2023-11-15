@@ -10,31 +10,7 @@ sys.path.append(os.environ.get("PROJECT_PATH"))
 os.chdir(os.environ.get("PROJECT_PATH"))
 
 import utils.paper_utils as pu
-
-import ast
-
-
-def convert_string_to_dict(s):
-    try:
-        # Try to convert the string representation of a dictionary to an actual dictionary
-        return ast.literal_eval(s)
-    except (SyntaxError, ValueError):
-        return s
-
-
-def convert_innert_dict_strings_to_actual_dicts(data):
-    if isinstance(data, str):
-        return convert_string_to_dict(data)
-    elif isinstance(data, dict):
-        for key in data:
-            data[key] = convert_innert_dict_strings_to_actual_dicts(data[key])
-        return data
-    elif isinstance(data, list):
-        for i, item in enumerate(data):
-            data[i] = convert_innert_dict_strings_to_actual_dicts(item)
-        return data
-    else:
-        return data
+import utils.db as db
 
 
 def rename_file(fname: str, arxiv_code: str):
@@ -51,8 +27,8 @@ def rename_file(fname: str, arxiv_code: str):
 
 def main():
     """Load summaries and add missing ones."""
-    titles = list(pu.get_arxiv_title_dict(pu.db_params).values())
-    codes = list(pu.get_arxiv_title_dict(pu.db_params).keys())
+    titles = list(db.get_arxiv_title_dict(pu.db_params).values())
+    codes = list(db.get_arxiv_title_dict(pu.db_params).keys())
     local_paper_codes = os.path.join(
         os.environ.get("PROJECT_PATH"), "data", "summaries"
     )
@@ -70,7 +46,7 @@ def main():
         with open(os.path.join(local_paper_codes, fname), "r") as f:
             content = f.read().strip()
         data = json.loads(content)
-        data = convert_innert_dict_strings_to_actual_dicts(data)
+        data = pu.convert_innert_dict_strings_to_actual_dicts(data)
         if "applied_example" in data["takeaways"]:
             data["takeaways"]["example"] = data["takeaways"]["applied_example"]
             del data["takeaways"]["applied_example"]
@@ -100,20 +76,20 @@ def main():
         data["arxiv_code"] = arxiv_code
 
         ## Store summary.
-        if not pu.check_in_db(arxiv_code, pu.db_params, "summaries"):
+        if not db.check_in_db(arxiv_code, pu.db_params, "summaries"):
             flat_entries = pu.transform_flat_dict(
                 pu.flatten_dict(data), pu.summary_col_mapping
             )
-            pu.upload_to_db(flat_entries, pu.db_params, "summaries")
+            db.upload_to_db(flat_entries, pu.db_params, "summaries")
             # print(f"Added '{data_title}' to summaries table.")
             added_summaries += 1
 
         ## Extract arxiv info.
-        if not pu.check_in_db(arxiv_code, pu.db_params, "arxiv_details"):
+        if not db.check_in_db(arxiv_code, pu.db_params, "arxiv_details"):
             ## Store in DB.
             processed_data = pu.process_arxiv_data(arxiv_info._raw)
             pu.store_local(arxiv_info._raw, arxiv_code, "arxiv_meta")
-            pu.upload_to_db(processed_data, pu.db_params, "arxiv_details")
+            db.upload_to_db(processed_data, pu.db_params, "arxiv_details")
             # print(f"Added '{data_title}' to arxiv_details table.")
             added_arxiv += 1
 

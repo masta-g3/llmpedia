@@ -14,6 +14,7 @@ sys.path.append(PROJECT_PATH)
 warnings.filterwarnings("ignore")
 
 import utils.paper_utils as pu
+import utils.db as db
 
 from nodes import (
     KSampler,
@@ -98,7 +99,7 @@ def generate_image(name, img_file):
             ksampler_103 = ksampler.sample(
                 seed=random.randint(1, 2**64),
                 steps=20,
-                cfg=7,
+                cfg=6,
                 sampler_name="dpmpp_2m_sde_gpu",
                 scheduler="karras",
                 denoise=1,
@@ -135,7 +136,7 @@ def generate_image(name, img_file):
 
 def main():
     ## Load the mapping files.
-    title_dict = pu.get_arxiv_title_dict(pu.db_params)
+    title_dict = db.get_arxiv_title_dict(pu.db_params)
     img_dir = os.path.join(PROJECT_PATH, "imgs/")
 
     for idx, (code, name) in enumerate(title_dict.items()):
