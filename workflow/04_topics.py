@@ -24,11 +24,14 @@ import nltk
 
 import utils.paper_utils as pu
 import utils.db as db
+
 db_params = pu.db_params
 
 ## Download necessary NLTK data.
 nltk.download("wordnet")
 nltk.download("stopwords")
+
+REFIT = True
 
 ## Create a lemmatizer and list of stop words.
 LEMMATIZER = WordNetLemmatizer()
@@ -52,6 +55,7 @@ def _process_text(text: str, lemmatizer: WordNetLemmatizer, stop_words: list) ->
         [lemmatizer.lemmatize(word) for word in text.split() if word not in stop_words]
     )
     return text
+
 
 def load_and_process_data(title_map: dict) -> pd.DataFrame:
     """Load and process data from json files, return DataFrame."""
@@ -105,7 +109,11 @@ def create_topic_model(
     mmr_model = MaximalMarginalRelevance(diversity=0.5)
     openai.api_key = os.getenv("OPENAI_API_KEY")
     openai_model = OpenAI(
-        model="gpt-3.5-turbo-1106", exponential_backoff=True, chat=True, prompt=prompt, nr_docs=8
+        model="gpt-3.5-turbo-1106",
+        exponential_backoff=True,
+        chat=True,
+        prompt=prompt,
+        nr_docs=8,
     )
     topic_model = BERTopic(
         embedding_model=embeddings,
@@ -120,10 +128,13 @@ def create_topic_model(
 
 
 def extract_topics_and_embeddings(
-    all_content: list, embeddings: list, topic_model: BERTopic
+    all_content: list, embeddings: list, topic_model: BERTopic, refit=False
 ) -> tuple:
     """Extract topics and embeddings."""
-    topics, _ = topic_model.fit_transform(all_content, embeddings)
+    if refit:
+        topics, _ = topic_model.fit_transform(all_content, embeddings)
+    else:
+        topics, _ = topic_model.transform(all_content, embeddings)
     reduced_embeddings = UMAP(
         n_neighbors=12, n_components=2, min_dist=0.0, metric="cosine", random_state=200
     ).fit_transform(embeddings)
@@ -134,9 +145,13 @@ def extract_topics_and_embeddings(
 
 
 def store_topics_and_embeddings(
-    df: pd.DataFrame, topics: list, reduced_embeddings: list, topic_model: BERTopic
+    df: pd.DataFrame, topics: list, reduced_embeddings: list, topic_model: BERTopic, refit=False
 ):
     """Store topics and embeddings."""
+    if refit:
+        topic_model.save(
+            "data/topic_model.pkl", save_ctfidf=True, save_embedding_model=True
+        )
     topic_names = topic_model.get_topic_info().set_index("Topic")["Name"]
     topic_names[-1] = "Miscellaneous"
     clean_topic_names = [
@@ -149,20 +164,41 @@ def store_topics_and_embeddings(
     df[["topic", "dim1", "dim2"]].to_pickle(topic_path)
     df.index.name = "arxiv_code"
     df.reset_index(inplace=True)
-    db.upload_df_to_db(df[["arxiv_code", "topic", "dim1", "dim2"]],
-                       "topics", pu.db_params, if_exists="replace")
+    if_exists_policy = "replace" if refit else "append"
+    db.upload_df_to_db(
+        df[["arxiv_code", "topic", "dim1", "dim2"]],
+        "topics",
+        pu.db_params,
+        if_exists=if_exists_policy,
+    )
 
 
 def main():
     """Main function."""
     title_map = db.get_arxiv_title_dict(db_params)
+    if REFIT:
+        df = load_and_process_data(title_map)
+        all_content, embedding_model, embeddings = create_embeddings(df)
+        topic_model = create_topic_model(
+            embedding_model, PROMPT, LEMMATIZER, STOP_WORDS
+        )
+    else:
+        ## Predict topics on new documents using existing model.
+        topic_model = BERTopic.load("data/topic_model.pkl")
+
+        arxiv_codes = db.get_arxiv_id_list(db_params, "topics")
+        done_codes = db.get_arxiv_id_list(db_params, "summaries")
+        working_codes = list(set(arxiv_codes) - set(done_codes))
+        title_map = {k: v for k, v in title_map.items() if k in working_codes}
+
     df = load_and_process_data(title_map)
     all_content, embedding_model, embeddings = create_embeddings(df)
-    topic_model = create_topic_model(embedding_model, PROMPT, LEMMATIZER, STOP_WORDS)
     topics, reduced_embeddings = extract_topics_and_embeddings(
-        all_content, embeddings, topic_model
+        all_content, embeddings, topic_model, refit=REFIT
     )
-    store_topics_and_embeddings(df, topics, reduced_embeddings, topic_model)
+    store_topics_and_embeddings(df, topics, reduced_embeddings, topic_model, refit=REFIT)
+
+
     print("Done!")
 
 

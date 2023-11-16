@@ -122,7 +122,7 @@ def main():
         st.experimental_rerun()
 
     if st.sidebar.button("Load Preferences"):
-        st.session_state["df"] = pd.read_pickle("../content.pkl")
+        st.session_state["df"] = pd.read_pickle("../data/content.pkl")
         st.sidebar.success("Loaded preferences from content.pkl!")
         time.sleep(1)
         st.experimental_rerun()

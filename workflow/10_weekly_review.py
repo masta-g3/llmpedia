@@ -92,6 +92,9 @@ def main(date_str: str):
     for idx, row in weekly_content_df.iterrows():
         paper_markdown = pu.format_paper_summary(row)
         weekly_content_md += paper_markdown
+        if idx >= 30:
+            weekly_content_md += f"\n\n*...and {len(weekly_content_df) - idx} more.*"
+            break
 
     with get_openai_callback() as cb:
         ## Generate summary.
@@ -107,8 +110,8 @@ def main(date_str: str):
 
 
 if __name__ == "__main__":
-    start_dt = "2023-11-1"
-    end_dt = "2023-11-06"
+    start_dt = "2023-08-21"
+    end_dt = "2023-08-22"
     date_range = pd.date_range(start_dt, end_dt, freq="W-MON")
     date_range = [date.strftime("%Y-%m-%d") for date in date_range]
     for date_str in tqdm(date_range):

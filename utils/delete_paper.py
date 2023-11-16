@@ -25,7 +25,16 @@ engine = create_engine(db_url)
 def delete_from_db(arxiv_code: str):
     with psycopg2.connect(**db_params) as conn:
         with conn.cursor() as cur:
-            table_names = ["arxiv_details", "summaries", "topics"]
+            table_names = [
+                "arxiv_details",
+                "summaries",
+                "semantic_details",
+                "topics",
+                "arxiv_chunks",
+                "arxiv_qna",
+                "arxiv_parent_chunks",
+                "arxiv_large_parent_chunks",
+            ]
             for table_name in table_names:
                 cur.execute(
                     f"DELETE FROM {table_name} WHERE arxiv_code = %s", (arxiv_code,)
@@ -47,7 +56,6 @@ def delete_paper(arxiv_code: str):
         print("arXiv code not found in arxiv_code_map.json.")
 
     print("Cleaning up pickles...")
-
     ## Metadata.
     arxiv_df = pd.read_pickle("../data/arxiv.pkl")
     arxiv_df.drop(arxiv_code, inplace=True)
@@ -63,17 +71,48 @@ def delete_paper(arxiv_code: str):
     topics_df.drop(arxiv_code, inplace=True)
     topics_df.to_pickle("data/topics.pkl")
 
+    print("Removing files...")
     ## Summaries.
-    summary_file = f"summaries/{arxiv_code}.json"
+    summary_file = f"../data/summaries/{arxiv_code}.json"
     if os.path.exists(summary_file):
         os.remove(summary_file)
         print(f"Deleted {summary_file}.")
 
     ## Arxiv objects.
-    arxiv_obj_file = f"arxiv_objects/{arxiv_code}.json"
+    arxiv_obj_file = f"../data/arxiv_objects/{arxiv_code}.json"
     if os.path.exists(arxiv_obj_file):
         os.remove(arxiv_obj_file)
         print(f"Deleted {arxiv_obj_file}.")
+
+    ## Citations.
+    citations_file = f"../data/semantic_meta/{arxiv_code}.json"
+    if os.path.exists(citations_file):
+        os.remove(citations_file)
+        print(f"Deleted {citations_file}.")
+
+    ## Arxiv text.
+    arxiv_text_file = f"../data/arxiv_text/{arxiv_code}.txt"
+    if os.path.exists(arxiv_text_file):
+        os.remove(arxiv_text_file)
+        print(f"Deleted {arxiv_text_file}.")
+
+    ## Arxiv chunks.
+    arxiv_chunks_file = f"../data/arxiv_chunks/{arxiv_code}.json"
+    if os.path.exists(arxiv_chunks_file):
+        os.remove(arxiv_chunks_file)
+        print(f"Deleted {arxiv_chunks_file}.")
+
+    ## Arxiv large parent chunks.
+    arxiv_large_chunks_file = f"../data/arxiv_large_parent_chunks/{arxiv_code}.json"
+    if os.path.exists(arxiv_large_chunks_file):
+        os.remove(arxiv_large_chunks_file)
+        print(f"Deleted {arxiv_large_chunks_file}.")
+
+    ## Arxiv QnA.
+    qna_file = f"../data/arxiv_qna/{arxiv_code}.json"
+    if os.path.exists(qna_file):
+        os.remove(qna_file)
+        print(f"Deleted {qna_file}.")
 
     ## Delete from database.
     delete_from_db(arxiv_code)

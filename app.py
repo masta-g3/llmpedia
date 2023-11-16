@@ -138,7 +138,10 @@ def get_weekly_summary(date: str):
 
 @st.cache_data
 def get_max_report_date():
-    return db.get_max_table_date(db.db_params, "weekly_reviews")
+    max_date = db.get_max_table_date(db.db_params, "weekly_reviews")
+    if max_date.weekday() != 6:
+        max_date = max_date + pd.Timedelta(days=6 - max_date.weekday())
+    return max_date
 
 
 @st.cache_data
@@ -247,7 +250,7 @@ def create_paper_card(paper: Dict, mode="preview"):
         enjoy_cols[0].metric("Readability", f"{paper['enjoyable_score']}/3", "📚")
         enjoy_cols[1].markdown(f"{paper['enjoyable_analysis']}")
 
-    with st.expander(f"📚 **Similar Papers** (Topic: {cluster_name})"):
+    with st.expander(f"📚 **Similar Papers** (Topic: {cluster_name})", expanded=expanded):
         for title in similar_titles:
             st.markdown(f"* {title}")
 
