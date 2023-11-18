@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 PROJECT_PATH = os.environ.get("PROJECT_PATH")
 sys.path.append(PROJECT_PATH)
+os.chdir(PROJECT_PATH)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 warnings.filterwarnings("ignore")
 
@@ -47,12 +48,12 @@ topic: <topic label>
 """
 
 
-def _process_text(text: str, lemmatizer: WordNetLemmatizer, stop_words: list) -> str:
+def process_text(text: str) -> str:
     """Preprocess text."""
     text = text.lower()
     text = re.sub(r"\W", " ", text)
     text = " ".join(
-        [lemmatizer.lemmatize(word) for word in text.split() if word not in stop_words]
+        [LEMMATIZER.lemmatize(word) for word in text.split() if word not in STOP_WORDS]
     )
     return text
 
@@ -85,31 +86,30 @@ def create_embeddings(df: pd.DataFrame) -> tuple:
     return all_content, embedding_model, embeddings
 
 
-def create_topic_model(
-    embeddings: list, prompt: str, lemmatizer: WordNetLemmatizer, stop_words: list
-) -> BERTopic:
+def create_topic_model(embeddings: list, prompt: str) -> BERTopic:
     """Create topic model."""
     load_dotenv()
     umap_model = UMAP(
         n_neighbors=10, n_components=8, min_dist=0.0, metric="cosine", random_state=200
     )
     hdbscan_model = HDBSCAN(
-        min_cluster_size=10,
+        min_cluster_size=15,
         metric="euclidean",
         cluster_selection_method="eom",
-        prediction_data=False,
+        prediction_data=True,
     )
     vectorizer_model = CountVectorizer(
-        stop_words=stop_words,
+        stop_words=STOP_WORDS,
         ngram_range=(2, 3),
         min_df=1,
         max_df=0.8,
-        preprocessor=lambda text: _process_text(text, lemmatizer, stop_words),
+        preprocessor=process_text,
     )
     mmr_model = MaximalMarginalRelevance(diversity=0.5)
     openai.api_key = os.getenv("OPENAI_API_KEY")
     openai_model = OpenAI(
-        model="gpt-3.5-turbo-1106",
+        # model="gpt-3.5-turbo-1106",
+        model="gpt-4-1106-preview",
         exponential_backoff=True,
         chat=True,
         prompt=prompt,
@@ -128,30 +128,43 @@ def create_topic_model(
 
 
 def extract_topics_and_embeddings(
-    all_content: list, embeddings: list, topic_model: BERTopic, refit=False
+    all_content: list,
+    embeddings: list,
+    topic_model: BERTopic,
+    reduced_model: UMAP,
+    refit=False,
 ) -> tuple:
     """Extract topics and embeddings."""
     if refit:
         topics, _ = topic_model.fit_transform(all_content, embeddings)
     else:
         topics, _ = topic_model.transform(all_content, embeddings)
-    reduced_embeddings = UMAP(
-        n_neighbors=12, n_components=2, min_dist=0.0, metric="cosine", random_state=200
-    ).fit_transform(embeddings)
+
+    reduced_embeddings = reduced_model.fit_transform(embeddings)
     reduced_embeddings = (
         reduced_embeddings - reduced_embeddings.mean(axis=0)
     ) / reduced_embeddings.std(axis=0)
-    return topics, reduced_embeddings
+    return topics, reduced_embeddings, reduced_model
 
 
 def store_topics_and_embeddings(
-    df: pd.DataFrame, topics: list, reduced_embeddings: list, topic_model: BERTopic, refit=False
+    df: pd.DataFrame,
+    topics: list,
+    reduced_embeddings: list,
+    topic_model: BERTopic,
+    reduced_model: UMAP,
+    refit=False,
 ):
     """Store topics and embeddings."""
     if refit:
         topic_model.save(
-            "data/topic_model.pkl", save_ctfidf=True, save_embedding_model=True
+            "data/topic_model.pkl",
+            save_ctfidf=True,
+            save_embedding_model=True,
+            serialization="pickle",
         )
+        pd.to_pickle(reduced_model, "data/reduced_model.pkl")
+
     topic_names = topic_model.get_topic_info().set_index("Topic")["Name"]
     topic_names[-1] = "Miscellaneous"
     clean_topic_names = [
@@ -179,25 +192,33 @@ def main():
     if REFIT:
         df = load_and_process_data(title_map)
         all_content, embedding_model, embeddings = create_embeddings(df)
-        topic_model = create_topic_model(
-            embedding_model, PROMPT, LEMMATIZER, STOP_WORDS
+        topic_model = create_topic_model(embedding_model, PROMPT)
+        reduced_model = UMAP(
+            n_neighbors=12,
+            n_components=2,
+            min_dist=0.0,
+            metric="cosine",
+            random_state=200,
         )
+
     else:
         ## Predict topics on new documents using existing model.
         topic_model = BERTopic.load("data/topic_model.pkl")
+        reduced_model = pd.read_pickle("data/reduced_model.pkl")
 
-        arxiv_codes = db.get_arxiv_id_list(db_params, "topics")
-        done_codes = db.get_arxiv_id_list(db_params, "summaries")
+        arxiv_codes = db.get_arxiv_id_list(db_params, "summaries")
+        done_codes = db.get_arxiv_id_list(db_params, "topics")
         working_codes = list(set(arxiv_codes) - set(done_codes))
         title_map = {k: v for k, v in title_map.items() if k in working_codes}
 
     df = load_and_process_data(title_map)
     all_content, embedding_model, embeddings = create_embeddings(df)
-    topics, reduced_embeddings = extract_topics_and_embeddings(
-        all_content, embeddings, topic_model, refit=REFIT
+    topics, reduced_embeddings, reduced_model = extract_topics_and_embeddings(
+        all_content, embeddings, topic_model, reduced_model, refit=REFIT
     )
-    store_topics_and_embeddings(df, topics, reduced_embeddings, topic_model, refit=REFIT)
-
+    store_topics_and_embeddings(
+        df, topics, reduced_embeddings, topic_model, reduced_model, refit=REFIT
+    )
 
     print("Done!")
 
