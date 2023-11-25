@@ -110,8 +110,8 @@ def main(date_str: str):
 
 
 if __name__ == "__main__":
-    start_dt = "2023-08-21"
-    end_dt = "2023-08-22"
+    start_dt = "2023-11-13"
+    end_dt = "2023-11-15"
     date_range = pd.date_range(start_dt, end_dt, freq="W-MON")
     date_range = [date.strftime("%Y-%m-%d") for date in date_range]
     for date_str in tqdm(date_range):

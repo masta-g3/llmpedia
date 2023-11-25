@@ -32,7 +32,7 @@ db_params = pu.db_params
 nltk.download("wordnet")
 nltk.download("stopwords")
 
-REFIT = True
+REFIT = False
 
 ## Create a lemmatizer and list of stop words.
 LEMMATIZER = WordNetLemmatizer()
@@ -137,13 +137,19 @@ def extract_topics_and_embeddings(
     """Extract topics and embeddings."""
     if refit:
         topics, _ = topic_model.fit_transform(all_content, embeddings)
+        reduced_embeddings = reduced_model.fit_transform(embeddings)
     else:
         topics, _ = topic_model.transform(all_content, embeddings)
+        reduced_embeddings = reduced_model.transform(embeddings)
 
-    reduced_embeddings = reduced_model.fit_transform(embeddings)
-    reduced_embeddings = (
-        reduced_embeddings - reduced_embeddings.mean(axis=0)
-    ) / reduced_embeddings.std(axis=0)
+    topic_dists = db.get_topic_embedding_dist()
+    reduced_embeddings[:, 0] = (
+        reduced_embeddings[:, 0] - topic_dists["dim1"]["mean"]
+    ) / topic_dists["dim1"]["std"]
+    reduced_embeddings[:, 1] = (
+        reduced_embeddings[:, 1] - topic_dists["dim2"]["mean"]
+    ) / topic_dists["dim2"]["std"]
+
     return topics, reduced_embeddings, reduced_model
 
 
@@ -173,8 +179,8 @@ def store_topics_and_embeddings(
     df["topic"] = clean_topic_names
     df["dim1"] = reduced_embeddings[:, 0]
     df["dim2"] = reduced_embeddings[:, 1]
-    topic_path = os.path.join(PROJECT_PATH, "data", "topics.pkl")
-    df[["topic", "dim1", "dim2"]].to_pickle(topic_path)
+    # topic_path = os.path.join(PROJECT_PATH, "data", "topics.pkl")
+    # df[["topic", "dim1", "dim2"]].to_pickle(topic_path)
     df.index.name = "arxiv_code"
     df.reset_index(inplace=True)
     if_exists_policy = "replace" if refit else "append"

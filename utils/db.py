@@ -251,6 +251,23 @@ def get_arxiv_title_dict(db_params=db_params):
             return title_map
 
 
+def get_topic_embedding_dist(db_params=db_params):
+    """ Get mean and stdDev for topic embeddings (dim1 & dim2). """
+    with psycopg2.connect(**db_params) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+            SELECT AVG(dim1), STDDEV(dim1), AVG(dim2), STDDEV(dim2)
+            FROM topics
+            """
+            )
+            res = cur.fetchone()
+            res = {
+                "dim1": {"mean": res[0], "std": res[1]},
+                "dim2": {"mean": res[2], "std": res[3]},
+            }
+            return res
+
 def get_weekly_summary_inputs(date: str):
     """Get weekly summaries for a given date (from last monday to next sunday)."""
     engine = create_engine(database_url)

@@ -27,6 +27,8 @@ llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.1)
 # llm = ChatOpenAI(model_name="gpt-4-1106-preview", temperature=0.2)
 token_encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
+RETRIES = 3
+
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", ps.SUMMARIZER_SYSTEM_PROMPT),
@@ -85,6 +87,26 @@ def main():
 
             new_meta = new_doc.metadata
             new_content = pu.preprocess_arxiv_doc(new_doc, token_encoder)
+
+            ## Check in content if it is a language model paper.
+            keywords = ["language model", "llm", "transformer", "gpt",
+                        "bert", "attention", "encoder-decoder", "agent"]
+            skip_keywords = ["stable diffusion"]
+            if (not any([k in new_content.lower() for k in keywords])) or \
+                (any([k in new_content.lower() for k in skip_keywords])):
+                print(f"\n'{paper_name}' is not a language model paper. Skipping...")
+                ## Update gist.
+                parsed_list.append(paper_name)
+                paper_list = list(set(paper_list) - set(parsed_list))
+                gist_url = pu.update_gist(
+                    os.environ["GITHUB_TOKEN"],
+                    gist_id,
+                    gist_filename,
+                    "Updated LLM queue.",
+                    "\n".join(paper_list),
+                )
+                continue
+
             prev_summary = new_meta["Summary"].replace("\n", " ")
             arxiv_code = new_meta["entry_id"].split("/")[-1]
             arxiv_code = re.sub(r"v\d+$", "", arxiv_code)
@@ -112,7 +134,7 @@ def main():
 
             ## Try to run LLM process up to 3 times.
             success = False
-            for i in range(3):
+            for i in range(RETRIES):
                 try:
                     content = {
                         "content": new_content

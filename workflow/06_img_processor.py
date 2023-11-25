@@ -71,9 +71,9 @@ def generate_image(name, img_file):
 
         cliptextencode = CLIPTextEncode()
         cliptextencode_7 = cliptextencode.encode(
-            text="low quality, ugly, distorted, blurry, deformed, watermark," +
-                  "cartoon, videogame, text, flow chart, signature, depth of field, religious," +
-                  "mandala, star map, photoreal, portrait, b&w, poker, modern, grainy",
+            text="low quality, glitch, blurry, deformed, mutated, ugly, disfigured, grainy, noise,"
+                 "watermark, cartoon, anime, videogame, text, flow chart, signature, depth of field,"
+                 "religious, mandala, photo-real, b&w, poker, modern",
             clip=get_value_at_index(loraloader_39, 1),
         )
 
@@ -86,7 +86,7 @@ def generate_image(name, img_file):
         vaeloader_48 = vaeloader.load_vae(vae_name="sdxl.vae.safetensors")
 
         cliptextencode_102 = cliptextencode.encode(
-            text=f'"{name}", tarot and computers, surreal, stunning award-winning pixel art',
+            text=f'"{name.upper()}", "tarot and computers", stunning award-winning pixel art',
             clip=get_value_at_index(loraloader_39, 1),
         )
 
@@ -99,7 +99,7 @@ def generate_image(name, img_file):
             ksampler_103 = ksampler.sample(
                 seed=random.randint(1, 2**64),
                 steps=20,
-                cfg=6,
+                cfg=10,
                 sampler_name="dpmpp_2m_sde_gpu",
                 scheduler="karras",
                 denoise=1,
@@ -144,7 +144,11 @@ def main():
         if os.path.exists(img_file):
             continue
         else:
-            clean_name = name.replace("transformer", "processor").replace("Transformer", "Processor")
+            clean_name = (
+                name.replace("transformer", "processor")
+                .replace("Transformer", "Processor")
+                .replace("Matrix", "Linear Algebra")
+            )
             print(clean_name)
             generate_image(clean_name, img_file)
             print(f"Saved {img_file} ({idx+1}/{len(title_dict)})")

@@ -22,6 +22,7 @@ os.chdir(os.environ.get("PROJECT_PATH"))
 import utils.custom_langchain as clc
 import utils.paper_utils as pu
 import utils.prompts as ps
+import utils.db as db
 
 data_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_text")
 meta_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_meta")

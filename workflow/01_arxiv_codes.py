@@ -29,21 +29,26 @@ def main():
     """Load summaries and add missing ones."""
     titles = list(db.get_arxiv_title_dict(pu.db_params).values())
     codes = list(db.get_arxiv_title_dict(pu.db_params).keys())
-    local_paper_codes = os.path.join(
+    local_paper_path= os.path.join(
         os.environ.get("PROJECT_PATH"), "data", "summaries"
     )
-    fnames = [f for f in os.listdir(local_paper_codes) if ".json" in f]
+    local_fnames = [f for f in os.listdir(local_paper_path) if ".json" in f]
+    local_codes = [f.split(".json")[0] for f in local_fnames]
+
+    pending_codes = list(set(local_codes) - set(codes))
+
     added_summaries = 0
     added_arxiv = 0
     errors = 0
 
-    for fname in tqdm(fnames):
-        arxiv_code = fname.replace(".json", "")
+    for arxiv_code in tqdm(pending_codes):
+        # arxiv_code = fname.replace(".json", "")
+        fname = arxiv_code + ".json"
         if arxiv_code in codes:
             # print(f"Skipping '{fname}' as it is already in the database.")
             continue
 
-        with open(os.path.join(local_paper_codes, fname), "r") as f:
+        with open(os.path.join(local_paper_path, fname), "r") as f:
             content = f.read().strip()
         data = json.loads(content)
         data = pu.convert_innert_dict_strings_to_actual_dicts(data)

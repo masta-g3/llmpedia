@@ -16,13 +16,13 @@ data_path = os.path.join(os.environ.get("PROJECT_PATH"), "data")
 def main():
     """Load summaries and add missing ones."""
     arxiv_code_map = db.get_arxiv_title_dict()
+    done_path = os.path.join(data_path, "arxiv_text")
+    done_codes = [f.replace(".txt", "") for f in os.listdir(done_path)]
+    pending_codes = list(set(arxiv_code_map.keys()) - set(done_codes))
+    pending_codes_map = {k: v for k, v in arxiv_code_map.items() if k in pending_codes}
 
     items_added = 0
-    for k, v in tqdm(arxiv_code_map.items()):
-        if os.path.exists(os.path.join(data_path, "arxiv_text", f"{k}.txt")):
-            # print(f"File {k} already exists.")
-            continue
-
+    for k, v in tqdm(pending_codes_map.items()):
         doc = pu.search_arxiv_doc(k)
         if doc is None:
             doc = pu.search_arxiv_doc(v)
