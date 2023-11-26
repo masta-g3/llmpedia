@@ -16,7 +16,7 @@ def parse_weekly_report(report_md: str):
     return parsed_report
 
 
-def add_links_to_text_blob(response):
+def add_links_to_text_blob(response: str):
     """Add links to arxiv codes in the response."""
 
     def repl(match):
