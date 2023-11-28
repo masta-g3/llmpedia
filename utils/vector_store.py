@@ -108,6 +108,7 @@ def query_llmpedia(question: str, collection_name):
     ## Create custom prompt.
     rag_context = create_rag_context(parent_docs)
     res = llm_chain.run(context=rag_context, question=question)
-    content = au.add_links_to_text_blob(res)
+    res_response = res.split("Response\n")[1].split("###")[0].strip()
+    content = au.add_links_to_text_blob(res_response)
 
     return content
