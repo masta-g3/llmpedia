@@ -27,7 +27,7 @@ llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.1)
 # llm = ChatOpenAI(model_name="gpt-4-1106-preview", temperature=0.2)
 token_encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
-RETRIES = 3
+RETRIES = 1
 
 prompt = ChatPromptTemplate.from_messages(
     [
