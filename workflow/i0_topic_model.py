@@ -63,8 +63,16 @@ def load_and_process_data(title_map: dict) -> pd.DataFrame:
     df = pd.DataFrame(columns=["title", "summary", "main_contribution", "takeaways"])
     for arxiv_code, title in title_map.items():
         fpath = os.path.join(PROJECT_PATH, "data", "summaries", f"{arxiv_code}.json")
+        fpath_meta = os.path.join(
+            PROJECT_PATH, "data", "arxiv_meta", f"{arxiv_code}.json"
+        )
         with open(fpath) as f:
             summary = json.load(f)
+            summary = pu.convert_innert_dict_strings_to_actual_dicts(summary)
+        with open(fpath_meta) as f:
+            meta = json.load(f)
+        summary["Summary"] = meta["summary"]
+
         df.loc[str(arxiv_code)] = [
             title,
             summary["Summary"],
@@ -194,7 +202,10 @@ def store_topics_and_embeddings(
 
 def main():
     """Main function."""
+    arxiv_codes = db.get_arxiv_id_list(db_params, "summaries")
     title_map = db.get_arxiv_title_dict(db_params)
+    title_map = {k: v for k, v in title_map.items() if k in arxiv_codes}
+
     if REFIT:
         df = load_and_process_data(title_map)
         all_content, embedding_model, embeddings = create_embeddings(df)
@@ -212,12 +223,11 @@ def main():
         topic_model = BERTopic.load("data/topic_model.pkl")
         reduced_model = pd.read_pickle("data/reduced_model.pkl")
 
-        arxiv_codes = db.get_arxiv_id_list(db_params, "summaries")
         done_codes = db.get_arxiv_id_list(db_params, "topics")
         working_codes = list(set(arxiv_codes) - set(done_codes))
-        title_map = {k: v for k, v in title_map.items() if k in working_codes}
+        mini_title_map = {k: v for k, v in title_map.items() if k in working_codes}
 
-    df = load_and_process_data(title_map)
+    df = load_and_process_data(mini_title_map)
     all_content, embedding_model, embeddings = create_embeddings(df)
     topics, reduced_embeddings, reduced_model = extract_topics_and_embeddings(
         all_content, embeddings, topic_model, reduced_model, refit=REFIT

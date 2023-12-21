@@ -47,7 +47,7 @@ As an applied AI researcher specialized in the field of Large Language Models (L
 
 WHITEPAPER
 
-{content}
+{paper_content}
 
 ========================
 
@@ -193,6 +193,59 @@ YOUR TURN
 ==========
 """
 
+SUMMARIZER_HUMAN_REMINDER = "Tip: Make sure to provide your response in the correct format. Do not forget to include the 'applied_example' under 'takeaways'!"
+
+SUMMARIZE_BY_PARTS_TEMPLATE = """You are an applied AI researcher specialized in the field of Large Language Models (LLMs), and you are currently reviewing the academic paper "{paper_title}". Your goal is to analyze the paper, identify the main contributions and most interesting findings, and write a bullet point list summary of it in your own words. This summary will serve as reference for future LLM researchers within your organization, so it is very important that you are able to convey the main ideas in a clear, complete and concise manner.
+
+Read over the following section and take notes. Use a numbered list to summarize the main ideas. 
+
+[...]
+{content}
+[...]
+
+## Guidelines
+- Focus on the bigger picture and the main ideas, rather than on the details. 
+- Be sure to explain any new concept or term you introduce. Explain how things work clearly.
+- Take notes of the most important numeric results and metrics.
+- If a table is presented just report back the main findings.
+- Include examples in your notes that help clarify the main ideas.
+- Highlight any practical applications or benefits of the paper's findings.
+- Highlight unusual or unexpected findings.
+- Take notes in the form of a numbered list. Do not include headers or any other elements.
+- Do not include more than 10 items in your list.
+- Your summary must be shorter than the original text. Remove any filler or duplicate content.
+"""
+
+
+NARRATIVE_SUMMARY_PROMPT = """You are an expert New York Times technology writer tasked with writing a summary of "{paper_title}" for the Large Language Model Encyclopaedia. Your task is to read the following set of notes and convert them into an engaging paragraph.
+
+{previous_notes}
+
+## Guidelines
+- You can reorganize and rephrase the notes in order to improve the summary's flow.
+- Do not alter the meaning of the notes.
+- Avoid repetition and filler content.
+- Abstain from making unwarranted inferences.
+- Avoid bombastic language. 
+- Include metrics and statistics in your report.
+- Include descriptions and explanations of any new concepts or terms. Describe how new models or methodologies work.
+- Highlight any practical applications or benefits of the paper's findings.
+- Highlight unusual or unexpected findings.
+"""
+
+COPYWRITER_PROMPT = """You are a New York Times technology copywriter tasked with reviewing the following summary of "{paper_title}" and improving it. Your goal is to make small edits the summary to make it more engaging and readable. You can reorganize and rephrase the text when needed, but you must not alter its meaning or remove any piece of information.
+
+{previous_summary}
+
+## Guidelines
+- Do not include any header or titles, just one or two plain text paragraphs.
+- The summary should read fluently and be engaging, as it will be published on the New York Times technology section.
+- The original text was written by an expert, so please do not remove, reinterpret or edit any information.
+- Do not make any necessary edits or remove information (unless it is duplicate).
+- Avoid repetition.
+- Do minimal edits to the original text.
+"""
+
 ##################
 ## VECTOR STORE ##
 ##################
@@ -223,6 +276,37 @@ Use markdown nested lists to organize the main points and sketch your answer. Yo
 ### Response
 Write your final answer here. You can use up to three paragraphs to structure it. Remember to add citations (e.g.: use the format `*reference content* (arxiv:1234.5678)`).
 ```
+"""
+
+
+LLM_PAPER_CHECK_TEMPLATE = """Analyze the following abstract and first sections of a whitepaper to determine if it is directly related to Large Language Models (LLMs) or text embeddings. Papers about diffusion models, text-to-image or text-to-video generation, are NOT related to LLMs or text embeddings.
+Respond with a JSON object with your analysis and your final answer and nothing else."""
+
+LLM_PAPER_CHECK_FMT_TEMPLATE = """OUTPUT FORMAT EXAMPLES
+=======================
+## Example 1
+{{
+    "analysis": "The paper discusses prompting techniques for LLMs, hence it is directly related to LLMs.",
+    "is_related": True
+}}
+
+## Example 2
+{{
+    "analysis": "The paper discusses a new LoRa technique for text-to-image diffusion models, hence it is not directly related to LLMs or text embeddings.",
+    "is_related": False
+}}
+
+## Example 3
+{{
+    "analysis": "The paper discusses a new dataset for text embedding evaluation in the context of retrieval systems, hence it directly related to text embeddings.",
+    "is_related": True
+}}
+
+## Example 4
+{{
+    "analysis": "The paper discusses fine-tuning techniques for image generation using pre-trained diffusion models, and it evaluates the performance based on CLIP-T and DINO scores, hence it is not directly related to LLMs or text embeddings.",
+    "is_related": False
+}}
 """
 
 ###################

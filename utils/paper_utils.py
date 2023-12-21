@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from concurrent.futures import ThreadPoolExecutor
+from typing import Optional
 import dotenv
 import ast
 
@@ -116,9 +117,52 @@ def get_high_similarity_pairs(similarity_df, x):
     return high_similarity_pairs
 
 
+def classify_llm_paper(paper_content):
+    """Check if a paper is a language model paper."""
+    ##ToDo: Replace with LLM.
+    keywords = [
+        "language model",
+        "llm",
+        "transformer",
+        "gpt",
+        "bert",
+        "attention",
+        "encoder-decoder",
+        "agent",
+    ]
+    skip_keywords = [
+        "stable diffusion",
+        "video diffusion",
+        "image diffusion",
+        "diffusion transformer",
+        "image generation",
+        "video generation",
+        "text-to-image",
+        "text-to-video",
+        "text to image",
+        "text to video",
+    ]
+
+    result = (any([k in paper_content.lower() for k in keywords])) and (
+        not any([k in paper_content.lower() for k in skip_keywords])
+    )
+    return result
+
+
 #####################
 ## LOCAL DATA MGMT ##
 #####################
+
+
+def get_local_arxiv_codes(directory="arxiv_text", format=".txt"):
+    """Get a list of local Arxiv codes."""
+    local_paper_codes = os.path.join(PROJECT_PATH, "data", directory)
+    local_paper_codes = [
+        f.split(format)[0] for f in os.listdir(local_paper_codes) if f.endswith(format)
+    ]
+    return local_paper_codes
+
+
 def store_local(data, arxiv_code, data_path, relative=True, format="json"):
     """Store data locally."""
     if relative:
@@ -136,7 +180,7 @@ def store_local(data, arxiv_code, data_path, relative=True, format="json"):
 def load_local(arxiv_code, data_path, relative=True, format="json"):
     """Load data locally."""
     if relative:
-        data_path = os.path.join(PROJECT_PATH, data_path)
+        data_path = os.path.join(PROJECT_PATH, "data", data_path)
     if format == "json":
         with open(os.path.join(data_path, f"{arxiv_code}.json"), "r") as f:
             return json.load(f)
@@ -152,10 +196,10 @@ def load_local(arxiv_code, data_path, relative=True, format="json"):
 #####################
 def reformat_text(doc_content):
     """Clean and simplify text string."""
-    content = doc_content.replace("-\n", "")
-    content = re.sub(r"(?<!\n)\n(?!\n)", " ", content)
-    content = re.sub(" +", " ", content)
-    content = content.replace("<|endoftext|>", "|endoftext|")
+    # content = doc_content.replace("-\n", "")
+    # content = re.sub(r"(?<!\n)\n(?!\n)", " ", content)
+    # content = re.sub(" +", " ", content)
+    content = doc_content.replace("<|endoftext|>", "|endoftext|")
     return content
 
 
@@ -171,6 +215,13 @@ def format_paper_summary(summary_row):
     arxiv_comments = summary_row["arxiv_comment"]
     arxiv_comments = "\n\n*" + arxiv_comments + "*" if arxiv_comments else ""
     return f"### {title}\n*({date} / arxiv_code:{arxiv_code} / {citations} citations)*{arxiv_comments}\n\n**Summary:**\n{summary}\n\n**Main Contribution:**\n{main_contribution}\n\n**Takeaways:**\n{takeaways}\n\n-------------\n\n"
+
+
+def numbered_to_bullet_list(list_str: str):
+    """Convert a numbered list to a bullet list."""
+    list_str = re.sub(r"^\d+\.", r"-", list_str, flags=re.MULTILINE).strip()
+    list_str = list_str.replace("</|im_end|>", "").strip()
+    return list_str
 
 
 def preprocess(text):
@@ -239,7 +290,7 @@ def search_arxiv_doc(paper_name):
         paper_name = preprocess(paper_name)
     docs = ArxivLoader(
         query=paper_name,
-        doc_content_chars_max=70000,
+        doc_content_chars_max=1000000,
         load_all_available_meta=True,
         load_max_docs=max_docs,
     ).load()
@@ -270,36 +321,44 @@ def search_arxiv_doc(paper_name):
     return docs[0]
 
 
-def preprocess_arxiv_doc(doc, token_encoder=None, max_tokens=10800):
+def preprocess_arxiv_doc(doc_content, token_encoder=None, max_tokens=None, remove_references=True):
     """Preprocess an Arxiv document."""
-    doc_content = reformat_text(doc.page_content)
-    if len(doc_content.split("References")) == 2:
-        doc_content = doc_content.split("References")[0]
+    doc_content = reformat_text(doc_content)
+    doc_content = doc_content.replace("<|endoftext|>", "|endoftext|")
+
+    if remove_references:
+        if len(doc_content.split("References")) == 2:
+            doc_content = doc_content.split("References")[0]
 
     if token_encoder:
         ntokens_doc = len(token_encoder.encode(doc_content))
+        print(f"Number of tokens: {ntokens_doc}")
         if ntokens_doc > max_tokens:
             doc_content = doc_content[: int(max_tokens * 3)] + "... [truncated]"
 
     return doc_content
 
 
-def get_arxiv_info(arxiv_code, title):
+def get_arxiv_info(arxiv_code: str, title: Optional[str] = None):
     """Search article in Arxiv by name and retrieve meta-data."""
     search = arxiv.Search(
         query=arxiv_code, max_results=40, sort_by=arxiv.SortCriterion.Relevance
     )
     res = list(search.results())
+    arxiv_meta = None
     if len(res) > 0:
-        ## Sort by title similarity.
-        res = sorted(res, key=lambda x: tfidf_similarity(title, x.title), reverse=True)
-        new_title = res[0].title
-        title_sim = tfidf_similarity(title, new_title)
-        if title_sim > 0.7:
-            return res[0]
+        if title:
+            ## Sort by title similarity.
+            res = sorted(
+                res, key=lambda x: tfidf_similarity(title, x.title), reverse=True
+            )
+            new_title = res[0].title
+            title_sim = tfidf_similarity(title, new_title)
+            if title_sim > 0.7:
+                arxiv_meta = res[0]
         else:
-            return None
-    return None
+            arxiv_meta = res[0]
+    return arxiv_meta
 
 
 def process_arxiv_data(data):

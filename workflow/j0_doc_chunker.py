@@ -122,10 +122,7 @@ def map_child_to_parent_by_content(child_chunks, parent_chunks):
 def main():
     """Chunk arxiv docs into smaller blocks."""
     ## Get raw paper list.
-    fnames = os.listdir(data_path)
-    local_codes = [
-        fname.replace(".txt", "") for fname in fnames if fname.endswith(".txt")
-    ]
+    local_codes = pu.get_local_arxiv_codes()
 
     ## Child chunks.
     print("Creating child chunks...")
@@ -136,7 +133,6 @@ def main():
     for arxiv_code in tqdm(child_codes):
         ## Open doc and meta_data.
         doc_txt = pu.load_local(arxiv_code, data_path, False, "txt")
-        doc_meta = pu.load_local(arxiv_code, meta_path, False, "json")
         doc_texts = text_splitter.split_text(doc_txt)
         doc_chunks = [doc.replace("\n", " ") for doc in doc_texts]
 

@@ -1,4 +1,5 @@
 from sqlalchemy import create_engine, text
+from datetime import datetime
 import streamlit as st
 import pandas as pd
 import psycopg2
@@ -40,6 +41,7 @@ def log_error_db(error):
                 "error": str(error),
             },
         )
+    return True
 
 
 def log_qna_db(user_question, response):
@@ -63,6 +65,22 @@ def log_qna_db(user_question, response):
                 "response": str(response),
             },
         )
+    return True
+
+
+def insert_recursive_summary(arxiv_code, summary):
+    """Insert data into recursive_summary table in DB."""
+    engine = create_engine(database_url)
+
+    with engine.begin() as conn:
+        query = text(
+            """
+            INSERT INTO recursive_summaries (arxiv_code, summary, tstp)
+            VALUES (:arxiv_code, :summary, :tstp);
+            """
+        )
+        conn.execute(query, {"arxiv_code": arxiv_code, "summary": summary, "tstp": datetime.now()})
+    return True
 
 
 def load_arxiv():
@@ -73,13 +91,31 @@ def load_arxiv():
     return arxiv_df
 
 
-def load_reviews():
+def load_summaries():
     query = "SELECT * FROM summaries;"
     conn = create_engine(database_url)
     summaries_df = pd.read_sql(query, conn)
     summaries_df.set_index("arxiv_code", inplace=True)
+    summaries_df.drop(columns=["tstp"], inplace=True)
     return summaries_df
 
+
+def load_recursive_summaries():
+    query = "SELECT * FROM recursive_summaries;"
+    conn = create_engine(database_url)
+    recursive_summaries_df = pd.read_sql(query, conn)
+    recursive_summaries_df.set_index("arxiv_code", inplace=True)
+    recursive_summaries_df.rename(columns={"summary": "recursive_summary"}, inplace=True)
+    recursive_summaries_df.drop(columns=["tstp"], inplace=True)
+    return recursive_summaries_df
+
+
+def load_summary_notes():
+    query = "SELECT * FROM summary_notes;"
+    conn = create_engine(database_url)
+    extended_summaries_df = pd.read_sql(query, conn)
+    extended_summaries_df.set_index("arxiv_code", inplace=True)
+    return extended_summaries_df
 
 def load_topics():
     query = "SELECT * FROM topics;"
@@ -240,10 +276,9 @@ def get_arxiv_title_dict(db_params=db_params):
     with psycopg2.connect(**db_params) as conn:
         with conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
             SELECT a.arxiv_code, a.title 
             FROM arxiv_details a
-            RIGHT JOIN summaries s ON a.arxiv_code = s.arxiv_code
             WHERE a.title IS NOT NULL
             """
             )
@@ -334,3 +369,33 @@ def get_weekly_summary(date_str: str):
 
     engine.dispose()
     return review
+
+
+def get_extended_notes(arxiv_code: str, level=None):
+    """Get extended summary for a given arxiv code."""
+    engine = create_engine(database_url)
+    with engine.begin() as conn:
+        if not level:
+            query = text(
+                f"""
+                SELECT DISTINCT ON (arxiv_code) arxiv_code, level, summary
+                FROM summary_notes
+                WHERE arxiv_code = '{arxiv_code}'
+                ORDER BY arxiv_code, level DESC;
+                """
+            )
+            result = conn.execute(query)
+            summary = result.fetchone()
+        else:
+            query = text(
+                f"""
+                SELECT arxiv_code, level, summary
+                FROM summary_notes
+                WHERE arxiv_code = '{arxiv_code}'
+                AND level = '{level}';
+                """
+            )
+            result = conn.execute(query)
+            summary = result.fetchone()
+    engine.dispose()
+    return summary[2]

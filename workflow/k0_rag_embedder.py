@@ -67,7 +67,6 @@ def main():
             chunks_json = json.load(open(chunks_fname, "r"))
             chunks_df = pd.DataFrame(chunks_json)
             add_count = 0
-            metadata = None
             for idx, row in chunks_df.iterrows():
                 chunk_text = row["text"]
                 metadata = row.drop("text").to_dict()

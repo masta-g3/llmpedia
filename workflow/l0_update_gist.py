@@ -17,7 +17,11 @@ def main():
         raise ValueError("Please set GITHUB_TOKEN in .env file.")
 
     ## Params.
-    titles = list(db.get_arxiv_title_dict(pu.db_params).values())
+    arxiv_codes = db.get_arxiv_id_list(pu.db_params, "summaries")
+    title_map = db.get_arxiv_title_dict(pu.db_params)
+    title_map = {k: v for k, v in title_map.items() if k in arxiv_codes}
+    titles = list(title_map.values())
+
     token = os.environ["GITHUB_TOKEN"]
     gist_id = "8f7227397b1053b42e727bbd6abf1d2e"
     gist_filename = "llm_papers.txt"

@@ -74,12 +74,22 @@ st.markdown(
 
 def combine_input_data():
     arxiv_df = db.load_arxiv()
-    reviews_df = db.load_reviews()
+    summaries_df = db.load_summaries()
     topics_df = db.load_topics()
     citations_df = db.load_citations()
-    papers_df = reviews_df.join(arxiv_df, how="left")
+    recursive_summaries_df = db.load_recursive_summaries()
+    # extended_summaries_df = db.load_summary_notes()
+    # extended_summaries_dict = (
+    #     extended_summaries_df.groupby("arxiv_code")[["level", "summary"]]
+    #     .apply(lambda g: dict(zip(g["level"], g["summary"])))
+    #     .to_dict()
+    # )
+
+    papers_df = summaries_df.join(arxiv_df, how="left")
     papers_df = papers_df.join(topics_df, how="left")
     papers_df = papers_df.join(citations_df, how="left")
+    papers_df = papers_df.join(recursive_summaries_df, how="left")
+    # papers_df["extended_summaries"] = papers_df.index.map(extended_summaries_dict)
     papers_df["arxiv_code"] = papers_df.index
     papers_df["url"] = papers_df["arxiv_code"].map(
         lambda l: f"https://arxiv.org/abs/{l}"
@@ -182,7 +192,7 @@ def get_similar_titles(
         return [], ""
 
 
-def create_paper_card(paper: Dict, mode="preview"):
+def create_paper_card(paper: Dict, mode="closed", name=""):
     """Creates card UI for paper details."""
     img_cols = st.columns((1, 3))
     expanded = False
@@ -220,37 +230,57 @@ def create_paper_card(paper: Dict, mode="preview"):
     if arxiv_comment:
         img_cols[1].caption(f"*{arxiv_comment}*")
 
-    with st.expander(f"💭 Abstract (arXiv:{paper_code})", expanded=expanded):
+    with st.expander(f"💭 Abstract (arXiv:{paper_code})", expanded=False):
         st.markdown(paper["summary"])
 
-    with st.expander(
-        f"➕ **Contributions** - {paper['contribution_title']}", expanded=True
-    ):
-        st.markdown(f"{paper['contribution_content']}")
+    with st.expander(f"🗒 **Notes**", expanded=True):
+        # level_select = st.selectbox(
+        #     "Detail",
+        #     ## high level overview, summary notes, detailed notes
+        #     ["📝 High-Level Overview", "🔎 Detailed Research Notes"],
+        #     label_visibility="collapsed",
+        #     index=0,
+        #     key=f"level_select_{paper_code}{name}",
+        # )
+
+        summary = paper['recursive_summary']
+        if summary is None:
+            summary = paper["contribution_content"]
+        st.markdown(summary)
+
+    with st.expander("🌟 **GPT Assessments**", expanded=expanded):
+        assessment_cols = st.columns((1, 3, 1, 3, 1, 3))
+        assessment_cols[0].metric("Novelty", f"{paper['novelty_score']}/3", "🚀")
+        assessment_cols[1].caption(f"{paper['novelty_analysis']}")
+        assessment_cols[2].metric("Technical Depth", f"{paper['technical_score']}/3", "🔧")
+        assessment_cols[3].caption(f"{paper['technical_analysis']}")
+        assessment_cols[4].metric("Readability", f"{paper['enjoyable_score']}/3", "📚")
+        assessment_cols[5].caption(f"{paper['enjoyable_analysis']}")
 
     with st.expander(
-        f"✏️ **Takeaways** - {paper['takeaway_title']}", expanded=expanded
+        f"✏️ **Takeaways & Applications**:  {paper['takeaway_title']}", expanded=False
     ):
-        st.markdown(f"{paper['takeaway_content']}")
         st.markdown(f"{paper['takeaway_example']}")
 
-    with st.expander("🥉 **GPT Assessments**", expanded=expanded):
-        ## GPT Cluster category.
-        st.markdown(f"**GPT Cluster Group**: {paper['topic']}")
+    # with st.expander("🥉 **GPT Assessments**", expanded=False):
+    #     ## GPT Cluster category.
+    #     st.markdown(f"**GPT Cluster Group**: {paper['topic']}")
+    #
+    #     novelty_cols = st.columns((1, 10))
+    #     novelty_cols[0].metric("Novelty", f"{paper['novelty_score']}/3", "🚀")
+    #     novelty_cols[1].markdown(f"{paper['novelty_analysis']}")
+    #
+    #     tech_cols = st.columns((1, 10))
+    #     tech_cols[0].metric("Technical Depth", f"{paper['technical_score']}/3", "🔧")
+    #     tech_cols[1].markdown(f"{paper['technical_analysis']}")
+    #
+    #     enjoy_cols = st.columns((1, 10))
+    #     enjoy_cols[0].metric("Readability", f"{paper['enjoyable_score']}/3", "📚")
+    #     enjoy_cols[1].markdown(f"{paper['enjoyable_analysis']}")
 
-        novelty_cols = st.columns((1, 10))
-        novelty_cols[0].metric("Novelty", f"{paper['novelty_score']}/3", "🚀")
-        novelty_cols[1].markdown(f"{paper['novelty_analysis']}")
-
-        tech_cols = st.columns((1, 10))
-        tech_cols[0].metric("Technical Depth", f"{paper['technical_score']}/3", "🔧")
-        tech_cols[1].markdown(f"{paper['technical_analysis']}")
-
-        enjoy_cols = st.columns((1, 10))
-        enjoy_cols[0].metric("Readability", f"{paper['enjoyable_score']}/3", "📚")
-        enjoy_cols[1].markdown(f"{paper['enjoyable_analysis']}")
-
-    with st.expander(f"📚 **Similar Papers** (Topic: {cluster_name})", expanded=expanded):
+    with st.expander(
+        f"📚 **Similar Papers** (Topic: {cluster_name})", expanded=False
+    ):
         for title in similar_titles:
             st.markdown(f"* {title}")
 
@@ -558,7 +588,7 @@ def main():
         papers_subset = create_pagination(papers, items_per_page=7, label="summaries")
         st.markdown(f"**{len(papers)} papers found.**")
         for paper in papers_subset:
-            create_paper_card(paper)
+            create_paper_card(paper, mode="closed", name="_feed")
         create_bottom_navigation(label="summaries")
 
     with content_tabs[2]:
@@ -589,7 +619,7 @@ def main():
         if len(arxiv_code) > 0:
             if arxiv_code in full_papers_df.index:
                 paper = full_papers_df.loc[arxiv_code].to_dict()
-                create_paper_card(paper, mode="open")
+                create_paper_card(paper, mode="open", name="_focus")
             else:
                 st.error("Paper not found.")
 
@@ -664,8 +694,8 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        db.log_error_db(e)
-        st.error("Something went wrong. Please refresh the app and try again.")
+    # try:
+    main()
+# except Exception as e:
+#     db.log_error_db(e)
+#     st.error("Something went wrong. Please refresh the app and try again.")

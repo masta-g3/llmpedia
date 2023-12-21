@@ -1,7 +1,6 @@
 from typing import Sequence, Mapping, Any, Union
 import random
 import torch
-import json
 import os, sys
 import warnings
 from dotenv import load_dotenv
@@ -136,22 +135,25 @@ def generate_image(name, img_file):
 
 def main():
     ## Load the mapping files.
+    arxiv_codes = db.get_arxiv_id_list(pu.db_params, "summaries")
     title_dict = db.get_arxiv_title_dict(pu.db_params)
     img_dir = os.path.join(PROJECT_PATH, "imgs/")
 
-    for idx, (code, name) in enumerate(title_dict.items()):
-        img_file = img_dir + code + ".png"
-        if os.path.exists(img_file):
-            continue
-        else:
-            clean_name = (
-                name.replace("transformer", "processor")
-                .replace("Transformer", "Processor")
-                .replace("Matrix", "Linear Algebra")
-            )
-            print(clean_name)
-            generate_image(clean_name, img_file)
-            print(f"Saved {img_file} ({idx+1}/{len(title_dict)})")
+    done_imgs = [f.replace(".png", "") for f in os.listdir(img_dir)]
+    arxiv_codes = list(set(arxiv_codes) - set(done_imgs))
+    arxiv_codes = sorted(arxiv_codes)[::-1]
+
+    for idx, arxiv_codes in enumerate(arxiv_codes):
+        name = title_dict[arxiv_codes]
+        img_file = img_dir + arxiv_codes + ".png"
+        clean_name = (
+            name.replace("transformer", "processor")
+            .replace("Transformer", "Processor")
+            .replace("Matrix", "Linear Algebra")
+        )
+        print(clean_name)
+        generate_image(clean_name, img_file)
+        print(f"Saved {img_file} ({idx+1}/{len(title_dict)})")
 
 
 if __name__ == "__main__":
