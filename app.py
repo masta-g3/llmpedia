@@ -689,8 +689,10 @@ def main():
         report_highlights_cols[0].image(highlight_img, use_column_width=True)
         report_highlights_cols[1].markdown(weekly_report_dict[report_sections[1]])
 
-        st.markdown(f"## 💿 {report_sections[2]}")
-        st.markdown(weekly_report_dict[report_sections[2]])
+        ## Repos (optional).
+        if report_sections[2] in weekly_report_dict:
+            st.markdown(f"## 💿 {report_sections[2]}")
+            st.markdown(weekly_report_dict[report_sections[2]])
 
 
 if __name__ == "__main__":
