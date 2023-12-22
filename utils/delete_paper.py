@@ -87,8 +87,8 @@ def delete_paper(arxiv_code: str):
     ## Arxiv text.
     arxiv_text_file = f"data/arxiv_text/{arxiv_code}.txt"
     if os.path.exists(arxiv_text_file):
-        os.remove(arxiv_text_file)
-        print(f"Deleted {arxiv_text_file}.")
+        os.rename(arxiv_text_file, f"data/nonllm_arxiv_text/{arxiv_code}.txt")
+        print(f"Moved {arxiv_text_file} raw file to non-LLM archive.")
 
     ## Arxiv chunks.
     arxiv_chunks_file = f"data/arxiv_chunks/{arxiv_code}.json"

@@ -243,7 +243,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         #     key=f"level_select_{paper_code}{name}",
         # )
 
-        summary = paper['recursive_summary']
+        summary = paper["recursive_summary"]
         if summary is None:
             summary = paper["contribution_content"]
         st.markdown(summary)
@@ -252,7 +252,9 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         assessment_cols = st.columns((1, 3, 1, 3, 1, 3))
         assessment_cols[0].metric("Novelty", f"{paper['novelty_score']}/3", "🚀")
         assessment_cols[1].caption(f"{paper['novelty_analysis']}")
-        assessment_cols[2].metric("Technical Depth", f"{paper['technical_score']}/3", "🔧")
+        assessment_cols[2].metric(
+            "Technical Depth", f"{paper['technical_score']}/3", "🔧"
+        )
         assessment_cols[3].caption(f"{paper['technical_analysis']}")
         assessment_cols[4].metric("Readability", f"{paper['enjoyable_score']}/3", "📚")
         assessment_cols[5].caption(f"{paper['enjoyable_analysis']}")
@@ -278,9 +280,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
     #     enjoy_cols[0].metric("Readability", f"{paper['enjoyable_score']}/3", "📚")
     #     enjoy_cols[1].markdown(f"{paper['enjoyable_analysis']}")
 
-    with st.expander(
-        f"📚 **Similar Papers** (Topic: {cluster_name})", expanded=False
-    ):
+    with st.expander(f"📚 **Similar Papers** (Topic: {cluster_name})", expanded=False):
         for title in similar_titles:
             st.markdown(f"* {title}")
 
@@ -653,11 +653,11 @@ def main():
                     st.markdown(response)
 
     with content_tabs[5]:
-        report_sections = [
-            "New Developments & Findings",
-            "Highlight of the Week",
-            "Related Repos & Libraries",
-        ]
+        # report_sections = [
+        #     "New Developments & Findings",
+        #     "Highlight of the Week",
+        #     "Related Repos & Libraries",
+        # ]
         report_top_cols = st.columns((5, 2))
         with report_top_cols[0]:
             st.markdown("# 📰 LLM Weekly Review")
@@ -674,6 +674,7 @@ def main():
 
         weekly_report = get_weekly_summary(date_report)
         weekly_report_dict = au.parse_weekly_report(weekly_report)
+        report_sections = list(weekly_report_dict.keys())[1:]
         title = list(weekly_report_dict.keys())[0]
 
         ## Title & developments.
@@ -690,7 +691,7 @@ def main():
         report_highlights_cols[1].markdown(weekly_report_dict[report_sections[1]])
 
         ## Repos (optional).
-        if report_sections[2] in weekly_report_dict:
+        if len(report_sections) > 2:
             st.markdown(f"## 💿 {report_sections[2]}")
             st.markdown(weekly_report_dict[report_sections[2]])
 

@@ -162,6 +162,7 @@ def main():
     df.drop_duplicates(subset="arxiv_code", keep="first", inplace=True)
     new_codes = df["arxiv_code"].tolist()
     done_codes = pu.get_local_arxiv_codes()
+    nonllm_codes = pu.get_local_arxiv_codes("nonllm_arxiv_text")
 
     ## Get paper list.
     gist_id = "1dd189493c1890df6e04aaea6d049643"
@@ -170,7 +171,7 @@ def main():
 
     ## Update and upload arxiv codes.
     paper_list = list(set(paper_list + new_codes))
-    paper_list = list(set(paper_list) - set(done_codes))
+    paper_list = list(set(paper_list) - set(done_codes) - set(nonllm_codes))
     gist_url = pu.update_gist(
         os.environ["GITHUB_TOKEN"],
         gist_id,

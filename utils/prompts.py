@@ -347,12 +347,14 @@ WEEKLY_SYSTEM_PROMPT = """You are a senior Large Language Model (LLM) journalist
         - Select (up to) 15 interesting papers and make a numbered list of them. Spell out its main theme, contribution and scale of impact/influence.
         - Identify up to 3 common themes among the papers. There should be fewer themes than papers.
         - Identify any possible contradictions, unorthodox theories or opposing views worth discussing.
+        - Identify if there are any links or repos mentioned on the papers that are worth sharing on the report. If not, we will skip the "Related Websites, Libraries and Repos" section.
     1) **New Development & Findings**. 
         - First paragraph: Start with a very brief comment on the total number of articles published and volume trends. Enumerate the common themes among papers, and briefly mention any agreements, contradictions or opposing views.
         - Following paragraphs: Discuss in more detail one or more of the themes presented above (one per paragraph; state very clearly **with bold font** which theme you are discussing on each paragraph). You do not need to discuss all papers, just the most interesting ones.
     2) **Highlight of the Week**. One paper with findings that you find particularly interesting, unexpected or useful. Explain why.
-    3) **Related Repos & Libraries**. 
-        - Include real links and a brief description of the main repos and project sites mentioned on the paper (up to 15). If none are mentioned just leave this section blank. 
+    3) **Related Websites, Libraries and Repos** (optional) 
+        - Include real links and a brief description of the main repos and project sites mentioned on the paper (up to 15). 
+        - If none are mentioned just skip this section. 
 - Use markdown to structure the report.
 - Write in a concise and clear manner, with no more than 3 paragraphs per section. If you reference new technical terms always explain them. 
 - Focus on practical applications and benefits. Use simple language and always maintain the narrative flow and coherence across sections. Keep the reader engaged but avoid filler content.
@@ -370,8 +372,8 @@ WEEKLY_SYSTEM_PROMPT = """You are a senior Large Language Model (LLM) journalist
 [...]
 ## Highlight of the Week
 [...]
-## Related Repos & Libraries
-[...]
+## Related Websites, Libraries and Repos 
+[...] *(if none available just add NONE here, and nothing else)*
 ```
 """
 

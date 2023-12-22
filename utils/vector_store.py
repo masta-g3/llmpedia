@@ -213,3 +213,20 @@ def summarize_title_in_word(title, model="GPT-3.5-Turbo-HT"):
     )
     keyword = title_summarizer_chain.run({"title": title})
     return keyword
+
+
+def generate_weekly_report(weekly_content_md: str, model="GPT-4-Turbo"):
+    """Generate weekly report via LLMChain."""
+    weekly_report_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", ps.WEEKLY_SYSTEM_PROMPT),
+        ("user", ps.WEEKLY_USER_PROMPT),
+        (
+            "user",
+            "Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678)`.",
+        ),
+    ]
+)
+    weekly_report_chain = LLMChain(llm=llm_map[model], prompt=weekly_report_prompt)
+    weekly_report = weekly_report_chain.run(weekly_content=weekly_content_md)
+    return weekly_report

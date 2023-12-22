@@ -209,7 +209,7 @@ def format_paper_summary(summary_row):
     date = summary_row["published"].strftime("%B %d, %Y")
     arxiv_code = summary_row["arxiv_code"]
     citations = int(summary_row["citation_count"])
-    summary = summary_row["summary"]
+    summary = summary_row["recursive_summary"] if summary_row["recursive_summary"] else summary_row["summary"]
     main_contribution = summary_row["contribution_content"]
     takeaways = summary_row["takeaway_content"]
     arxiv_comments = summary_row["arxiv_comment"]

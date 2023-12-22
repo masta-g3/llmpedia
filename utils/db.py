@@ -325,10 +325,12 @@ def get_weekly_summary_inputs(date: str):
         query = text(
             f"""
             SELECT d.published, d.arxiv_code, d.title, d.authors, sd.citation_count, d.arxiv_comment,
-                   d.summary, s.contribution_content, s.takeaway_content, s.takeaway_example
-            FROM summaries s, arxiv_details d, semantic_details sd
+                   d.summary, s.contribution_content, s.takeaway_content, s.takeaway_example, 
+                   rs.summary AS recursive_summary
+            FROM summaries s, arxiv_details d, semantic_details sd, recursive_summaries rs
             WHERE s.arxiv_code = d.arxiv_code 
             AND s.arxiv_code = sd.arxiv_code
+            AND s.arxiv_code = rs.arxiv_code
             AND d.published BETWEEN '{date_st}' AND '{date_end}'
             """
         )

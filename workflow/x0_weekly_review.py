@@ -6,42 +6,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
 from langchain.callbacks import get_openai_callback
-from langchain.chains import LLMChain
 
 sys.path.append(os.environ.get("PROJECT_PATH"))
 os.chdir(os.environ.get("PROJECT_PATH"))
 
 import utils.paper_utils as pu
-import utils.prompts as ps
+import utils.vector_store as vs
 import utils.db as db
 
 summaries_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "summaries")
 meta_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_meta")
 review_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "weekly_reviews")
-
-## LLM model.
-llm = ChatOpenAI(model_name="gpt-4-1106-preview", temperature=0.1)
-
-## Initialize chain.
-summarizer_prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", ps.WEEKLY_SYSTEM_PROMPT),
-        ("user", ps.WEEKLY_USER_PROMPT),
-        (
-            "user",
-            "Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678)`.",
-        ),
-    ]
-)
-
-llm_chain = LLMChain(
-    llm=llm,
-    prompt=summarizer_prompt,
-    verbose=False,
-)
 
 
 def main(date_str: str):
@@ -98,7 +74,7 @@ def main(date_str: str):
 
     with get_openai_callback() as cb:
         ## Generate summary.
-        weekly_summary_md = llm_chain.run(weekly_content=weekly_content_md)
+        weekly_summary_md = vs.generate_weekly_report(weekly_content_md)
         tstp_now = pd.Timestamp.now()
         date = pd.to_datetime(date_str)
         weekly_summary_df = pd.DataFrame(
@@ -110,8 +86,10 @@ def main(date_str: str):
 
 
 if __name__ == "__main__":
-    start_dt = "2023-11-13"
-    end_dt = "2023-11-15"
+    ## Read dates from arguments.
+    start_dt = sys.argv[1]
+    end_dt = sys.argv[2]
+
     date_range = pd.date_range(start_dt, end_dt, freq="W-MON")
     date_range = [date.strftime("%Y-%m-%d") for date in date_range]
     for date_str in tqdm(date_range):
