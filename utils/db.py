@@ -79,7 +79,10 @@ def insert_recursive_summary(arxiv_code, summary):
             VALUES (:arxiv_code, :summary, :tstp);
             """
         )
-        conn.execute(query, {"arxiv_code": arxiv_code, "summary": summary, "tstp": datetime.now()})
+        conn.execute(
+            query,
+            {"arxiv_code": arxiv_code, "summary": summary, "tstp": datetime.now()},
+        )
     return True
 
 
@@ -105,7 +108,9 @@ def load_recursive_summaries():
     conn = create_engine(database_url)
     recursive_summaries_df = pd.read_sql(query, conn)
     recursive_summaries_df.set_index("arxiv_code", inplace=True)
-    recursive_summaries_df.rename(columns={"summary": "recursive_summary"}, inplace=True)
+    recursive_summaries_df.rename(
+        columns={"summary": "recursive_summary"}, inplace=True
+    )
     recursive_summaries_df.drop(columns=["tstp"], inplace=True)
     return recursive_summaries_df
 
@@ -116,6 +121,7 @@ def load_summary_notes():
     extended_summaries_df = pd.read_sql(query, conn)
     extended_summaries_df.set_index("arxiv_code", inplace=True)
     return extended_summaries_df
+
 
 def load_topics():
     query = "SELECT * FROM topics;"
@@ -287,7 +293,7 @@ def get_arxiv_title_dict(db_params=db_params):
 
 
 def get_topic_embedding_dist(db_params=db_params):
-    """ Get mean and stdDev for topic embeddings (dim1 & dim2). """
+    """Get mean and stdDev for topic embeddings (dim1 & dim2)."""
     with psycopg2.connect(**db_params) as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -302,6 +308,7 @@ def get_topic_embedding_dist(db_params=db_params):
                 "dim2": {"mean": res[2], "std": res[3]},
             }
             return res
+
 
 def get_weekly_summary_inputs(date: str):
     """Get weekly summaries for a given date (from last monday to next sunday)."""
@@ -371,22 +378,11 @@ def get_weekly_summary(date_str: str):
     return review
 
 
-def get_extended_notes(arxiv_code: str, level=None):
+def get_extended_notes(arxiv_code: str, level=None, expected_tokens=None):
     """Get extended summary for a given arxiv code."""
     engine = create_engine(database_url)
     with engine.begin() as conn:
-        if not level:
-            query = text(
-                f"""
-                SELECT DISTINCT ON (arxiv_code) arxiv_code, level, summary
-                FROM summary_notes
-                WHERE arxiv_code = '{arxiv_code}'
-                ORDER BY arxiv_code, level DESC;
-                """
-            )
-            result = conn.execute(query)
-            summary = result.fetchone()
-        else:
+        if level:
             query = text(
                 f"""
                 SELECT arxiv_code, level, summary
@@ -395,7 +391,25 @@ def get_extended_notes(arxiv_code: str, level=None):
                 AND level = '{level}';
                 """
             )
-            result = conn.execute(query)
-            summary = result.fetchone()
+        elif expected_tokens:
+            query = text(
+                f"""
+                SELECT DISTINCT ON (arxiv_code) arxiv_code, level, summary, tokens
+                FROM summary_notes
+                WHERE arxiv_code = '{arxiv_code}'
+                ORDER BY arxiv_code, ABS(tokens - {expected_tokens}) ASC;
+                """
+            )
+        else:
+            query = text(
+                f"""
+                SELECT DISTINCT ON (arxiv_code) arxiv_code, level, summary
+                FROM summary_notes
+                WHERE arxiv_code = '{arxiv_code}'
+                ORDER BY arxiv_code, level DESC;
+                """
+            )
+        result = conn.execute(query)
+        summary = result.fetchone()
     engine.dispose()
     return summary[2]

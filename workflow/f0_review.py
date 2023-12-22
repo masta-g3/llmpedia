@@ -32,7 +32,7 @@ def main():
     arxiv_codes = sorted(arxiv_codes)[::-1]
     with get_openai_callback() as cb:
         for arxiv_code in tqdm(arxiv_codes):
-            new_content = db.get_extended_notes(arxiv_code, 1)
+            new_content = db.get_extended_notes(arxiv_code, expected_tokens=6000)
 
             ## Try to run LLM process up to 3 times.
             success = False
@@ -66,7 +66,7 @@ def main():
             flat_entries["arxiv_code"] = arxiv_code
             flat_entries["tstp"] = pd.Timestamp.now()
             db.upload_to_db(flat_entries, pu.db_params, "summaries")
-            print(f"Added '{arxiv_code}' to summaries table.")
+            # print(f"Added '{arxiv_code}' to summaries table.")
 
     print("Done!")
     print(cb)

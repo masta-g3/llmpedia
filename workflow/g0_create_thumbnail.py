@@ -13,6 +13,7 @@ sys.path.append(PROJECT_PATH)
 warnings.filterwarnings("ignore")
 
 import utils.paper_utils as pu
+import utils.vector_store as vs
 import utils.db as db
 
 from nodes import (
@@ -72,7 +73,7 @@ def generate_image(name, img_file):
         cliptextencode_7 = cliptextencode.encode(
             text="low quality, glitch, blurry, deformed, mutated, ugly, disfigured, grainy, noise,"
                  "watermark, cartoon, anime, videogame, text, flow chart, signature, depth of field,"
-                 "religious, mandala, photo-real, b&w, poker, modern",
+                 "religious, mandala, photo-real, b&w, poker, modern, grid, 3d",
             clip=get_value_at_index(loraloader_39, 1),
         )
 
@@ -84,6 +85,8 @@ def generate_image(name, img_file):
         vaeloader = VAELoader()
         vaeloader_48 = vaeloader.load_vae(vae_name="sdxl.vae.safetensors")
 
+        # keyword = vs.summarize_title_in_word(name)
+        # print(keyword)
         cliptextencode_102 = cliptextencode.encode(
             text=f'"{name.upper()}", "tarot and computers", stunning award-winning pixel art',
             clip=get_value_at_index(loraloader_39, 1),
@@ -98,7 +101,7 @@ def generate_image(name, img_file):
             ksampler_103 = ksampler.sample(
                 seed=random.randint(1, 2**64),
                 steps=20,
-                cfg=10,
+                cfg=8,
                 sampler_name="dpmpp_2m_sde_gpu",
                 scheduler="karras",
                 denoise=1,
@@ -143,9 +146,9 @@ def main():
     arxiv_codes = list(set(arxiv_codes) - set(done_imgs))
     arxiv_codes = sorted(arxiv_codes)[::-1]
 
-    for idx, arxiv_codes in enumerate(arxiv_codes):
-        name = title_dict[arxiv_codes]
-        img_file = img_dir + arxiv_codes + ".png"
+    for idx, arxiv_code in enumerate(arxiv_codes):
+        name = title_dict[arxiv_code]
+        img_file = img_dir + arxiv_code + ".png"
         clean_name = (
             name.replace("transformer", "processor")
             .replace("Transformer", "Processor")
@@ -153,7 +156,7 @@ def main():
         )
         print(clean_name)
         generate_image(clean_name, img_file)
-        print(f"Saved {img_file} ({idx+1}/{len(title_dict)})")
+        print(f"Saved {img_file} ({idx+1}/{len(arxiv_codes)})")
 
 
 if __name__ == "__main__":

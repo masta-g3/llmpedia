@@ -58,6 +58,8 @@ def main():
     done_codes = db.get_arxiv_id_list(db.db_params, "summary_notes")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
+    arxiv_codes = ["2312.12436"]
+    # arxiv_codes = ["2309.08632"]
 
     for arxiv_code in tqdm(arxiv_codes):
         paper_content = pu.load_local(arxiv_code, "arxiv_text", format="txt")

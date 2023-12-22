@@ -8,6 +8,7 @@ from langchain.prompts.chat import ChatPromptTemplate
 from langchain.chains import LLMChain
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CohereRerank
+from langchain.llms.together import Together
 from utils.custom_langchain import NewCohereEmbeddings, NewPGVector
 from langchain.chains.openai_functions import (
     create_structured_output_chain,
@@ -31,17 +32,18 @@ llm_map = {
         model_name="gpt-3.5-turbo-1106", temperature=0.1
     ).bind(response_format={"type": "json_object"}),
     "GPT-3.5-Turbo": ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.1),
+    "GPT-3.5-Turbo-HT": ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.6),
     "GPT-4": ChatOpenAI(model_name="gpt-4", temperature=0.1),
     "GPT-4-Turbo": ChatOpenAI(model_name="gpt-4-1106-preview", temperature=0.1),
     "GPT-4-Turbo-JSON": ChatOpenAI(
         model_name="gpt-4-1106-preview", temperature=0.1
     ).bind(response_format={"type": "json_object"}),
-    # "mixtral": Together(
-    #     model="mistralai/Mixtral-8x7B-Instruct-v0.1",
-    #     temperature=0.1,
-    #     max_tokens=2000,
-    #     together_api_key=os.getenv("TOGETHER_API_KEY"),
-    # ),
+    "mixtral": Together(
+        model="mistralai/Mixtral-8x7B-Instruct-v0.1",
+        temperature=0.1,
+        max_tokens=4000,
+        together_api_key=os.getenv("TOGETHER_API_KEY"),
+    ),
     "local": ChatOpenAI(model_name="local", temperature=0.1),
 }
 
@@ -136,7 +138,7 @@ def query_llmpedia(question: str, collection_name, model="GPT-3.5-Turbo"):
 def summarize_doc_chunk(paper_title: str, document: str, model="local"):
     """Summarize a paper by segments."""
     summarizer_prompt = ChatPromptTemplate.from_messages(
-        [("user", ps.SUMMARIZE_BY_PARTS_TEMPLATE)]
+        [("system", ps.SUMMARIZE_BY_PARTS_TEMPLATE)]
     )
     chain = LLMChain(llm=llm_map[model], prompt=summarizer_prompt, verbose=False)
     summary = chain.run({"paper_title": paper_title, "content": document})
@@ -199,3 +201,15 @@ def copywrite_summary(paper_title, narrative, model="GPT-3.5-Turbo"):
         {"paper_title": paper_title, "previous_summary": narrative}
     )
     return copywritten
+
+
+def summarize_title_in_word(title, model="GPT-3.5-Turbo-HT"):
+    """Summarize a title in a few words via LLMChain."""
+    title_summarizer_prompt = ChatPromptTemplate.from_messages(
+        [("system", ps.TITLE_SUMMARIZER_PROMPT)]
+    )
+    title_summarizer_chain = LLMChain(
+        llm=llm_map[model], prompt=title_summarizer_prompt
+    )
+    keyword = title_summarizer_chain.run({"title": title})
+    return keyword

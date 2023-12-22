@@ -76,8 +76,8 @@ Now answer the following questions:
 
 4. On a scale from 1 to 3, how novel is this paper? (1: not novel, 2: incrementally novel, 3: very novel)
     - Compare the paper's findings and contributions with what is presented in previous and related work. How unique and significant are the findings?
-    - Be strict and rigorous; few papers should receive a high score.
     - Pay close attention to the comparison with prior work and the degree of difference in the author's contributions.
+    - Very few papers achieve the '3: very novel' category.
 
 5. On a scale from 1 to 3, how technical is this paper? (1: not technical, 2: somewhat technical, 3: very technical)
     a) A very technical paper is difficult for a non-expert to understand, requires considerable technical knowledge, is filled with equations and jargon, and demands advanced mathematical knowledge.
@@ -85,16 +85,20 @@ Now answer the following questions:
     c) A non-technical paper is understandable for anyone with a college degree. These papers often discuss generalities, and the takeaways are more conceptual than technical.
 
 6. On a scale from 1 to 3, how enjoyable is this paper? (1: hard to read, 2: ok, 3: a delight)
-    a) A very enjoyable paper is well-written, organized, presents a novel and intriguing contribution, and is easy to read.
-    b) An 'ok' paper is primarily plain and unexciting but is easy to read and contains some interesting parts. Most papers
+    a) A delightful paper is creative, well-written, organized, and presents a novel and intriguing contribution. Few papers achieve this mark.
+    b) An 'ok' paper is primarily plain and unexciting but is easy to read and contains some interesting parts. Most papers fall on this category.
     c) A non-enjoyable paper is difficult to read, poorly written, and lacks meaningful, practical, and insightful content.
 
 When assigning numerical ratings consider these guidelines:
-- Rating 3/3: (EXCEPTIONAL) Only 10% of papers fall into this category.
+- Rating 3/3: (EXCEPTIONAL) Only 10% of papers fall into this category., the paper must be truly exceptional for this.
 - Rating 2/3: (COMMON) Most papers (50%) fall into this category.
 - Rating 1/3: (RARE) Around 40% of papers belong to this category.
 
-Do not repeat the same comments across different answers. Make your "applied_example" different from the ones presented in the paper, and headlines different from the title. Make sure your answers are coherent, clear and truthful.
+Pay attention to the following:
+- Do not repeat the same comments across different answers. 
+- Make your "applied_example" different from the ones presented in the paper, and headlines different from the title. 
+- Make sure your answers are coherent, clear and truthful.
+- Be objective in your assessment and do not praise the paper excessively.
 
 Use the JSON format as in the following examples to respond.
 
@@ -117,7 +121,7 @@ EXAMPLE 1
     "technical_analysis": "While the paper discusses a computational framework for managing LLM inputs and outputs, it does not delve into complex mathematical theories or algorithms, making it accessible to a wider audience.",
     "technical_score": 1,
     "enjoyable_analysis": "The engaging narrative style, coupled with practical insights, makes the paper an enjoyable read. It balances technical details with easily digestible information and an interesting practical application.",
-    "enjoyable_score": 3
+    "enjoyable_score": 2
 }}
 ```
 
@@ -135,10 +139,10 @@ EXAMPLE 2
         "applied_example": "Some of the ideas presented in this paper (specifically, the code-based self-verification and verification-guided weighted majority voting technique) can lead to building high-quality datasets that could potentially help improve the mathematical capabilities in open-source LLMs like Llama 2."
     }},
     "category": "PROMPTING",
-    "novelty_analysis": "The research innovatively combines LLMs with code-based self-verification, achieving a 20% boost over state-of-the-art coding task accuracies. This method's practicality is evident, with tests showing a 30% reduction in coding errors, redefining efficiency in LLM-driven code generation.",
-    "novelty_score": 3,
+    "novelty_analysis": "The research innovative ly combines LLMs with code-based self-verification, achieving a 20% boost over state-of-the-art coding task accuracies. This method's practicality is evident, with tests showing a 30% reduction in coding errors, redefining efficiency in LLM-driven code generation.",
+    "novelty_score": 2,
     "technical_analysis": "The paper delve into advanced algorithms, such as the Hypothetical Code-Integration Algorithm (HCIA), making it a dense read for those unfamiliar with theoretical computer science. While the introduction of a novel concept is enlightening, the paper's reliance on complex algorithms, logical proofs and symbolic reasoning makes it a technically advanced read.",
-    "technical_score": 3,
+    "technical_score": 2,
     "enjoyable_analysis": "For those deeply engrossed in the LLM landscape, this paper promises an engaging journey. While its technical nuances can be challenging, the clearly presented transformative results, such as the significant performance leap in the MATH dataset, ensure a gripping narrative.",
     "enjoyable_score": 2
 }}
@@ -214,6 +218,9 @@ Read over the following section and take notes. Use a numbered list to summarize
 - Take notes in the form of a numbered list. Do not include headers or any other elements.
 - Do not include more than 10 items in your list.
 - Your summary must be shorter than the original text. Remove any filler or duplicate content.
+- Adhere as closely as possible to the original text. Do not alter the meaning of the notes.
+
+## Summary
 """
 
 
@@ -245,6 +252,25 @@ COPYWRITER_PROMPT = """You are a New York Times technology copywriter tasked wit
 - Avoid repetition.
 - Do minimal edits to the original text.
 """
+
+
+TITLE_SUMMARIZER_PROMPT = """
+Reply with a single uncommon and highly-visual noun related to the following title. The word must be one that is not already present in the title.
+
+EXAMPLES
+===========
+Input: Dynamic Syntax Trees in Hierarchical Neural Networks, tarot and computers
+forest palm
+
+Input: Recursive Learning Algorithms for Predictive Text Generation, tarot and computers
+labyrinth
+
+Input: Cross-Linguistic Semantic Mapping in Machine Translation, tarot and computers
+tounges
+
+YOUR TURN
+Input: {title}
+Output:"""
 
 ##################
 ## VECTOR STORE ##
