@@ -123,6 +123,16 @@ def load_summary_notes():
     return extended_summaries_df
 
 
+def load_summary_markdown():
+    query = "SELECT * FROM summary_markdown;"
+    conn = create_engine(database_url)
+    markdown_summaries_df = pd.read_sql(query, conn)
+    markdown_summaries_df.set_index("arxiv_code", inplace=True)
+    markdown_summaries_df.rename(columns={"summary": "markdown_notes"}, inplace=True)
+    markdown_summaries_df.drop(columns=["tstp"], inplace=True)
+    return markdown_summaries_df
+
+
 def load_topics():
     query = "SELECT * FROM topics;"
     conn = create_engine(database_url)
@@ -220,7 +230,9 @@ def remove_from_db(arxiv_code, db_params, table_name):
             cur.execute(f"DELETE FROM {table_name} WHERE arxiv_code = '{arxiv_code}'")
 
 
-def upload_df_to_db(df, table_name, params, if_exists="append"):
+def upload_df_to_db(
+    df: pd.DataFrame, table_name: str, params: dict, if_exists: str = "append"
+):
     """Upload a dataframe to a database."""
     db_url = (
         f"postgresql+psycopg2://{params['user']}:{params['password']}"

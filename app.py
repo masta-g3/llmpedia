@@ -78,7 +78,7 @@ def combine_input_data():
     topics_df = db.load_topics()
     citations_df = db.load_citations()
     recursive_summaries_df = db.load_recursive_summaries()
-    # extended_summaries_df = db.load_summary_notes()
+    markdown_summaries = db.load_summary_markdown()
     # extended_summaries_dict = (
     #     extended_summaries_df.groupby("arxiv_code")[["level", "summary"]]
     #     .apply(lambda g: dict(zip(g["level"], g["summary"])))
@@ -89,6 +89,7 @@ def combine_input_data():
     papers_df = papers_df.join(topics_df, how="left")
     papers_df = papers_df.join(citations_df, how="left")
     papers_df = papers_df.join(recursive_summaries_df, how="left")
+    papers_df = papers_df.join(markdown_summaries, how="left")
     # papers_df["extended_summaries"] = papers_df.index.map(extended_summaries_dict)
     papers_df["arxiv_code"] = papers_df.index
     papers_df["url"] = papers_df["arxiv_code"].map(
@@ -234,19 +235,25 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         st.markdown(paper["summary"])
 
     with st.expander(f"🗒 **Notes**", expanded=True):
-        # level_select = st.selectbox(
-        #     "Detail",
-        #     ## high level overview, summary notes, detailed notes
-        #     ["📝 High-Level Overview", "🔎 Detailed Research Notes"],
-        #     label_visibility="collapsed",
-        #     index=0,
-        #     key=f"level_select_{paper_code}{name}",
-        # )
+        level_select = st.selectbox(
+            "Detail",
+            ## high level overview, summary notes, detailed notes
+            ["📝 High-Level Overview", "🔎 Detailed Research Notes"],
+            label_visibility="collapsed",
+            index=0,
+            key=f"level_select_{paper_code}{name}",
+        )
 
-        summary = paper["recursive_summary"]
-        if summary is None:
-            summary = paper["contribution_content"]
-        st.markdown(summary)
+        summary = paper["recursive_summary"] if paper["recursive_summary"] else paper["contribution_content"]
+        markdown_summary = paper["markdown_notes"]
+
+        if level_select == "📝 High-Level Overview":
+            st.markdown(summary)
+        elif level_select == "🔎 Detailed Research Notes":
+            if markdown_summary:
+                st.markdown(markdown_summary)
+            else:
+                st.markdown("Currently unavailable. Check again soon!")
 
     with st.expander("🌟 **GPT Assessments**", expanded=expanded):
         assessment_cols = st.columns((1, 3, 1, 3, 1, 3))
