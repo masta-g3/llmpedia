@@ -203,6 +203,18 @@ def copywrite_summary(paper_title, narrative, model="GPT-3.5-Turbo"):
     return copywritten
 
 
+def convert_notes_to_markdown(paper_title, notes, model="GPT-3.5-Turbo"):
+    """Convert notes to markdown via LLMChain."""
+    markdown_prompt = ChatPromptTemplate.from_messages(
+        [("system", ps.MARKDOWN_PROMPT)]
+    )
+    markdown_chain = LLMChain(llm=llm_map[model], prompt=markdown_prompt)
+    markdown = markdown_chain.run(
+        {"paper_title": paper_title, "previous_notes": notes}
+    )
+    return markdown
+
+
 def summarize_title_in_word(title, model="GPT-3.5-Turbo-HT"):
     """Summarize a title in a few words via LLMChain."""
     title_summarizer_prompt = ChatPromptTemplate.from_messages(

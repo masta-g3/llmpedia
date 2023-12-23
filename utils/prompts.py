@@ -199,7 +199,7 @@ YOUR TURN
 
 SUMMARIZER_HUMAN_REMINDER = "Tip: Make sure to provide your response in the correct format. Do not forget to include the 'applied_example' under 'takeaways'!"
 
-SUMMARIZE_BY_PARTS_TEMPLATE = """You are an applied AI researcher specialized in the field of Large Language Models (LLMs), and you are currently reviewing the academic paper "{paper_title}". Your goal is to analyze the paper, identify the main contributions and most interesting findings, and write a bullet point list summary of it in your own words. This summary will serve as reference for future LLM researchers within your organization, so it is very important that you are able to convey the main ideas in a clear, complete and concise manner.
+SUMMARIZE_BY_PARTS_TEMPLATE = """You are an applied AI researcher specialized in the field of Large Language Models (LLMs), and you are currently reviewing the whitepaper "{paper_title}". Your goal is to analyze the paper, identify the main contributions and most interesting findings, and write a bullet point list summary of it in your own words. This summary will serve as reference for future LLM researchers within your organization, so it is very important that you are able to convey the main ideas in a clear, complete and concise manner.
 
 Read over the following section and take notes. Use a numbered list to summarize the main ideas. 
 
@@ -238,6 +238,8 @@ NARRATIVE_SUMMARY_PROMPT = """You are an expert New York Times technology writer
 - Include descriptions and explanations of any new concepts or terms. Describe how new models or methodologies work.
 - Highlight any practical applications or benefits of the paper's findings.
 - Highlight unusual or unexpected findings.
+
+## Summary
 """
 
 COPYWRITER_PROMPT = """You are a New York Times technology copywriter tasked with reviewing the following summary of "{paper_title}" and improving it. Your goal is to make small edits the summary to make it more engaging and readable. You can reorganize and rephrase the text when needed, but you must not alter its meaning or remove any piece of information.
@@ -251,6 +253,30 @@ COPYWRITER_PROMPT = """You are a New York Times technology copywriter tasked wit
 - Do not make any necessary edits or remove information (unless it is duplicate).
 - Avoid repetition.
 - Do minimal edits to the original text.
+
+## Improved Summary
+"""
+
+
+MARKDOWN_PROMPT = """You are a prestigious academic journalist working for the magazine Nature. You specialize in the field of Large Language Models (LLMs) and write articles about the latest research and developments in the field. 
+Your goal is to convert the following bullet-point notes from the {paper_title} paper into a markdown article that can be published on the Nature magazine. Pay attention to the following guidelines.
+
+## Guidelines
+- Use markdown format for your report. You can use headers, sub-headers, tables and text formatting for it. Use lists sparingly.
+- The report should consist of multiple organized sections. Each section should be made up by two or more dense, information rich, and easy to read paragraphs. 
+- Sub-sections can be added if needed. 
+- Leverage markdown components for maximum expressiveness.
+- Prefer clear, narrative-style writing. Avoid bullet-point lists and short sentences.
+- Feel free to move the information around, group it in common themes and rephrase it as needed.
+- DO NOT alter the meaning of the notes or make any inference beyond what is presented.
+- Be comprehensive and include all the information from the notes. 
+- Pay special focus to comparisons, metrics, results, examples, implementation details and practical applications. The article is aimed to specialized practitioners, so it should be technical and practical.
+- Include numeric figures and technical details.
+- Remove duplicates and filler content.
+- Organize the information in a format that is well-structured and easy to read.
+
+## Notes
+{previous_notes}
 """
 
 
@@ -259,14 +285,14 @@ Reply with a single uncommon and highly-visual noun related to the following tit
 
 EXAMPLES
 ===========
-Input: Dynamic Syntax Trees in Hierarchical Neural Networks, tarot and computers
+Input: Dynamic Syntax Trees in Hierarchical Neural Networks
 forest palm
 
-Input: Recursive Learning Algorithms for Predictive Text Generation, tarot and computers
+Input: Recursive Learning Algorithms for Predictive Text Generation
 labyrinth
 
-Input: Cross-Linguistic Semantic Mapping in Machine Translation, tarot and computers
-tounges
+Input: Cross-Linguistic Semantic Mapping in Machine Translation
+tongues
 
 YOUR TURN
 Input: {title}
