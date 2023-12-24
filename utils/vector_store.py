@@ -32,7 +32,7 @@ llm_map = {
         model_name="gpt-3.5-turbo-1106", temperature=0.1
     ).bind(response_format={"type": "json_object"}),
     "GPT-3.5-Turbo": ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.1),
-    "GPT-3.5-Turbo-HT": ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.6),
+    "GPT-3.5-Turbo-HT": ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.8),
     "GPT-4": ChatOpenAI(model_name="gpt-4", temperature=0.1),
     "GPT-4-Turbo": ChatOpenAI(model_name="gpt-4-1106-preview", temperature=0.1),
     "GPT-4-Turbo-JSON": ChatOpenAI(

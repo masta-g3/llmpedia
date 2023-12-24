@@ -5,8 +5,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.prompts import ChatPromptTemplate
-from langchain.chains import LLMChain
 from langchain.callbacks import get_openai_callback
 from tqdm import tqdm
 
@@ -14,7 +12,6 @@ sys.path.append(os.environ.get("PROJECT_PATH"))
 os.chdir(os.environ.get("PROJECT_PATH"))
 
 import utils.vector_store as vs
-import utils.prompts as ps
 import utils.paper_utils as pu
 import utils.db as db
 
@@ -47,7 +44,7 @@ def summarize_by_segments(paper_title: str, document: str):
     for idx, current_chunk in enumerate(doc_chunks[1:]):
         summary_notes += pu.numbered_to_bullet_list(vs.summarize_doc_chunk(paper_title, current_chunk))+ "\n"
         time_elapsed = pd.Timestamp.now() - st_time
-        print(f"{idx+1}/{len(doc_chunks)}: {time_elapsed.total_seconds():.2f} seconds")
+        # print(f"{idx+1}/{len(doc_chunks)}: {time_elapsed.total_seconds():.2f} seconds")
         st_time = pd.Timestamp.now()
 
     return summary_notes
@@ -58,8 +55,6 @@ def main():
     done_codes = db.get_arxiv_id_list(db.db_params, "summary_notes")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
-    arxiv_codes = ["2312.12436"]
-    # arxiv_codes = ["2309.08632"]
 
     for arxiv_code in tqdm(arxiv_codes):
         paper_content = pu.load_local(arxiv_code, "arxiv_text", format="txt")
