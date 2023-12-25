@@ -17,6 +17,7 @@ import utils.db as db
 
 
 def main():
+    vs.validate_openai_env()
     title_map = db.get_arxiv_title_dict(db.db_params)
     arxiv_codes = db.get_arxiv_id_list(db.db_params, "summary_notes")
     done_codes = db.get_arxiv_id_list(db.db_params, "summary_markdown")

@@ -283,6 +283,7 @@ Your goal is to convert the following bullet-point notes from the {paper_title} 
 
 TITLE_SUMMARIZER_PROMPT = """
 Reply with a single uncommon and highly-visual word related to the following title. The word must be one that is not already present in the title.
+Prohibited words: [fractals]
 
 EXAMPLES
 ===========
