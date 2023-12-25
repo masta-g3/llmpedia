@@ -274,6 +274,7 @@ Your goal is to convert the following bullet-point notes from the {paper_title} 
 - Include numeric figures and technical details.
 - Remove duplicates and filler content.
 - Organize the information in a format that is well-structured and easy to read.
+- Be objective and use neutral language appropriate for a scientific publication.
 
 ## Notes
 {previous_notes}

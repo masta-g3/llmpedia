@@ -5,6 +5,7 @@ import pandas as pd
 
 pio.templates.default = "plotly"
 
+
 def plot_publication_counts(df: pd.DataFrame, cumulative=False) -> go.Figure:
     """Plot line chart of total number of papers updated per day."""
     df["published"] = pd.to_datetime(df["published"])
@@ -61,6 +62,7 @@ def plot_activity_map(df_year: pd.DataFrame) -> (go.Figure, pd.DataFrame):
             y=["Sun", "Sat", "Fri", "Thu", "Wed", "Tue", "Mon"],
             hoverongaps=False,
             hovertext=padded_date.values,
+            hovertemplate='%{hovertext}<extra>Count: %{z}</extra>',
             colorscale=colors,
             showscale=False,
         )

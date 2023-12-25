@@ -138,6 +138,7 @@ def generate_image(name, img_file):
 
 def main():
     ## Load the mapping files.
+    vs.validate_openai_env()
     arxiv_codes = db.get_arxiv_id_list(pu.db_params, "summaries")
     title_dict = db.get_arxiv_title_dict(pu.db_params)
     img_dir = os.path.join(PROJECT_PATH, "imgs/")
