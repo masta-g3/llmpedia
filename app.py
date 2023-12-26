@@ -244,13 +244,14 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             key=f"level_select_{paper_code}{name}",
         )
 
-        summary = paper["recursive_summary"] if paper["recursive_summary"] else paper["contribution_content"]
+        # summary = paper["recursive_summary"] if paper["recursive_summary"] else paper["contribution_content"]
+        summary = paper["recursive_summary"] if not pd.isna(paper["recursive_summary"]) else paper["contribution_content"]
         markdown_summary = paper["markdown_notes"]
 
         if level_select == "📝 High-Level Overview":
             st.markdown(summary)
         elif level_select == "🔎 Detailed Research Notes":
-            if markdown_summary:
+            if not pd.isna(markdown_summary):
                 st.markdown(markdown_summary)
             else:
                 st.markdown("Currently unavailable. Check again soon!")
@@ -704,8 +705,8 @@ def main():
 
 
 if __name__ == "__main__":
-    # try:
-    main()
-# except Exception as e:
-#     db.log_error_db(e)
-#     st.error("Something went wrong. Please refresh the app and try again.")
+    try:
+        main()
+    except Exception as e:
+        db.log_error_db(e)
+        st.error("Something went wrong. Please refresh the app and try again.")
