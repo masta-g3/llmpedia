@@ -323,7 +323,7 @@ def search_arxiv_doc(paper_name):
 
 def preprocess_arxiv_doc(doc_content, token_encoder=None, max_tokens=None, remove_references=True):
     """Preprocess an Arxiv document."""
-    doc_content = reformat_text(doc_content)
+    # doc_content = reformat_text(doc_content)
     doc_content = doc_content.replace("<|endoftext|>", "|endoftext|")
 
     if remove_references:

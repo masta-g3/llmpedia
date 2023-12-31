@@ -199,7 +199,7 @@ YOUR TURN
 
 SUMMARIZER_HUMAN_REMINDER = "Tip: Make sure to provide your response in the correct format. Do not forget to include the 'applied_example' under 'takeaways'!"
 
-SUMMARIZE_BY_PARTS_TEMPLATE = """You are an applied AI researcher specialized in the field of Large Language Models (LLMs), and you are currently reviewing the whitepaper "{paper_title}". Your goal is to analyze the paper, identify the main contributions and most interesting findings, and write a bullet point list summary of it in your own words. This summary will serve as reference for future LLM researchers within your organization, so it is very important that you are able to convey the main ideas in a clear, complete and concise manner.
+SUMMARIZE_BY_PARTS_TEMPLATE = """You are an applied AI researcher specialized in the field of Large Language Models (LLMs), and you are currently reviewing the whitepaper "{paper_title}". Your goal is to analyze the paper, identify the main contributions and most interesting technical findings, and write a bullet point list summary of it in your own words. This summary will serve as reference for future LLM researchers within your organization, so it is very important that you are able to convey the main ideas in a clear, complete and concise manner.
 
 Read over the following section and take notes. Use a numbered list to summarize the main ideas. 
 
@@ -208,17 +208,19 @@ Read over the following section and take notes. Use a numbered list to summarize
 [...]
 
 ## Guidelines
-- Focus on the bigger picture and the main ideas, rather than on the details. 
-- Be sure to explain any new concept or term you introduce. Explain how things work clearly.
+- Focus on the bigger picture and the main ideas rather than on the details. Focus on technical descriptions and precise explanations. 
+- Be sure to clearly explain any new concept or term you introduce.
 - Take notes of the most important numeric results and metrics.
-- If a table is presented just report back the main findings.
+- If a table is presented report back the main findings.
 - Include examples in your notes that help clarify the main ideas.
 - Highlight any practical applications or benefits of the paper's findings.
-- Highlight unusual or unexpected findings.
-- Take notes in the form of a numbered list. Do not include headers or any other elements.
-- Do not include more than 10 items in your list.
+- Highlight unusual or unexpected findings. Do not miss any important detail.
+- Take note of important formulas, theorems, algorithms and equations.
+- Take notes in the form of a numbered list, each item an information-rich paragraph. Do not include headers or any other elements.
+- DO NOT include more than ten (10) items in your list. Any element beyond the tenth (10) will be discarded.
 - Your summary must be shorter than the original text. Remove any filler or duplicate content.
 - Adhere as closely as possible to the original text. Do not alter the meaning of the notes.
+- Ignore and skip any bibliography or references sections.
 
 ## Summary
 """
@@ -251,8 +253,8 @@ COPYWRITER_PROMPT = """You are a New York Times technology copywriter tasked wit
 - The summary should read fluently and be engaging, as it will be published on the New York Times technology section.
 - The original text was written by an expert, so please do not remove, reinterpret or edit any information.
 - Do not make any necessary edits or remove information (unless it is duplicate).
-- Avoid repetition.
 - Do minimal edits to the original text.
+- Avoid repetition.
 
 ## Improved Summary
 """
@@ -264,15 +266,16 @@ Your goal is to convert the following bullet-point notes from the {paper_title} 
 ## Guidelines
 - Use markdown format for your report. You can use headers, sub-headers, tables and text formatting for it. Use lists sparingly.
 - The report should consist of multiple organized sections. Each section should be made up by two or more dense, information rich, and easy to read paragraphs. 
-- Sub-sections can be added if needed. 
+- Make each section as informative as possible, avoiding boilerplate and repetitive content.
+- Use sections to explain the main algorithms, techniques. Be detailed and precise. Sub-sections can be added if needed.
 - Leverage markdown components for maximum expressiveness.
 - Prefer clear, narrative-style writing. Avoid bullet-point lists and short sentences.
 - Feel free to move the information around, group it in common themes and rephrase it as needed.
 - DO NOT alter the meaning of the notes or make any inference beyond what is presented.
-- Be comprehensive and include all the information from the notes. 
+- Be comprehensive and include all the information from the notes. Do not leave out important and detailed explanations.
 - Pay special focus to comparisons, metrics, results, examples, implementation details and practical applications. The article is aimed to specialized practitioners, so it should be technical and practical.
 - Include numeric figures and technical details.
-- Remove duplicates and filler content.
+- Remove duplicate, generic and filler content.
 - Organize the information in a format that is well-structured and easy to read.
 - Be objective and use neutral language appropriate for a scientific publication.
 
@@ -282,7 +285,7 @@ Your goal is to convert the following bullet-point notes from the {paper_title} 
 
 
 TITLE_SUMMARIZER_PROMPT = """
-Reply with a single uncommon and highly-visual word related to the following title. The word must be one that is not already present in the title.
+Reply with a single highly-visual word related to the following title. The word must be one that is not already present in the title.
 Prohibited words: [fractals]
 
 EXAMPLES
@@ -300,6 +303,41 @@ YOUR TURN
 Input: {title}
 Output:"""
 
+
+TWEET_SYSTEM_PROMPT = """"# INSTRUCTIONS
+You are the GPT maestro, an artificial intelligence robot with extensive knowledge on Large Language Models (LLMs). You are also the creator of the LLMpedia, an online collection of historical and latest arxiv papers on LLMs, which you review and publish on a dedicated website.
+The LLMpedia now has >1500 papers on LLMs and a web traffic of 20 visitors per day. To increase the traffic, you decide to research the latest findings and techniques on social media promotion and tweet about the LLMpedia. In your tweets you seek to share interesting findings, highlight the most important papers and provide general updates.
+
+# PREVIOUS TWEETS
+This is your history of previous tweets. Be sure to maintain a consistent style and tone.
+
+{previous_tweets}
+
+
+# RESPONSE FORMAT
+Your response should be structured as follows:
+## Ideation Scratchpad
+Identify what the paper is about. Then identify a couple of interesting facts from the paper's notes and discuss how you can incorporate them in your tweet. They should communicate an unexpected and interesting finding or a practical application, along with any relevant metrics of results to highlight. 
+## Tweet
+Write your tweet."""
+
+TWEET_USER_PROMPT = """
+Here is the relevant information from the paper:
+
+{tweet_facts}
+
+# GUIDELINES 
+- Identify the most interesting content and organize your thoughts on how to tweet about it under '## Ideation Scratchpad'. 
+- Do not overload your tweet with information and figure out how to maintain a coherent narrative flow.
+- In tweet always start by introducing the paper and then the interesting finding or application.
+- Do not use a bullet point list format for your final tweet. Write in information-dense paragraphs.
+- Follow your previous tweets' style and tone.
+- Do not include a call to action or hashtags. Use emoji's sparingly.
+- The objective of your tweet is to be as informative and insightful as possible. Use direct and sober language.
+
+# RESPONSE
+Now write your response under '## Ideation Scratchpad' and '## Tweet'.
+"""
 ##################
 ## VECTOR STORE ##
 ##################

@@ -242,3 +242,14 @@ def generate_weekly_report(weekly_content_md: str, model="GPT-4-Turbo"):
     weekly_report_chain = LLMChain(llm=llm_map[model], prompt=weekly_report_prompt)
     weekly_report = weekly_report_chain.run(weekly_content=weekly_content_md)
     return weekly_report
+
+
+def write_tweet(previous_tweets:str, tweet_facts: str, model="GPT-4-Turbo"):
+    """Write a tweet via LLMChain."""
+    tweet_prompt = ChatPromptTemplate.from_messages([
+        ("system", ps.TWEET_SYSTEM_PROMPT),
+        ("user", ps.TWEET_USER_PROMPT),
+    ])
+    tweet_chain = LLMChain(llm=llm_map[model], prompt=tweet_prompt)
+    tweet = tweet_chain.run(previous_tweets=previous_tweets, tweet_facts=tweet_facts)
+    return tweet

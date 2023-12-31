@@ -15,12 +15,12 @@ import utils.vector_store as vs
 import utils.paper_utils as pu
 import utils.db as db
 
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=3000,
-    chunk_overlap=100,
-    length_function=len,
-    is_separator_regex=False,
+
+text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+    chunk_size=750,
+    chunk_overlap=50
 )
+
 
 def shorten_list(list_str: str):
     """Shorten a bullet point list by taking the top 10 and bottom elements."""
@@ -35,17 +35,18 @@ def shorten_list(list_str: str):
 def summarize_by_segments(paper_title: str, document: str):
     """Summarize a paper by segments."""
     doc_chunks = text_splitter.create_documents([document])
-    ## First section.
-    current_chunk = doc_chunks[0].page_content
-    summary_notes = pu.numbered_to_bullet_list(vs.summarize_doc_chunk(paper_title, current_chunk)) + "\n"
-
-    ## All other sections.
-    st_time = pd.Timestamp.now()
-    for idx, current_chunk in enumerate(doc_chunks[1:]):
-        summary_notes += pu.numbered_to_bullet_list(vs.summarize_doc_chunk(paper_title, current_chunk))+ "\n"
-        time_elapsed = pd.Timestamp.now() - st_time
+    summary_notes = ""
+    # st_time = pd.Timestamp.now()
+    for idx, current_chunk in enumerate(doc_chunks):
+        summary_notes += (
+            pu.numbered_to_bullet_list(
+                vs.summarize_doc_chunk(paper_title, current_chunk)
+            )
+            + "\n"
+        )
+        # time_elapsed = pd.Timestamp.now() - st_time
         # print(f"{idx+1}/{len(doc_chunks)}: {time_elapsed.total_seconds():.2f} seconds")
-        st_time = pd.Timestamp.now()
+        # st_time = pd.Timestamp.now()
 
     return summary_notes
 
@@ -58,7 +59,7 @@ def main():
 
     for arxiv_code in tqdm(arxiv_codes):
         paper_content = pu.load_local(arxiv_code, "arxiv_text", format="txt")
-        paper_content = pu.reformat_text(paper_content)
+        paper_content = pu.preprocess_arxiv_doc(paper_content)
         title_dict = db.get_arxiv_title_dict(db.db_params)
         paper_title = title_dict.get(arxiv_code, None)
         if paper_title is None:
@@ -72,9 +73,8 @@ def main():
             print(f"Starting tokens: {ori_token_count}")
             summaries_dict = {}
             token_dict = {}
-            frac = 1
 
-            while token_count > 500:
+            while token_count > 300:
                 print("------------------------")
                 print(f"Summarization iteration {i}...")
                 paper_content = summarize_by_segments(paper_title, paper_content)

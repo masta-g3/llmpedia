@@ -28,7 +28,7 @@ def main():
             paper_notes = db.get_extended_notes(arxiv_code)
             paper_title = title_map[arxiv_code]
 
-            ## Insert copywriter's summary into database.
+            ## Insert copywriter's summary into the database.
             narrative = vs.convert_notes_to_narrative(paper_title, paper_notes)
             copywritten = vs.copywrite_summary(paper_title, narrative)
             db.insert_recursive_summary(arxiv_code, copywritten)
