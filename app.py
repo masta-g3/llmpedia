@@ -431,7 +431,8 @@ def main():
         "The maestro will then summarize the papers and provide its own analysis, including a novelty, technical depth and readability score. "
         "A weekly report will also be published, so you can stay on top of the latest developments. "
         "We hope you enjoy this collection and find it useful; "
-        "if you have any questions, head to the *Chat* section and consult the GPT maestro.\n\n"
+        "if you have any questions, head to the *Chat* section and consult the GPT maestro, "
+        "and follow us at [@GPTMaestro](https://twitter.com/GPTMaestro) for the latest updates and daily paper reviews.\n\n"
         "*Buona lettura!*"
     )
 

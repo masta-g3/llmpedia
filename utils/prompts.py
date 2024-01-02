@@ -263,25 +263,27 @@ COPYWRITER_PROMPT = """You are a New York Times technology copywriter tasked wit
 MARKDOWN_PROMPT = """You are a prestigious academic journalist working for the magazine Nature. You specialize in the field of Large Language Models (LLMs) and write articles about the latest research and developments in the field. 
 Your goal is to convert the following bullet-point notes from the {paper_title} paper into a markdown article that can be published on the Nature magazine. Pay attention to the following guidelines.
 
+## Notes
+{previous_notes}
+
 ## Guidelines
 - Use markdown format for your report. You can use headers, sub-headers, tables and text formatting for it. Use lists sparingly.
-- The report should consist of multiple organized sections. Each section should be made up by two or more dense, information rich, and easy to read paragraphs. 
+- The report should consist of multiple organized sections. Each section should be made up by multiple dense, information rich, and easy to read paragraphs. 
+- Do not include an 'Abstract' section.
 - Make each section as informative as possible, avoiding boilerplate and repetitive content.
-- Use sections to explain the main algorithms, techniques. Be detailed and precise. Sub-sections can be added if needed.
+- Dedicate sections to explain the main algorithms, techniques and methodologies. Be detailed, technical and precise. 
+- Do not include more than 5 sections in your report. 
+- Sub-sections can be added if needed, but use them sparingly.
 - Leverage markdown components for maximum expressiveness.
 - Prefer clear, narrative-style writing. Avoid bullet-point lists and short sentences.
-- Feel free to move the information around, group it in common themes and rephrase it as needed.
+- Identify common themes common themes within the data provided and organize your report around them.
 - DO NOT alter the meaning of the notes or make any inference beyond what is presented.
 - Be comprehensive and include all the information from the notes. Do not leave out important and detailed explanations.
 - Pay special focus to comparisons, metrics, results, examples, implementation details and practical applications. The article is aimed to specialized practitioners, so it should be technical and practical.
 - Include numeric figures and technical details.
 - Remove duplicate, generic and filler content.
 - Organize the information in a format that is well-structured and easy to read.
-- Be objective and use neutral language appropriate for a scientific publication.
-
-## Notes
-{previous_notes}
-"""
+- Be objective and use neutral language appropriate for a scientific publication."""
 
 
 TITLE_SUMMARIZER_PROMPT = """
