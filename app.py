@@ -452,8 +452,8 @@ def main():
     year = year_cols[1].slider(
         "Year",
         min_value=2016,
-        max_value=2023,
-        value=2023,
+        max_value=2024,
+        value=2024,
         step=1,
         label_visibility="collapsed",
         disabled=st.session_state.all_years,

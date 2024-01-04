@@ -18,7 +18,7 @@ import utils.db as db
 
 text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
     chunk_size=750,
-    chunk_overlap=50
+    chunk_overlap=22
 )
 
 
@@ -74,7 +74,7 @@ def main():
             summaries_dict = {}
             token_dict = {}
 
-            while token_count > 300:
+            while token_count > 400:
                 print("------------------------")
                 print(f"Summarization iteration {i}...")
                 paper_content = summarize_by_segments(paper_title, paper_content)
