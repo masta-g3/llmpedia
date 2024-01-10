@@ -160,6 +160,8 @@ def main():
     ## Combine and extract new codes.
     df = pd.concat([hf_df, rsrch_df, dair_df], ignore_index=True)
     df.drop_duplicates(subset="arxiv_code", keep="first", inplace=True)
+    ## Remove "vX" from arxiv codes if present.
+    df["arxiv_code"] = df["arxiv_code"].str.replace(r"v\d+$", "", regex=True)
     new_codes = df["arxiv_code"].tolist()
     done_codes = pu.get_local_arxiv_codes()
     nonllm_codes = pu.get_local_arxiv_codes("nonllm_arxiv_text")

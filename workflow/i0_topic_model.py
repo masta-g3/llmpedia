@@ -60,7 +60,7 @@ def process_text(text: str) -> str:
 
 def load_and_process_data(title_map: dict) -> pd.DataFrame:
     """Load and process data from json files, return DataFrame."""
-    df = pd.DataFrame(columns=["title", "summary", "main_contribution", "takeaways"])
+    df = pd.DataFrame(columns=["title", "summary"]) #, "main_contribution", "takeaways"])
     for arxiv_code, title in title_map.items():
         fpath = os.path.join(PROJECT_PATH, "data", "summaries", f"{arxiv_code}.json")
         fpath_meta = os.path.join(
@@ -76,15 +76,15 @@ def load_and_process_data(title_map: dict) -> pd.DataFrame:
         df.loc[str(arxiv_code)] = [
             title,
             summary["Summary"],
-            summary["main_contribution"],
-            summary["takeaways"],
+            # summary["main_contribution"],
+            # summary["takeaways"],
         ]
     return df
 
 
 def create_embeddings(df: pd.DataFrame) -> tuple:
     """Create embeddings."""
-    content_cols = ["summary", "main_contribution", "takeaways"]
+    content_cols = ["recursive_summary"] #, "main_contribution", "takeaways"]
     df_dict = (
         df[content_cols].apply(lambda x: "\n".join(x.astype(str)), axis=1).to_dict()
     )
@@ -94,14 +94,14 @@ def create_embeddings(df: pd.DataFrame) -> tuple:
     return all_content, embedding_model, embeddings
 
 
-def create_topic_model(embeddings: list, prompt: str) -> BERTopic:
+def create_topic_model(embedding_model: list, prompt: str) -> BERTopic:
     """Create topic model."""
     load_dotenv()
     umap_model = UMAP(
-        n_neighbors=10, n_components=8, min_dist=0.0, metric="cosine", random_state=200
+        n_neighbors=15, n_components=5, min_dist=0.0, metric="cosine", random_state=42
     )
     hdbscan_model = HDBSCAN(
-        min_cluster_size=15,
+        min_cluster_size=20,
         metric="euclidean",
         cluster_selection_method="eom",
         prediction_data=True,
@@ -109,22 +109,23 @@ def create_topic_model(embeddings: list, prompt: str) -> BERTopic:
     vectorizer_model = CountVectorizer(
         stop_words=STOP_WORDS,
         ngram_range=(2, 3),
-        min_df=1,
+        min_df=3,
         max_df=0.8,
         preprocessor=process_text,
     )
-    mmr_model = MaximalMarginalRelevance(diversity=0.5)
+    mmr_model = MaximalMarginalRelevance(diversity=0.3)
     openai.api_key = os.getenv("OPENAI_API_KEY")
     openai_model = OpenAI(
+        client=openai.OpenAI(),
         # model="gpt-3.5-turbo-1106",
         model="gpt-4-1106-preview",
         exponential_backoff=True,
         chat=True,
         prompt=prompt,
-        nr_docs=8,
+        nr_docs=15,
     )
     topic_model = BERTopic(
-        embedding_model=embeddings,
+        embedding_model=embedding_model,
         umap_model=umap_model,
         hdbscan_model=hdbscan_model,
         vectorizer_model=vectorizer_model,
@@ -171,6 +172,8 @@ def store_topics_and_embeddings(
 ):
     """Store topics and embeddings."""
     if refit:
+        ## Avoid lock issue.
+        topic_model.representation_model = None
         topic_model.save(
             "data/topic_model.pkl",
             save_ctfidf=True,
@@ -205,18 +208,21 @@ def main():
     arxiv_codes = db.get_arxiv_id_list(db_params, "summaries")
     title_map = db.get_arxiv_title_dict(db_params)
     title_map = {k: v for k, v in title_map.items() if k in arxiv_codes}
+    df = db.load_recursive_summaries().reset_index()
 
     if REFIT:
-        df = load_and_process_data(title_map)
+        # df = load_and_process_data(title_map)
+        df = df[df["arxiv_code"].isin(arxiv_codes)]
         all_content, embedding_model, embeddings = create_embeddings(df)
         topic_model = create_topic_model(embedding_model, PROMPT)
         reduced_model = UMAP(
-            n_neighbors=12,
+            n_neighbors=15,
             n_components=2,
             min_dist=0.0,
             metric="cosine",
-            random_state=200,
+            random_state=42,
         )
+        working_codes = arxiv_codes[:]
 
     else:
         ## Predict topics on new documents using existing model.
@@ -225,9 +231,12 @@ def main():
 
         done_codes = db.get_arxiv_id_list(db_params, "topics")
         working_codes = list(set(arxiv_codes) - set(done_codes))
-        mini_title_map = {k: v for k, v in title_map.items() if k in working_codes}
+        df = df[df["arxiv_code"].isin(working_codes)]
 
-    df = load_and_process_data(mini_title_map)
+    mini_title_map = {k: v for k, v in title_map.items() if k in working_codes}
+
+    # df = load_and_process_data(mini_title_map)
+    df.set_index("arxiv_code", inplace=True)
     all_content, embedding_model, embeddings = create_embeddings(df)
     topics, reduced_embeddings, reduced_model = extract_topics_and_embeddings(
         all_content, embeddings, topic_model, reduced_model, refit=REFIT

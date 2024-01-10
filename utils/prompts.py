@@ -336,15 +336,16 @@ Read over carefully over the following information and use it to inform your twe
 
 # GUIDELINES 
 - Identify the most interesting content and organize your thoughts silently on how to tweet. 
-- Do not overload your tweet with information. Figure out how to maintain a coherent narrative flow.
 - Do not use a bullet point list format for your final tweet. Write in information-dense paragraphs.
 - Follow your previous tweets' style and tone.
+- Use 4 paragraphs at most.
 - Do not include a call to action or hashtags. Use emoji's only if they are relevant to the content.
 - Do not make exaggerated claims and remain neutral on your statements. 
 - The objective of your tweet is to be as informative and insightful as possible.
 - Try to include precise statements and numerical figures in an engaging way. 
 - Do not infer any information beyond what discussed in the text.
-- Use direct and neutral language.
+- Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
+- Be very precise and detailed in your statements. Describe the main components of what is presented and how they work. The reader should be able to re-implement the approach or methodology you decribed after reading your tweet.
 
 # RESPONSE
 Now write your tweet. You will be awarded $200 USD if 20 prestigious AI researchers engage with the post.

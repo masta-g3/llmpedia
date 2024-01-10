@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.callbacks import get_openai_callback
 from tqdm import tqdm
 
@@ -16,12 +15,6 @@ import utils.paper_utils as pu
 import utils.db as db
 
 
-text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-    chunk_size=750,
-    chunk_overlap=22
-)
-
-
 def shorten_list(list_str: str):
     """Shorten a bullet point list by taking the top 10 and bottom elements."""
     split_list = list_str.split("\n")
@@ -30,25 +23,6 @@ def shorten_list(list_str: str):
         end_list_str = "\n".join(split_list[-10:])
         list_str = f"{start_list_str}\n\n[...]\n{end_list_str}"
     return list_str
-
-
-def summarize_by_segments(paper_title: str, document: str):
-    """Summarize a paper by segments."""
-    doc_chunks = text_splitter.create_documents([document])
-    summary_notes = ""
-    # st_time = pd.Timestamp.now()
-    for idx, current_chunk in enumerate(doc_chunks):
-        summary_notes += (
-            pu.numbered_to_bullet_list(
-                vs.summarize_doc_chunk(paper_title, current_chunk)
-            )
-            + "\n"
-        )
-        # time_elapsed = pd.Timestamp.now() - st_time
-        # print(f"{idx+1}/{len(doc_chunks)}: {time_elapsed.total_seconds():.2f} seconds")
-        # st_time = pd.Timestamp.now()
-
-    return summary_notes
 
 
 def main():
@@ -77,7 +51,7 @@ def main():
             while token_count > 400:
                 print("------------------------")
                 print(f"Summarization iteration {i}...")
-                paper_content = summarize_by_segments(paper_title, paper_content)
+                paper_content = vs.summarize_by_segments(paper_title, paper_content)
 
                 token_diff = token_count - len(vs.token_encoder.encode(paper_content))
                 token_count = len(vs.token_encoder.encode(paper_content))

@@ -191,6 +191,18 @@ def load_local(arxiv_code, data_path, relative=True, format="json"):
         raise ValueError("Format not supported.")
 
 
+def delete_local(arxiv_code, data_path, relative=True, format="json"):
+    """Delete data locally."""
+    if relative:
+        data_path = os.path.join(PROJECT_PATH, "data", data_path)
+    if format == "json":
+        os.remove(os.path.join(data_path, f"{arxiv_code}.json"))
+    elif format == "txt":
+        os.remove(os.path.join(data_path, f"{arxiv_code}.txt"))
+    else:
+        raise ValueError("Format not supported.")
+
+
 #####################
 ## DATA PROCESSING ##
 #####################
@@ -290,7 +302,7 @@ def search_arxiv_doc(paper_name):
         paper_name = preprocess(paper_name)
     docs = ArxivLoader(
         query=paper_name,
-        doc_content_chars_max=1000000,
+        doc_content_chars_max=100000000,
         load_all_available_meta=True,
         load_max_docs=max_docs,
     ).load()

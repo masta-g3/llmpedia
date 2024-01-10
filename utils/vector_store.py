@@ -1,7 +1,11 @@
 import pandas as pd
 import os
 import demjson3
+import pandas as pd
+import sys, os
+from dotenv import load_dotenv
 
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts.chat import ChatPromptTemplate
@@ -19,6 +23,8 @@ import utils.custom_langchain as clc
 import utils.db as db
 import utils.prompts as ps
 import utils.app_utils as au
+import utils.paper_utils as pu
+
 
 CONNECTION_STRING = (
     f"postgresql+psycopg2://{db.db_params['user']}:{db.db_params['password']}"
@@ -134,6 +140,35 @@ def query_llmpedia(question: str, collection_name, model="GPT-3.5-Turbo"):
 
     return content
 
+
+###################
+## SUMMARIZATION ##
+###################
+
+text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+    chunk_size=750,
+    chunk_overlap=22
+)
+
+
+def summarize_by_segments(paper_title: str, document: str, model="local", verbose=False):
+    """Summarize a paper by segments."""
+    doc_chunks = text_splitter.create_documents([document])
+    summary_notes = ""
+    st_time = pd.Timestamp.now()
+    for idx, current_chunk in enumerate(doc_chunks):
+        summary_notes += (
+            pu.numbered_to_bullet_list(
+                summarize_doc_chunk(paper_title, current_chunk, model)
+            )
+            + "\n"
+        )
+        if verbose:
+            time_elapsed = pd.Timestamp.now() - st_time
+            print(f"{idx+1}/{len(doc_chunks)}: {time_elapsed.total_seconds():.2f} seconds")
+            st_time = pd.Timestamp.now()
+
+    return summary_notes
 
 def summarize_doc_chunk(paper_title: str, document: str, model="local"):
     """Summarize a paper by segments."""
