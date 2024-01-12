@@ -32,3 +32,10 @@ def get_img_link_for_blob(text_blob: str):
         return None
     arxiv_code = arxiv_code[0]
     return f"imgs/{arxiv_code}.png"
+
+
+def numbered_to_bullet_list(list_str: str):
+    """Convert a numbered list to a bullet list."""
+    list_str = re.sub(r"^\d+\.", r"-", list_str, flags=re.MULTILINE).strip()
+    list_str = list_str.replace("</|im_end|>", "").strip()
+    return list_str

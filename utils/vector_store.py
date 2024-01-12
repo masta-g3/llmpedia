@@ -22,7 +22,6 @@ import utils.custom_langchain as clc
 import utils.db as db
 import utils.prompts as ps
 import utils.app_utils as au
-import utils.paper_utils as pu
 
 
 CONNECTION_STRING = (
@@ -192,7 +191,7 @@ def summarize_by_parts(paper_title: str, document: str, model="local", verbose=F
     st_time = pd.Timestamp.now()
     for idx, current_chunk in enumerate(doc_chunks):
         summary_notes += (
-            pu.numbered_to_bullet_list(
+            au.numbered_to_bullet_list(
                 summarize_doc_chunk(paper_title, current_chunk, model)
             )
             + "\n"
