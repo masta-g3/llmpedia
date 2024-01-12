@@ -3,7 +3,6 @@ import os
 import demjson3
 import pandas as pd
 import sys, os
-from dotenv import load_dotenv
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
@@ -55,10 +54,11 @@ llm_map = {
 
 
 def validate_openai_env():
-    """ Validate that the API base is not set to local."""
+    """Validate that the API base is not set to local."""
     api_base = os.environ.get("OPENAI_API_BASE", "")
     false_base = "http://localhost:1234/v1"
     assert api_base != false_base, "API base is not set to local."
+
 
 def initialize_retriever(collection_name):
     """Initialize retriever for GPT maestro."""
@@ -146,12 +146,46 @@ def query_llmpedia(question: str, collection_name, model="GPT-3.5-Turbo"):
 ###################
 
 text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-    chunk_size=750,
-    chunk_overlap=22
+    chunk_size=750, chunk_overlap=22
 )
 
 
-def summarize_by_segments(paper_title: str, document: str, model="local", verbose=False):
+def recursive_summarize_by_parts(
+    paper_title: str, document: str, max_tokens=400, model="local", verbose=False
+):
+    """Recursively apply the summarize_by_segments function to a document."""
+    ori_token_count = len(token_encoder.encode(document))
+    token_count = ori_token_count + 0
+    if verbose:
+        print(f"Starting tokens: {ori_token_count}")
+    summaries_dict = {}
+    token_dict = {}
+    i = 1
+
+    while token_count > max_tokens:
+        if verbose:
+            print("------------------------")
+            print(f"Summarization iteration {i}...")
+        document = summarize_by_parts(paper_title, document, model, verbose)
+
+        token_diff = token_count - len(token_encoder.encode(document))
+        token_count = len(token_encoder.encode(document))
+        frac = token_count / ori_token_count
+        summaries_dict[i] = document
+        token_dict[i] = token_count
+        i += 1
+        if verbose:
+            print(f"Total tokens: {token_count}")
+            print(f"Compression: {frac:.2f}")
+
+        if token_diff < 50:
+            print("Cannot compress further. Stopping.")
+            break
+
+    return summaries_dict, token_dict
+
+
+def summarize_by_parts(paper_title: str, document: str, model="local", verbose=False):
     """Summarize a paper by segments."""
     doc_chunks = text_splitter.create_documents([document])
     summary_notes = ""
@@ -165,10 +199,13 @@ def summarize_by_segments(paper_title: str, document: str, model="local", verbos
         )
         if verbose:
             time_elapsed = pd.Timestamp.now() - st_time
-            print(f"{idx+1}/{len(doc_chunks)}: {time_elapsed.total_seconds():.2f} seconds")
+            print(
+                f"{idx+1}/{len(doc_chunks)}: {time_elapsed.total_seconds():.2f} seconds"
+            )
             st_time = pd.Timestamp.now()
 
     return summary_notes
+
 
 def summarize_doc_chunk(paper_title: str, document: str, model="local"):
     """Summarize a paper by segments."""
@@ -240,13 +277,9 @@ def copywrite_summary(paper_title, narrative, model="GPT-3.5-Turbo"):
 
 def convert_notes_to_markdown(paper_title, notes, model="GPT-3.5-Turbo"):
     """Convert notes to markdown via LLMChain."""
-    markdown_prompt = ChatPromptTemplate.from_messages(
-        [("system", ps.MARKDOWN_PROMPT)]
-    )
+    markdown_prompt = ChatPromptTemplate.from_messages([("system", ps.MARKDOWN_PROMPT)])
     markdown_chain = LLMChain(llm=llm_map[model], prompt=markdown_prompt)
-    markdown = markdown_chain.run(
-        {"paper_title": paper_title, "previous_notes": notes}
-    )
+    markdown = markdown_chain.run({"paper_title": paper_title, "previous_notes": notes})
     return markdown
 
 
@@ -265,26 +298,34 @@ def summarize_title_in_word(title, model="GPT-3.5-Turbo-HT"):
 def generate_weekly_report(weekly_content_md: str, model="GPT-4-Turbo"):
     """Generate weekly report via LLMChain."""
     weekly_report_prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", ps.WEEKLY_SYSTEM_PROMPT),
-        ("user", ps.WEEKLY_USER_PROMPT),
-        (
-            "user",
-            "Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678)`.",
-        ),
-    ]
-)
+        [
+            ("system", ps.WEEKLY_SYSTEM_PROMPT),
+            ("user", ps.WEEKLY_USER_PROMPT),
+            (
+                "user",
+                "Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678)`.",
+            ),
+        ]
+    )
     weekly_report_chain = LLMChain(llm=llm_map[model], prompt=weekly_report_prompt)
     weekly_report = weekly_report_chain.run(weekly_content=weekly_content_md)
     return weekly_report
 
 
-def write_tweet(previous_tweets:str, tweet_style: str, tweet_facts: str, model="GPT-4-Turbo"):
+def write_tweet(
+    previous_tweets: str, tweet_style: str, tweet_facts: str, model="GPT-4-Turbo"
+):
     """Write a tweet via LLMChain."""
-    tweet_prompt = ChatPromptTemplate.from_messages([
-        ("system", ps.TWEET_SYSTEM_PROMPT),
-        ("user", ps.TWEET_USER_PROMPT),
-    ])
+    tweet_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", ps.TWEET_SYSTEM_PROMPT),
+            ("user", ps.TWEET_USER_PROMPT),
+        ]
+    )
     tweet_chain = LLMChain(llm=llm_map[model], prompt=tweet_prompt)
-    tweet = tweet_chain.run(previous_tweets=previous_tweets, tweet_style=tweet_style, tweet_facts=tweet_facts)
+    tweet = tweet_chain.run(
+        previous_tweets=previous_tweets,
+        tweet_style=tweet_style,
+        tweet_facts=tweet_facts,
+    )
     return tweet
