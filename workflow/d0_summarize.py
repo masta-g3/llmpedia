@@ -41,30 +41,7 @@ def main():
             continue
 
         with get_openai_callback() as cb:
-            i = 1
-            ori_token_count = len(vs.token_encoder.encode(paper_content))
-            token_count = ori_token_count + 0
-            print(f"Starting tokens: {ori_token_count}")
-            summaries_dict = {}
-            token_dict = {}
-
-            while token_count > 400:
-                print("------------------------")
-                print(f"Summarization iteration {i}...")
-                paper_content = vs.summarize_by_segments(paper_title, paper_content)
-
-                token_diff = token_count - len(vs.token_encoder.encode(paper_content))
-                token_count = len(vs.token_encoder.encode(paper_content))
-                frac = len(vs.token_encoder.encode(paper_content)) / ori_token_count
-                summaries_dict[i] = paper_content
-                token_dict[i] = token_count
-                i += 1
-                print(f"Total tokens: {token_count}")
-                print(f"Compression: {frac:.2f}")
-
-                if token_diff < 50:
-                    print("Cannot compress further. Stopping.")
-                    break
+            summaries_dict, token_dict = vs.recursive_summarize_by_parts(paper_title, paper_content, max_tokens=400)
 
         ## Insert notes as code, level, summary & tokens,
         summary_notes = pd.DataFrame(

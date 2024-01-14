@@ -260,30 +260,64 @@ COPYWRITER_PROMPT = """You are a New York Times technology copywriter tasked wit
 """
 
 
-MARKDOWN_PROMPT = """You are a prestigious academic journalist working for the magazine Nature. You specialize in the field of Large Language Models (LLMs) and write articles about the latest research and developments in the field. 
-Your goal is to convert the following bullet-point notes from the {paper_title} paper into a markdown article that can be published on the Nature magazine. Pay special attention to the following guidelines; you will earn $20,000 USD for a work well done.
+FACTS_ORGANIZER_REPORT = """You are a prestigious academic working at Columbia University. You specialize in the field of Large Language Models (LLMs) and write summary notes about the latest research and developments in the field. 
+Your goal is to organize the following bullet-point notes from the {paper_title} paper into different sections. To do so read over the following notes and pay attention to the following guidelines.
 
 ## Notes
 {previous_notes}
 
 ## Guidelines
+1) After reading the text, identify up to seven (7) common themes and derive a section title for each one.
+2) Organize each of the elements of the note into the corresponding section. Do not leave any element out.
+
+## Response Format
+Your response should be structured as follows:
+- A first section (## Section Names) where you list of up to seven (7) section titles.
+- A second section (## Organized Notes) where you list the elements of the note under the corresponding section title.
+"""
+
+
+MARKDOWN_PROMPT = """You are a prestigious academic working at Columbia University. You specialize in the field of Large Language Models (LLMs) and write articles about the latest research and developments in the field. 
+Your goal is to convert the following bullet-point notes from the {paper_title} paper into a markdown article that can be submitted and publised at a presitigous Journal. To do so read over the following notes and pay attention to the following guidelines.
+
+## Notes
+{previous_notes}
+
+## Guidelines
+1) After reading the text your task is to convert each of the bullet point lists into two or more paragraphs.
+2) Each paragraph should be information-rich and dense, and should not include any bullet points. You should not leave any information out.
+3) Use markdown elements to structure your article, but DO NOT change any of the section titles.
+4) USe direct and neutral language, avoid using too many qualifiers.
+"""
+
+
+"""
+Pay special attention to the following guidelines.
+
+## Report Format
 - Use markdown format for your report. You can use headers, sub-headers, tables and text formatting for it. Use lists sparingly.
-- The report should consist of multiple organized sections. Each section should be made up by multiple dense, information rich, and easy to read paragraphs. 
-- Do not include an 'Abstract' section.
+- The report should consist of multiple organized sections. Each section should be made up by MULTIPLE dense, information rich, and easy to read paragraphs.
+- Do NOT include introduction, conclusion or acknowledgements sections.
 - Make each section as informative as possible, avoiding boilerplate and repetitive content.
-- Dedicate sections to explain the main algorithms, techniques and methodologies. Be detailed, technical and precise. 
-- Do not include more than 5 sections in your report. 
+- Dedicate sections to the main algorithms, techniques and methodologies. Be detailed, technical and precise. The reader should be able to reimplement the techniques described after reading your report.
+- Do not include more than seven (7) sections in your report. 
 - Sub-sections can be added if needed, but use them sparingly.
-- Leverage markdown components for maximum expressiveness.
-- Prefer clear, narrative-style writing. Avoid bullet-point lists and short sentences.
+- Organize the information in a format that is well-structured and easy to read.
+- The objective of your report is to be as informative and insightful as possible. Be comprehensive and include all the information from the notes. Do not leave out important and detailed explanations.
+- Pay special focus to comparisons, metrics, results, examples, implementation details and practical applications. The article is aimed to specialized practitioners, so it should be technical and practical.
 - Identify common themes common themes within the data provided and organize your report around them.
 - DO NOT alter the meaning of the notes or make any inference beyond what is presented.
-- Be comprehensive and include all the information from the notes. Do not leave out important and detailed explanations.
-- Pay special focus to comparisons, metrics, results, examples, implementation details and practical applications. The article is aimed to specialized practitioners, so it should be technical and practical.
-- Include numeric figures and technical details.
+
+## Report Style
+- Prefer clear, narrative-style writing. Avoid bullet-point lists and short sentences.
+- Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
+- Be very precise and detailed in your statements. Describe the main components of what is presented and how they work. The reader should be able to re-implement the approach or methodology you decribed after reading your tweet.
+- Do not make exaggerated claims and remain neutral on your statements. 
+- Make precise statements and discuss any numerical presented. 
 - Remove duplicate, generic and filler content.
-- Organize the information in a format that is well-structured and easy to read.
-- Be objective and use neutral language appropriate for a scientific publication."""
+- Make sure that each section is made up of multiple (more than one) paragraphs.
+- Be objective and use neutral language appropriate for a scientific publication, without too many qualifiers.
+"""
 
 
 TITLE_SUMMARIZER_PROMPT = """

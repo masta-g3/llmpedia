@@ -274,6 +274,14 @@ def copywrite_summary(paper_title, narrative, model="GPT-3.5-Turbo"):
     return copywritten
 
 
+def organize_notes(paper_title, notes, model="GPT-3.5-Turbo"):
+    """Add header titles and organize notes via LLMChain."""
+    organize_prompt = ChatPromptTemplate.from_messages([("system", ps.FACTS_ORGANIZER_REPORT)])
+    organize_chain = LLMChain(llm=llm_map[model], prompt=organize_prompt)
+    organized_sections = organize_chain.run({"paper_title": paper_title, "previous_notes": notes})
+    return organized_sections
+
+
 def convert_notes_to_markdown(paper_title, notes, model="GPT-3.5-Turbo"):
     """Convert notes to markdown via LLMChain."""
     markdown_prompt = ChatPromptTemplate.from_messages([("system", ps.MARKDOWN_PROMPT)])
