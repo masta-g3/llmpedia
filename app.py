@@ -412,7 +412,7 @@ def main():
     ## URL info extraction.
     url_query = st.query_params
     if "arxiv_code" in url_query:
-        paper_code = url_query["arxiv_code"][0]
+        paper_code = url_query["arxiv_code"]
         st.session_state.arxiv_code = paper_code
         click_tab(3)
 
