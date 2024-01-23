@@ -252,6 +252,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             st.markdown(summary)
         elif level_select == "🔎 Detailed Research Notes":
             if not pd.isna(markdown_summary):
+                markdown_summary = markdown_summary.replace("#", "###")
                 st.markdown(markdown_summary)
             else:
                 st.markdown("Currently unavailable. Check again soon!")
@@ -409,7 +410,7 @@ def click_tab(tab_num):
 
 def main():
     ## URL info extraction.
-    url_query = st.experimental_get_query_params()
+    url_query = st.query_params
     if "arxiv_code" in url_query:
         paper_code = url_query["arxiv_code"][0]
         st.session_state.arxiv_code = paper_code
