@@ -21,8 +21,9 @@ review_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "weekly_revie
 
 
 def main(date_str: str):
-    """Generate weekly review of main highlights and takeaways from papers."""
+    """Generate a weekly review of highlights and takeaways from papers."""
     ## Check if we have the summary.
+    vs.validate_openai_env()
     if db.check_weekly_summary_exists(date_str):
         # print(f"Summary for {date_str} already exists.")
         return

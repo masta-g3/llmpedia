@@ -41,7 +41,9 @@ def main():
             continue
 
         with get_openai_callback() as cb:
-            summaries_dict, token_dict = vs.recursive_summarize_by_parts(paper_title, paper_content, max_tokens=400)
+            summaries_dict, token_dict = vs.recursive_summarize_by_parts(
+                paper_title, paper_content, max_tokens=600, model="local"
+            )
 
         ## Insert notes as code, level, summary & tokens,
         summary_notes = pd.DataFrame(

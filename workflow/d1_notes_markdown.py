@@ -26,12 +26,22 @@ def main():
 
     with get_openai_callback() as cb:
         for arxiv_code in tqdm(arxiv_codes):
-            paper_notes = db.get_extended_notes(arxiv_code=arxiv_code, expected_tokens=4000)
+            paper_notes = db.get_extended_notes(
+                arxiv_code=arxiv_code, expected_tokens=5000
+            )
             paper_title = title_map[arxiv_code]
 
             ## Convert notes to Markdown format and store.
-            markdown_notes = vs.convert_notes_to_markdown(paper_title, paper_notes, model="GPT-4-Turbo")
-            markdown_df = pd.DataFrame({"arxiv_code": [arxiv_code], "summary": [markdown_notes], "tstp": [pd.Timestamp.now()]})
+            # markdown_notes = vs.convert_notes_to_markdown(paper_title, paper_notes, model="GPT-4-Turbo")
+            notes_org = vs.organize_notes(paper_title, paper_notes, model="GPT-4-Turbo")
+            markdown_notes = vs.convert_notes_to_markdown(paper_title, notes_org, model="GPT-4-Turbo")
+            markdown_df = pd.DataFrame(
+                {
+                    "arxiv_code": [arxiv_code],
+                    "summary": [markdown_notes],
+                    "tstp": [pd.Timestamp.now()],
+                }
+            )
             db.upload_df_to_db(markdown_df, "summary_markdown", db.db_params)
             print(cb)
 

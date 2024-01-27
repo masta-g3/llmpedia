@@ -16,6 +16,7 @@ from utils.custom_langchain import NewCohereEmbeddings, NewPGVector
 from langchain.chains.openai_functions import (
     create_structured_output_chain,
 )
+
 import tiktoken
 
 import utils.custom_langchain as clc
@@ -38,12 +39,18 @@ llm_map = {
     "GPT-3.5-Turbo": ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.1),
     "GPT-3.5-Turbo-HT": ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.8),
     "GPT-4": ChatOpenAI(model_name="gpt-4", temperature=0.1),
-    "GPT-4-Turbo": ChatOpenAI(model_name="gpt-4-1106-preview", temperature=0.1),
+    "GPT-4-Turbo": ChatOpenAI(model_name="gpt-4-preview", temperature=0.1),
     "GPT-4-Turbo-JSON": ChatOpenAI(
-        model_name="gpt-4-1106-preview", temperature=0.1
+        model_name="gpt-4-preview", temperature=0.1
     ).bind(response_format={"type": "json_object"}),
     "mixtral": Together(
         model="mistralai/Mixtral-8x7B-Instruct-v0.1",
+        temperature=0.1,
+        max_tokens=4000,
+        together_api_key=os.getenv("TOGETHER_API_KEY"),
+    ),
+    "mixtral-dpo": Together(
+        model="NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
         temperature=0.1,
         max_tokens=4000,
         together_api_key=os.getenv("TOGETHER_API_KEY"),
@@ -212,7 +219,7 @@ def summarize_doc_chunk(paper_title: str, document: str, model="local"):
         [("system", ps.SUMMARIZE_BY_PARTS_TEMPLATE)]
     )
     chain = LLMChain(llm=llm_map[model], prompt=summarizer_prompt, verbose=False)
-    summary = chain.run({"paper_title": paper_title, "content": document})
+    summary = chain.run(paper_title= paper_title, content= document, stop=["\n\n", "\n11"])
     return summary
 
 
@@ -276,9 +283,13 @@ def copywrite_summary(paper_title, narrative, model="GPT-3.5-Turbo"):
 
 def organize_notes(paper_title, notes, model="GPT-3.5-Turbo"):
     """Add header titles and organize notes via LLMChain."""
-    organize_prompt = ChatPromptTemplate.from_messages([("system", ps.FACTS_ORGANIZER_REPORT)])
+    organize_prompt = ChatPromptTemplate.from_messages(
+        [("system", ps.FACTS_ORGANIZER_REPORT)]
+    )
     organize_chain = LLMChain(llm=llm_map[model], prompt=organize_prompt)
-    organized_sections = organize_chain.run({"paper_title": paper_title, "previous_notes": notes})
+    organized_sections = organize_chain.run(
+        {"paper_title": paper_title, "previous_notes": notes}
+    )
     return organized_sections
 
 
@@ -298,7 +309,7 @@ def summarize_title_in_word(title, model="GPT-3.5-Turbo-HT"):
     title_summarizer_chain = LLMChain(
         llm=llm_map[model], prompt=title_summarizer_prompt
     )
-    keyword = title_summarizer_chain.run({"title": title})
+    keyword = title_summarizer_chain.run({"title": title}).strip()
     return keyword
 
 
@@ -310,7 +321,7 @@ def generate_weekly_report(weekly_content_md: str, model="GPT-4-Turbo"):
             ("user", ps.WEEKLY_USER_PROMPT),
             (
                 "user",
-                "Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678)`.",
+                "Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678).",
             ),
         ]
     )
