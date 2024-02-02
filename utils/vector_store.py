@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import demjson3
 import pandas as pd
+import json
 import sys, os
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -34,14 +35,14 @@ token_encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
 llm_map = {
     "GPT-3.5-Turbo-JSON": ChatOpenAI(
-        model_name="gpt-3.5-turbo-1106", temperature=0.1
+        model_name="gpt-3.5-turbo-0125", temperature=0.1
     ).bind(response_format={"type": "json_object"}),
-    "GPT-3.5-Turbo": ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.1),
-    "GPT-3.5-Turbo-HT": ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature=0.8),
+    "GPT-3.5-Turbo": ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature=0.1),
+    "GPT-3.5-Turbo-HT": ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature=0.8),
     "GPT-4": ChatOpenAI(model_name="gpt-4", temperature=0.1),
-    "GPT-4-Turbo": ChatOpenAI(model_name="gpt-4-preview", temperature=0.1),
+    "GPT-4-Turbo": ChatOpenAI(model_name="gpt-4-0125-preview", temperature=0.1),
     "GPT-4-Turbo-JSON": ChatOpenAI(
-        model_name="gpt-4-preview", temperature=0.1
+        model_name="gpt-4-0125-preview", temperature=0.1
     ).bind(response_format={"type": "json_object"}),
     "mixtral": Together(
         model="mistralai/Mixtral-8x7B-Instruct-v0.1",
@@ -99,16 +100,31 @@ def create_rag_context(parent_docs):
     """Create RAG context for LLM, including text excerpts, arxiv_codes,
     year of publication and citation counts."""
     rag_context = ""
-    for idx, doc in parent_docs.iterrows():
-        arxiv_code = doc["arxiv_code"]
-        year = doc["published"]
-        citation_count = doc["citation_count"]
-        text = "..." + doc["text"] + "..."
-        rag_context += (
-            f"arxiv:{arxiv_code} ({year}, {citation_count} citations)\n\n{text}\n\n"
-        )
+    for subject, subject_df in parent_docs.groupby("subject"):
+        rag_context += f"### {subject}\n\n"
+        for idx, doc in subject_df.iterrows():
+            arxiv_code = doc["arxiv_code"]
+            title = doc["title"]
+            year = doc["published"]
+            citation_count = doc["citation_count"]
+            text = "..." + doc["text"] + "..."
+            rag_context += (
+                f"Tittle:'*{title}*', arxiv:{arxiv_code} ({year}, {citation_count} citations)\n\n{text}\n\n"
+            )
+        rag_context += "---\n\n"
 
     return rag_context
+
+
+def question_to_query(question, model="GPT-3.5-Turbo"):
+    """Convert notes to narrative via LLMChain."""
+    query_prompt = ChatPromptTemplate.from_messages(
+        [("system", ps.QUESTION_TO_QUERY_PROMPT)]
+    )
+    query_chain = LLMChain(llm=llm_map[model], prompt=query_prompt)
+    query = query_chain.run({"question": question})
+    query = "[ " + query
+    return query
 
 
 def query_llmpedia(question: str, collection_name, model="GPT-3.5-Turbo"):
@@ -124,25 +140,41 @@ def query_llmpedia(question: str, collection_name, model="GPT-3.5-Turbo"):
         llm=llm_map[model], prompt=rag_prompt_custom, verbose=False
     )
     compression_retriever = initialize_retriever(collection_name)
-    child_docs = compression_retriever.invoke(question)
+    queries = question_to_query(question)
+    queries_list = json.loads(queries)
+    all_parent_docs = []
+    for query in queries_list:
+        child_docs = compression_retriever.invoke(query)
 
-    ## Map to parent chunk (for longer context).
-    child_docs = [doc.metadata for doc in child_docs]
-    child_ids = [(doc["arxiv_code"], doc["chunk_id"]) for doc in child_docs]
-    parent_ids = db.get_arxiv_parent_chunk_ids(child_ids)
-    parent_docs = db.get_arxiv_chunks(parent_ids, source="parent")
-    parent_docs["published"] = pd.to_datetime(parent_docs["published"]).dt.year
-    parent_docs.sort_values(
-        by=["published", "citation_count"], ascending=False, inplace=True
-    )
-    parent_docs.reset_index(drop=True, inplace=True)
-    parent_docs = parent_docs.head(5)
+        ## Map to parent chunk (for longer context).
+        child_docs = [doc.metadata for doc in child_docs]
+        child_ids = [(doc["arxiv_code"], doc["chunk_id"]) for doc in child_docs]
+        parent_ids = db.get_arxiv_parent_chunk_ids(child_ids)
+        parent_docs = db.get_arxiv_chunks(parent_ids, source="parent")
+        if len(parent_docs) == 0:
+            continue
+        parent_docs["published"] = pd.to_datetime(parent_docs["published"]).dt.year
+        parent_docs.sort_values(
+            by=["published", "citation_count"], ascending=False, inplace=True
+        )
+        parent_docs.reset_index(drop=True, inplace=True)
+        parent_docs["subject"] = query
+        parent_docs = parent_docs.head(3)
+        all_parent_docs.append(parent_docs)
+
+    all_parent_docs = pd.concat(all_parent_docs, ignore_index=True)
+    if len(all_parent_docs) == 0:
+        return "No results found."
 
     ## Create custom prompt.
-    rag_context = create_rag_context(parent_docs)
+    all_parent_docs.drop_duplicates(subset=["text"], inplace=True)
+    rag_context = create_rag_context(all_parent_docs)
     res = rag_llm_chain.run(context=rag_context, question=question)
-    res_response = res.split("Response\n")[1].split("###")[0].strip()
-    content = au.add_links_to_text_blob(res_response)
+    if "Response" in res:
+        res_response = res.split("Response\n")[1].split("###")[0].strip()
+        content = au.add_links_to_text_blob(res_response)
+    else:
+        content = res[:]
 
     return content
 
@@ -219,7 +251,9 @@ def summarize_doc_chunk(paper_title: str, document: str, model="local"):
         [("system", ps.SUMMARIZE_BY_PARTS_TEMPLATE)]
     )
     chain = LLMChain(llm=llm_map[model], prompt=summarizer_prompt, verbose=False)
-    summary = chain.run(paper_title= paper_title, content= document, stop=["\n\n", "\n11"])
+    summary = chain.run(
+        paper_title=paper_title, content=document, stop=["\n\n", "\n11"]
+    )
     return summary
 
 
@@ -311,6 +345,16 @@ def summarize_title_in_word(title, model="GPT-3.5-Turbo-HT"):
     )
     keyword = title_summarizer_chain.run({"title": title}).strip()
     return keyword
+
+
+def rephrase_title(title, model="GPT-3.5-Turbo-HT"):
+    """Summarize a title in a few words via LLMChain."""
+    title_rephrase_prompt = ChatPromptTemplate.from_messages(
+        [("system", ps.TITLE_REPHRASER_PROMPT)]
+    )
+    title_rephrase_chain = LLMChain(llm=llm_map[model], prompt=title_rephrase_prompt)
+    phrase = title_rephrase_chain.run({"title": title}).strip()
+    return phrase
 
 
 def generate_weekly_report(weekly_content_md: str, model="GPT-4-Turbo"):

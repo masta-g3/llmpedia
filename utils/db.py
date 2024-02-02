@@ -190,7 +190,7 @@ def get_arxiv_chunks(chunk_ids: list, source="child"):
         )
         query = text(
             f"""
-            SELECT d.arxiv_code, d.published, s.citation_count, p.text
+            SELECT d.arxiv_code, d.title, d.published, s.citation_count, p.text
             FROM {source_table} p , arxiv_details d, semantic_details s
             WHERE p.arxiv_code = d.arxiv_code
             AND p.arxiv_code = s.arxiv_code

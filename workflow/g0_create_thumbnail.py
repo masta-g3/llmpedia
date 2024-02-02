@@ -85,8 +85,10 @@ def generate_image(name, img_file):
         vaeloader = VAELoader()
         vaeloader_48 = vaeloader.load_vae(vae_name="sdxl.vae.safetensors")
 
-        keyword = vs.summarize_title_in_word(name)
-        caption = f'"{name.upper()}", "tarot, {keyword} and computers", stunning award-winning pixel art'
+        # keyword = vs.summarize_title_in_word(name)
+        print(f"* Title: {name}")
+        name = vs.rephrase_title(name)
+        caption = f'"{name}", "tarot and computers", stunning award-winning pixel art'
         print("--> " + caption)
 
         cliptextencode_102 = cliptextencode.encode(
@@ -153,9 +155,10 @@ def main():
         name = title_dict[arxiv_code]
         img_file = img_dir + arxiv_code + ".png"
         clean_name = (
-            name.replace("transformer", "processor")
-            .replace("Transformer", "Processor")
-            .replace("Matrix", "Linear Algebra")
+            name
+            # .replace("transformer", "processor")
+            # .replace("Transformer", "Processor")
+            # .replace("Matrix", "Linear Algebra")
             .replace("LLM", "Large Language Model")
         )
         generate_image(clean_name, img_file)

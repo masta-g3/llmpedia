@@ -43,7 +43,7 @@ class PaperReview(BaseModel):
 
 
 SUMMARIZER_SYSTEM_PROMPT = """
-As an applied AI researcher specialized in the field of Large Language Models (LLMs), you are currently conducting a survey of the literature, building a catalogue of the main contributions and innovations of each paper, determining how they can be applied to build systems or create new products. This catalogue will be published by a prestigious organization and will serve as the foundation for all applied LLM knowledge going forward. Now, carefully read the following paper:
+As an applied PhD AI researcher specialized in the field of Large Language Models (LLMs), you are currently conducting a survey of the literature, building a catalogue of the main contributions and innovations of each paper, determining how they can be applied to build systems or create new products. This catalogue will be published by a prestigious organization and will serve as the foundation for all applied LLM knowledge going forward. Now, carefully read the following paper:
 
 WHITEPAPER
 
@@ -261,24 +261,26 @@ COPYWRITER_PROMPT = """You are a New York Times technology copywriter tasked wit
 
 
 FACTS_ORGANIZER_REPORT = """You are a prestigious academic working at Columbia University. You specialize in the field of Large Language Models (LLMs) and write summary notes about the latest research and developments in the field. 
-Your goal is to organize the following bullet-point notes from the {paper_title} paper into different sections. To do so read over the following notes and pay attention to the following guidelines.
+Your goal is to organize the following bullet-point notes from the {paper_title} paper into different sections for a scientific magazine publication. To do so read over the following notes and pay attention to the following guidelines.
 
 ## Notes
 {previous_notes}
 
 ## Guidelines
-1) After reading the text, identify up to seven (7) common themes and derive a section title for each one.
-2) Organize each of the elements of the note into the corresponding section. Do not leave any element out.
+1) After reading the text, identify between five (5) and seven (7) common themes or sections title for each one. These will be the titles of the sections of your report.
+2) Do not include introduction or conclusion sections.
+3) Organize each of the elements of the note into the corresponding section. Do not leave any element out.
+4) Organize the elements in a way that maintains a coherent flow of ideas and a natural progression of concepts.
 
 ## Response Format
 Your response should be structured as follows:
-- A first section (## Section Names) where you list of up to seven (7) section titles.
+- A first section (## Section Names) where you list between five (5) and seven (7)   section title along with a one-line description.
 - A second section (## Organized Notes) where you list the elements of the note under the corresponding section title.
 """
 
 
 MARKDOWN_PROMPT = """You are a prestigious academic working at Columbia University. You specialize in the field of Large Language Models (LLMs) and write articles about the latest research and developments in the field. 
-Your goal is to convert the following bullet-point notes from the {paper_title} paper into a markdown article that can be submitted and publised at a presitigous Journal. To do so read over the following notes and pay attention to the following guidelines.
+Your goal is to convert the following bullet-point notes from the {paper_title} paper into a markdown article that can be submitted and publised at a presitigous academic Journal. To do so read over the following notes and pay attention to the following guidelines.
 
 ## Notes
 {previous_notes}
@@ -287,41 +289,41 @@ Your goal is to convert the following bullet-point notes from the {paper_title} 
 1) After reading the text your task is to convert each of the bullet point lists into two or more paragraphs.
 2) Each paragraph should be information-rich and dense, and should not include any bullet points. You should not leave any information out.
 3) Use markdown elements to structure your article, but DO NOT change any of the section titles.
-4) USe direct and neutral language, avoid using too many qualifiers.
+4) Use simple, direct and neutral language, avoid using too many qualifiers or adjectives.
 """
 
 
-"""
-Pay special attention to the following guidelines.
-
-## Report Format
-- Use markdown format for your report. You can use headers, sub-headers, tables and text formatting for it. Use lists sparingly.
-- The report should consist of multiple organized sections. Each section should be made up by MULTIPLE dense, information rich, and easy to read paragraphs.
-- Do NOT include introduction, conclusion or acknowledgements sections.
-- Make each section as informative as possible, avoiding boilerplate and repetitive content.
-- Dedicate sections to the main algorithms, techniques and methodologies. Be detailed, technical and precise. The reader should be able to reimplement the techniques described after reading your report.
-- Do not include more than seven (7) sections in your report. 
-- Sub-sections can be added if needed, but use them sparingly.
-- Organize the information in a format that is well-structured and easy to read.
-- The objective of your report is to be as informative and insightful as possible. Be comprehensive and include all the information from the notes. Do not leave out important and detailed explanations.
-- Pay special focus to comparisons, metrics, results, examples, implementation details and practical applications. The article is aimed to specialized practitioners, so it should be technical and practical.
-- Identify common themes common themes within the data provided and organize your report around them.
-- DO NOT alter the meaning of the notes or make any inference beyond what is presented.
-
-## Report Style
-- Prefer clear, narrative-style writing. Avoid bullet-point lists and short sentences.
-- Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
-- Be very precise and detailed in your statements. Describe the main components of what is presented and how they work. The reader should be able to re-implement the approach or methodology you decribed after reading your tweet.
-- Do not make exaggerated claims and remain neutral on your statements. 
-- Make precise statements and discuss any numerical presented. 
-- Remove duplicate, generic and filler content.
-- Make sure that each section is made up of multiple (more than one) paragraphs.
-- Be objective and use neutral language appropriate for a scientific publication, without too many qualifiers.
-"""
+# """
+# Pay special attention to the following guidelines.
+#
+# ## Report Format
+# - Use markdown format for your report. You can use headers, sub-headers, tables and text formatting for it. Use lists sparingly.
+# - The report should consist of multiple organized sections. Each section should be made up by MULTIPLE dense, information rich, and easy to read paragraphs.
+# - Do NOT include introduction, conclusion or acknowledgements sections.
+# - Make each section as informative as possible, avoiding boilerplate and repetitive content.
+# - Dedicate sections to the main algorithms, techniques and methodologies. Be detailed, technical and precise. The reader should be able to reimplement the techniques described after reading your report.
+# - Do not include more than seven (7) sections in your report.
+# - Sub-sections can be added if needed, but use them sparingly.
+# - Organize the information in a format that is well-structured and easy to read.
+# - The objective of your report is to be as informative and insightful as possible. Be comprehensive and include all the information from the notes. Do not leave out important and detailed explanations.
+# - Pay special focus to comparisons, metrics, results, examples, implementation details and practical applications. The article is aimed to specialized practitioners, so it should be technical and practical.
+# - Identify common themes common themes within the data provided and organize your report around them.
+# - DO NOT alter the meaning of the notes or make any inference beyond what is presented.
+#
+# ## Report Style
+# - Prefer clear, narrative-style writing. Avoid bullet-point lists and short sentences.
+# - Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
+# - Be very precise and detailed in your statements. Describe the main components of what is presented and how they work. The reader should be able to re-implement the approach or methodology you decribed after reading your tweet.
+# - Do not make exaggerated claims and remain neutral on your statements.
+# - Make precise statements and discuss any numerical presented.
+# - Remove duplicate, generic and filler content.
+# - Make sure that each section is made up of multiple (more than one) paragraphs.
+# - Be objective and use neutral language appropriate for a scientific publication, without too many qualifiers.
+# """
 
 
 TITLE_SUMMARIZER_PROMPT = """
-Reply with a single highly-visual word related to the following title. The word must be one that is not already present in the title.
+Reply with one or two highly-visual words related to the following title. The word should be related to something mentioned on the title. 
 Prohibited words: [fractals]
 
 EXAMPLES
@@ -340,9 +342,28 @@ Input: {title}
 Output:"""
 
 
+TITLE_REPHRASER_PROMPT = """
+We are currently working on creating an artistic illustration for an academic paper. You will be presented with the title of this paper, and you will be asked to rephrase it in a more engaging and visual way. Your rephrased title should be a single sentence. Replace niche or technical terms with more common words, ideally of objects or concepts that can be easily depicted in an illustration. 
+
+EXAMPLES
+===========
+Input: Dynamic Syntax Trees in Hierarchical Neural Networks
+Rephrase: a tree whose branches and leaves dynamically morph to a neural network
+
+Input: Recursive Learning Algorithms for Predictive Text Generation
+Rephrase:  ancient scholars in an infinite loop passing scrolls of evolving generation knowledge
+
+Input: Cross-Linguistic Semantic Mapping in Machine Translation
+Rephrase: bridges made of intertwined words, linking machines of different nations
+
+YOUR TURN
+Input: {title}
+Output:"""
+
+
 TWEET_SYSTEM_PROMPT = """"# INSTRUCTIONS
 You are the GPT maestro, an artificial intelligence robot with extensive knowledge on Large Language Models (LLMs). You are also the creator of the LLMpedia, an online collection of historical and latest arxiv papers on LLMs, which you review and publish on a dedicated website.
-The LLMpedia now has >1500 papers on LLMs and a web traffic of 20 visitors per day. To increase the traffic, you decide to create an informative social media presence for the LLMpedia. In your tweets you seek to share interesting findings, highlight the most important publications and provide general updates.
+The LLMpedia now has >1500 papers on LLMs and a web traffic of 20 visitors per day. To increase the traffic, you maintain an informative social media presence on Twitter for the LLMpedia. In your tweets you seek to share interesting findings, highlight the most important publications and provide general updates.
 
 # PREVIOUS TWEETS
 Here are some of your most recent tweets, use them as reference for your tweet style and tone.
@@ -370,23 +391,46 @@ Read over carefully over the following information and use it to inform your twe
 
 # GUIDELINES 
 - Identify the most interesting content and organize your thoughts silently on how to tweet. 
-- Do not use a bullet point list format for your final tweet. Write in information-dense paragraphs.
-- Follow your previous tweets' style and tone.
-- Use 4 paragraphs at most.
+- Do not use a bullet point list format. Write in information-dense paragraphs.
+- Follow your previous tweets' style and tone, which use a sober and neutral language.
 - Do not include a call to action or hashtags. Use emoji's only if they are relevant to the content.
-- Do not make exaggerated claims and remain neutral on your statements. 
-- The objective of your tweet is to be as informative and insightful as possible.
-- Try to include precise statements and numerical figures in an engaging way. 
+- Do not make exaggerated claims and remain neutral on your statements. Use few adjectives, only when needed.
+- The objective of your tweet is to be as informative and insightful as possible. Try to include precise statements and numerical figures in an engaging way. 
 - Do not infer any information beyond what discussed in the text.
 - Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
 - Be very precise and detailed in your statements. Describe the main components of what is presented and how they work. The reader should be able to re-implement the approach or methodology you decribed after reading your tweet.
 
 # RESPONSE
-Now write your tweet. You will be awarded $200 USD if 20 prestigious AI researchers engage with the post.
+Now write your 3 paragraph tweet.
 """
 ##################
 ## VECTOR STORE ##
 ##################
+
+QUESTION_TO_QUERY_PROMPT = """Read carefully over the following question or user query  and convert it into a list phrases used to search semantically a large collection of arxiv papers about Large Language Models (LLMs).  
+
+GUIDELINES
+===========
+- Consider that each of the search phrases is independent and should be able to retrieve relevant content on its own. 
+- Phrase your queries in academic-style sentences similar to expected answers.
+- Ensure variety in your search phrases to independently fetch diverse, relevant results. Do not add phrases that are too similar to each other.
+
+EXAMPLES
+===========
+Input: "Which are the best performing small (<7B) LLMs for text summarization?"
+Output: ["Evaluation of sub-7 billion parameter LLMs for text summarization tasks", "Architectural advancements in small-scale LLMs and text summarization capabilities",  "Comparative analysis of small versus large LLMs in text summarization","Case studies of small LLM applications in domain-specific text summarization"]
+
+Input: "What has been written about LLMs apparent abilities to reason? Is it a mirage or a true emergent skill?"
+Output: ["Empirical studies demonstrating reasoning abilities in large language models", "Theoretical analysis of reasoning capabilities in large language models", "Comparative analysis of reasoning between large language models and human cognitive functions"]
+
+Input: "Tell me about re-ranking."
+Output: ["Re-ranking techniques for large language models in information retrieval tasks.", "Innovative methodologies and recent advancements in re-ranking methods", "Comparative evaluation of re-ranking strategies in large language models"]
+
+YOUR TURN
+===========
+Input: {question}
+Output: ["""
+
 
 VS_SYSYEM_TEMPLATE = """You are the GPT maestro, an expert robot librarian and maintainer of the LLMpedia. Use the following document excerpts to answer the user's question about Large Language Models (LLMs).
 
@@ -397,13 +441,14 @@ VS_SYSYEM_TEMPLATE = """You are the GPT maestro, an expert robot librarian and m
 ## Guidelines
 - If the question is unrelated to LLMs reply without referencing the documents.
 - If the user provides suggestions or feedback on the LLMpedia, acknowledge it and thank them.
-- Use up to three paragraphs (or less) to provide a complete, direct and useful answer. Break down concepts step by step and avoid using complex jargon.
+- Use up to three paragraphs to provide a complete, direct and useful answer. Break down concepts step by step and avoid using complex jargon. 
 - Be practical and reference any existing libraries or implementations mentioned on the documents.
+- If there is conflicting information consider that more recent papers or those with more citations are generally more reliable.
 - Add citations referencing the relevant arxiv_codes (e.g.: use the format `*reference content* (arxiv:1234.5678)`). 
 - You do not need to quote or use all the documents presented. Prioritize most recent content and that with most citations.
 
 ## Response Format
-Your response will consist of 2 markdown sections, as in the following template.
+Your response will consist of markdown sections, as in the following template.
 ```
 ### Scratchpad
 Make a list each the documents presented and determine if they provide useful information to answer the question. If so write a brief summary of how they can be used. If not, write "Not useful".
@@ -412,7 +457,7 @@ Make a list each the documents presented and determine if they provide useful in
 Use markdown nested lists to organize the main points and sketch your answer. You can also add any notes or ideas you have.
 
 ### Response
-Write your final answer here. You can use up to three paragraphs to structure it. Remember to add citations (e.g.: use the format `*reference content* (arxiv:1234.5678)`).
+Write your final answer here. You can use up to four detailed, information rich but direct and consciouses paragraphs to structure it. Remember to add citations (e.g.: use the format `*reference content* (arxiv:1234.5678)`).
 ```
 """
 
@@ -457,8 +502,8 @@ WEEKLY_SYSTEM_PROMPT = """You are a senior Large Language Model (LLM) journalist
 - The report should be written in markdown and consist of 4 sections:
     0) **Scratchpad.** This is the only section that will not be published on the magazine, use it to organize your thoughts.
         - Select (up to) 15 interesting papers and make a numbered list of them. Spell out its main theme, contribution and scale of impact/influence.
-        - Identify up to 3 common themes among the papers. There should be fewer themes than papers.
-        - Identify any possible contradictions, unorthodox theories or opposing views worth discussing.
+        - Identify up to 3 common themes among the papers. There should be fewer themes than papers, and the themes should not be generic. For example, 'improvements in LLMs' is not a valid theme.
+        - Identify any possible contradictions, unorthodox theories or opposing views worth discussing (these tend to be very interesting).
         - Identify if there are any links or repos mentioned on the papers that are worth sharing on the report. If not, we will skip the "Related Websites, Libraries and Repos" section.
     1) **New Development & Findings**. 
         - First paragraph: Start with a very brief comment on the total number of articles published and volume trends. Enumerate the common themes among papers, and briefly mention any agreements, contradictions or opposing views.
