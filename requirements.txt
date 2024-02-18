@@ -1,5 +1,6 @@
 cohere==4.31
-langchain==0.0.340
+langchain==0.1.4
+langchain-community==0.0.16
 numpy==1.24.4
 streamlit==1.30
 streamlit-plotly-events==0.0.6
