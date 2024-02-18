@@ -6,17 +6,17 @@ import json
 import sys, os
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
-from langchain.chat_models import ChatOpenAI
 from langchain.prompts.chat import ChatPromptTemplate
 from langchain.chains import LLMChain
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CohereRerank
-from langchain.llms.together import Together
-from utils.custom_langchain import NewCohereEmbeddings, NewPGVector
+from langchain_community.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
+from langchain_community.chat_models import ChatOpenAI
+from langchain_community.llms.together import Together
 from langchain.chains.openai_functions import (
     create_structured_output_chain,
 )
+from utils.custom_langchain import NewCohereEmbeddings, NewPGVector
 
 import tiktoken
 

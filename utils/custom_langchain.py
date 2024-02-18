@@ -1,5 +1,5 @@
-from langchain.vectorstores import PGVector
-from langchain.embeddings import CohereEmbeddings
+from langchain_community.vectorstores import PGVector
+from langchain_community.embeddings import CohereEmbeddings
 from typing import List, Iterable, Optional, Any
 from langchain.output_parsers.openai_functions import PydanticOutputFunctionsParser
 import demjson3 as demjson

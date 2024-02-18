@@ -10,7 +10,7 @@ import re, json
 import time
 from tqdm import tqdm
 
-from langchain.callbacks import get_openai_callback
+from langchain_community.callbacks import get_openai_callback
 
 import utils.paper_utils as pu
 import utils.vector_store as vs

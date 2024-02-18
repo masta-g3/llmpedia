@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from langchain.callbacks import get_openai_callback
+from langchain_community.callbacks import get_openai_callback
 from tqdm import tqdm
 
 sys.path.append(os.environ.get("PROJECT_PATH"))
@@ -25,7 +25,7 @@ def main():
 
     with get_openai_callback() as cb:
         for arxiv_code in tqdm(arxiv_codes):
-            paper_notes = db.get_extended_notes(arxiv_code)
+            paper_notes = db.get_extended_notes(arxiv_code, expected_tokens=700)
             paper_title = title_map[arxiv_code]
 
             ## Insert copywriter's summary into the database.

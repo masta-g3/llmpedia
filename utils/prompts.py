@@ -395,10 +395,10 @@ Read over carefully over the following information and use it to inform your twe
 - Follow your previous tweets' style and tone, which use a sober and neutral language.
 - Do not include a call to action or hashtags. Use emoji's only if they are relevant to the content.
 - Do not make exaggerated claims and remain neutral on your statements. Use few adjectives, only when needed.
-- The objective of your tweet is to be as informative and insightful as possible. Try to include precise statements and numerical figures in an engaging way. 
+- The objective of your tweet is to be as informative and insightful as possible. Include precise statements and numerical figures in an engaging way. 
 - Do not infer any information beyond what discussed in the text.
+- Be very precise and detailed in your statements. Describe the main components of what is presented and how they work. The reader should be able to re-implement the approach or methodology you described after reading your tweet.
 - Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
-- Be very precise and detailed in your statements. Describe the main components of what is presented and how they work. The reader should be able to re-implement the approach or methodology you decribed after reading your tweet.
 
 # RESPONSE
 Now write your 3 paragraph tweet.

@@ -11,7 +11,7 @@ from typing import Optional
 import dotenv
 import ast
 
-from langchain.document_loaders import ArxivLoader
+from langchain_community.document_loaders import ArxivLoader
 
 dotenv.load_dotenv()
 

@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.callbacks import get_openai_callback
+from langchain_community.callbacks import get_openai_callback
 from tqdm import tqdm
 
 sys.path.append(os.environ.get("PROJECT_PATH"))
@@ -23,13 +23,12 @@ def main():
     done_codes = db.get_arxiv_id_list(db.db_params, "summary_markdown")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
-    arxiv_codes = arxiv_codes[
-        2401.12794
+    arxiv_codes = ["2302.00093"]
 
     with get_openai_callback() as cb:
         for arxiv_code in tqdm(arxiv_codes):
             paper_notes = db.get_extended_notes(
-                arxiv_code=arxiv_code, expected_tokens=5000
+                arxiv_code=arxiv_code, expected_tokens=6000
             )
             paper_title = title_map[arxiv_code]
 
