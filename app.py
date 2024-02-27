@@ -36,7 +36,7 @@ if "openai_api_key" not in st.session_state:
     st.session_state.openai_api_key = ""
 
 if "all_years" not in st.session_state:
-    st.session_state.all_years = True
+    st.session_state.all_years = False
 
 
 collection_map = {
