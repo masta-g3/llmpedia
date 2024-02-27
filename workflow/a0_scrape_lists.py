@@ -163,6 +163,7 @@ def main():
     ## Remove "vX" from arxiv codes if present.
     df["arxiv_code"] = df["arxiv_code"].str.replace(r"v\d+$", "", regex=True)
     new_codes = df["arxiv_code"].tolist()
+    new_codes = [code for code in new_codes if pu.is_arxiv_code(code)]
     done_codes = pu.get_local_arxiv_codes()
     nonllm_codes = pu.get_local_arxiv_codes("nonllm_arxiv_text")
 
