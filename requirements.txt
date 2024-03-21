@@ -1,6 +1,8 @@
 cohere==4.31
-langchain==0.1.11
-langchain-community==0.0.27
+langchain==0.1.13
+langchain-community==0.0.29
+langchain-anthropic~=0.1.4
+langchain-openai~=0.0.8
 numpy==1.24.4
 streamlit==1.32.2
 streamlit-plotly-events==0.0.6
@@ -12,4 +14,3 @@ pydantic==2.5.3
 openai==1.10.0
 demjson3==3.0.6
 tiktoken==0.6.0
-mlx-lm==0.3.0

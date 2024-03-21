@@ -5,11 +5,9 @@ from typing import Dict, List, Tuple
 import pandas as pd
 import numpy as np
 
-import utils.vector_store as vs
 import utils.app_utils as au
 import utils.plots as pt
 import utils.db as db
-
 
 ## Page config.
 st.set_page_config(
@@ -657,7 +655,7 @@ def main():
                 with st.spinner(
                     "Consulting the GPT maestro, this might take a minute..."
                 ):
-                    response = vs.query_llmpedia(user_question, collection_name)
+                    response = au.query_llmpedia(user_question, collection_name, model="claude-sonnet")
                     db.log_qna_db(user_question, response)
                     st.divider()
                     st.markdown(response)

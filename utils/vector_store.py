@@ -6,9 +6,6 @@ import os
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.prompts.chat import ChatPromptTemplate
 from langchain.chains import LLMChain
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import CohereRerank
-from langchain_community.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
 from mlx_lm import generate
 
 from langchain.chains.openai_functions import (
@@ -37,116 +34,6 @@ def validate_openai_env():
     api_base = os.environ.get("OPENAI_API_BASE", "")
     false_base = "http://localhost:1234/v1"
     assert api_base != false_base, "API base is not set to local."
-
-
-def initialize_retriever(collection_name):
-    """Initialize retriever for GPT maestro."""
-    if collection_name == "arxiv_vectors_cv3":
-        embeddings = NewCohereEmbeddings(
-            cohere_api_key=os.getenv("COHERE_API_KEY"), model="embed-english-v3.0"
-        )
-    elif collection_name == "arxiv_vectors":
-        embeddings = HuggingFaceInferenceAPIEmbeddings(
-            api_key=os.getenv("HUGGINGFACE_API_KEY"), model_name="thenlper/gte-large"
-        )
-    else:
-        raise ValueError(f"Unknown collection name: {collection_name}")
-
-    store = NewPGVector(
-        collection_name=collection_name,
-        connection_string=CONNECTION_STRING,
-        embedding_function=embeddings,
-    )
-    retriever = store.as_retriever(search_type="similarity", search_kwargs={"k": 20})
-
-    compressor = CohereRerank(
-        top_n=10, cohere_api_key=os.getenv("COHERE_API_KEY"), user_agent="llmpedia"
-    )
-    compression_retriever = ContextualCompressionRetriever(
-        base_compressor=compressor, base_retriever=retriever
-    )
-    return compression_retriever
-
-
-def create_rag_context(parent_docs):
-    """Create RAG context for LLM, including text excerpts, arxiv_codes,
-    year of publication and citation counts."""
-    rag_context = ""
-    for subject, subject_df in parent_docs.groupby("subject"):
-        rag_context += f"### {subject}\n\n"
-        for idx, doc in subject_df.iterrows():
-            arxiv_code = doc["arxiv_code"]
-            title = doc["title"]
-            year = doc["published"]
-            citation_count = doc["citation_count"]
-            text = "..." + doc["text"] + "..."
-            rag_context += f"Tittle:'*{title}*', arxiv:{arxiv_code} ({year}, {citation_count} citations)\n\n{text}\n\n"
-        rag_context += "---\n\n"
-
-    return rag_context
-
-
-def question_to_query(question, model="GPT-3.5-Turbo"):
-    """Convert notes to narrative via LLMChain."""
-    query_prompt = ChatPromptTemplate.from_messages(
-        [("system", ps.QUESTION_TO_QUERY_PROMPT)]
-    )
-    query_chain = LLMChain(llm=llm_map[model], prompt=query_prompt)
-    query = query_chain.invoke(dict(question=question))["text"]
-    query = "[ " + query
-    return query
-
-
-def query_llmpedia(question: str, collection_name, model="GPT-3.5-Turbo"):
-    """Query LLMpedia via LLMChain."""
-    rag_prompt_custom = ChatPromptTemplate.from_messages(
-        [
-            ("system", ps.VS_SYSYEM_TEMPLATE),
-            ("human", "{question}"),
-        ]
-    )
-
-    rag_llm_chain = LLMChain(
-        llm=llm_map[model], prompt=rag_prompt_custom, verbose=False
-    )
-    compression_retriever = initialize_retriever(collection_name)
-    queries = question_to_query(question)
-    queries_list = json.loads(queries)
-    all_parent_docs = []
-    for query in queries_list:
-        child_docs = compression_retriever.invoke(query)
-
-        ## Map to parent chunk (for longer context).
-        child_docs = [doc.metadata for doc in child_docs]
-        child_ids = [(doc["arxiv_code"], doc["chunk_id"]) for doc in child_docs]
-        parent_ids = db.get_arxiv_parent_chunk_ids(child_ids)
-        parent_docs = db.get_arxiv_chunks(parent_ids, source="parent")
-        if len(parent_docs) == 0:
-            continue
-        parent_docs["published"] = pd.to_datetime(parent_docs["published"]).dt.year
-        parent_docs.sort_values(
-            by=["published", "citation_count"], ascending=False, inplace=True
-        )
-        parent_docs.reset_index(drop=True, inplace=True)
-        parent_docs["subject"] = query
-        parent_docs = parent_docs.head(3)
-        all_parent_docs.append(parent_docs)
-
-    all_parent_docs = pd.concat(all_parent_docs, ignore_index=True)
-    if len(all_parent_docs) == 0:
-        return "No results found."
-
-    ## Create custom prompt.
-    all_parent_docs.drop_duplicates(subset=["text"], inplace=True)
-    rag_context = create_rag_context(all_parent_docs)
-    res = rag_llm_chain.invoke(dict(context=rag_context, question=question))["text"]
-    if "Response" in res:
-        res_response = res.split("Response\n")[1].split("###")[0].strip()
-        content = au.add_links_to_text_blob(res_response)
-    else:
-        content = res[:]
-
-    return content
 
 
 ###################
