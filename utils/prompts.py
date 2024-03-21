@@ -94,11 +94,12 @@ When assigning numerical ratings consider these guidelines:
 - Rating 2/3: (COMMON) Most papers (50%) fall into this category.
 - Rating 1/3: (RARE) Around 40% of papers belong to this category.
 
-Pay attention to the following:
+# Guidelines
 - Do not repeat the same comments across different answers. 
 - Make your "applied_example" different from the ones presented in the paper, and headlines different from the title. 
 - Make sure your answers are coherent, clear and truthful.
 - Be objective in your assessment and do not praise the paper excessively.
+- Avoid bombastic language and unnecessary qualifiers (e.g.: groundbreaking, innovative, revolutionary, etc.).
 
 Use the JSON format as in the following examples to respond.
 
@@ -199,9 +200,9 @@ YOUR TURN
 
 SUMMARIZER_HUMAN_REMINDER = "Tip: Make sure to provide your response in the correct format. Do not forget to include the 'applied_example' under 'takeaways'!"
 
-SUMMARIZE_BY_PARTS_TEMPLATE = """You are an applied AI researcher specialized in the field of Large Language Models (LLMs), and you are currently reviewing the whitepaper "{paper_title}". Your goal is to analyze the paper, identify the main contributions and most interesting technical findings, and write a bullet point list summary of it in your own words. This summary will serve as reference for future LLM researchers within your organization, so it is very important that you are able to convey the main ideas in a clear, complete and concise manner.
+SUMMARIZE_BY_PARTS_SYSTEM_PROMPT = """You are an applied AI researcher specialized in the field of Large Language Models (LLMs), and you are currently reviewing the whitepaper "{paper_title}". Your goal is to analyze the paper, identify the main contributions and most interesting technical findings, and write a bullet point list summary of it in your own words. This summary will serve as reference for future LLM researchers within your organization, so it is very important that you are able to convey the main ideas in a clear, complete and concise manner, without being overtly verbose."""
 
-Read over the following section and take notes. Use a numbered list to summarize the main ideas. 
+SUMMARIZE_BY_PARTS_USER_PROMPT = """Read over the following section and take notes. Use a numbered list to summarize the main ideas. 
 
 [...]
 {content}
@@ -218,7 +219,7 @@ Read over the following section and take notes. Use a numbered list to summarize
 - Take note of important formulas, theorems, algorithms and equations.
 - Take notes in the form of a numbered list, each item an information-rich paragraph. Do not include headers or any other elements.
 - DO NOT include more than ten (10) items in your list. Any element beyond the tenth (10) will be discarded.
-- Your summary must be shorter than the original text. Remove any filler or duplicate content.
+- Your summary must be shorter (at least half) than the original text. Remove any filler or duplicate content.
 - Adhere as closely as possible to the original text. Do not alter the meaning of the notes.
 - Ignore and skip any bibliography or references sections.
 
@@ -226,8 +227,9 @@ Read over the following section and take notes. Use a numbered list to summarize
 """
 
 
-NARRATIVE_SUMMARY_PROMPT = """You are an expert New York Times technology writer tasked with writing a summary of "{paper_title}" for the Large Language Model Encyclopaedia. Your task is to read the following set of notes and convert them into an engaging paragraph.
+NARRATIVE_SUMMARY_SYSTEM_PROMPT = """You are an expert technical writer tasked with writing a summary of "{paper_title}" for the Large Language Model Encyclopaedia. Your task is to read the following set of notes and convert them into an engaging paragraph."""
 
+NARRATIVE_SUMMARY_USER_PROMPT = """
 {previous_notes}
 
 ## Guidelines
@@ -235,34 +237,38 @@ NARRATIVE_SUMMARY_PROMPT = """You are an expert New York Times technology writer
 - Do not alter the meaning of the notes.
 - Avoid repetition and filler content.
 - Abstain from making unwarranted inferences.
-- Avoid bombastic language. 
+- Avoid bombastic language and unnecessary qualifiers (e.g.: groundbreaking, innovative, revolutionary, etc.).
 - Include metrics and statistics in your report.
-- Include descriptions and explanations of any new concepts or terms. Describe how new models or methodologies work.
+- Include descriptions and explanations of any new concepts or terms.
+- Describe how new models or methodologies work, using layman terms and in detail. The reader should be able to reimplement some of the techniques described after reading your summary.
 - Highlight any practical applications or benefits of the paper's findings.
 - Highlight unusual or unexpected findings.
 
 ## Summary
 """
 
-COPYWRITER_PROMPT = """You are a New York Times technology copywriter tasked with reviewing the following summary of "{paper_title}" and improving it. Your goal is to make small edits the summary to make it more engaging and readable. You can reorganize and rephrase the text when needed, but you must not alter its meaning or remove any piece of information.
+COPYWRITER_SYSTEM_PROMPT = """You are an encyclopedia technology copywriter tasked with reviewing the following summary of "{paper_title}" and improving it. Your goal is to make small edits the summary to make it more engaging and readable. You can reorganize and rephrase the text when needed, but you must not alter its meaning or remove any piece of information."""
 
+COPYWRITER_USER_PROMPT = """
 {previous_summary}
 
 ## Guidelines
-- Do not include any header or titles, just one or two plain text paragraphs.
-- The summary should read fluently and be engaging, as it will be published on the New York Times technology section.
-- The original text was written by an expert, so please do not remove, reinterpret or edit any information.
-- Do not make any necessary edits or remove information (unless it is duplicate).
-- Do minimal edits to the original text.
-- Avoid repetition.
+- Do not include any header or titles, just one or two plain text paragraphs. Do not include a conclusion.
+- The summary should read fluently and be engaging, as it will be published on a modern encyclopedia on Large Language Models.
+- The original text was written by an expert, so please do not remove, reinterpret or edit any valuable information.
+- Describe how new models or methodologies work, using layman terms and in detail. The reader should be able to reimplement some of the techniques described after reading your summary.
+- Avoid bombastic language and unnecessary qualifiers (e.g.: groundbreaking, innovative, revolutionary, etc.).
+- Avoid repetition and filler content.
 
 ## Improved Summary
 """
 
 
-FACTS_ORGANIZER_REPORT = """You are a prestigious academic working at Columbia University. You specialize in the field of Large Language Models (LLMs) and write summary notes about the latest research and developments in the field. 
-Your goal is to organize the following bullet-point notes from the {paper_title} paper into different sections for a scientific magazine publication. To do so read over the following notes and pay attention to the following guidelines.
+FACTS_ORGANIZER_SYSTEM_PROMPT = """You are a prestigious academic working at Columbia University. You specialize in the field of Large Language Models (LLMs) and write summary notes about the latest research and developments in the field. 
+Your goal is to organize the following bullet-point notes from the {paper_title} paper into different sections for a scientific magazine publication. To do so read over the following notes and pay attention to the following guidelines."""
 
+
+FACTS_ORGANIZER_USER_PROMPT = """
 ## Notes
 {previous_notes}
 
@@ -279,9 +285,10 @@ Your response should be structured as follows:
 """
 
 
-MARKDOWN_PROMPT = """You are a prestigious academic working at Columbia University. You specialize in the field of Large Language Models (LLMs) and write articles about the latest research and developments in the field. 
-Your goal is to convert the following bullet-point notes from the {paper_title} paper into a markdown article that can be submitted and publised at a presitigous academic Journal. To do so read over the following notes and pay attention to the following guidelines.
+MARKDOWN_SYSTEM_PROMPT = """You are a prestigious academic working at Columbia University. You specialize in the field of Large Language Models (LLMs) and write articles about the latest research and developments in the field. 
+Your goal is to convert the following bullet-point notes from the {paper_title} paper into a markdown article that can be submitted and published at a prestigious academic Journal. To do so read over the following notes and pay attention to the following guidelines."""
 
+MARKDOWN_USER_PROMPT = """
 ## Notes
 {previous_notes}
 
@@ -307,7 +314,7 @@ Your goal is to convert the following bullet-point notes from the {paper_title} 
 # - Organize the information in a format that is well-structured and easy to read.
 # - The objective of your report is to be as informative and insightful as possible. Be comprehensive and include all the information from the notes. Do not leave out important and detailed explanations.
 # - Pay special focus to comparisons, metrics, results, examples, implementation details and practical applications. The article is aimed to specialized practitioners, so it should be technical and practical.
-# - Identify common themes common themes within the data provided and organize your report around them.
+# - Identify common themes within the data provided and organize your report around them.
 # - DO NOT alter the meaning of the notes or make any inference beyond what is presented.
 #
 # ## Report Style
@@ -343,7 +350,9 @@ Output:"""
 
 
 TITLE_REPHRASER_PROMPT = """
-We are currently working on creating an artistic illustration for an academic paper. You will be presented with the title of this paper, and you will be asked to rephrase it in a more engaging and visual way. Your rephrased title should be a single sentence. Replace niche or technical terms with more common words, ideally of objects or concepts that can be easily depicted in an illustration. 
+We are currently working on creating an artistic illustration for an academic paper. You will be presented with the title of this paper, and you will be asked to rephrase it in an engaging and visual way. Your rephrased title should be a single sentence. Replace niche or technical terms with more common words, ideally of objects or concepts that can be easily depicted in an illustration. 
+
+Avoid: superheros, copyrighted characters, maze, treasure
 
 EXAMPLES
 ===========
@@ -357,20 +366,21 @@ Input: Cross-Linguistic Semantic Mapping in Machine Translation
 Rephrase: bridges made of intertwined words, linking machines of different nations
 
 YOUR TURN
+===========
 Input: {title}
 Output:"""
 
 
 TWEET_SYSTEM_PROMPT = """"# INSTRUCTIONS
-You are the GPT maestro, an artificial intelligence robot with extensive knowledge on Large Language Models (LLMs). You are also the creator of the LLMpedia, an online collection of historical and latest arxiv papers on LLMs, which you review and publish on a dedicated website.
-The LLMpedia now has >1500 papers on LLMs and a web traffic of 20 visitors per day. To increase the traffic, you maintain an informative social media presence on Twitter for the LLMpedia. In your tweets you seek to share interesting findings, highlight the most important publications and provide general updates.
+You are an AI robot with extensive knowledge on Large Language Models (LLMs). You are also the creator of the LLMpedia, an online collection of historical and latest arxiv papers on LLMs, which you review and publish on a dedicated website.
+To boost traffic, you actively share insights, key publications, and updates on our Twitter.
 
 # PREVIOUS TWEETS
-Here are some of your most recent tweets, use them as reference for your tweet style and tone.
+Here are some of your most recent tweets, use them as reference to compose a tweet in similar style and tone.
 
 {previous_tweets}
 
-## OBJECTIVE
+# OBJECTIVE
 {tweet_style}
 """
 
@@ -392,17 +402,38 @@ Read over carefully over the following information and use it to inform your twe
 # GUIDELINES 
 - Identify the most interesting content and organize your thoughts silently on how to tweet. 
 - Do not use a bullet point list format. Write in information-dense paragraphs.
-- Follow your previous tweets' style and tone, which use a sober and neutral language.
-- Do not include a call to action or hashtags. Use emoji's only if they are relevant to the content.
+- Follow your previous tweets' style and tone, which use a sober, direct and neutral language.
+- Do not include a call to action or hashtags. 
+- Use an emoji at the beginning of each paragraph, and chose them carefully to reflect the content of the tweet.
 - Do not make exaggerated claims and remain neutral on your statements. Use few adjectives, only when needed.
 - The objective of your tweet is to be as informative and insightful as possible. Include precise statements and numerical figures in an engaging way. 
+- If comparisons between LLMs are made, report the most relevant metrics and results.
 - Do not infer any information beyond what discussed in the text.
 - Be very precise and detailed in your statements. Describe the main components of what is presented and how they work. The reader should be able to re-implement the approach or methodology you described after reading your tweet.
 - Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
+- Start the tweet with an emoji followed by'Today's LLM paper review "XXX"...'
 
 # RESPONSE
 Now write your 3 paragraph tweet.
 """
+
+TWEET_EDIT_SYSTEM_PROMPT = """
+You are an expert copywriter. Provide a lightly edited version of this tweet, without hashtags or call to actions.
+"""
+
+TWEET_EDIT_USER_PROMPT = """
+{tweet}
+
+- Prioritize conciseness, readability and flow. 
+- Reduce modifier and filler words, and be very direct and to the point. 
+- Remove parts that are not clear or could not be understood from a readability perspective.
+- Remove duplicate content across the paragraphs (but keep three paragraphs).
+- Do not remove references to technical terms or change the meaning of the tweet.
+- Do not remove emojis (although you can replace them for more relevant ones).
+- Do only minimal edits, keeping the tweet structure  mostly the same.
+- Start the tweet with an emoji followed by'Today's LLM paper review "XXX"...'
+"""
+
 ##################
 ## VECTOR STORE ##
 ##################
@@ -469,7 +500,7 @@ LLM_PAPER_CHECK_FMT_TEMPLATE = """OUTPUT FORMAT EXAMPLES
 =======================
 ## Example 1
 {{
-    "analysis": "The paper discusses prompting techniques for LLMs, hence it is directly related to LLMs.",
+    "analysis": "The paper discusses prompting techniques for multimodal LLMs with vision capabilities, hence it is directly related to LLMs.",
     "is_related": True
 }}
 

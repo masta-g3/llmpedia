@@ -75,7 +75,7 @@ def overlaps_with_range(date_range, start_date, end_date):
     return not (range_end < start_date or range_start > end_date)
 
 
-def scrape_hugginface_papers(start_date, end_date=None):
+def scrape_huggingface_papers(start_date, end_date=None):
     """Scrape arxiv codes and titles from huggingface.co/papers."""
     if end_date is None:
         end_date = start_date
@@ -140,25 +140,65 @@ def scrape_rsrch_space_papers(start_date, end_date=None):
     return df
 
 
+def scrape_ai_news_papers(start_date, end_date=None):
+    if end_date is None:
+        end_date = start_date
+
+    start_date = datetime.strptime(start_date, "%Y-%m-%d")
+    end_date = datetime.strptime(end_date, "%Y-%m-%d")
+    df = pd.DataFrame(columns=["arxiv_code", "title"])
+
+    response = requests.get("https://buttondown.email/ainews/archive/")
+    soup = BeautifulSoup(response.content, "html.parser")
+    mailinglist_entry = soup.find_all("div", class_="email-list")[0]
+    ## Get all <a> elements under the div
+    mailinglist_entry = mailinglist_entry.find_all("a", href=True)
+
+    for entry in mailinglist_entry:
+        date_str = entry.find("div", class_="email-metadata").text.strip()
+        entry_date = datetime.strptime(date_str, "%B %d, %Y")
+
+        if start_date <= entry_date <= end_date:
+            time.sleep(2)
+            href = entry["href"]
+            deep_response = requests.get(href)
+            deep_soup = BeautifulSoup(deep_response.content, "html.parser")
+
+            ## Find all arxiv links.
+            arxiv_links = deep_soup.find_all("a", href=True)
+            for link in arxiv_links:
+                if "arxiv.org/abs" in link["href"]:
+                    arxiv_code = link["href"].split("/")[-1]
+                    arxiv_code = arxiv_code[:10]
+                    title = link.get_text(strip=True)
+                    df = df._append(
+                        {"arxiv_code": arxiv_code, "title": title}, ignore_index=True
+                    )
+    df.drop_duplicates(subset="arxiv_code", keep="first", inplace=True)
+    return df
+
+
 def main():
     """Scrape arxiv codes and titles from huggingface.co/papers."""
     if len(sys.argv) < 2 or len(sys.argv) > 3:
-        print("Usage: python scraper.py <start_date> [end_date]")
-        sys.exit(1)
-
-    start_date = sys.argv[1]
-    end_date = sys.argv[2] if len(sys.argv) == 3 else None
+        start_date = (datetime.now() - timedelta(days=15)).strftime("%Y-%m-%d")
+        end_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    else:
+        start_date = sys.argv[1]
+        end_date = sys.argv[2] if len(sys.argv) == 3 else None
 
     # Perform scraping.
     print("Scraping HuggingFace...")
-    hf_df = scrape_hugginface_papers(start_date, end_date)
+    hf_df = scrape_huggingface_papers(start_date, end_date)
     print("Scraping Research Space...")
     rsrch_df = scrape_rsrch_space_papers(start_date, end_date)
     print("Scraping ML Papers of the Week...")
     dair_df = scrape_ml_papers_of_the_week(start_date, end_date)
+    print("Scraping AI News...")
+    ai_news_df = scrape_ai_news_papers(start_date, end_date)
 
     ## Combine and extract new codes.
-    df = pd.concat([hf_df, rsrch_df, dair_df], ignore_index=True)
+    df = pd.concat([hf_df, rsrch_df, dair_df, ai_news_df], ignore_index=True)
     df.drop_duplicates(subset="arxiv_code", keep="first", inplace=True)
     ## Remove "vX" from arxiv codes if present.
     df["arxiv_code"] = df["arxiv_code"].str.replace(r"v\d+$", "", regex=True)
@@ -175,6 +215,9 @@ def main():
     ## Update and upload arxiv codes.
     paper_list = list(set(paper_list + new_codes))
     paper_list = list(set(paper_list) - set(done_codes) - set(nonllm_codes))
+    if len(paper_list) == 0:
+        print("No new papers found. Exiting...")
+        sys.exit(0)
     gist_url = pu.update_gist(
         os.environ["GITHUB_TOKEN"],
         gist_id,
@@ -182,7 +225,6 @@ def main():
         "Updated LLM queue.",
         "\n".join(paper_list),
     )
-
 
 if __name__ == "__main__":
     main()

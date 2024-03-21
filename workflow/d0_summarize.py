@@ -10,6 +10,7 @@ from tqdm import tqdm
 sys.path.append(os.environ.get("PROJECT_PATH"))
 os.chdir(os.environ.get("PROJECT_PATH"))
 
+from utils.models import get_mlx_model
 import utils.vector_store as vs
 import utils.paper_utils as pu
 import utils.db as db
@@ -31,6 +32,8 @@ def main():
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
 
+    mlx_model, mlx_tokenizer = get_mlx_model()
+
     for arxiv_code in tqdm(arxiv_codes):
         paper_content = pu.load_local(arxiv_code, "arxiv_text", format="txt")
         paper_content = pu.preprocess_arxiv_doc(paper_content)
@@ -40,10 +43,15 @@ def main():
             print(f"Could not find '{arxiv_code}' in the meta-database. Skipping...")
             continue
 
-        with get_openai_callback() as cb:
-            summaries_dict, token_dict = vs.recursive_summarize_by_parts(
-                paper_title, paper_content, max_tokens=600, model="local"
-            )
+        summaries_dict, token_dict = vs.recursive_summarize_by_parts(
+            paper_title,
+            paper_content,
+            max_tokens=600,
+            model="mlx",
+            mlx_model=mlx_model,
+            mlx_tokenizer=mlx_tokenizer,
+            verbose=False,
+        )
 
         ## Insert notes as code, level, summary & tokens,
         summary_notes = pd.DataFrame(

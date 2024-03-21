@@ -39,7 +39,7 @@ def main():
 
     ## Check local files.
     local_codes = pu.get_local_arxiv_codes("arxiv_text")
-    nonllm_papers = pu.get_local_arxiv_codes("nonllm_arxiv_text")
+    nonllm_papers = pu.get_local_arxiv_codes("nonllm_arxiv_text") + ["..."]
 
     ## Remove duplicates.
     paper_list = list(set(paper_list) - set(local_codes) - set(nonllm_papers))

@@ -23,7 +23,7 @@ def main():
     done_codes = db.get_arxiv_id_list(db.db_params, "summary_markdown")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
-    arxiv_codes = ["2403.05440"]
+    arxiv_codes = ["2403.08540"]
 
     with get_openai_callback() as cb:
         for arxiv_code in tqdm(arxiv_codes):

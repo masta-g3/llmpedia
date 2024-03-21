@@ -173,6 +173,8 @@ def store_local(data, arxiv_code, data_path, relative=True, format="json"):
     elif format == "txt":
         with open(os.path.join(data_path, f"{arxiv_code}.txt"), "w") as f:
             f.write(data)
+    elif format == "csv":
+        data.to_csv(os.path.join(data_path, f"{arxiv_code}.csv"), index=False)
     else:
         raise ValueError("Format not supported.")
 
@@ -187,6 +189,8 @@ def load_local(arxiv_code, data_path, relative=True, format="json"):
     elif format == "txt":
         with open(os.path.join(data_path, f"{arxiv_code}.txt"), "r") as f:
             return f.read()
+    elif format == "csv":
+        return pd.read_csv(os.path.join(data_path, f"{arxiv_code}.csv"))
     else:
         raise ValueError("Format not supported.")
 
@@ -455,6 +459,8 @@ def update_gist(
     gist_content: str,
 ):
     """Upload a text file as a GitHub gist."""
+    if len(gist_content) == 0:
+        gist_content = ["..."]
     headers = {
         "Authorization": f"token {token}",
         "Accept": "application/vnd.github.v3+json",

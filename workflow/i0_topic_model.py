@@ -43,7 +43,7 @@ I have a topic that contains the following Large Language Model related document
 [DOCUMENTS]
 The topic is described by the following keywords: [KEYWORDS]
 
-Based on the information above, extract a short but highly descriptive topic label of at most 5 words. Do not use "Large Language Model" in your description. Make sure it is in the following format:
+Based on the information above, extract a short but highly descriptive and specific topic label using 5 to 7 words. Do not use "Large Language Model" or "Advances" in your description. Make sure it is in the following format:
 topic: <topic label>
 """
 
@@ -98,7 +98,7 @@ def create_topic_model(embedding_model: list, prompt: str) -> BERTopic:
     """Create topic model."""
     load_dotenv()
     umap_model = UMAP(
-        n_neighbors=15, n_components=5, min_dist=0.0, metric="cosine", random_state=42
+        n_neighbors=15, n_components=7, min_dist=0.0, metric="cosine", random_state=42
     )
     hdbscan_model = HDBSCAN(
         min_cluster_size=20,
@@ -117,8 +117,7 @@ def create_topic_model(embedding_model: list, prompt: str) -> BERTopic:
     openai.api_key = os.getenv("OPENAI_API_KEY")
     openai_model = OpenAI(
         client=openai.OpenAI(),
-        # model="gpt-3.5-turbo-1106",
-        model="gpt-4-1106-preview",
+        model="gpt-4-0125-preview",
         exponential_backoff=True,
         chat=True,
         prompt=prompt,

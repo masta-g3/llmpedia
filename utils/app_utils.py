@@ -38,4 +38,6 @@ def numbered_to_bullet_list(list_str: str):
     """Convert a numbered list to a bullet list."""
     list_str = re.sub(r"^\d+\.", r"-", list_str, flags=re.MULTILINE).strip()
     list_str = list_str.replace("</|im_end|>", "").strip()
+    ## Remove extra line breaks.
+    list_str = re.sub(r"\n{3,}", "\n\n", list_str)
     return list_str

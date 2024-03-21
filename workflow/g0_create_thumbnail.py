@@ -157,9 +157,10 @@ def main():
         clean_name = (
             name
             # .replace("transformer", "processor")
-            # .replace("Transformer", "Processor")
+            .replace("Transformer", "Processor")
             # .replace("Matrix", "Linear Algebra")
             .replace("LLM", "Large Language Model")
+            .replace("GPU", "")
         )
         generate_image(clean_name, img_file)
         print(f"Saved {img_file} ({idx+1}/{len(arxiv_codes)})")
