@@ -1,6 +1,7 @@
 from typing import Sequence, Mapping, Any, Union
 import random
 import torch
+import boto3
 import os, sys
 import warnings
 from dotenv import load_dotenv
@@ -15,6 +16,8 @@ warnings.filterwarnings("ignore")
 import utils.paper_utils as pu
 import utils.vector_store as vs
 import utils.db as db
+
+s3 = boto3.client("s3")
 
 from nodes import (
     KSampler,
@@ -159,10 +162,12 @@ def main():
             # .replace("transformer", "processor")
             .replace("Transformer", "Processor")
             # .replace("Matrix", "Linear Algebra")
-            .replace("LLM", "Large Language Model")
-            .replace("GPU", "")
+            .replace("LLM", "Large Language Model").replace("GPU", "")
         )
         generate_image(clean_name, img_file)
+
+        ## Upload to s3.
+        s3.upload_file(img_file, "llmpedia", arxiv_code + ".png")
         print(f"Saved {img_file} ({idx+1}/{len(arxiv_codes)})")
 
 

@@ -199,7 +199,10 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         expanded = True
     paper_code = paper["arxiv_code"]
     try:
-        img_cols[0].image(f"imgs/{paper_code}.png", use_column_width=True)
+        # img_cols[0].image(f"imgs/{paper_code}.png", use_column_width=True)
+        img_cols[0].image(
+            f"https://llmpedia.s3.amazonaws.com/{paper_code}.png", use_column_width=True
+        )
     except:
         pass
 
@@ -243,7 +246,11 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         )
 
         # summary = paper["recursive_summary"] if paper["recursive_summary"] else paper["contribution_content"]
-        summary = paper["recursive_summary"] if not pd.isna(paper["recursive_summary"]) else paper["contribution_content"]
+        summary = (
+            paper["recursive_summary"]
+            if not pd.isna(paper["recursive_summary"])
+            else paper["contribution_content"]
+        )
         markdown_summary = paper["markdown_notes"]
 
         if level_select == "📝 High-Level Overview":
@@ -303,7 +310,10 @@ def generate_grid_gallery(df, n_cols=5):
             if i * n_cols + j < len(df):
                 with cols[j]:
                     try:
-                        st.image(f"imgs/{df.iloc[i*n_cols+j]['arxiv_code']}.png")
+                        # st.image(f"imgs/{df.iloc[i*n_cols+j]['arxiv_code']}.png")
+                        st.image(
+                            f"https://llmpedia.s3.amazonaws.com/{df.iloc[i*n_cols+j]['arxiv_code']}.png"
+                        )
                     except:
                         pass
                     paper_url = df.iloc[i * n_cols + j]["url"]
@@ -655,7 +665,9 @@ def main():
                 with st.spinner(
                     "Consulting the GPT maestro, this might take a minute..."
                 ):
-                    response = au.query_llmpedia(user_question, collection_name, model="claude-sonnet")
+                    response = au.query_llmpedia(
+                        user_question, collection_name, model="claude-sonnet"
+                    )
                     db.log_qna_db(user_question, response)
                     st.divider()
                     st.markdown(response)
