@@ -11,6 +11,7 @@ from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 
 from utils.custom_langchain import NewCohereEmbeddings, NewPGVector
+from utils.models import llm_map
 import utils.prompts as ps
 import utils.db as db
 
@@ -18,26 +19,6 @@ CONNECTION_STRING = (
     f"postgresql+psycopg2://{db.db_params['user']}:{db.db_params['password']}"
     f"@{db.db_params['host']}:{db.db_params['port']}/{db.db_params['dbname']}"
 )
-
-llm_map = {
-    ## Open AI.
-    "GPT-3.5-Turbo-JSON": ChatOpenAI(
-        model_name="gpt-3.5-turbo-0125", temperature=0.0
-    ).bind(response_format={"type": "json_object"}),
-    "GPT-3.5-Turbo": ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature=0.0),
-    "GPT-3.5-Turbo-HT": ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature=0.8),
-    "GPT-4": ChatOpenAI(model_name="gpt-4", temperature=0.0),
-    "GPT-4-Turbo": ChatOpenAI(model_name="gpt-4-0125-preview", temperature=0.0),
-    "GPT-4-Turbo-JSON": ChatOpenAI(
-        model_name="gpt-4-0125-preview", temperature=0.0
-    ).bind(response_format={"type": "json_object"}),
-    ## Anthropic.
-    "claude-haiku": ChatAnthropic(temperature=0, model_name="claude-3-haiku-20240307"),
-    "claude-sonnet": ChatAnthropic(
-        temperature=0, model_name="claude-3-sonnet-20240229"
-    ),
-    "claude-opus": ChatAnthropic(temperature=0, model_name="claude-3-opus-20240229"),
-}
 
 
 def parse_weekly_report(report_md: str):
