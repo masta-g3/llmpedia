@@ -12,3 +12,4 @@ pydantic==2.5.3
 openai==1.10.0
 demjson3==3.0.6
 tiktoken==0.6.0
+mlx-lm==0.3.0
