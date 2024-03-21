@@ -3,8 +3,6 @@ from langchain_together import Together
 from langchain_anthropic import ChatAnthropic
 import os
 
-from mlx_lm import load
-
 together_key = os.getenv("TOGETHER_API_KEY")
 
 
@@ -13,6 +11,7 @@ def get_mlx_model(
     chat_template_name: [str, None] = "chatml.jinja",
 ):
     """Load MLX model + tokenizer and apply chat template."""
+    from mlx_lm import load
     mlx_model, mlx_tokenizer = load(f"mlx-community/{model_name}")
     if chat_template_name is not None:
         chat_template = open(f"utils/{chat_template_name}").read()
