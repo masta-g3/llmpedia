@@ -238,7 +238,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
     with st.expander(f"🗒 **Notes**", expanded=True):
         level_select = st.selectbox(
             "Detail",
-            ## high level overview, summary notes, detailed notes
+            ## high-level overview, summary notes, detailed notes
             ["📝 High-Level Overview", "🔎 Detailed Research Notes"],
             label_visibility="collapsed",
             index=0,
@@ -341,7 +341,7 @@ def generate_grid_gallery(df, n_cols=5):
                     )
                     if focus_btn:
                         st.session_state.arxiv_code = paper_code
-                        click_tab(3)
+                        click_tab(4)
 
                     st.markdown(
                         f'<h6 style="text-align: center"><a href="{paper_url}" style="color: #FF4B4B;">{paper_title}</a></h6>',
@@ -422,7 +422,7 @@ def main():
     if "arxiv_code" in url_query:
         paper_code = url_query["arxiv_code"]
         st.session_state.arxiv_code = paper_code
-        click_tab(3)
+        click_tab(4)
 
     st.markdown(
         """<div class="pixel-font">LLMpedia</div>
@@ -584,6 +584,7 @@ def main():
         [
             "🧮 Grid View",
             "🎞 Feed View",
+            "🗒️ Table View",
             "🗺️ Over View",
             "🔍 Focus View",
             "🤖 Chat",
@@ -592,6 +593,7 @@ def main():
     )
 
     with content_tabs[0]:
+        ## Gried view.
         if "page_number" not in st.session_state:
             st.session_state.page_number = 0
 
@@ -600,6 +602,7 @@ def main():
         create_bottom_navigation(label="grid")
 
     with content_tabs[1]:
+        ## Feed view.
         if "page_number" not in st.session_state:
             st.session_state.page_number = 0
 
@@ -610,8 +613,54 @@ def main():
         create_bottom_navigation(label="summaries")
 
     with content_tabs[2]:
-        ## Publication counts.
+        ## Table view.
+        display_df = papers_df.reset_index(drop=True)
+        # https://llmpedia.s3.amazonaws.com/2403.14624.png
+        display_df["display_url"] = display_df["arxiv_code"].map(
+            lambda l: f"https://llmpedia.s3.amazonaws.com/{l}.png"
+        )
+        column_config = {
+            "url": st.column_config.LinkColumn(
+                label="Arxiv Link",
+                display_text="https://arxiv\.org/abs/(.*?)(?:v\d+)?$",
+            ),
+            "display_url": st.column_config.ImageColumn(
+                label="Artwork",
+            ),
+            "published": st.column_config.DateColumn(
+                label="Published",
+                format="MMM DD, YYYY",
+                # width="small",
+            ),
+            "title": st.column_config.TextColumn(
+                label="Title",
+                width="large",
+            ),
+            "topic": st.column_config.TextColumn(
+                label="Topic",
+                width="large",
+            ),
+            "citation_count": "Citations",
+            "influential_citation_count": "⭐️Influential Citations",
+        }
+        display_cols = [
+            "display_url",
+            "published",
+            "title",
+            "citation_count",
+            "influential_citation_count",
+            "topic",
+        ]
+        display_df = display_df[column_config.keys()]
+        st.dataframe(
+            display_df,
+            column_config=column_config,
+            hide_index=True,
+            use_container_width=True,
+        )
 
+    with content_tabs[3]:
+        ## Over view.
         total_papers = len(papers_df)
         st.markdown(f"### 📈 Total Publication Counts: {total_papers}")
         plot_type = st.radio(
@@ -630,7 +679,7 @@ def main():
         cluster_map = pt.plot_cluster_map(papers_df)
         st.plotly_chart(cluster_map, use_container_width=True)
 
-    with content_tabs[3]:
+    with content_tabs[4]:
         ## Focus on a paper.
         arxiv_code = st.text_input("arXiv Code", st.session_state.arxiv_code)
         st.session_state.arxiv_code = arxiv_code
@@ -641,7 +690,7 @@ def main():
             else:
                 st.error("Paper not found.")
 
-    with content_tabs[4]:
+    with content_tabs[5]:
         st.markdown("##### 🤖 Chat with the GPT maestro.")
         config_cols = st.columns((3, 3, 10))
         embedding_name = config_cols[0]._selectbox(
@@ -672,12 +721,7 @@ def main():
                     st.divider()
                     st.markdown(response)
 
-    with content_tabs[5]:
-        # report_sections = [
-        #     "New Developments & Findings",
-        #     "Highlight of the Week",
-        #     "Related Repos & Libraries",
-        # ]
+    with content_tabs[6]:
         report_top_cols = st.columns((5, 2))
         with report_top_cols[0]:
             st.markdown("# 📰 LLM Weekly Review")
@@ -717,8 +761,8 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        db.log_error_db(e)
-        st.error("Something went wrong. Please refresh the app and try again.")
+    # try:
+    main()
+# except Exception as e:
+#     db.log_error_db(e)
+#     st.error("Something went wrong. Please refresh the app and try again.")

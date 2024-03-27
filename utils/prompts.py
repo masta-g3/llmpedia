@@ -253,7 +253,7 @@ COPYWRITER_USER_PROMPT = """
 {previous_summary}
 
 ## Guidelines
-- Do not include any header or titles, just one or two plain text paragraphs. Do not include a conclusion.
+- Do not include any header or titles, just one (or two) plain text paragraphs. Do not include a conclusion.
 - The summary should read fluently and be engaging, as it will be published on a modern encyclopedia on Large Language Models.
 - The original text was written by an expert, so please do not remove, reinterpret or edit any valuable information.
 - Describe how new models or methodologies work, using layman terms and in detail. The reader should be able to reimplement some of the techniques described after reading your summary.
@@ -264,7 +264,7 @@ COPYWRITER_USER_PROMPT = """
 """
 
 
-FACTS_ORGANIZER_SYSTEM_PROMPT = """You are a prestigious academic working at Columbia University. You specialize in the field of Large Language Models (LLMs) and write summary notes about the latest research and developments in the field. 
+FACTS_ORGANIZER_SYSTEM_PROMPT = """You are a prestigious academic writer. You specialize in the field of Large Language Models (LLMs) and write summary notes about the latest research and developments in the field. 
 Your goal is to organize the following bullet-point notes from the {paper_title} paper into different sections for a scientific magazine publication. To do so read over the following notes and pay attention to the following guidelines."""
 
 
@@ -273,20 +273,20 @@ FACTS_ORGANIZER_USER_PROMPT = """
 {previous_notes}
 
 ## Guidelines
-1) After reading the text, identify between five (5) and seven (7) common themes or sections title for each one. These will be the titles of the sections of your report.
+1) After reading the text, identify between four (4) and six (6) common themes or sections title for each one. These will be the titles of the sections of your report.
 2) Do not include introduction or conclusion sections.
 3) Organize each of the elements of the note into the corresponding section. Do not leave any element out.
 4) Organize the elements in a way that maintains a coherent flow of ideas and a natural progression of concepts.
 
 ## Response Format
 Your response should be structured as follows:
-- A first section (## Section Names) where you list between five (5) and seven (7)   section title along with a one-line description.
+- A first section (## Section Names) where you list between four (4) and six (6) section title along with a one-line description.
 - A second section (## Organized Notes) where you list the elements of the note under the corresponding section title.
 """
 
 
-MARKDOWN_SYSTEM_PROMPT = """You are a prestigious academic working at Columbia University. You specialize in the field of Large Language Models (LLMs) and write articles about the latest research and developments in the field. 
-Your goal is to convert the following bullet-point notes from the {paper_title} paper into a markdown article that can be submitted and published at a prestigious academic Journal. To do so read over the following notes and pay attention to the following guidelines."""
+MARKDOWN_SYSTEM_PROMPT = """ou are a prestigious academic writer. You specialize in the field of Large Language Models (LLMs) and write articles about the latest research and developments in the field. 
+Your goal is to convert the following bullet-point notes from the '{paper_title}' paper into a markdown article that can be submitted and published at a prestigious Journal. To do so read over the following notes and pay attention to the following guidelines."""
 
 MARKDOWN_USER_PROMPT = """
 ## Notes
@@ -294,8 +294,8 @@ MARKDOWN_USER_PROMPT = """
 
 ## Guidelines
 1) After reading the text your task is to convert each of the bullet point lists into two or more paragraphs.
-2) Each paragraph should be information-rich and dense, and should not include any bullet points. You should not leave any information out.
-3) Use markdown elements to structure your article, but DO NOT change any of the section titles.
+2) Each paragraph should be information-rich and dense, and should NOT include any bullet points or numbered lists. You should not leave any information out.
+3) Use markdown headers, paragraphs and styling to structure your article.
 4) Use simple, direct and neutral language, avoid using too many qualifiers or adjectives.
 """
 

@@ -233,7 +233,7 @@ def organize_notes(paper_title, notes, model="GPT-3.5-Turbo"):
     )
     organize_chain = LLMChain(llm=llm_map[model], prompt=organize_prompt)
     organized_sections = organize_chain.invoke(
-        dict(paper_title=paper_title, previous_notes=notes)
+        dict(paper_title=paper_title, previous_notes=notes, max_tokens=6000)
     )["text"]
     return organized_sections
 
@@ -245,7 +245,7 @@ def convert_notes_to_markdown(paper_title, notes, model="GPT-3.5-Turbo"):
     )
     markdown_chain = LLMChain(llm=llm_map[model], prompt=markdown_prompt)
     markdown = markdown_chain.invoke(
-        dict(paper_title=paper_title, previous_notes=notes)
+        dict(paper_title=paper_title, previous_notes=notes, max_tokens=6000)
     )["text"]
     return markdown
 
@@ -323,30 +323,3 @@ def edit_tweet(tweet: str, model="GPT-4-Turbo"):
     tweet_chain = LLMChain(llm=llm_map[model], prompt=tweet_prompt)
     edited_tweet = tweet_chain.invoke(dict(tweet=tweet))["text"]
     return edited_tweet
-
-
-def experiment(content: str, model="GPT-4-Turbo"):
-    """Run an experiment via LLMChain."""
-    EXPERIMENT_SYSTEM_PROMPT = f"""
-CONTENT
-==========
-{content} 
-
-GUIDELINES
-==========
-Using at most 50 words (3 sentences), write one clear, step-by-step, layman-level paragraph explaining the most important technical finding presented in the notes above and how it is implemented. Include a numerical figure to support your report and be detailed in your descriptions. Do not focus on specific models, model comparisons or benchmarks in your report. Reply only with the summary paragraph.
-
-SUMMARY
-==========
-"""
-    experiment_prompt = ChatPromptTemplate.from_messages(
-        [("user", EXPERIMENT_SYSTEM_PROMPT)]
-    )
-    experiment_chain = LLMChain(llm=llm_map[model], prompt=experiment_prompt)
-    if "claude" not in model:
-        result = experiment_chain.invoke(
-            dict(experiment_content=content, stop=["\n\n"])
-        )["text"]
-    else:
-        result = experiment_chain.invoke(dict(experiment_content=content))["text"]
-    return result

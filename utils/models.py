@@ -12,6 +12,7 @@ def get_mlx_model(
 ):
     """Load MLX model + tokenizer and apply chat template."""
     from mlx_lm import load
+
     mlx_model, mlx_tokenizer = load(f"mlx-community/{model_name}")
     if chat_template_name is not None:
         chat_template = open(f"utils/{chat_template_name}").read()
@@ -89,7 +90,13 @@ llm_map = {
         together_api_key=together_key,
     ),
     ## Local model.
-    "local": ChatOpenAI(model_name="local", temperature=0.0),
+    "local": ChatOpenAI(
+        # model_name="local",
+        temperature=0.0,
+        base_url="http://localhost:1234/v1",
+        api_key="lm-studio",
+        model_name="local"
+    ),
     ## Anthropic.
     "claude-haiku": ChatAnthropic(temperature=0, model_name="claude-3-haiku-20240307"),
     "claude-sonnet": ChatAnthropic(

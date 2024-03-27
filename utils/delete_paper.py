@@ -35,17 +35,6 @@ def delete_from_db(arxiv_code: str):
 
 def delete_paper(arxiv_code: str):
     """Delete paper from all data sources."""
-    ## Code map.
-    try:
-        with open("arxiv_code_map.json", "r") as f:
-            arxiv_code_map = json.load(f)
-        del arxiv_code_map[arxiv_code]
-        with open("arxiv_code_map.json", "w") as f:
-            json.dump(arxiv_code_map, f)
-        print(f"Deleted {arxiv_code} from arxiv_code_map.json.")
-    except:
-        print("arXiv code not found in arxiv_code_map.json.")
-
     print("Cleaning up pickles...")
     ## Metadata.
     arxiv_df = pd.read_pickle("data/arxiv.pkl")

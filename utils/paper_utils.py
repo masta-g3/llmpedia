@@ -1,5 +1,6 @@
 import os
 import re, json
+import time
 import arxiv
 import requests
 import pandas as pd
@@ -407,9 +408,16 @@ def process_arxiv_data(data):
 def get_semantic_scholar_info(arxiv_code):
     """Search article in Semantic Scholar by Arxiv code and retrieve meta-data."""
     url = f"https://api.semanticscholar.org/graph/v1/paper/ARXIV:{arxiv_code}?fields=title,citationCount,influentialCitationCount,tldr,venue"
-    response = requests.get(url)
+
+    ## headers to avoid rate limiting / blocking.
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+    }
+    response = requests.get(url, headers=headers)
     if response.status_code == 200:
         return response.json()
+    elif response.status_code == 429:
+        raise Exception("Rate limit exceeded.")
     else:
         return None
 
