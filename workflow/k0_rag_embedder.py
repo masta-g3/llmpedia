@@ -57,7 +57,7 @@ def main():
             embedding_function=embeddings,
         )
 
-        arxiv_codes = db.get_arxiv_id_embeddings(pu.db_params, COLLECTION_NAME)
+        arxiv_codes = db.get_arxiv_id_embeddings(COLLECTION_NAME)
         local_codes = os.listdir(chunk_path)
         local_codes = [code.replace(".json", "") for code in local_codes]
         processing_codes = list(set(local_codes) - set(arxiv_codes))

@@ -14,7 +14,7 @@ import utils.vector_store as vs
 import utils.db as db
 
 
-def main(arxiv_code: str):
+def main():
     """Generate a weekly review of highlights and takeaways from papers."""
     vs.validate_openai_env()
 
@@ -33,7 +33,7 @@ def main(arxiv_code: str):
     # tweets_df = pd.DataFrame(tweets.items(), columns=["date", "tweet"])
     # tweets_df
 
-    paper_summary = db.get_extended_notes(arxiv_code, expected_tokens=4000)
+    paper_summary = db.get_extended_notes(arxiv_code, expected_tokens=82000)
     title_map = db.get_arxiv_title_dict()
     paper_title = title_map[arxiv_code]
 
@@ -54,10 +54,11 @@ def main(arxiv_code: str):
             previous_tweets=previous_tweets,
             tweet_style=tweet_style,
             tweet_facts=tweet_facts,
+            model="claude-sonnet"
         )
         print(tweet)
 
-        edited_tweet = vs.edit_tweet(tweet)
+        edited_tweet = vs.edit_tweet(tweet, model="claude-sonnet")
         print(cb)
 
     print("Original tweet: ")
@@ -68,6 +69,6 @@ def main(arxiv_code: str):
 
 
 if __name__ == "__main__":
-    arxiv_code = sys.argv[1]
+    arxiv_code = "2404.02418"
     print(f"Generating a tweet for {arxiv_code}...")
-    main(arxiv_code)
+    main()

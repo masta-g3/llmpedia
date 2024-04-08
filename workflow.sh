@@ -1,27 +1,27 @@
 #!/bin/bash
-echo ">> [0] Scraping paper list..."
-python workflow/a0_scrape_lists.py
-echo ">> [1] Downloading papers.."
-python workflow/b0_download_paper.py
-echo ">> [2] Fetching meta..."
-python workflow/c0_fetch_meta.py
-echo ">> [3] Summarizing..."
-python workflow/d0_summarize.py
-echo ">> [4] Narrating..."
-python workflow/e0_narrate.py
-echo ">> [5] Reviewing..."
-python workflow/f0_review.py
-echo ">> [6] Creating thumbnails..."
-python workflow/g0_create_thumbnail.py
-echo ">> [7] Citations..."
-python workflow/h0_citations.py
-echo ">> [8] Running topic model..."
-python workflow/i0_topic_model.py
-echo ">> [9] Chunking documents..."
-python workflow/j0_doc_chunker.py
-echo ">> [10] Creating embeddings..."
-python workflow/k0_rag_embedder.py
-echo ">> [11] Updating gist..."
-python workflow/l0_update_gist.py
+
+set -e  # Exit immediately if any command fails
+
+LOG_FILE="workflow.log"
+
+function run_step() {
+    local step_name="$1"
+    local script="$2"
+    echo ">> [$step_name]" | tee -a "$LOG_FILE"
+    python "$script" 2>&1 | tee -a "$LOG_FILE"
+}
+
+run_step "0: Web Scraper" "workflow/a0_scrape_lists.py"
+run_step "1: Document Fetcher" "workflow/b0_download_paper.py"
+run_step "2: Meta-Data Collect" "workflow/c0_fetch_meta.py"
+run_step "3: Summarizer" "workflow/d0_summarize.py"
+run_step "4: Narrator" "workflow/e0_narrate.py"
+run_step "5: Reviewer" "workflow/f0_review.py"
+run_step "6: Visual Artist" "workflow/g0_create_thumbnail.py"
+run_step "7: Scholar" "workflow/h0_citations.py"
+run_step "8: Topic Model" "workflow/i0_topic_model.py"
+run_step "9: Document Chunker" "workflow/j0_doc_chunker.py"
+run_step "10: Document Embedder" "workflow/k0_rag_embedder.py"
+run_step "11: GIST Updater" "workflow/l0_update_gist.py"
 
 echo "Done! Please enjoy the rest of your day and spread love around your neighbourhood."

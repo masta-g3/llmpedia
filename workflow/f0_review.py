@@ -38,7 +38,7 @@ def main():
             success = False
             for i in range(RETRIES):
                 try:
-                    summary = vs.review_llm_paper(new_content)
+                    summary = vs.review_llm_paper(new_content, model="GPT-4-Turbo")
                     success = True
                     break
                 except Exception as e:

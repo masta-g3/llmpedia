@@ -275,7 +275,7 @@ def get_max_table_date(db_params, table_name, date_col="date"):
             return cur.fetchone()[0]
 
 
-def get_arxiv_id_embeddings(db_params, collection_name):
+def get_arxiv_id_embeddings(collection_name, db_params=db_params):
     with psycopg2.connect(**db_params) as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -429,3 +429,21 @@ def get_extended_notes(arxiv_code: str, level=None, expected_tokens=None):
         summary = result.fetchone()
     engine.dispose()
     return summary[2]
+
+
+def get_recursive_summary(arxiv_code: str) -> str:
+    """Get recursive summary for a given arxiv code."""
+    engine = create_engine(database_url)
+    with engine.begin() as conn:
+        query = text(
+            f"""
+            SELECT arxiv_code, summary
+            FROM recursive_summaries
+            WHERE arxiv_code = '{arxiv_code}';
+            """
+        )
+        result = conn.execute(query)
+        summary = result.fetchone()
+    engine.dispose()
+    result = summary[1] if summary else  None
+    return result

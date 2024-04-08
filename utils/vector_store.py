@@ -41,7 +41,7 @@ def validate_openai_env():
 ###################
 
 text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-    chunk_size=750, chunk_overlap=22
+    chunk_size=1000, chunk_overlap=25
 )
 
 
@@ -135,7 +135,9 @@ def summarize_doc_chunk(paper_title: str, document: str, model="local"):
         ]
     )
     chain = LLMChain(llm=llm_map[model], prompt=summarizer_prompt, verbose=False)
-    summary = chain.invoke(dict(paper_title=paper_title, content=document))["text"]
+    summary = chain.invoke(
+        dict(paper_title=paper_title, content=document, stop=["</summary>"])
+    )["text"]
     return summary
 
 
@@ -206,7 +208,7 @@ def convert_notes_to_narrative(paper_title, notes, model="GPT-3.5-Turbo"):
     )
     narrative_chain = LLMChain(llm=llm_map[model], prompt=narrative_prompt)
     narrative = narrative_chain.invoke(
-        dict(paper_title=paper_title, previous_notes=notes)
+        dict(paper_title=paper_title, previous_notes=notes, stop=["</summary>"])
     )["text"]
     return narrative
 
@@ -218,7 +220,7 @@ def copywrite_summary(paper_title, narrative, model="GPT-3.5-Turbo"):
     )
     copywriting_chain = LLMChain(llm=llm_map[model], prompt=copywriting_prompt)
     copywritten = copywriting_chain.invoke(
-        dict(paper_title=paper_title, previous_summary=narrative)
+        dict(paper_title=paper_title, previous_summary=narrative, stop=["</improved_summary>"])
     )["text"]
     return copywritten
 
@@ -280,7 +282,7 @@ def generate_weekly_report(weekly_content_md: str, model="GPT-4-Turbo"):
             ("user", ps.WEEKLY_USER_PROMPT),
             (
                 "user",
-                "Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678)."
+                "Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678).",
             ),
         ]
     )

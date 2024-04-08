@@ -2,5 +2,7 @@
 .env
 */__pycache__/
 data/
+imgs/
 workflow_old/
+notebooks/
 */.DS_Store

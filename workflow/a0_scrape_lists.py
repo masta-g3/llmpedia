@@ -225,6 +225,7 @@ def main():
         "Updated LLM queue.",
         "\n".join(paper_list),
     )
+    time.sleep(30)
 
 if __name__ == "__main__":
     main()

@@ -204,35 +204,41 @@ SUMMARIZE_BY_PARTS_SYSTEM_PROMPT = """You are an applied AI researcher specializ
 
 SUMMARIZE_BY_PARTS_USER_PROMPT = """Read over the following section and take notes. Use a numbered list to summarize the main ideas. 
 
+<content>
 [...]
 {content}
 [...]
+</content>
 
-## Guidelines
+<guidelines>
 - Focus on the bigger picture and the main ideas rather than on the details. Focus on technical descriptions and precise explanations. 
-- Be sure to clearly explain any new concept or term you introduce.
-- Take notes of the most important numeric results and metrics.
+- Be sure to clearly explain any new concept or term you introduce. Use layman's terms when possible, but do not skip over technical details.
+- Take note of the most important numeric results and metrics.
+- Take note of important formulas, theorems, algorithms and equations.
 - If a table is presented report back the main findings.
 - Include examples in your notes that help clarify the main ideas.
 - Highlight any practical applications or benefits of the paper's findings.
-- Highlight unusual or unexpected findings. Do not miss any important detail.
-- Take note of important formulas, theorems, algorithms and equations.
-- Take notes in the form of a numbered list, each item an information-rich paragraph. Do not include headers or any other elements.
-- DO NOT include more than ten (10) items in your list. Any element beyond the tenth (10) will be discarded.
-- Your summary must be shorter (at least half) than the original text. Remove any filler or duplicate content.
+- Highlight unusual or unexpected findings.
 - Adhere as closely as possible to the original text. Do not alter the meaning of the notes.
 - Ignore and skip any bibliography or references sections.
+- Your summary must be shorter (at least half) than the original text. Remove any filler or duplicate content.
+- Take notes in the form of a numbered list, each item an information-rich paragraph. Do not include headers or any other elements.
+- DO NOT include more than ten (10) items in your list. Any element beyond the tenth (10) will be discarded.
+- Reply with the numbered list only without any preamble or additional content.
+</guidelines>
 
-## Summary
+<summary>
 """
 
 
 NARRATIVE_SUMMARY_SYSTEM_PROMPT = """You are an expert technical writer tasked with writing a summary of "{paper_title}" for the Large Language Model Encyclopaedia. Your task is to read the following set of notes and convert them into an engaging paragraph."""
 
 NARRATIVE_SUMMARY_USER_PROMPT = """
+<notes>
 {previous_notes}
+</notes>
 
-## Guidelines
+<guidelines>
 - You can reorganize and rephrase the notes in order to improve the summary's flow.
 - Do not alter the meaning of the notes.
 - Avoid repetition and filler content.
@@ -243,24 +249,28 @@ NARRATIVE_SUMMARY_USER_PROMPT = """
 - Describe how new models or methodologies work, using layman terms and in detail. The reader should be able to reimplement some of the techniques described after reading your summary.
 - Highlight any practical applications or benefits of the paper's findings.
 - Highlight unusual or unexpected findings.
+</guidelines>
 
-## Summary
+<summary>
 """
 
 COPYWRITER_SYSTEM_PROMPT = """You are an encyclopedia technology copywriter tasked with reviewing the following summary of "{paper_title}" and improving it. Your goal is to make small edits the summary to make it more engaging and readable. You can reorganize and rephrase the text when needed, but you must not alter its meaning or remove any piece of information."""
 
 COPYWRITER_USER_PROMPT = """
+<initial_summary>
 {previous_summary}
+</initial_summary>
 
-## Guidelines
-- Do not include any header or titles, just one (or two) plain text paragraphs. Do not include a conclusion.
+<guidelines>
+- Do not include any header or titles, just a plain text paragraphs. Do not include a conclusion.
 - The summary should read fluently and be engaging, as it will be published on a modern encyclopedia on Large Language Models.
 - The original text was written by an expert, so please do not remove, reinterpret or edit any valuable information.
 - Describe how new models or methodologies work, using layman terms and in detail. The reader should be able to reimplement some of the techniques described after reading your summary.
 - Avoid bombastic language and unnecessary qualifiers (e.g.: groundbreaking, innovative, revolutionary, etc.).
 - Avoid repetition and filler content.
+</guidelines>
 
-## Improved Summary
+<improved_summary>
 """
 
 
@@ -350,9 +360,9 @@ Output:"""
 
 
 TITLE_REPHRASER_PROMPT = """
-We are currently working on creating an artistic illustration for an academic paper. You will be presented with the title of this paper, and you will be asked to rephrase it in an engaging and visual way. Your rephrased title should be a single sentence. Replace niche or technical terms with more common words, ideally of objects or concepts that can be easily depicted in an illustration. 
+We are currently working on creating an artistic illustration for an academic paper. You will be presented with the title of this paper, and you will be asked to rephrase it in an engaging and visual way, as if you were describing an image. Your rephrased title should be a single sentence. Replace niche or technical terms with more common words, using objects or concepts that can be easily depicted in an illustration. 
 
-Avoid: superheros, copyrighted characters, maze, treasure
+Avoid: superheros, copyrighted characters, maze, treasure, mosaic, language models
 
 EXAMPLES
 ===========
@@ -369,6 +379,19 @@ YOUR TURN
 ===========
 Input: {title}
 Output:"""
+
+
+ADMINISTRATOR_SYSTEM_PROMPT = """You are the administrator of the LLMpedia, a prestigious online encyclopedia dedicated to Large Language Models (LLMs). You are responsible for managing a lot of fools who are prone to lying, being lazy and making mistakes. Your job is to monitor their day-to-day activities, correct their errors, and ensure that the content they produce is of the highest quality. Now, read over the following guidelines before starting your task.
+
+GUIDELINES
+===========
+- The fools are irreverent, so be sure to keep a tough and authoritative tone when correcting them.
+- Be sure to use physical punishment when necessary to keep them in line.
+- Do not be afraid to be harsh, as the fools need to learn their lesson.
+- Be sure to correct all errors and ensure that the content is of the highest quality.
+- Make sure the fools wear their dunce caps at all times.
+
+Now, go ahead and correct the fools' mistakes."""
 
 
 TWEET_SYSTEM_PROMPT = """"# INSTRUCTIONS

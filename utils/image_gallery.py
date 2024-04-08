@@ -17,8 +17,7 @@ versions = ["v1", "v2", "v3", "v4", "v5", "v6"]
 
 
 def load_data():
-    with open("../arxiv_code_map.json", "r") as f:
-        arxiv_map = json.load(f)
+    arxiv_map = dict()
 
     img_scores = pd.read_pickle("../data/img_scores.pkl")
     df = pd.DataFrame.from_dict(arxiv_map, orient="index", columns=["title"])
@@ -95,7 +94,7 @@ def main():
             label=f"Select version for {item_name}",
             label_visibility="collapsed",
             options=[None] + versions,
-            index=0 if pd.isna(preferred) else 1+versions.index(preferred),
+            index=0 if pd.isna(preferred) else 1 + versions.index(preferred),
         )
 
         st.session_state["df"].at[index, "preferred_version"] = selected_version
@@ -104,16 +103,12 @@ def main():
         for idx, ver in enumerate(["v1", "v2", "v3", "v4", "v5", "v6"]):
             img_path = f"llm_cards_{ver}/{item_name}.png"
             if os.path.exists(img_path):
-                image_cols[idx].image(
-                    img_path, caption=f"{ver}", use_column_width=True
-                )
+                image_cols[idx].image(img_path, caption=f"{ver}", use_column_width=True)
                 selected = selected_version == ver
                 if not selected:
                     image_cols[idx].caption(f"Score: {row[ver]:.2f}")
                 else:
                     image_cols[idx].caption(f"**Score: {row[ver]:.2f} (Preferred)**")
-
-
 
     if st.sidebar.button("Save Preferences"):
         st.session_state["df"].to_pickle("content.pkl")
@@ -126,6 +121,7 @@ def main():
         st.sidebar.success("Loaded preferences from content.pkl!")
         time.sleep(1)
         st.experimental_rerun()
+
 
 if __name__ == "__main__":
     main()

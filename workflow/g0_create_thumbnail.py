@@ -76,7 +76,7 @@ def generate_image(name, img_file):
         cliptextencode_7 = cliptextencode.encode(
             text="low quality, glitch, blurry, deformed, mutated, ugly, disfigured, grainy, noise,"
             "watermark, cartoon, anime, videogame, text, flow chart, signature, depth of field,"
-            "religious, portrait, mandala, photo-real, b&w, poker, modern, grid, 3d",
+            "religious, portrait, mandala, photo-real, b&w, poker, modern, grid, 3d, knolling",
             clip=get_value_at_index(loraloader_39, 1),
         )
 
@@ -91,7 +91,7 @@ def generate_image(name, img_file):
         # keyword = vs.summarize_title_in_word(name)
         print(f"* Title: {name}")
         name = vs.rephrase_title(name)
-        caption = f'"{name}", "tarot and computers", stunning award-winning pixel art'
+        caption = f'"{name}", from series: "tarot, nature and computers", stunning award-winning pixel art'
         print("--> " + caption)
 
         cliptextencode_102 = cliptextencode.encode(

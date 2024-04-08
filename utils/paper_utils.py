@@ -1,6 +1,7 @@
 import os
 import re, json
 import time
+import random
 import arxiv
 import requests
 import pandas as pd
@@ -26,6 +27,8 @@ db_params = {
     "host": os.environ["DB_HOST"],
     "port": os.environ["DB_PORT"],
 }
+
+ss_api_key = os.environ["SEMANTIC_SCHOLAR_API_KEY"]
 
 summary_col_mapping = {
     "arxiv_code": "arxiv_code",
@@ -226,7 +229,11 @@ def format_paper_summary(summary_row):
     date = summary_row["published"].strftime("%B %d, %Y")
     arxiv_code = summary_row["arxiv_code"]
     citations = int(summary_row["citation_count"])
-    summary = summary_row["recursive_summary"] if summary_row["recursive_summary"] else summary_row["summary"]
+    summary = (
+        summary_row["recursive_summary"]
+        if summary_row["recursive_summary"]
+        else summary_row["summary"]
+    )
     main_contribution = summary_row["contribution_content"]
     takeaways = summary_row["takeaway_content"]
     arxiv_comments = summary_row["arxiv_comment"]
@@ -338,7 +345,9 @@ def search_arxiv_doc(paper_name):
     return docs[0]
 
 
-def preprocess_arxiv_doc(doc_content, token_encoder=None, max_tokens=None, remove_references=True):
+def preprocess_arxiv_doc(
+    doc_content, token_encoder=None, max_tokens=None, remove_references=True
+):
     """Preprocess an Arxiv document."""
     # doc_content = reformat_text(doc_content)
     doc_content = doc_content.replace("<|endoftext|>", "|endoftext|")
@@ -405,21 +414,25 @@ def process_arxiv_data(data):
     return filtered_data
 
 
-def get_semantic_scholar_info(arxiv_code):
+def get_semantic_scholar_info(
+    arxiv_code: str, max_retries: int = 3, retry_delay: int = 5
+):
     """Search article in Semantic Scholar by Arxiv code and retrieve meta-data."""
     url = f"https://api.semanticscholar.org/graph/v1/paper/ARXIV:{arxiv_code}?fields=title,citationCount,influentialCitationCount,tldr,venue"
+    headers = {"x-api-key": ss_api_key}
 
-    ## headers to avoid rate limiting / blocking.
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
-    }
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        return response.json()
-    elif response.status_code == 429:
-        raise Exception("Rate limit exceeded.")
-    else:
-        return None
+    for attempt in range(max_retries):
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 429:
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay + retry_delay**attempt)
+            else:
+                raise Exception("Rate limit exceeded.")
+        else:
+            return None
+    return None
 
 
 def check_if_exists(paper_name, existing_paper_names, existing_paper_ids):
@@ -468,7 +481,7 @@ def update_gist(
 ):
     """Upload a text file as a GitHub gist."""
     if len(gist_content) == 0:
-        gist_content = ["..."]
+        gist_content = "..."
     headers = {
         "Authorization": f"token {token}",
         "Accept": "application/vnd.github.v3+json",

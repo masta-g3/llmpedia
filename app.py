@@ -470,7 +470,7 @@ def main():
 
     search_term = st.sidebar.text_input("Search", "")
     search_opt_cols = st.sidebar.columns((1, 1))
-    title_only = search_opt_cols[0].checkbox("`Title Only`", value=False)
+    title_only = search_opt_cols[0].checkbox("`Title Only`", value=True)
     code_only = search_opt_cols[1].checkbox("`Arxiv Code`", value=False)
     categories = st.sidebar.multiselect(
         "Categories",

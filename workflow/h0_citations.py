@@ -18,10 +18,11 @@ semantic_map = {
     "influentialCitationCount": "influential_citation_count",
 }
 
-OVERRIDE = False
+OVERRIDE =  True
+
 
 def main():
-    """ Load summaries and add missing ones."""
+    """Load summaries and add missing ones."""
     arxiv_codes = db.get_arxiv_id_list(db.db_params, "summaries")
     done_codes = db.get_arxiv_id_list(db.db_params, "semantic_details")
     if not OVERRIDE:
@@ -31,18 +32,22 @@ def main():
     items_added = 0
     errors = 0
     for arxiv_code in tqdm(arxiv_codes):
-        if db.check_in_db(arxiv_code, db.db_params, "semantic_details"):
-            if not OVERRIDE:
+        clear_previous = False
+        already_exists = db.check_in_db(arxiv_code, db.db_params, "semantic_details")
+        if not OVERRIDE:
+            if already_exists:
                 continue
-            else:
-                db.remove_from_db(arxiv_code, db.db_params, "semantic_details")
+        else:
+            clear_previous = True
 
-        ## Get Semantic Scholar info.
         ss_info = pu.get_semantic_scholar_info(arxiv_code)
         if ss_info is None:
-            print(f"\nERROR: Could not find {arxiv_code} in Semantic Scholar.")
+            # print(f"\nERROR: Could not find {arxiv_code} in Semantic Scholar.")
             errors += 1
             continue
+
+        if already_exists and clear_previous:
+            db.remove_from_db(arxiv_code, db.db_params, "semantic_details")
 
         ss_info = pu.transform_flat_dict(pu.flatten_dict(ss_info), semantic_map)
         ss_info["arxiv_code"] = arxiv_code
@@ -50,11 +55,15 @@ def main():
         db.upload_to_db(ss_info, db.db_params, "semantic_details")
         items_added += 1
         # print(f"\nAdded {arxiv_code} to semantic_details.")
-        time.sleep(0.005)
+        if OVERRIDE:
+            time.sleep(random.uniform(5, 10))
+        else:
+            time.sleep(random.uniform(1, 4))
 
     print(f"Process complete. Added {items_added} items in total.")
     if errors > 0:
         print(f"Encountered {errors} errors during processing.")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
