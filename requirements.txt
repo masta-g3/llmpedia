@@ -1,6 +1,6 @@
 anthropic==0.20.0
 cohere==5.1.8
-instructor==1.1.0
+instructor==1.2.0
 langchain==0.1.14
 langchain-community==0.0.31
 langchain-anthropic~=0.1.4
