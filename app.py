@@ -693,11 +693,12 @@ def main():
     with content_tabs[5]:
         st.markdown("##### 🤖 Chat with the GPT maestro.")
         config_cols = st.columns((3, 3, 10))
-        embedding_name = config_cols[0]._selectbox(
-            label="Embeddings",
-            options=["GTE-Large", "🆕 Cohere V3"],
-            index=1,
-        )
+        # embedding_name = config_cols[0]._selectbox(
+        #     label="Embeddings",
+        #     options=["GTE-Large", "🆕 Cohere V3"],
+        #     index=1,
+        # )
+        embedding_name = "🆕 Cohere V3"
 
         # llm_name = config_cols[1]._selectbox(
         #     label="LLM", options=["GPT-3.5-Turbo", "GPT-4"]
@@ -714,8 +715,8 @@ def main():
                 with st.spinner(
                     "Consulting the GPT maestro, this might take a minute..."
                 ):
-                    response = au.query_llmpedia(
-                        user_question, collection_name, model="claude-sonnet"
+                    response = au.query_llmpedia_new(
+                        user_question  # , collection_name, model="claude-haiku"
                     )
                     db.log_qna_db(user_question, response)
                     st.divider()

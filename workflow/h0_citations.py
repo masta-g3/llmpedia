@@ -18,7 +18,7 @@ semantic_map = {
     "influentialCitationCount": "influential_citation_count",
 }
 
-OVERRIDE =  True
+OVERRIDE = False
 
 
 def main():

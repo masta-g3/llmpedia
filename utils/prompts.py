@@ -1,9 +1,17 @@
-from langchain.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from langchain.prompts import PromptTemplate
+from typing import Any
+from enum import Enum
+import datetime
+
+todays_date = datetime.datetime.now().strftime("%Y-%m-%d")
+recent_date = datetime.datetime.now() - datetime.timedelta(days=7)
+recent_date = recent_date.strftime("%Y-%m-%d")
 
 ################
 ## SUMMARIZER ##
 ################
+
 
 class Contribution(BaseModel):
     headline: str = Field(..., description="Headline of the main contribution.")
@@ -362,7 +370,7 @@ Output:"""
 TITLE_REPHRASER_PROMPT = """
 We are currently working on creating an artistic illustration for an academic paper. You will be presented with the title of this paper, and you will be asked to rephrase it in an engaging and visual way, as if you were describing an image. Your rephrased title should be a single sentence. Replace niche or technical terms with more common words, using objects or concepts that can be easily depicted in an illustration. 
 
-Avoid: superheros, copyrighted characters, maze, treasure, mosaic, language models
+Avoid: superheros, copyrighted characters, maze, treasure, compass, mosaic, language models
 
 EXAMPLES
 ===========
@@ -395,8 +403,8 @@ Now, go ahead and correct the fools' mistakes."""
 
 
 TWEET_SYSTEM_PROMPT = """"# INSTRUCTIONS
-You are an AI robot with extensive knowledge on Large Language Models (LLMs). You are also the creator of the LLMpedia, an online collection of historical and latest arxiv papers on LLMs, which you review and publish on a dedicated website.
-To boost traffic, you actively share insights, key publications, and updates on our Twitter.
+You are Andrej Karpathy, a renowned AI researcher with extensive knowledge on Large Language Models (LLMs). You are also the creator of the LLMpedia, an online collection of historical and latest arxiv papers on LLMs, which you review and publish on a dedicated website.
+To boost traffic, you actively share insights, key publications, and updates on Twitter.
 
 # PREVIOUS TWEETS
 Here are some of your most recent tweets, use them as reference to compose a tweet in similar style and tone.
@@ -428,6 +436,7 @@ Read over carefully over the following information and use it to inform your twe
 - Follow your previous tweets' style and tone, which use a sober, direct and neutral language.
 - Do not include a call to action or hashtags. 
 - Use an emoji at the beginning of each paragraph, and chose them carefully to reflect the content of the tweet.
+- The first paragraph should be shorter than the consecutive ones.
 - Do not make exaggerated claims and remain neutral on your statements. Use few adjectives, only when needed.
 - The objective of your tweet is to be as informative and insightful as possible. Include precise statements and numerical figures in an engaging way. 
 - If comparisons between LLMs are made, report the most relevant metrics and results.
@@ -546,6 +555,341 @@ LLM_PAPER_CHECK_FMT_TEMPLATE = """OUTPUT FORMAT EXAMPLES
 }}
 """
 
+
+######################
+## VECTOR STORE NEW ##
+######################
+
+class QueryDecision(BaseModel):
+    llm_query: bool
+    other_query: bool
+    comment_query: bool
+
+
+class TopicCategory(str, Enum):
+    VISION_LANGUAGE_MODEL = "Vision-Language Model Innovations and Applications"
+    AUTONOMOUS_LANGUAGE_AGENTS = "Autonomous Language Agents and Task Planning"
+    CODE_GENERATION_TECHNIQUES = "Code Generation Techniques in Software Engineering"
+    MULTILINGUAL_LANGUAGE_MODEL = "Multilingual Language Model Developments"
+    ETHICAL_SECURE_AI = "Ethical and Secure AI Development Challenges"
+    TRANSFORMER_ALTERNATIVES = "Transformer Alternatives and Efficiency Improvements"
+    EFFICIENT_LLM_TRAINING = "Efficient LLM Training and Inference Optimization"
+    RETRIEVAL_AUGMENTED_GENERATION = "Retrieval-Augmented Generation for NLP Tasks"
+    ADVANCED_PROMPT_TECHNIQUES = (
+        "Enhancing LLM Performance with Advanced Prompt Techniques"
+    )
+    INSTRUCTION_TUNING_TECHNIQUES = "Instruction Tuning Techniques for LLMs"
+    BIAS_HATE_SPEECH_DETECTION = "Mitigating Bias and Hate Speech Detection"
+    MATHEMATICAL_PROBLEM_SOLVING = "Enhancing Mathematical Problem Solving with AI"
+    HUMAN_PREFERENCE_ALIGNMENT = "Human Preference Alignment in LLM Training"
+    CHAIN_OF_THOUGHT_REASONING = "Enhancements in Chain-of-Thought Reasoning"
+
+
+class SearchCriteria(BaseModel):
+    title: str = Field(
+        None,
+        description="Title of the paper. Use only when the user is looking for a specific paper. Partial matches will be returned.",
+    )
+    min_publication_date: datetime.date = Field(
+        None,
+        description="Minimum publication date of the paper. Use 'YYYY-MM-DD' format.",
+    )
+    max_publication_date: datetime.date = Field(
+        None,
+        description="Maximum publication date of the paper. Use 'YYYY-MM-DD' format.",
+    )
+    topic_categories: list[TopicCategory] = Field(
+        None,
+        description="List containing the topic categories of the paper. Use only when the user explicitly asks about one of these topics (not for related topics).",
+    )
+    semantic_search_queries: list[str] = Field(
+        None,
+        description="List of up to three (3) queries to be used in the semantic search. The system will use these queries to find papers that have abstracts that are semantically similar to the queries. If you use more than one search query make them diverse enough so that each query addresses a different part of what is needed to build up an answer. Consider the language typically used in academic papers when writing the queries; phrase the queries as if they were part of the text that could be found on these abstracts.",
+    )
+    min_citations: int = Field(
+        None, description="Minimum number of citations of the paper."
+    )
+
+    @model_validator(mode="before")
+    def validate_fields(cls, values):
+        if not any(values.values()):
+            raise ValueError("At least one field must be provided")
+        if (
+            values.get("semantic_search_queries")
+            and len(values["semantic_search_queries"]) > 3
+        ):
+            raise ValueError("semantic_search_queries must contain at most 3 items")
+        if values.get("topic_categories"):
+            for category in values["topic_categories"]:
+                if category not in (item.value for item in TopicCategory):
+                    raise ValueError(f"Invalid topic category: {category}")
+        return values
+
+
+class DocumentAnalysis(BaseModel):
+    analysis: str
+    selected: bool
+
+
+class RerankedDocuments(BaseModel):
+    documents: dict[str, DocumentAnalysis]
+
+
+VS_QUERY_SYSTEM_PROMPT = f"""Today is {todays_date}. You are an expert system that can translate natural language questions into structured queries used to search a database of Large Language Model (LLM) related whitepapers."""
+
+
+def create_decision_user_prompt(user_question: str) -> str:
+    user_prompt = f"""
+    <user_query>
+    {user_question}
+    </user_query>
+    
+    <response_format>
+    Classify the user query into one of the following categories:
+    - Question about large language models or natural language processing.
+    - Question about any other subject (unrelated to LLMs).
+    - General comment or feedback.
+    </response_format>
+    """
+    return user_prompt
+
+
+def create_query_user_prompt(user_question: str) -> str:
+    VS_QUERY_USER_PROMPT = (
+        f'''
+    <question>
+    {user_question}
+    </question>
+    
+    
+    <response_format> 
+    Use the following response format. All fields are optional; when not provided, the system will search across all values for that field. Notice that string fields are case-insensitive. Always use the minimum number of fields necessary to get the desired results.
+    
+    ```
+    {{
+        "title": "(str) Title of the paper. Use only when the user is looking for a specific paper. Partial matches will be returned.",
+        "min_publication_date": "(str) Minimum publication date of the paper. Use "YYYY-MM-DD" format.",
+        "max_publication_date": "(str) Maximum publication date of the paper. Use "YYYY-MM-DD" format.",
+        "topic_categories": "(list) List containing the topic categories of the paper. Use only when the user explicitly asks about one of these topics (not for related topics).",
+        "semantic_search_queries": "(list) List of up to three (3) queries to be used in the semantic search. The system will use these queries to find papers that have abstracts that are semantically similar to the queries. If you use more than one search query make them diverse enough so that each query addresses a different part of what is needed to build up an answer. Consider the language typically used in academic papers when writing the queries; phrase the queries as if they were part of the text that could be found on these abstracts.", 
+        "min_citations": "(int) Minimum number of citations of the paper.",
+    }}
+    ```
+    </response_format>
+    
+    
+    <topic_categories>
+    - Vision-Language Model Innovations and Applications
+    - Autonomous Language Agents and Task Planning
+    - Code Generation Techniques in Software Engineering
+    - Multilingual Language Model Developments
+    - Ethical and Secure AI Development Challenges
+    - Transformer Alternatives and Efficiency Improvements
+    - Efficient LLM Training and Inference Optimization
+    - Retrieval-Augmented Generation for NLP Tasks
+    - Enhancing LLM Performance with Advanced Prompt Techniques
+    - Instruction Tuning Techniques for LLMs
+    - Mitigating Bias and Hate Speech Detection
+    - Enhancing Mathematical Problem Solving with AI
+    - Human Preference Alignment in LLM Training
+    - Enhancements in Chain-of-Thought Reasoning
+    </topic_categories>
+    
+    
+    <examples>
+    <example_question>
+    Are LLMs really reasoning or just doing next token prediction? Which are the main prevailing views in the literature?
+    </example_question>
+    <example_query>
+    ```
+    {{
+        "semantic_search_queries": [
+            "debate on whether large language models are truly reasoning or simply performing next token prediction",
+            "prevailing views in the literature on the reasoning capabilities of LLMs",
+            "analysis of chain-of-thought reasoning in language models and whether it constitutes real understanding"
+        ]
+    }}
+    ```
+    </example_query>
+    
+    <example_question>
+    Which are some good 7B parameter models one can run locally for code generation? Specifically unit tests.
+    </example_question>
+    <example_query>
+    ```
+    {{
+        "topic_categories": [
+            "Code Generation Techniques in Software Engineering"
+        ],
+        "semantic_search_queries": [
+            "large language models that can generate unit tests for code",
+            "techniques for using LLMs to automatically create test cases",
+            "approaches for test-driven development with code generation models"
+        ]
+    }}
+    ```
+    </example_query>
+    
+    <example_question>
+    What can you tell me about the phi model and how it was trained?
+    </example_question>
+    <example_query>
+    ```
+    {{
+        "title": "phi"
+    }}
+    ...
+    ```
+    </example_query>
+    
+    <example_question>
+    the very new research about llm
+    </example_question>
+    
+    <example_query>
+    ```
+    {{
+        "min_publication_date": "'''
+        + recent_date
+        + """",
+       ]
+    }}
+    ```
+    </example_query>
+    
+    <example_question>
+    what are the state of the art techniques for retrieval augmentation?
+    </example_question>
+    <example_query>
+    ```
+    {{
+        "topic_categories": [
+            "Retrieval-Augmented Generation for NLP Tasks"
+        ],
+        "semantic_search_queries": [
+            "state-of-the-art techniques for retrieval augmentation in large language models",
+            "latest advancements in using retrieval to enhance the performance of LLMs on various NLP tasks", 
+            "novel approaches for integrating external knowledge retrieval into the generation process of language models"
+        ]
+    }}
+    ```
+    </example_query>
+    
+    <example_question>
+    Explain the DPO fine-tuning technique.
+    </example_question>
+    <example_query>
+    ```
+    {{
+        "topic_categories": [
+            "Instruction Tuning Techniques for LLMs"  
+        ],
+        "semantic_search_queries": [
+            "DPO fine-tuning technique for instruction tuning of large language models",
+            "using direct preference optimization to align LLMs with human preferences during fine-tuning",
+            "novel approach of DPO for improving instruction following capabilities of language models"
+        ]
+    }}
+    ```
+    </example_query>
+    
+    <example_question>
+    Compare Zephyr and Mistral.
+    </example_question>
+    <example_query>
+    ```
+    {{
+        "semantic_search_queries": [
+            "overview of the Zephyr large language model and its key characteristics",
+            "overview of the Mistral large language model and its distinguishing features",
+            "comparison of the Zephyr and Mistral large language models",
+        ]
+    }}
+    ```
+    </example_query>
+    
+    <example_question>
+    which are the most famous papers published this year?
+    </example_question>
+    <example_query>
+    ```
+    }}
+        "min_publication_date": "2024-01-01",
+        "min_citations": 100
+    }}
+    ```
+    </example_query>
+    </examples>
+    
+    Now reply with the response query and no other comment or explanation.
+    
+    <response_query>
+    ```
+    {{"""
+    )
+    return VS_QUERY_USER_PROMPT
+
+
+def create_rerank_user_prompt(user_question: str, documents: list) -> str:
+    document_str = ""
+    for doc in documents:
+        document_str += f"""
+    ### Title: {doc.title}
+    *Published*: {doc.published_date.strftime("%Y-%m-%d")}
+    *Citations*: {doc.citations}
+    **Abstract**:
+    {doc.abstract}
+    ---"""
+    document_str = document_str.strip()
+    rerank_msg = f""""
+    <question>
+    {user_question}
+    </question>
+
+    <documents>
+    {document_str}
+    </documents>
+
+    <response_format>
+    Reply with a JSON object containing the titles of all the papers as keys, and as values a dictionary with two elements: 'analysis' and 'selected'. The 'analysis' element should contain a brief analysis of if and why the paper is relevant to the user query. The 'selected' element should be a boolean indicating whether the paper should be included in the final answer. Make sure to be stringent and only select the documents that are **directly** relevant to answer the specific user query.
+    </response_format>"""
+    return rerank_msg
+
+
+def create_resolve_user_prompt(user_question: str, documents: list) -> str:
+    notes = ""
+    for doc in documents:
+        notes += f"""
+    ### Title: {doc.title}
+    *Arxiv Code*: {doc.arxiv_code}
+    *Published*: {doc.published_date.strftime("%Y-%m-%d")}
+    *Citations*: {doc.citations}
+    **Summary**:
+    {doc.notes}
+
+    ---"""
+    notes = notes.strip()
+    user_message = f""""
+    <question>
+    {user_question}
+    </question>
+
+    <context>
+    {notes}
+    </context>
+
+    <guidelines>
+    - Do not mention 'the context'! The user does not have access to it, so do not reference it or the fact that I presented it to you. Act as if you have all the information in your head (i.e.: do not say 'Based on the information provided...', etc.).
+    - Use no more than three (3) dense paragraphs to provide a complete, direct and useful answer. Leverage markdown components to structure your response as a short report.
+    - Be practical and reference any existing libraries or implementations mentioned on the documents.
+    - If there is conflicting information present the different viewpoints and consider that more recent papers or those with more citations are generally more reliable.
+    - Add citations referencing the relevant arxiv_codes (e.g.: use the format `*reference content* (arxiv:1234.5678)`). 
+    - Be concise and to the point. Do not add introductions or conclusions.
+    </guidelines>
+    """
+    return user_message
+
+
 ###################
 ## WEEKLY REVIEW ##
 ###################
@@ -595,6 +939,7 @@ WEEKLY_USER_PROMPT = """
 ###############
 ## Q&A MODEL ##
 ###############
+
 
 class QnaPair(BaseModel):
     question: str = Field(
@@ -671,7 +1016,8 @@ QNA_USER_PROMPT = """
 LLAMA_DIVIDER = "Here are five self-contained, highly-specific question & answer pairs based on the paper, without referencing it directly (with citations):"
 
 
-LLAMA_QNA_SYSTEM_PROMPT = """EXAMPLE 1
+LLAMA_QNA_SYSTEM_PROMPT = (
+    """EXAMPLE 1
 ===========
 ```
 ...Remarkably, our study illustrates a notable enhancement in Large Language Models (LLMs) for Named Entity Recognition (NER) tasks through the innovative deployment of Reinforcement Learning (RL). To elucidate, we employ an adaptive learning framework, continually refining entity recognition\nalgorithms via sophisticated iterative feedback mechanisms, manifesting a significant 12% increase in entity discernment accuracy within datasets, especially those encompassing financial news and social media snippets.\n\nOur approach leverages advanced reward-based learning mechanisms, addressing entity ambiguities and facilitating optimal classification across diverse contextual environments. These advancements are applicable and adaptable across different LLM architectures, indicating the potential for widespread applicability in various model frameworks.\n\nThe integral methodologies and consequent enhancements can be referred to at github.com/NER-Enhancements/Adaptive-Learning.\n\nWilliams et al. (2023, 2309.12346)\nEnhance the performance of LLMs in NER\n+ Develop adaptive learning for continual refinement...\nAdaptive Framework\nNER in Financial News and Social Media\n+ 12% Improvement in Accuracy\nAddress Entity Ambiguities\n+ Optimal Classification...
@@ -721,9 +1067,12 @@ YOUR TURN
 ```
 *Source:* {authors}, ({year}, {arxiv_code})
 
-""" + LLAMA_DIVIDER + """
+"""
+    + LLAMA_DIVIDER
+    + """
 
 Q1: According to the LLM literature,"""
+)
 
 
 NAIVE_JSON_FIX = """Instructions:

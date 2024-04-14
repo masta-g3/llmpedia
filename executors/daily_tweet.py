@@ -33,7 +33,7 @@ def main():
     # tweets_df = pd.DataFrame(tweets.items(), columns=["date", "tweet"])
     # tweets_df
 
-    paper_summary = db.get_extended_notes(arxiv_code, expected_tokens=82000)
+    paper_summary = db.get_extended_notes(arxiv_code, expected_tokens=6000)
     title_map = db.get_arxiv_title_dict()
     paper_title = title_map[arxiv_code]
 
@@ -69,6 +69,6 @@ def main():
 
 
 if __name__ == "__main__":
-    arxiv_code = "2404.02418"
+    arxiv_code = "2404.03381"
     print(f"Generating a tweet for {arxiv_code}...")
     main()

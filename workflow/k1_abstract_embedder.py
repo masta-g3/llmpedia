@@ -1,7 +1,7 @@
 from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import CohereEmbeddings
 from langchain_community.vectorstores.pgvector import PGVector
 from langchain_community.docstore.document import Document
-from langchain_community.embeddings import CohereEmbeddings
 
 from sqlalchemy.exc import IntegrityError, OperationalError
 from tqdm import tqdm

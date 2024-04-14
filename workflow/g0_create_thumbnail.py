@@ -91,7 +91,7 @@ def generate_image(name, img_file):
         # keyword = vs.summarize_title_in_word(name)
         print(f"* Title: {name}")
         name = vs.rephrase_title(name)
-        caption = f'"{name}", from series: "tarot, nature and computers", stunning award-winning pixel art'
+        caption = f'"{name}", "tarot and computers collection", stunning award-winning pixel art'
         print("--> " + caption)
 
         cliptextencode_102 = cliptextencode.encode(

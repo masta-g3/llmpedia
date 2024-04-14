@@ -87,7 +87,8 @@ def recursive_summarize_by_parts(
                 retry_once = False
                 continue
             else:
-                print("Cannot compress further. Stopping.")
+                if verbose:
+                    print("Cannot compress further. Stopping.")
                 break
 
     return summaries_dict, token_dict

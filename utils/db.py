@@ -203,6 +203,18 @@ def get_arxiv_chunks(chunk_ids: list, source="child"):
     return chunks_df
 
 
+def execute_query(query, db_params=db_params, limit=False):
+
+
+    """Upload a dictionary to a database."""
+    if limit and "LIMIT" not in query:
+        query = query.strip().rstrip(";") + " LIMIT 10;"
+    with psycopg2.connect(**db_params) as conn:
+        with conn.cursor() as cur:
+            cur.execute(query)
+            return cur.fetchall()
+
+
 def check_in_db(arxiv_code, db_params, table_name):
     """Check if an arxiv code is in the database."""
     with psycopg2.connect(**db_params) as conn:
@@ -445,5 +457,5 @@ def get_recursive_summary(arxiv_code: str) -> str:
         result = conn.execute(query)
         summary = result.fetchone()
     engine.dispose()
-    result = summary[1] if summary else  None
+    result = summary[1] if summary else None
     return result
