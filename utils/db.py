@@ -355,8 +355,8 @@ def get_weekly_summary_inputs(date: str):
                 JOIN arxiv_details d ON s.arxiv_code = d.arxiv_code
                 LEFT JOIN semantic_details sd ON s.arxiv_code = sd.arxiv_code
                 JOIN summary_notes sn ON s.arxiv_code = sn.arxiv_code
-                WHERE d.published BETWEEN '2024-02-19' AND '2024-02-25'
-                --AND sn.level = (SELECT MAX(level) FROM summary_notes WHERE arxiv_code = s.arxiv_code)
+                WHERE d.published BETWEEN '{date_st}' AND '{date_end}'
+                AND sn.level = (SELECT MAX(level) FROM summary_notes WHERE arxiv_code = s.arxiv_code)
             """
         )
         result = conn.execute(query)

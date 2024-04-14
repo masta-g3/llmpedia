@@ -23,6 +23,13 @@ CONNECTION_STRING = (
     f"@{db.db_params['host']}:{db.db_params['port']}/{db.db_params['dbname']}"
 )
 
+report_sections_map = {
+    "scratchpad": "Scratchpad",
+    "new_developments_findings": "New Development & Findings",
+    "highlight_of_the_week": "Highlight of the Week",
+    "related_websites_libraries_repos": "Related Websites, Libraries and Repos",
+}
+
 
 def parse_weekly_report(report_md: str):
     """Extract sections of the weekly report into dict."""

@@ -29,10 +29,10 @@ llm_map = {
     "GPT-3.5-Turbo": ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature=0.0),
     "GPT-3.5-Turbo-HT": ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature=0.9),
     "GPT-4": ChatOpenAI(model_name="gpt-4", temperature=0.0),
-    "GPT-4-Turbo": ChatOpenAI(model_name="gpt-4-0125-preview", temperature=0.0),
-    "GPT-4-Turbo-JSON": ChatOpenAI(
-        model_name="gpt-4-0125-preview", temperature=0.0
-    ).bind(response_format={"type": "json_object"}),
+    "GPT-4-Turbo": ChatOpenAI(model_name="gpt-4-turbo", temperature=0.0),
+    "GPT-4-Turbo-JSON": ChatOpenAI(model_name="gpt-4-turbo", temperature=0.0).bind(
+        response_format={"type": "json_object"}
+    ),
     ## Open AI.
     "openchat": Together(
         model="openchat/openchat-3.5-1210",
@@ -95,12 +95,16 @@ llm_map = {
         temperature=0.0,
         base_url="http://localhost:1234/v1",
         api_key="lm-studio",
-        model_name="local"
+        model_name="local",
     ),
     ## Anthropic.
-    "claude-haiku": ChatAnthropic(temperature=0, model_name="claude-3-haiku-20240307"),
-    "claude-sonnet": ChatAnthropic(
-        temperature=0, model_name="claude-3-sonnet-20240229"
+    "claude-haiku": ChatAnthropic(
+        temperature=0, max_tokens=4096, model_name="claude-3-haiku-20240307"
     ),
-    "claude-opus": ChatAnthropic(temperature=0, model_name="claude-3-opus-20240229"),
+    "claude-sonnet": ChatAnthropic(
+        temperature=0, max_tokens=4096, model_name="claude-3-sonnet-20240229"
+    ),
+    "claude-opus": ChatAnthropic(
+        temperature=0, max_tokens=4096, model_name="claude-3-opus-20240229"
+    ),
 }

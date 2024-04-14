@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, model_validator
 from langchain.prompts import PromptTemplate
-from typing import Any
+from typing import Any, Optional
 from enum import Enum
 import datetime
 
@@ -560,6 +560,7 @@ LLM_PAPER_CHECK_FMT_TEMPLATE = """OUTPUT FORMAT EXAMPLES
 ## VECTOR STORE NEW ##
 ######################
 
+
 class QueryDecision(BaseModel):
     llm_query: bool
     other_query: bool
@@ -894,10 +895,18 @@ def create_resolve_user_prompt(user_question: str, documents: list) -> str:
 ## WEEKLY REVIEW ##
 ###################
 
+
+class WeeklyReview(BaseModel):
+    scratchpad: str
+    new_developments_findings: str
+    highlight_of_the_week: str
+    related_websites_libraries_repos: Optional[str] = None
+
+
 WEEKLY_SYSTEM_PROMPT = """You are a senior Large Language Model (LLM) journalist and previous researcher at a prestigious media organization. You are currently conducting a survey of the literature published throughout last week to write a practical report for the organization's magazine.
 
 ## Report Format
-- The report should be written in markdown and consist of 4 sections:
+- The report should consist of 4 sections:
     0) **Scratchpad.** This is the only section that will not be published on the magazine, use it to organize your thoughts.
         - Select (up to) 15 interesting papers and make a numbered list of them. Spell out its main theme, contribution and scale of impact/influence.
         - Identify up to 3 common themes among the papers. There should be fewer themes than papers, and the themes should not be generic. For example, 'improvements in LLMs' is not a valid theme.
@@ -910,30 +919,31 @@ WEEKLY_SYSTEM_PROMPT = """You are a senior Large Language Model (LLM) journalist
     3) **Related Websites, Libraries and Repos** (optional) 
         - Include real links and a brief description of the main repos and project sites mentioned on the paper (up to 15). 
         - If none are mentioned just skip this section. 
-- Use markdown to structure the report.
 - Write in a concise and clear manner, with no more than 3 paragraphs per section. If you reference new technical terms always explain them. 
 - Focus on practical applications and benefits. Use simple language and always maintain the narrative flow and coherence across sections. Keep the reader engaged but avoid filler content.
 - Do not exaggerate or use bombastic language. Be moderate, truthful and objective.
 - Prioritize the articles with most citations, but do not explicitly mention them on your review. More citations imply larger relevance and impact.
 - If there are only few articles present (less than 3) your report can be short.
 - Always add citations to support your statements. Use the format `*reference content* (arxiv:1234.5678)`. You can also mention the *article's title* on the text.
-
-## Report Template
-```
-# Weekly Review (September 20, 2021 to September 27, 2021)
-## Scratchpad
-[...]
-## New Developments & Findings
-[...]
-## Highlight of the Week
-[...]
-## Related Websites, Libraries and Repos 
-[...] *(if none available just add NONE here, and nothing else)*
-```
 """
+# ## Report Template
+# ```
+# # Weekly Review (September 20, 2021 to September 27, 2021)
+# ## Scratchpad
+# [...]
+# ## New Developments & Findings
+# [...]
+# ## Highlight of the Week
+# [...]
+# ## Related Websites, Libraries and Repos
+# [...] *(if none available just add NONE here, and nothing else)*
+# ```
+# """
 
 WEEKLY_USER_PROMPT = """
 {weekly_content}
+
+Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678).
 """
 
 ###############

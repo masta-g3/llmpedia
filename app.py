@@ -1,3 +1,5 @@
+import json
+
 import streamlit as st
 
 from streamlit_plotly_events import plotly_events
@@ -738,9 +740,18 @@ def main():
             date_report = week_select - pd.Timedelta(days=week_select.weekday())
 
         weekly_report = get_weekly_summary(date_report)
-        weekly_report_dict = au.parse_weekly_report(weekly_report)
-        report_sections = list(weekly_report_dict.keys())[1:]
-        title = list(weekly_report_dict.keys())[0]
+        try:
+            weekly_report_dict = json.loads(weekly_report)
+            weekly_report_dict = {
+                au.report_sections_map[k]: au.add_links_to_text_blob(v)
+                for k, v in weekly_report_dict.items()
+            }
+            report_sections = list(weekly_report_dict.keys())[1:]
+            title = f"###### *({date_report.strftime('%B %d, %Y')} to {(date_report + pd.Timedelta(days=6)).strftime('%B %d, %Y')})*"
+        except:
+            weekly_report_dict = au.parse_weekly_report(weekly_report)
+            report_sections = list(weekly_report_dict.keys())[1:]
+            title = list(weekly_report_dict.keys())[0]
 
         ## Title & developments.
         title = title.replace("# Weekly Review ", "##### ")
@@ -762,8 +773,8 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        db.log_error_db(e)
-        st.error("Something went wrong. Please refresh the app and try again.")
+    # try:
+    main()
+# except Exception as e:
+#     db.log_error_db(e)
+#     st.error("Something went wrong. Please refresh the app and try again.")

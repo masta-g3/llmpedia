@@ -19,6 +19,7 @@ import utils.custom_langchain as clc
 import utils.db as db
 import utils.prompts as ps
 import utils.app_utils as au
+from utils.instruct import run_instructor_query
 from utils.models import llm_map
 
 CONNECTION_STRING = (
@@ -221,7 +222,11 @@ def copywrite_summary(paper_title, narrative, model="GPT-3.5-Turbo"):
     )
     copywriting_chain = LLMChain(llm=llm_map[model], prompt=copywriting_prompt)
     copywritten = copywriting_chain.invoke(
-        dict(paper_title=paper_title, previous_summary=narrative, stop=["</improved_summary>"])
+        dict(
+            paper_title=paper_title,
+            previous_summary=narrative,
+            stop=["</improved_summary>"],
+        )
     )["text"]
     return copywritten
 
@@ -277,20 +282,26 @@ def rephrase_title(title, model="GPT-3.5-Turbo-HT"):
 
 def generate_weekly_report(weekly_content_md: str, model="GPT-4-Turbo"):
     """Generate weekly report via LLMChain."""
-    weekly_report_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", ps.WEEKLY_SYSTEM_PROMPT),
-            ("user", ps.WEEKLY_USER_PROMPT),
-            (
-                "user",
-                "Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678).",
-            ),
-        ]
+    # weekly_report_prompt = ChatPromptTemplate.from_messages(
+    #     [
+    #         ("system", ps.WEEKLY_SYSTEM_PROMPT),
+    #         ("user", ps.WEEKLY_USER_PROMPT),
+    #         # (
+    #         #     "user",
+    #         #     "Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678).",
+    #         # ),
+    #     ]
+    # )
+    # weekly_report_chain = LLMChain(llm=llm_map[model], prompt=weekly_report_prompt)
+    # weekly_report = weekly_report_chain.invoke(dict(weekly_content=weekly_content_md))[
+    #     "text"
+    # ]
+    weekly_report = run_instructor_query(
+        ps.WEEKLY_SYSTEM_PROMPT,
+        ps.WEEKLY_USER_PROMPT.format(weekly_content=weekly_content_md),
+        model=ps.WeeklyReview,
+        llm_model="claude-3-sonnet-20240229"
     )
-    weekly_report_chain = LLMChain(llm=llm_map[model], prompt=weekly_report_prompt)
-    weekly_report = weekly_report_chain.invoke(dict(weekly_content=weekly_content_md))[
-        "text"
-    ]
     return weekly_report
 
 

@@ -69,6 +69,6 @@ def main():
 
 
 if __name__ == "__main__":
-    arxiv_code = "2404.03381"
+    arxiv_code = "2404.05961"
     print(f"Generating a tweet for {arxiv_code}...")
     main()

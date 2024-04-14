@@ -75,11 +75,11 @@ def main(date_str: str):
 
     with get_openai_callback() as cb:
         ## Generate summary.
-        weekly_summary_md = vs.generate_weekly_report(weekly_content_md)
+        weekly_summary_obj = vs.generate_weekly_report(weekly_content_md) #, model="claude-sonnet")
         tstp_now = pd.Timestamp.now()
         date = pd.to_datetime(date_str)
         weekly_summary_df = pd.DataFrame(
-            {"date": [date], "tstp": [tstp_now], "review": [weekly_summary_md]}
+            {"date": [date], "tstp": [tstp_now], "review": [weekly_summary_obj.json()]}
         )
         db.upload_df_to_db(weekly_summary_df, "weekly_reviews", pu.db_params)
         # print(cb)
