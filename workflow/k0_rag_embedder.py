@@ -1,7 +1,7 @@
 from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores.pgvector import PGVector
 from langchain_community.docstore.document import Document
-from langchain_community.embeddings import CohereEmbeddings
+from langchain_cohere import CohereEmbeddings
 
 from sqlalchemy.exc import IntegrityError, OperationalError
 from tqdm import tqdm
@@ -55,6 +55,7 @@ def main():
             collection_name=COLLECTION_NAME,
             connection_string=CONNECTION_STRING,
             embedding_function=embeddings,
+            use_jsonb=True,
         )
 
         arxiv_codes = db.get_arxiv_id_embeddings(COLLECTION_NAME)

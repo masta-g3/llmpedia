@@ -28,6 +28,9 @@ def plot_publication_counts(df: pd.DataFrame, cumulative=False) -> go.Figure:
             x="published",
             y="Count",
         )
+    fig.update_xaxes(title=None, tickfont=dict(size=17))
+    fig.update_yaxes(titlefont=dict(size=18), tickfont=dict(size=17))
+
     return fig
 
 

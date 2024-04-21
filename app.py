@@ -149,7 +149,9 @@ def get_weekly_summary(date: str):
 
 @st.cache_data
 def get_max_report_date():
-    max_date = db.get_max_table_date(db.db_params, "weekly_reviews")
+    max_date = db.get_max_table_date(
+        db.db_params, "weekly_reviews",
+    )
     if max_date.weekday() != 6:
         max_date = max_date + pd.Timedelta(days=6 - max_date.weekday())
     return max_date

@@ -1,7 +1,7 @@
 from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
-from langchain_community.embeddings import CohereEmbeddings
 from langchain_community.vectorstores.pgvector import PGVector
 from langchain_community.docstore.document import Document
+from langchain_cohere import CohereEmbeddings
 
 from sqlalchemy.exc import IntegrityError, OperationalError
 from tqdm import tqdm
@@ -42,10 +42,11 @@ def main():
         collection_name=collection_name,
         connection_string=CONNECTION_STRING,
         embedding_function=embeddings,
+        use_jsonb=True,
     )
 
     arxiv_codes = db.get_arxiv_id_embeddings(collection_name)
-    local_codes = db.get_arxiv_id_list(pu.db_params, "arxiv_details")
+    local_codes = db.get_arxiv_id_list(pu.db_params, "recursive_summaries")
     processing_codes = list(set(local_codes) - set(arxiv_codes))
     processing_codes = sorted(processing_codes)[::-1]
 

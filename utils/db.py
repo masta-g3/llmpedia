@@ -86,8 +86,10 @@ def insert_recursive_summary(arxiv_code, summary):
     return True
 
 
-def load_arxiv():
-    query = "SELECT * FROM arxiv_details;"
+def load_arxiv(arxiv_code: str = None):
+    query = "SELECT * FROM arxiv_details"
+    if arxiv_code:
+        query += f" WHERE arxiv_code = '{arxiv_code}'"
     conn = create_engine(database_url)
     arxiv_df = pd.read_sql(query, conn)
     arxiv_df.set_index("arxiv_code", inplace=True)
@@ -204,8 +206,6 @@ def get_arxiv_chunks(chunk_ids: list, source="child"):
 
 
 def execute_query(query, db_params=db_params, limit=False):
-
-
     """Upload a dictionary to a database."""
     if limit and "LIMIT" not in query:
         query = query.strip().rstrip(";") + " LIMIT 10;"
@@ -271,7 +271,7 @@ def upload_df_to_db(
     return True
 
 
-def get_arxiv_id_list(db_params, table_name):
+def get_arxiv_id_list(db_params=db_params, table_name="arxiv_details"):
     """Get a list of all arxiv codes in the database."""
     with psycopg2.connect(**db_params) as conn:
         with conn.cursor() as cur:
@@ -279,11 +279,19 @@ def get_arxiv_id_list(db_params, table_name):
             return [row[0] for row in cur.fetchall()]
 
 
+def get_latest_tstp(db_params=db_params, table_name="arxiv_details", extra_condition=""):
+    """Get the latest timestamp in the database."""
+    with psycopg2.connect(**db_params) as conn:
+        with conn.cursor() as cur:
+            cur.execute(f"SELECT MAX(tstp) FROM {table_name} {extra_condition};")
+            return cur.fetchone()[0]
+
+
 def get_max_table_date(db_params, table_name, date_col="date"):
     """Get the max date in a table."""
     with psycopg2.connect(**db_params) as conn:
         with conn.cursor() as cur:
-            cur.execute(f"SELECT MAX({date_col}) FROM {table_name}")
+            cur.execute(f"SELECT MAX({date_col}) FROM {table_name};")
             return cur.fetchone()[0]
 
 
@@ -459,3 +467,25 @@ def get_recursive_summary(arxiv_code: str) -> str:
     engine.dispose()
     result = summary[1] if summary else None
     return result
+
+
+def insert_tweet_review(arxiv_code, review, tstp, is_review):
+    """Insert tweet review into the database."""
+    engine = create_engine(database_url)
+    with engine.begin() as conn:
+        query = text(
+            """
+            INSERT INTO tweet_reviews (arxiv_code, review, tstp, is_daily_review)
+            VALUES (:arxiv_code, :review, :tstp, :is_review);
+            """
+        )
+        conn.execute(
+            query,
+            {
+                "arxiv_code": arxiv_code,
+                "review": review,
+                "tstp": tstp,
+                "is_review": is_review,
+            },
+        )
+    return True

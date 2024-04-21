@@ -7,15 +7,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.prompts.chat import ChatPromptTemplate
 from langchain.chains import LLMChain
 from mlx_lm import generate
-
-from langchain.chains.openai_functions import (
-    create_structured_output_chain,
-)
-from utils.custom_langchain import NewCohereEmbeddings, NewPGVector
-
 import tiktoken
 
-import utils.custom_langchain as clc
 import utils.db as db
 import utils.prompts as ps
 import utils.app_utils as au
@@ -184,19 +177,14 @@ def verify_llm_paper(paper_content: str, model="GPT-3.5-Turbo-JSON"):
     return is_llm_paper
 
 
-def review_llm_paper(paper_content: str, model="GPT-3.5-Turbo"):
+def review_llm_paper(paper_content: str, model="claude-3-sonnet-20240229"):
     """Review a paper via LLMChain."""
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", ps.SUMMARIZER_SYSTEM_PROMPT),
-            ("human", ps.SUMMARIZER_HUMAN_REMINDER),
-        ]
+    review = run_instructor_query(
+        ps.SUMMARIZER_SYSTEM_PROMPT,
+        ps.SUMMARIZER_HUMAN_REMINDER.format(paper_content=paper_content),
+        model=ps.PaperReview,
+        llm_model=model,
     )
-    parser = clc.CustomFixParser(pydantic_schema=ps.PaperReview)
-    chain = create_structured_output_chain(
-        ps.PaperReview, llm_map[model], prompt, output_parser=parser, verbose=False
-    )
-    review = chain.invoke(dict(paper_content=paper_content))["function"]
     return review
 
 
@@ -300,38 +288,37 @@ def generate_weekly_report(weekly_content_md: str, model="GPT-4-Turbo"):
         ps.WEEKLY_SYSTEM_PROMPT,
         ps.WEEKLY_USER_PROMPT.format(weekly_content=weekly_content_md),
         model=ps.WeeklyReview,
-        llm_model="claude-3-sonnet-20240229"
+        llm_model="claude-3-sonnet-20240229",
     )
     return weekly_report
 
 
 def write_tweet(
-    previous_tweets: str, tweet_style: str, tweet_facts: str, model="GPT-4-Turbo"
+    previous_tweets: str, tweet_facts: str, is_review=True, model="GPT-4-Turbo"
 ):
     """Write a tweet via LLMChain."""
     tweet_prompt = ChatPromptTemplate.from_messages(
         [
             ("system", ps.TWEET_SYSTEM_PROMPT),
-            ("user", ps.TWEET_USER_PROMPT),
+            ("user", ps.TWEET_USER_PROMPT if is_review else ps.TWEET_INSIGHT_USER_PROMPT),
         ]
     )
     tweet_chain = LLMChain(llm=llm_map[model], prompt=tweet_prompt)
     tweet = tweet_chain.invoke(
         dict(
             previous_tweets=previous_tweets,
-            tweet_style=tweet_style,
             tweet_facts=tweet_facts,
         )
     )["text"]
     return tweet
 
 
-def edit_tweet(tweet: str, model="GPT-4-Turbo"):
+def edit_tweet(tweet: str, is_review=True, model="GPT-4-Turbo"):
     """Edit a tweet via LLMChain."""
     tweet_prompt = ChatPromptTemplate.from_messages(
         [
             ("system", ps.TWEET_EDIT_SYSTEM_PROMPT),
-            ("user", ps.TWEET_EDIT_USER_PROMPT),
+            ("user", ps.TWEET_EDIT_USER_PROMPT if is_review else ps.TWEET_INSIGHT_EDIT_USER_PROMPT),
         ]
     )
     tweet_chain = LLMChain(llm=llm_map[model], prompt=tweet_prompt)
