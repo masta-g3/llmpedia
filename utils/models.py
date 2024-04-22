@@ -33,59 +33,70 @@ llm_map = {
     "GPT-4-Turbo-JSON": ChatOpenAI(model_name="gpt-4-turbo", temperature=0.0).bind(
         response_format={"type": "json_object"}
     ),
-    ## Open AI.
+    ## Together AI.
     "openchat": Together(
         model="openchat/openchat-3.5-1210",
+        max_tokens=4096,
         temperature=0.0,
         together_api_key=together_key,
     ),
     "gemma": Together(
         model="google/gemma-7b-it",
+        max_tokens=4096,
         temperature=0.05,
         together_api_key=together_key,
     ),
     "mistral": Together(
         model="mistralai/Mistral-7B-Instruct-v0.2",
+        max_tokens=4096,
         temperature=0.0,
         together_api_key=together_key,
     ),
     "hermes": Together(
         model="NousResearch/Nous-Hermes-2-Mistral-7B-DPO",
+        max_tokens=4096,
         temperature=0.0,
         together_api_key=together_key,
     ),
     "open-orca": Together(
         model="Open-Orca/Mistral-7B-OpenOrca",
+        max_tokens=4096,
         temperature=0.0,
         together_api_key=together_key,
     ),
     "qwen-7": Together(
         model="Qwen/Qwen1.5-7B-Chat",
+        max_tokens=4096,
         temperature=0.0,
         together_api_key=together_key,
     ),
     "yi": Together(
         model="zero-one-ai/Yi-34B-Chat",
+        max_tokens=4096,
         temperature=0.0,
         together_api_key=together_key,
     ),
     "mixtral": Together(
         model="mistralai/Mixtral-8x7B-Instruct-v0.1",
+        max_tokens=4096,
         temperature=0.0,
         together_api_key=together_key,
     ),
     "mixtral-dpo": Together(
         model="NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
+        max_tokens=4096,
         temperature=0.0,
         together_api_key=together_key,
     ),
     "mixtral-sft": Together(
         model="NousResearch/Nous-Hermes-2-Mixtral-8x7B-SFT",
+        max_tokens=4096,
         temperature=0.0,
         together_api_key=together_key,
     ),
     "qwen-14": Together(
         model="Qwen/Qwen1.5-14B-Chat",
+        max_tokens=4096,
         temperature=0.0,
         together_api_key=together_key,
     ),

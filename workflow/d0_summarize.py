@@ -46,7 +46,7 @@ def main():
         summaries_dict, token_dict = vs.recursive_summarize_by_parts(
             paper_title,
             paper_content,
-            max_tokens=600,
+            max_tokens=500,
             model="claude-haiku",
             # model="mlx",
             # mlx_model=mlx_model,

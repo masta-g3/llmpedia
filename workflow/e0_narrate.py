@@ -23,17 +23,14 @@ def main():
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
 
-    with get_openai_callback() as cb:
-        for arxiv_code in tqdm(arxiv_codes):
-            paper_notes = db.get_extended_notes(arxiv_code, expected_tokens=1500)
-            paper_title = title_map[arxiv_code]
+    for arxiv_code in tqdm(arxiv_codes):
+        paper_notes = db.get_extended_notes(arxiv_code, expected_tokens=1500)
+        paper_title = title_map[arxiv_code]
 
-            ## Insert copywriter's summary into the database.
-            narrative = vs.convert_notes_to_narrative(paper_title, paper_notes, model="claude-sonnet")
-            copywritten = vs.copywrite_summary(paper_title, narrative, model="claude-sonnet")
-            db.insert_recursive_summary(arxiv_code, copywritten)
-
-        print(cb)
+        ## Insert copywriter's summary into the database.
+        narrative = vs.convert_notes_to_narrative(paper_title, paper_notes, model="claude-sonnet")
+        copywritten = vs.copywrite_summary(paper_title, narrative, model="claude-sonnet")
+        db.insert_recursive_summary(arxiv_code, copywritten)
 
     print("Done!")
 

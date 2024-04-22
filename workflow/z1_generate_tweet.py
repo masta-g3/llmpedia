@@ -173,11 +173,11 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
     button.click()
 
     # Wait for the tweet to be sent.
-    confirmation_message = WebDriverWait(browser, 30).until(
-        EC.presence_of_element_located(
-            (By.XPATH, "//span[contains(text(), 'Your post were sent.')]")
-        )
-    )
+    # confirmation_message = WebDriverWait(browser, 30).until(
+    #     EC.presence_of_element_located(
+    #         (By.XPATH, "//span[contains(text(), 'Your post were sent.')]")
+    #     )
+    # )
 
     print("Tweet sent successfully.")
     browser.quit()

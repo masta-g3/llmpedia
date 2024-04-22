@@ -29,8 +29,8 @@ import utils.db as db
 db_params = pu.db_params
 
 ## Download necessary NLTK data.
-nltk.download("wordnet")
-nltk.download("stopwords")
+nltk.download("wordnet", quiet=True)
+nltk.download("stopwords", quiet=True)
 
 REFIT = False
 

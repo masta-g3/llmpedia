@@ -108,7 +108,7 @@ def main():
 
         ## Store.
         pu.store_local(new_content, arxiv_code, "arxiv_text", format="txt")
-        print(f"\nSummary for '{paper_name}' - '{title}' stored locally.")
+        print(f"\nText for '{paper_name}' - '{title}' stored locally.")
 
         ## Update gist.
         parsed_list.append(paper_name)

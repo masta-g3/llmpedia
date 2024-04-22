@@ -909,7 +909,7 @@ def create_resolve_user_prompt(user_question: str, documents: list) -> str:
     - Use no more than three (3) dense paragraphs to provide a complete, direct and useful answer. Leverage markdown components to structure your response as a short report.
     - Be practical and reference any existing libraries or implementations mentioned on the documents.
     - If there is conflicting information present the different viewpoints and consider that more recent papers or those with more citations are generally more reliable.
-    - Add citations referencing the relevant arxiv_codes (e.g.: use the format `*reference content* (arxiv:1234.5678)`). 
+    - Add citations referencing the relevant arxiv_codes (e.g.: use the format `*reference content* (arxiv:1234.5678)`).  If you mention paper titles wrap them on backticks (e.g.: `paper title`).
     - Be concise and to the point. Do not add introductions or conclusions.
     </guidelines>
     """
