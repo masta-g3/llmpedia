@@ -1,6 +1,7 @@
 import random
 import datetime
 import os, sys, re
+import time
 import json
 from dotenv import load_dotenv
 from selenium import webdriver
@@ -107,7 +108,6 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
         except:
             raise Exception("Failed to login.")
 
-
     password = WebDriverWait(browser, 30).until(
         EC.presence_of_element_located((By.NAME, "password"))
     )
@@ -129,6 +129,10 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
 
     ## Upload second image.
     if tweet_page_path:
+        input_box = WebDriverWait(browser, 30).until(
+            EC.presence_of_element_located((By.XPATH, "//input[@accept]"))
+        )
+
         input_box.send_keys(tweet_page_path)
 
         ## Wait for the second image to be uploaded and processed.
@@ -167,19 +171,23 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
         )
         tweet_box.send_keys(post_tweet.replace("\n", Keys.RETURN))
 
-    button = WebDriverWait(browser, 30).until(
-        EC.element_to_be_clickable((By.CSS_SELECTOR, "div[data-testid='tweetButton']"))
-    )
-    button.click()
-
-    # Wait for the tweet to be sent.
-    # confirmation_message = WebDriverWait(browser, 30).until(
-    #     EC.presence_of_element_located(
-    #         (By.XPATH, "//span[contains(text(), 'Your post were sent.')]")
-    #     )
-    # )
+    try:
+        button = WebDriverWait(browser, 30).until(
+            EC.element_to_be_clickable(
+                (By.CSS_SELECTOR, "div[data-testid='tweetButton']")
+            )
+        )
+        button.click()
+    except:
+        button = WebDriverWait(browser, 30).until(
+            EC.element_to_be_clickable(
+                (By.CSS_SELECTOR, "div[data-testid='tweetButton']")
+            )
+        )
+        button.click()
 
     print("Tweet sent successfully.")
+    time.sleep(30)
     browser.quit()
     return True
 
@@ -187,7 +195,7 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
 def main():
     """Generate a weekly review of highlights and takeaways from papers."""
     vs.validate_openai_env()
-    is_review = True
+    tweet_type = "review_v2"
 
     ## Define arxiv code.
     arxiv_codes = db.get_arxiv_id_list(db.db_params, "summary_notes")
@@ -197,10 +205,10 @@ def main():
     arxiv_code = random.choice(arxiv_codes)
 
     last_post = db.get_latest_tstp(
-        db.db_params, "tweet_reviews", extra_condition="where is_daily_review=true"
+        db.db_params, "tweet_reviews", extra_condition="where tweet_type='review_v2'"
     )
     if datetime.datetime.date(last_post) == datetime.datetime.today().date():
-        is_review = False
+        tweet_type = "insight_v1"
 
     ## Load previous tweets.
     n_tweets = 5
@@ -214,9 +222,11 @@ def main():
         ]
     )
 
-    paper_summary = db.get_extended_notes(arxiv_code, expected_tokens=6000)
+    paper_summary = db.get_extended_notes(arxiv_code, expected_tokens=1500)
     paper_details = db.load_arxiv(arxiv_code)
     publish_date = paper_details["published"][0].strftime("%B %Y")
+    publish_date_full = paper_details["published"][0].strftime("%B %d, %Y")
+    author = paper_details["authors"][0]
     title_map = db.get_arxiv_title_dict()
     paper_title = title_map[arxiv_code]
 
@@ -225,6 +235,11 @@ def main():
     **Title: """
         + paper_title
         + """**"""
+        + "\n"
+        + """**Authors: """
+        + author
+        + """**"""
+        + "\n"
         + paper_summary
         + "```"
     )
@@ -234,28 +249,34 @@ def main():
     tweet = vs.write_tweet(
         previous_tweets=previous_tweets,
         tweet_facts=tweet_facts,
-        is_review=is_review,
-        model="claude-sonnet",
+        tweet_type=tweet_type,
+        model="claude-opus",
     )
     print("Generated tweet: ")
     print(tweet)
 
-    edited_tweet = vs.edit_tweet(tweet, is_review, model="claude-opus")
-    edited_tweet = bold(edited_tweet, publish_date)
+    if tweet_type != "review_v2":
+        edited_tweet = vs.edit_tweet(tweet, tweet_type=tweet_type, model="claude-opus")
+    else:
+        # edited_tweet = f'💭LLmpedia Review: "{paper_title}"\n\n{tweet}'
+        edited_tweet = f'💭"{paper_title}"\n\n{tweet}'
+    edited_tweet = bold(edited_tweet, publish_date_full)
 
     print("Edited tweet: ")
     print(edited_tweet)
 
     ## Send tweet to API.
     tweet_image_path = f"{IMG_PATH}/{arxiv_code}.png"
-    tweet_page_path = None
-    if is_review:
-        tweet_page_path = f"{PAGE_PATH}/{arxiv_code}.png"
+    # tweet_page_path = None
+    # if tweet_type == "review_v1":
+    tweet_page_path = f"{PAGE_PATH}/{arxiv_code}.png"
 
     send_tweet(edited_tweet, tweet_image_path, tweet_page_path, post_tweet)
 
     ## Store.
-    db.insert_tweet_review(arxiv_code, edited_tweet, datetime.datetime.now(), is_review)
+    db.insert_tweet_review(
+        arxiv_code, edited_tweet, datetime.datetime.now(), tweet_type
+    )
 
 
 if __name__ == "__main__":

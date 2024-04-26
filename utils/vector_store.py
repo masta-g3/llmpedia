@@ -131,7 +131,7 @@ def summarize_doc_chunk(paper_title: str, document: str, model="local"):
     )
     chain = LLMChain(llm=llm_map[model], prompt=summarizer_prompt, verbose=False)
     summary = chain.invoke(
-        dict(paper_title=paper_title, content=document, stop=["</summary>"])
+        dict(paper_title=paper_title, content=document.page_content, stop=["</summary>"])
     )["text"]
     return summary
 
@@ -293,14 +293,31 @@ def generate_weekly_report(weekly_content_md: str, model="GPT-4-Turbo"):
     return weekly_report
 
 
+tweet_system_map = {
+    "review_v1": ps.TWEET_USER_PROMPT,
+    "insight_v1": ps.TWEET_INSIGHT_USER_PROMPT,
+    "review_v2": ps.TWEET_REVIEW_SYSTEM_PROMPT,
+}
+
+tweet_user_map = {
+    "review_v1": ps.TWEET_USER_PROMPT,
+    "insight_v1": ps.TWEET_INSIGHT_USER_PROMPT,
+    "review_v2": ps.TWEET_REVIEW_USER_PROMPT,
+}
+
+tweet_edit_user_map = {
+    "review_v1": ps.TWEET_EDIT_USER_PROMPT,
+    "insight_v1": ps.TWEET_INSIGHT_EDIT_USER_PROMPT,
+}
+
 def write_tweet(
-    previous_tweets: str, tweet_facts: str, is_review=True, model="GPT-4-Turbo"
+    previous_tweets: str, tweet_facts: str, tweet_type="new_review", model="GPT-4-Turbo"
 ):
     """Write a tweet via LLMChain."""
     tweet_prompt = ChatPromptTemplate.from_messages(
         [
-            ("system", ps.TWEET_SYSTEM_PROMPT),
-            ("user", ps.TWEET_USER_PROMPT if is_review else ps.TWEET_INSIGHT_USER_PROMPT),
+            ("system", tweet_system_map[tweet_type]),
+            ("user", tweet_user_map[tweet_type]),
         ]
     )
     tweet_chain = LLMChain(llm=llm_map[model], prompt=tweet_prompt)
@@ -312,13 +329,12 @@ def write_tweet(
     )["text"]
     return tweet
 
-
-def edit_tweet(tweet: str, is_review=True, model="GPT-4-Turbo"):
+def edit_tweet(tweet: str, tweet_type="review", model="GPT-4-Turbo"):
     """Edit a tweet via LLMChain."""
     tweet_prompt = ChatPromptTemplate.from_messages(
         [
             ("system", ps.TWEET_EDIT_SYSTEM_PROMPT),
-            ("user", ps.TWEET_EDIT_USER_PROMPT if is_review else ps.TWEET_INSIGHT_EDIT_USER_PROMPT),
+            ("user", tweet_edit_user_map[tweet_type]),
         ]
     )
     tweet_chain = LLMChain(llm=llm_map[model], prompt=tweet_prompt)

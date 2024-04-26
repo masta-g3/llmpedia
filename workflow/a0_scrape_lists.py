@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse
 from selenium import webdriver
 from dotenv import load_dotenv
+import feedparser
 import time
 
 load_dotenv()
@@ -67,7 +68,6 @@ def extract_date_range(header_text, year):
     start_date = parse(start_date_str.strip() + f", {year}")
     end_date = parse(end_date_str.strip() + f", {year}")
     return (start_date, end_date)
-
 
 
 def overlaps_with_range(date_range, start_date, end_date):
@@ -178,6 +178,14 @@ def scrape_ai_news_papers(start_date, end_date=None):
     return df
 
 
+def scrape_emergentmind_papers():
+    url = "https://www.emergentmind.com/feeds/rss"
+    feed = feedparser.parse(url)
+    entries = [(entry.link.split("/")[-1], entry.title) for entry in feed.entries]
+    entries_df = pd.DataFrame(entries, columns=["arxiv_code", "title"])
+    return entries_df
+
+
 def main():
     """Scrape arxiv codes and titles from huggingface.co/papers."""
     if len(sys.argv) < 2 or len(sys.argv) > 3:
@@ -196,9 +204,11 @@ def main():
     dair_df = scrape_ml_papers_of_the_week(start_date, end_date)
     print("Scraping AI News...")
     ai_news_df = scrape_ai_news_papers(start_date, end_date)
+    print("Scraping Emergent Mind...")
+    em_df = scrape_emergentmind_papers()
 
     ## Combine and extract new codes.
-    df = pd.concat([hf_df, rsrch_df, dair_df, ai_news_df], ignore_index=True)
+    df = pd.concat([hf_df, rsrch_df, dair_df, ai_news_df, em_df], ignore_index=True)
     df.drop_duplicates(subset="arxiv_code", keep="first", inplace=True)
     ## Remove "vX" from arxiv codes if present.
     df["arxiv_code"] = df["arxiv_code"].str.replace(r"v\d+$", "", regex=True)
@@ -226,6 +236,7 @@ def main():
         "\n".join(paper_list),
     )
     time.sleep(20)
+
 
 if __name__ == "__main__":
     main()

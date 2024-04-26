@@ -7,8 +7,8 @@ import os, re
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CohereRerank
 from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
-from langchain_community.embeddings import CohereEmbeddings
 from langchain_community.embeddings.huggingface import HuggingFaceInferenceAPIEmbeddings
+from langchain_cohere import CohereEmbeddings
 from langchain.prompts.chat import ChatPromptTemplate
 from langchain.chains import LLMChain
 
@@ -140,7 +140,7 @@ def query_llmpedia(question: str, collection_name: str, model: str = "GPT-3.5-Tu
     """Query LLMpedia via LLMChain."""
     rag_prompt_custom = ChatPromptTemplate.from_messages(
         [
-            ("system", ps.VS_SYSYEM_TEMPLATE),
+            ("system", ps.VS_SYSTEM_TEMPLATE),
             ("human", "{question}"),
         ]
     )

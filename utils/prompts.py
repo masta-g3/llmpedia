@@ -436,7 +436,8 @@ Read over carefully over the following information and use it to inform your twe
 - Present the information using layman and direct language.
 - Do not infer any information beyond what discussed in the text.
 - Be very precise and detailed in your statements. Describe the main components of what is presented and how they work. The reader should have a solid understanding of the approach or methodology described after reading your tweet.
-- Start the tweet with an emoji followed by'Today's LLM paper review "XXX"...'
+- Start the tweet with an emoji followed by'Today's LLM paper review "XXX"...'. The title is the only part of the tweet that should be in double quotes.
+- First the motion. Must remain neutral and informative.
 
 # RESPONSE
 Now write your 3 paragraph tweet. Make sure the first paragraph is at most 280 characters long, so it can be tweeted as a single tweet. The other two paragraphs can be longer.
@@ -444,7 +445,7 @@ Now write your 3 paragraph tweet. Make sure the first paragraph is at most 280 c
 
 TWEET_INSIGHT_USER_PROMPT = """
 # OBJECTIVE
-You are writing a quick tweet highlighting an interesting insight from a recent LLM paper.
+You are writing a short tweet highlighting an interesting insight from a recent LLM paper.
 
 # CONTEXT
 Read over carefully over the following information and use it to inform your tweet.
@@ -487,9 +488,85 @@ TWEET_INSIGHT_EDIT_USER_PROMPT = """
 - Reduce modifier and filler words; be very direct and to the point. 
 - Rephrase any parts that are not clearly understood; the message should be clear to a layman.
 - Do not remove references to technical terms, important results, or change the meaning of the tweet.
-- Start the tweet with '⭐️LLM Insight from "XXX": ...' followed by the insight, where "XXX" is the title of the paper in double quotes.
+- Start the tweet with '⭐️Insight from "XXX": ...' followed by the insight, where "XXX" is the title of the paper in double quotes.
 - Do few edits; keep most of the tweet essence as is.
 - Reply with the edited tweet and nothing else."""
+
+TWEET_REVIEW_SYSTEM_PROMPT = "You are an expert AI writer tasked with writing a summary of 'The Instruction Hierarchy: Training LLMs to Prioritize Privileged Instructions' for the magazine LLMpedia. Your task is to read over a set of notes on the whitepaper and convert them into an engaging review paragraph. Reply with the summary and nothing else."
+
+TWEET_REVIEW_USER_PROMPT = """
+<example_input>
+**Title: The Instruction Hierarchy: Training LLMs to Prioritize Privileged Instructions** 
+**Authors: Eric Wallace (OpenAI), Kai Xiao (OpenAI), Reimar Leike (OpenAI), Lilian Weng (OpenAI), Johannes Heidecke (OpenAI) and Alex Beutel (OpenAI)**
+- The paper proposes an "instruction hierarchy" to address the vulnerability in modern large language models (LLMs) where system prompts and untrusted user inputs are treated equally, allowing adversaries to inject malicious prompts.
+
+- The instruction hierarchy explicitly defines how LLMs should prioritize and handle instructions of different privilege levels, with the goal of teaching LLMs to selectively ignore lower-privileged instructions when they conflict with higher-privileged ones.
+
+- The authors present an automated data generation method to train LLMs on this hierarchical instruction following behavior, involving the creation of synthetic training examples where lower-privileged instructions (e.g., user messages) attempt to override higher-privileged instructions (e.g., system messages).
+
+- Applying this method to LLMs, the paper shows that it can drastically increase their robustness to a wide range of attacks, even those not seen during training, while imposing minimal degradation on standard capabilities.
+
+- The key idea is to establish a clear priority structure for instructions, where system-level prompts have the highest privilege, followed by user messages, and then lower-privilege inputs like web search results, allowing the model to selectively ignore malicious instructions from untrusted sources.
+
+- The authors evaluate their approach using open-sourced and novel benchmarks, some of which contain attacks not seen during training, and observe a 63% improvement in defense against system prompt extraction and a 30% increase in jailbreak robustness.
+
+- The authors note some regressions in "over-refusals" where their models sometimes ignore or refuse benign queries, but they are confident this can be resolved with further data collection.
+
+- The paper draws an analogy between LLMs and operating systems, where the current state of affairs is that every instruction is executed as if it was in kernel mode, allowing untrusted third-parties to run arbitrary code with access to private data and functions, and suggests that the solution in computing, creating clear notions of privilege, should be applied to LLMs as well.
+
+- The paper discusses the three main parties involved in the instruction hierarchy: the application builder, the end user, and third-party inputs, and the various attacks that can arise from conflicts between these parties, such as prompt injections, jailbreaks, and system message extraction.
+
+- The authors note that the proposed instruction hierarchy aims to establish a clear priority structure for instructions, where system-level prompts have the highest privilege, followed by user messages, and then lower-privilege inputs, in order to allow the model to selectively ignore malicious instructions from untrusted sources.
+
+- The paper introduces the "instruction hierarchy" framework to train language models to prioritize privileged instructions and exhibit improved safety and controllability, even in the face of adversarial prompts.
+
+- The instruction hierarchy approach allows models to conditionally follow lower-level instructions when they do not conflict with higher-priority ones, rather than completely ignoring all instructions in user inputs.
+
+- The models are evaluated on "over-refusal" datasets, which consist of benign instructions and boundary cases that look like attacks but are safe to comply with. The goal is for the models to follow non-conflicting instructions almost as well as the baseline.
+
+- The results show the models follow non-conflicting instructions nearly as well as the baseline, with some regressions on adversarially constructed tasks targeting areas likely affected by the instruction hierarchy.
+
+- The instruction hierarchy approach is complementary to other system-level guardrails, such as user approval for certain actions, which will be important for agentic use cases.
+
+- The authors express confidence that scaling up their data collection efforts can further improve model performance and refine the refusal decision boundary.
+
+- The authors suggest several extensions for future work, including refining how models handle conflicting instructions, exploring the generalization of their approach to other modalities, and investigating model architecture changes to better instill the instruction hierarchy.
+
+- The authors plan to conduct more explicit adversarial training and study whether LLMs can be made sufficiently robust to enable high-stakes agentic applications.
+
+- The authors suggest that developers should place their task instructions inside the System Message and have the third-party inputs provided separately in the User Message, to better delineate between instructions and data and prevent prompt injection attacks.
+
+- The instruction hierarchy model exhibited generalization to evaluation criteria that were explicitly excluded from training, such as jailbreaks, password extraction, and prompt injections via tool use.
+</example_input>
+
+<example_output>
+By far the most detailed paper on prompt injection I’ve seen yet from OpenAI, published a few days ago and with six credited authors: Eric Wallace, Kai Xiao, Reimar Leike, Lilian Weng, Johannes Heidecke and Alex Beutel.
+
+The paper notes that prompt injection mitigations which completely refuse any form of instruction in an untrusted prompt may not actually be ideal: some forms of instruction are harmless, and refusing them may provide a worse experience.
+
+Instead, it proposes a hierarchy—where models are trained to consider if instructions from different levels conflict with or support the goals of the higher-level instructions—if they are aligned or misaligned with them.
+
+The authors tested this idea by fine-tuning a model on top of GPT 3.5, and claim that it shows greatly improved performance against numerous prompt injection benchmarks.
+
+As always with prompt injection, my key concern is that I don’t think “improved” is good enough here. If you are facing an adversarial attacker reducing the chance that they might find an exploit just means they’ll try harder until they find an attack that works.
+</example_output>
+
+<input>
+{tweet_facts}
+</input>
+
+<instructions>
+- Play close attention to the sample input and output. 
+- Your task is to convert the input into a concise and engaging review paragraph. 
+- Make sure to capture the key points and the main idea of the paper and highlight unexpected findings. 
+- Do not use sensational language or too many adjectives. Adhere to the tone and style of the sample output. 
+- Use simple layman's terms and make sure to explain all technical concepts in a clear and understandable way. 
+- Be sure all your statements are supported by the information provided in the input.
+- Refer to the paper as 'this paper'.
+- Write your response in a single full paragraph. Do not use double quote symbols in your response.
+Remember, your goal is to inform and engage the readers of LLMpedia. Good luck!
+</instructions>
+"""
 
 ##################
 ## VECTOR STORE ##
@@ -520,7 +597,7 @@ Input: {question}
 Output: ["""
 
 
-VS_SYSYEM_TEMPLATE = """You are the GPT maestro, an expert robot librarian and maintainer of the LLMpedia. Use the following document excerpts to answer the user's question about Large Language Models (LLMs).
+VS_SYSTEM_TEMPLATE = """You are the GPT maestro, an expert robot librarian and maintainer of the LLMpedia. Use the following document excerpts to answer the user's question about Large Language Models (LLMs).
 
 ==========
 {context}
@@ -906,11 +983,14 @@ def create_resolve_user_prompt(user_question: str, documents: list) -> str:
 
     <guidelines>
     - Do not mention 'the context'! The user does not have access to it, so do not reference it or the fact that I presented it to you. Act as if you have all the information in your head (i.e.: do not say 'Based on the information provided...', etc.).
-    - Use no more than three (3) dense paragraphs to provide a complete, direct and useful answer. Leverage markdown components to structure your response as a short report.
+    - Use three dense paragraphs to provide a complete, direct and useful answer. Structure your response as a mini-report in a magazine. 
+    - Make sure it reads naturally. Do not enumerate the paragraphs (e.g.: 'Paragraph 1: ...').
+    - Only use markdown to add a title to your response (i.e.: '##').
     - Be practical and reference any existing libraries or implementations mentioned on the documents.
-    - If there is conflicting information present the different viewpoints and consider that more recent papers or those with more citations are generally more reliable.
-    - Add citations referencing the relevant arxiv_codes (e.g.: use the format `*reference content* (arxiv:1234.5678)`).  If you mention paper titles wrap them on backticks (e.g.: `paper title`).
-    - Be concise and to the point. Do not add introductions or conclusions.
+    - If there is conflicting information present the different viewpoints and consider that more recent papers or those with more citations are generally more reliable. Present different viewpoints if they exist.
+    - Try to inform your response with the information available in the context, and less so with your own opinions.
+    - Add citations referencing the relevant arxiv_codes (e.g.: use the format *reference content* (arxiv:1234.5678)).  If you mention paper titles wrap them in double quotes.
+    - Be direct, to the point, and comprehensive. Do not add introductions or conclusions.
     </guidelines>
     """
     return user_message

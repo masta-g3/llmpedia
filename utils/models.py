@@ -1,6 +1,7 @@
 from langchain_openai import ChatOpenAI
 from langchain_together import Together
 from langchain_anthropic import ChatAnthropic
+from langchain_groq import ChatGroq
 import os
 
 together_key = os.getenv("TOGETHER_API_KEY")
@@ -99,6 +100,12 @@ llm_map = {
         max_tokens=4096,
         temperature=0.0,
         together_api_key=together_key,
+    ),
+    ## Groq.
+    "llama3": ChatGroq(
+        model="llama3-70b-8192",
+        max_tokens=4096,
+        temperature=0.0
     ),
     ## Local model.
     "local": ChatOpenAI(

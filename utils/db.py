@@ -143,8 +143,10 @@ def load_topics():
     return topics_df
 
 
-def load_citations():
-    query = "SELECT * FROM semantic_details;"
+def load_citations(arxiv_code=None):
+    query = "SELECT * FROM semantic_details"
+    if arxiv_code:
+        query += f" WHERE arxiv_code = '{arxiv_code}';"
     conn = create_engine(database_url)
     citations_df = pd.read_sql(query, conn)
     citations_df.set_index("arxiv_code", inplace=True)
@@ -469,14 +471,14 @@ def get_recursive_summary(arxiv_code: str) -> str:
     return result
 
 
-def insert_tweet_review(arxiv_code, review, tstp, is_review):
+def insert_tweet_review(arxiv_code, review, tstp, tweet_type):
     """Insert tweet review into the database."""
     engine = create_engine(database_url)
     with engine.begin() as conn:
         query = text(
             """
-            INSERT INTO tweet_reviews (arxiv_code, review, tstp, is_daily_review)
-            VALUES (:arxiv_code, :review, :tstp, :is_review);
+            INSERT INTO tweet_reviews (arxiv_code, review, tstp, tweet_type)
+            VALUES (:arxiv_code, :review, :tstp, :tweet_type);
             """
         )
         conn.execute(
@@ -485,7 +487,7 @@ def insert_tweet_review(arxiv_code, review, tstp, is_review):
                 "arxiv_code": arxiv_code,
                 "review": review,
                 "tstp": tstp,
-                "is_review": is_review,
+                "tweet_type": tweet_type,
             },
         )
     return True
