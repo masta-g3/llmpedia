@@ -29,7 +29,7 @@ def main():
 
         ## Insert copywriter's summary into the database.
         narrative = vs.convert_notes_to_narrative(paper_title, paper_notes, model="claude-sonnet")
-        copywritten = vs.copywrite_summary(paper_title, narrative, model="claude-sonnet")
+        copywritten = vs.copywrite_summary(paper_title, paper_notes, narrative, model="claude-sonnet")
         db.insert_recursive_summary(arxiv_code, copywritten)
 
     print("Done!")

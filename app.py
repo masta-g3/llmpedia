@@ -1,5 +1,5 @@
 import json
-
+import time
 import streamlit as st
 
 from streamlit_plotly_events import plotly_events
@@ -150,7 +150,8 @@ def get_weekly_summary(date: str):
 @st.cache_data
 def get_max_report_date():
     max_date = db.get_max_table_date(
-        db.db_params, "weekly_reviews",
+        db.db_params,
+        "weekly_reviews",
     )
     if max_date.weekday() != 6:
         max_date = max_date + pd.Timedelta(days=6 - max_date.weekday())
@@ -235,6 +236,26 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
     arxiv_comment = paper["arxiv_comment"]
     if arxiv_comment:
         img_cols[1].caption(f"*{arxiv_comment}*")
+
+    report_log_space = img_cols[1].empty()
+    report_btn = img_cols[1].popover("Report")
+    if report_btn.checkbox("Report bad image", key=f"report_v1_{paper_code}_{name}"):
+        db.report_issue(paper_code, "bad_image")
+        report_log_space.success("Reported bad image. Thanks!")
+        time.sleep(3)
+        report_log_space.empty()
+    if report_btn.checkbox("Report bad summary", key=f"report_v2_{paper_code}_{name}"):
+        db.report_issue(paper_code, "bad_summary")
+        report_log_space.success("Reported bad summary. Thanks!")
+        time.sleep(3)
+        report_log_space.empty()
+    if report_btn.checkbox(
+        "Report non-LLM paper", key=f"report_v3_{paper_code}_{name}"
+    ):
+        db.report_issue(paper_code, "non_llm")
+        report_log_space.success("Reported non-LLM paper. Thanks!")
+        time.sleep(3)
+        report_log_space.empty()
 
     with st.expander(f"💭 Abstract (arXiv:{paper_code})", expanded=False):
         st.markdown(paper["summary"])

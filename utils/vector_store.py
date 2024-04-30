@@ -131,7 +131,9 @@ def summarize_doc_chunk(paper_title: str, document: str, model="local"):
     )
     chain = LLMChain(llm=llm_map[model], prompt=summarizer_prompt, verbose=False)
     summary = chain.invoke(
-        dict(paper_title=paper_title, content=document.page_content, stop=["</summary>"])
+        dict(
+            paper_title=paper_title, content=document.page_content, stop=["</summary>"]
+        )
     )["text"]
     return summary
 
@@ -200,10 +202,11 @@ def convert_notes_to_narrative(paper_title, notes, model="GPT-3.5-Turbo"):
     narrative = narrative_chain.invoke(
         dict(paper_title=paper_title, previous_notes=notes, stop=["</summary>"])
     )["text"]
+    narrative = narrative.replace("<summary>", "")
     return narrative
 
 
-def copywrite_summary(paper_title, narrative, model="GPT-3.5-Turbo"):
+def copywrite_summary(paper_title, previous_notes, narrative, model="GPT-3.5-Turbo"):
     """Copywrite a summary via LLMChain."""
     copywriting_prompt = ChatPromptTemplate.from_messages(
         [("system", ps.COPYWRITER_SYSTEM_PROMPT), ("user", ps.COPYWRITER_USER_PROMPT)]
@@ -212,10 +215,12 @@ def copywrite_summary(paper_title, narrative, model="GPT-3.5-Turbo"):
     copywritten = copywriting_chain.invoke(
         dict(
             paper_title=paper_title,
+            previous_notes=previous_notes,
             previous_summary=narrative,
             stop=["</improved_summary>"],
         )
     )["text"]
+    copywritten = copywritten.replace("<improved_summary>", "")
     return copywritten
 
 
@@ -310,6 +315,7 @@ tweet_edit_user_map = {
     "insight_v1": ps.TWEET_INSIGHT_EDIT_USER_PROMPT,
 }
 
+
 def write_tweet(
     previous_tweets: str, tweet_facts: str, tweet_type="new_review", model="GPT-4-Turbo"
 ):
@@ -328,6 +334,7 @@ def write_tweet(
         )
     )["text"]
     return tweet
+
 
 def edit_tweet(tweet: str, tweet_type="review", model="GPT-4-Turbo"):
     """Edit a tweet via LLMChain."""

@@ -174,7 +174,7 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
     try:
         button = WebDriverWait(browser, 30).until(
             EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, "div[data-testid='tweetButton']")
+                (By.CSS_SELECTOR, "div[data-testid='tweetButtonInline']")
             )
         )
         button.click()
@@ -201,8 +201,18 @@ def main():
     arxiv_codes = db.get_arxiv_id_list(db.db_params, "summary_notes")
     done_codes = db.get_arxiv_id_list(db.db_params, "tweet_reviews")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
-    arxiv_codes = sorted(arxiv_codes)[-10:]
-    arxiv_code = random.choice(arxiv_codes)
+    arxiv_codes = sorted(arxiv_codes)[-100:]
+    citations_df = db.load_citations()
+    citations_df = citations_df[citations_df.index.isin(arxiv_codes)]
+
+    ## Select randomly, with probability based on citation count.
+    citations_df["citation_count"] = citations_df["citation_count"].fillna(1) + 1
+    citations_df["weight"] = citations_df["citation_count"] / citations_df["citation_count"].sum()
+    citations_df["weight"] = citations_df["weight"] ** 0.5
+    citations_df["weight"] = citations_df["weight"] / citations_df["weight"].sum()
+    arxiv_code = random.choices(citations_df.index, weights=citations_df["weight"])[0]
+
+    # arxiv_code = random.choice(arxiv_codes)
 
     last_post = db.get_latest_tstp(
         db.db_params, "tweet_reviews", extra_condition="where tweet_type='review_v2'"
@@ -244,6 +254,7 @@ def main():
         + "```"
     )
     post_tweet = f"read more on the LLMpedia: https://llmpedia.streamlit.app/?arxiv_code={arxiv_code}"
+    # post_tweet = None
 
     ## Run model.
     tweet = vs.write_tweet(
@@ -258,8 +269,7 @@ def main():
     if tweet_type != "review_v2":
         edited_tweet = vs.edit_tweet(tweet, tweet_type=tweet_type, model="claude-opus")
     else:
-        # edited_tweet = f'💭LLmpedia Review: "{paper_title}"\n\n{tweet}'
-        edited_tweet = f'💭"{paper_title}"\n\n{tweet}'
+        edited_tweet = f'💭Review of "{paper_title}"\n\n{tweet}'
     edited_tweet = bold(edited_tweet, publish_date_full)
 
     print("Edited tweet: ")

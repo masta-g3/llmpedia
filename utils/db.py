@@ -68,6 +68,29 @@ def log_qna_db(user_question, response):
     return True
 
 
+def report_issue(arxiv_code, issue_type):
+    """Report an issue in DB."""
+    engine = create_engine(database_url)
+    with engine.begin() as conn:
+        issue_id = str(uuid.uuid4())
+        tstp = pd.to_datetime("now").strftime("%Y-%m-%d %H:%M:%S")
+        query = text(
+            """
+            INSERT INTO issue_reports (issue_id, tstp, arxiv_code, issue_type)
+            VALUES (:issue_id, :tstp, :arxiv_code, :issue_type);
+        """
+        )
+        conn.execute(
+            query,
+            {
+                "issue_id": str(issue_id),
+                "tstp": tstp,
+                "arxiv_code": str(arxiv_code),
+                "issue_type": str(issue_type),
+            },
+        )
+    return True
+
 def insert_recursive_summary(arxiv_code, summary):
     """Insert data into recursive_summary table in DB."""
     engine = create_engine(database_url)

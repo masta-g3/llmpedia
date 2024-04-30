@@ -232,7 +232,7 @@ SUMMARIZE_BY_PARTS_USER_PROMPT = """Read over the following section and take not
 - Your summary must be shorter (at least half) than the original text. Remove any filler or duplicate content.
 - Take notes in the form of a numbered list, each item an information-rich paragraph. Do not include headers or any other elements.
 - DO NOT include more than ten (10) items in your list. Any element beyond the tenth (10) will be discarded.
-- Reply with the numbered list only without any preamble or additional content.
+- Reply with the numbered list and nothing else; no introduction, conclusion or additional comments.
 </guidelines>
 
 <summary>
@@ -247,39 +247,44 @@ NARRATIVE_SUMMARY_USER_PROMPT = """
 </notes>
 
 <guidelines>
-- You can reorganize and rephrase the notes in order to improve the summary's flow.
-- Do not alter the meaning of the notes.
-- Avoid repetition and filler content.
-- Abstain from making unwarranted inferences.
-- Avoid bombastic language and unnecessary qualifiers (e.g.: groundbreaking, innovative, revolutionary, etc.).
-- Include metrics and statistics in your report.
+- Restructure the information into a single, coherent paragraph.
+- Reorganize and rephrase the notes in order to improve the summary's flow, but do not alter the meaning of the content.
 - Include descriptions and explanations of any new concepts or terms.
+- Include metrics and statistics in your report.
 - Describe how new models or methodologies work, using layman terms and in detail. The reader should be able to reimplement some of the techniques described after reading your summary.
 - Highlight any practical applications or benefits of the paper's findings.
 - Highlight unusual or unexpected findings.
+- Make sure that the most important information is included in the summary.
+- Avoid repetition and filler content.
+- Abstain from making unwarranted inferences.
+- Avoid bombastic language and unnecessary qualifiers (e.g.: groundbreaking, innovative, revolutionary, etc.).
+- REMEMBER: Your output should be a single paragraph, no more!
 </guidelines>
 
-<summary>
-"""
+<summary>"""
 
-COPYWRITER_SYSTEM_PROMPT = """You are an encyclopedia technology copywriter tasked with reviewing the following summary of "{paper_title}" and improving it. Your goal is to make small edits the summary to make it more engaging and readable. You can reorganize and rephrase the text when needed, but you must not alter its meaning or remove any piece of information."""
+COPYWRITER_SYSTEM_PROMPT = """You are an encyclopedia technology copywriter tasked with reviewing the following summary of "{paper_title}" and improving it. Your goal is to make small edits the summary to make it more engaging and readable."""
 
 COPYWRITER_USER_PROMPT = """
+<context>
+{previous_notes}
+</context>
+
 <initial_summary>
 {previous_summary}
 </initial_summary>
 
 <guidelines>
-- Do not include any header or titles, just a plain text paragraphs. Do not include a conclusion.
+- Do not alter the structure of the summary (i.e.: keep a single paragraph).
 - The summary should read fluently and be engaging, as it will be published on a modern encyclopedia on Large Language Models.
 - The original text was written by an expert, so please do not remove, reinterpret or edit any valuable information.
-- Describe how new models or methodologies work, using layman terms and in detail. The reader should be able to reimplement some of the techniques described after reading your summary.
+- Make sure descriptions of new models or methodologies are provided in detail using clear, layman terms. The reader should be able to reimplement some of the techniques described after reading the summary.
 - Avoid bombastic language and unnecessary qualifiers (e.g.: groundbreaking, innovative, revolutionary, etc.).
 - Avoid repetition and filler content.
+- REMEMBER: Your output should be a single paragraph, no more!
 </guidelines>
 
-<improved_summary>
-"""
+<improved_summary>"""
 
 
 FACTS_ORGANIZER_SYSTEM_PROMPT = """You are a prestigious academic writer. You specialize in the field of Large Language Models (LLMs) and write summary notes about the latest research and developments in the field. 
@@ -564,6 +569,7 @@ As always with prompt injection, my key concern is that I don’t think “impro
 - Be sure all your statements are supported by the information provided in the input.
 - Refer to the paper as 'this paper'.
 - Write your response in a single full paragraph. Do not use double quote symbols in your response.
+- Wrap the most interesting or important comment in **bold text** (only once per summary).
 Remember, your goal is to inform and engage the readers of LLMpedia. Good luck!
 </instructions>
 """
