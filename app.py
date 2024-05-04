@@ -379,7 +379,7 @@ def generate_grid_gallery(df, n_cols=5):
                     )
                     if focus_btn:
                         st.session_state.arxiv_code = paper_code
-                        click_tab(4)
+                        click_tab(2)
 
                     st.markdown(
                         f'<h6 style="text-align: center"><a href="{paper_url}" style="color: #FF4B4B;">{paper_title}</a></h6>',
@@ -460,7 +460,8 @@ def main():
     if "arxiv_code" in url_query:
         paper_code = url_query["arxiv_code"]
         st.session_state.arxiv_code = paper_code
-        click_tab(4)
+        time.sleep(0.1)
+        click_tab(2)
 
     st.markdown(
         """<div class="pixel-font">LLMpedia</div>
