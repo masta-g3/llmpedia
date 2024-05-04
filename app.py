@@ -134,7 +134,9 @@ def load_data():
     ## Round published and updated columns.
     result_df["updated"] = pd.to_datetime(result_df["updated"]).dt.date
     result_df["published"] = pd.to_datetime(result_df["published"].dt.date)
-    result_df["category"] = result_df["category"].apply(lambda x: classification_map.get(x, "OTHER"))
+    result_df["category"] = result_df["category"].apply(
+        lambda x: classification_map.get(x, "🤷 OTHER")
+    )
     result_df[["citation_count", "influential_citation_count"]] = result_df[
         ["citation_count", "influential_citation_count"]
     ].fillna(0)
@@ -238,7 +240,8 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         img_cols[1].caption(f"*{arxiv_comment}*")
 
     report_log_space = img_cols[1].empty()
-    report_btn = img_cols[1].popover("Report")
+    action_btn_cols = img_cols[1].columns((1, 1, 1))
+    report_btn = action_btn_cols[0].popover("🚨 Report")
     if report_btn.checkbox("Report bad image", key=f"report_v1_{paper_code}_{name}"):
         db.report_issue(paper_code, "bad_image")
         report_log_space.success("Reported bad image. Thanks!")
@@ -287,7 +290,17 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             else:
                 st.markdown("Currently unavailable. Check again soon!")
 
-    with st.expander("🌟 **GPT Assessments**", expanded=expanded):
+    with st.expander("👮 **Interrogate** (Chat)", expanded=expanded):
+        paper_question = st.text_area(
+            "Ask GPT Maestro about this paper.",
+            height=100,
+            key=f"chat_{paper_code}{name}",
+        )
+        if st.button("Send", key=f"send_{paper_code}{name}"):
+            response = au.interrogate_paper(paper_question, paper_code)
+            st.write(response)
+
+    with st.expander("🌟 **GPT Assessments**", expanded=False):
         assessment_cols = st.columns((1, 3, 1, 3, 1, 3))
         assessment_cols[0].metric("Novelty", f"{paper['novelty_score']}/3", "🚀")
         assessment_cols[1].caption(f"{paper['novelty_analysis']}")
@@ -454,18 +467,13 @@ def main():
     """,
         unsafe_allow_html=True,
     )
-    st.markdown(
-        "##### A collection of research papers on Language Models curated by the GPT maestro itself."
-    )
+    st.markdown("##### The Illustrated Language Model Encyclopedia")
     ## Humorous and poetic introduction.
     st.markdown(
-        "Every week dozens of papers are published on Language Models. It is impossible to keep up with the latest research. "
-        "That's why we created LLMpedia, a collection of papers on Language Models curated by the GPT maestro itself.\n\n"
-        "Each week GPT will sweep through the latest LLM related papers and select the most interesting ones. "
-        "The maestro will then summarize the papers and provide its own analysis, including a novelty, technical depth and readability score. "
-        "A weekly report will also be published, so you can stay on top of the latest developments. "
-        "We hope you enjoy this collection and find it useful; "
-        "if you have any questions, head to the *Chat* section and consult the GPT maestro, "
+        "LLMpedia is a curated collection of the most significant papers on Large Language Models, selected and analyzed by GPT Maestro. "
+        "Accompanied by pixel art and structured summaries, the encyclopedia is designed to help you navigate the vast landscape of research on Language Models.\n\n"
+        "We hope you enjoy this collection and find it useful! "
+        "if you have any questions, head to the *Chat* section and consult the Maestro, "
         "and follow us at [@GPTMaestro](https://twitter.com/GPTMaestro) for the latest updates and daily paper reviews.\n\n"
         "*Buona lettura!*"
     )
@@ -608,8 +616,8 @@ def main():
     content_tabs = st.tabs(
         [
             "🧮 Grid View",
-            "🎞 Feed View",
-            "🗒️ Table View",
+            # "🎞 Feed View",
+            # "🗒️ Table View",
             "🗺️ Over View",
             "🔍 Focus View",
             "🤖 Chat",
@@ -626,65 +634,65 @@ def main():
         generate_grid_gallery(papers_df_subset)
         create_bottom_navigation(label="grid")
 
+    # with content_tabs[1]:
+    #     ## Feed view.
+    #     if "page_number" not in st.session_state:
+    #         st.session_state.page_number = 0
+    #
+    #     papers_subset = create_pagination(papers, items_per_page=7, label="summaries")
+    #     st.markdown(f"**{len(papers)} papers found.**")
+    #     for paper in papers_subset:
+    #         create_paper_card(paper, mode="closed", name="_feed")
+    #     create_bottom_navigation(label="summaries")
+
+    # with content_tabs[1]:
+    #     ## Table view.
+    #     display_df = papers_df.reset_index(drop=True)
+    #     # https://llmpedia.s3.amazonaws.com/2403.14624.png
+    #     display_df["display_url"] = display_df["arxiv_code"].map(
+    #         lambda l: f"https://llmpedia.s3.amazonaws.com/{l}.png"
+    #     )
+    #     column_config = {
+    #         "url": st.column_config.LinkColumn(
+    #             label="Arxiv Link",
+    #             display_text="https://arxiv\.org/abs/(.*?)(?:v\d+)?$",
+    #         ),
+    #         "display_url": st.column_config.ImageColumn(
+    #             label="Artwork",
+    #         ),
+    #         "published": st.column_config.DateColumn(
+    #             label="Published",
+    #             format="MMM DD, YYYY",
+    #             # width="small",
+    #         ),
+    #         "title": st.column_config.TextColumn(
+    #             label="Title",
+    #             width="large",
+    #         ),
+    #         "topic": st.column_config.TextColumn(
+    #             label="Topic",
+    #             width="large",
+    #         ),
+    #         "citation_count": "Citations",
+    #         "influential_citation_count": "⭐️Influential Citations",
+    #     }
+    #     display_cols = [
+    #         "display_url",
+    #         "published",
+    #         "title",
+    #         "citation_count",
+    #         "influential_citation_count",
+    #         "topic",
+    #     ]
+    #     display_df = display_df[column_config.keys()]
+    #     st.dataframe(
+    #         display_df,
+    #         column_config=column_config,
+    #         hide_index=True,
+    #         use_container_width=True,
+    #     )
+
     with content_tabs[1]:
-        ## Feed view.
-        if "page_number" not in st.session_state:
-            st.session_state.page_number = 0
-
-        papers_subset = create_pagination(papers, items_per_page=7, label="summaries")
-        st.markdown(f"**{len(papers)} papers found.**")
-        for paper in papers_subset:
-            create_paper_card(paper, mode="closed", name="_feed")
-        create_bottom_navigation(label="summaries")
-
-    with content_tabs[2]:
-        ## Table view.
-        display_df = papers_df.reset_index(drop=True)
-        # https://llmpedia.s3.amazonaws.com/2403.14624.png
-        display_df["display_url"] = display_df["arxiv_code"].map(
-            lambda l: f"https://llmpedia.s3.amazonaws.com/{l}.png"
-        )
-        column_config = {
-            "url": st.column_config.LinkColumn(
-                label="Arxiv Link",
-                display_text="https://arxiv\.org/abs/(.*?)(?:v\d+)?$",
-            ),
-            "display_url": st.column_config.ImageColumn(
-                label="Artwork",
-            ),
-            "published": st.column_config.DateColumn(
-                label="Published",
-                format="MMM DD, YYYY",
-                # width="small",
-            ),
-            "title": st.column_config.TextColumn(
-                label="Title",
-                width="large",
-            ),
-            "topic": st.column_config.TextColumn(
-                label="Topic",
-                width="large",
-            ),
-            "citation_count": "Citations",
-            "influential_citation_count": "⭐️Influential Citations",
-        }
-        display_cols = [
-            "display_url",
-            "published",
-            "title",
-            "citation_count",
-            "influential_citation_count",
-            "topic",
-        ]
-        display_df = display_df[column_config.keys()]
-        st.dataframe(
-            display_df,
-            column_config=column_config,
-            hide_index=True,
-            use_container_width=True,
-        )
-
-    with content_tabs[3]:
         ## Over view.
         total_papers = len(papers_df)
         st.markdown(f"### 📈 Total Publication Counts: {total_papers}")
@@ -704,7 +712,7 @@ def main():
         cluster_map = pt.plot_cluster_map(papers_df)
         st.plotly_chart(cluster_map, use_container_width=True)
 
-    with content_tabs[4]:
+    with content_tabs[2]:
         ## Focus on a paper.
         arxiv_code = st.text_input("arXiv Code", st.session_state.arxiv_code)
         st.session_state.arxiv_code = arxiv_code
@@ -715,7 +723,7 @@ def main():
             else:
                 st.error("Paper not found.")
 
-    with content_tabs[5]:
+    with content_tabs[3]:
         st.markdown("##### 🤖 Chat with the GPT maestro.")
         config_cols = st.columns((3, 3, 10))
         # embedding_name = config_cols[0]._selectbox(
@@ -747,7 +755,7 @@ def main():
                     st.divider()
                     st.markdown(response)
 
-    with content_tabs[6]:
+    with content_tabs[4]:
         report_top_cols = st.columns((5, 2))
         with report_top_cols[0]:
             st.markdown("# 📰 LLM Weekly Review")

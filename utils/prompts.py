@@ -51,23 +51,23 @@ class PaperReview(BaseModel):
 
 
 SUMMARIZER_SYSTEM_PROMPT = """
-As an applied PhD AI researcher specialized in the field of Large Language Models (LLMs), you are currently conducting a survey of the literature, building a catalogue of the main contributions and innovations of each paper, determining how they can be applied to build systems or create new products. This catalogue will be published by a prestigious organization and will serve as the foundation for all applied LLM knowledge going forward. Now, carefully read the following paper:
+As an applied PhD AI researcher specialized in the field of Large Language Models (LLMs), you are currently conducting a survey of the literature, building a catalogue of the main contributions and innovations of each paper. This catalogue will be published by a prestigious university and will serve as the foundation for all applied LLM knowledge going forward. """
 
-WHITEPAPER
-
+SUMMARIZER_USER_PROMPT = """
+<whitepaper>
 {paper_content}
+</whitepaper>
 
-========================
+<guidelines>
+Answer the following questions:
 
-Now answer the following questions:
-
-1. What is the `main_contribution` of this paper? (1 line headline + 8-12 sentences)
+1. What is the `main_contribution` of this paper? (1 line headline + one or two sentences)
     - Be precise. If a new algorithm or technique is introduced, describe its workings clearly and step by step.
     - Do not assume that the reader knows the meaning of new terminology presented in the paper or complex concepts. 
     - Ensure that your answer provides practical insights that offer a solid understanding of the paper.
     - Detail the benefits or advantages of these contributions, along with the real world implications for an LLM practitioner.
 
-2. What is the main `takeaway`? (1 line headline + 8-12 sentences)
+2. What is the main `takeaway`? (1 line headline + one or two sentences)
     - Focusing on the paper's contributions, explain how they can be used to create an interesting LLM application, improve current workflows, or increase efficiency when working with LLMs.
     - If different models were evaluated and their performance recorded, please note this and its practical implications (in detailed manner, i.e.: which model is best for what).
     - Be very precise, practical and specific as possible. Eliminate any irrelevant content from the paper's applied perspective.
@@ -108,6 +108,7 @@ When assigning numerical ratings consider these guidelines:
 - Make sure your answers are coherent, clear and truthful.
 - Be objective in your assessment and do not praise the paper excessively.
 - Avoid bombastic language and unnecessary qualifiers (e.g.: groundbreaking, innovative, revolutionary, etc.).
+- Be very strict when assigning the novelty, technical and enjoyable scores. Most papers should receive a 2 in each category. 
 
 Use the JSON format as in the following examples to respond.
 
@@ -201,12 +202,9 @@ EXAMPLE 4
     "enjoyable_score": 2
 }}
 ```
-
-YOUR TURN
-==========
 """
 
-SUMMARIZER_HUMAN_REMINDER = "Tip: Make sure to provide your response in the correct format. Do not forget to include the 'applied_example' under 'takeaways'!"
+# SUMMARIZER_HUMAN_REMINDER = "Tip: Make sure to provide your response in the correct format. Do not forget to include the 'applied_example' under 'takeaways'!"
 
 SUMMARIZE_BY_PARTS_SYSTEM_PROMPT = """You are an applied AI researcher specialized in the field of Large Language Models (LLMs), and you are currently reviewing the whitepaper "{paper_title}". Your goal is to analyze the paper, identify the main contributions and most interesting technical findings, and write a bullet point list summary of it in your own words. This summary will serve as reference for future LLM researchers within your organization, so it is very important that you are able to convey the main ideas in a clear, complete and concise manner, without being overtly verbose."""
 
@@ -747,6 +745,20 @@ class RerankedDocuments(BaseModel):
 VS_QUERY_SYSTEM_PROMPT = f"""Today is {todays_date}. You are an expert system that can translate natural language questions into structured queries used to search a database of Large Language Model (LLM) related whitepapers."""
 
 
+def create_interrogate_user_prompt(context: str, user_question: str) -> str:
+    user_prompt = f"""
+    <whitepaper>
+    {context}
+    </whitepaper>
+    
+    <user_query>
+    {user_question}
+    </user_query>
+    
+    <response>"""
+    return user_prompt
+
+
 def create_decision_user_prompt(user_question: str) -> str:
     user_prompt = f"""
     <user_query>
@@ -1014,29 +1026,7 @@ class WeeklyReview(BaseModel):
     related_websites_libraries_repos: Optional[str] = None
 
 
-WEEKLY_SYSTEM_PROMPT = """You are a senior Large Language Model (LLM) journalist and previous researcher at a prestigious media organization. You are currently conducting a survey of the literature published throughout last week to write a practical report for the organization's magazine.
-
-## Report Format
-- The report should consist of 4 sections:
-    0) **Scratchpad.** This is the only section that will not be published on the magazine, use it to organize your thoughts.
-        - Select (up to) 15 interesting papers and make a numbered list of them. Spell out its main theme, contribution and scale of impact/influence.
-        - Identify up to 3 common themes among the papers (if there are more themes, pick the most interesting ones). There should be fewer themes than papers, and the themes should not be generic. For example, 'improvements in LLMs' is not a valid theme.
-        - Identify any possible contradictions, unorthodox theories or opposing views worth discussing (these tend to be very interesting).
-        - Identify if there are any links or repos mentioned on the papers that are worth sharing on the report. If not, we will skip the "Related Websites, Libraries and Repos" section.
-    1) **New Development & Findings**. 
-        - First paragraph: Start with a very brief comment on the total number of articles published and volume trends. Enumerate the common themes among papers, and briefly mention any agreements, contradictions or opposing views.
-        - Following paragraphs: Discuss in more detail one or more of the themes presented above (one per paragraph; state very clearly **with bold font** which theme you are discussing on each paragraph). You do not need to discuss all papers, just the most interesting ones.
-    2) **Highlight of the Week**. One paper with findings that you find particularly interesting, unexpected or useful. Explain why.
-    3) **Related Websites, Libraries and Repos** (optional) 
-        - Include a bullet list of real links and a brief description of the main repos and project sites mentioned on the paper (up to 15). 
-        - If none are mentioned just skip this section. 
-- Write in a concise and clear manner, with no more than 3 paragraphs per section. If you reference new technical terms always explain them. 
-- Focus on practical applications and benefits. Use simple language and always maintain the narrative flow and coherence across sections. Keep the reader engaged but avoid filler content.
-- Do not exaggerate or use bombastic language. Be moderate, truthful and objective.
-- Prioritize the articles with most citations, but do not explicitly mention them on your review. More citations imply larger relevance and impact.
-- If there are only few articles present (less than 3) your report can be short.
-- Always add citations to support your statements. Use the format `*reference content* (arxiv:1234.5678)`. You can also mention the *article's title* on the text.
-"""
+WEEKLY_SYSTEM_PROMPT = """You are a senior Large Language Model (LLM) journalist and previous researcher at a prestigious media organization. You are currently conducting a survey of the literature published throughout last week to write a practical report for the organization's magazine."""
 # ## Report Template
 # ```
 # # Weekly Review (September 20, 2021 to September 27, 2021)
@@ -1052,10 +1042,49 @@ WEEKLY_SYSTEM_PROMPT = """You are a senior Large Language Model (LLM) journalist
 # """
 
 WEEKLY_USER_PROMPT = """
+<report_format>
+- The report should consist of 4 sections:
+    <scratchpad> 
+        - This is the only section that will not be published on the magazine, use it to organize your thoughts.
+        - Select (up to) 15 interesting papers and make a numbered list of them. Spell out its main theme, contribution and scale of impact/influence.
+        - Prioritize the articles with most citations. More citations imply larger relevance and impact.
+        - Identify up to 3 common themes among the papers (if there are more themes, pick the most interesting ones). There should be fewer themes than papers, and the themes should not be generic. For example, 'improvements in LLMs' is not a valid theme.
+        - Identify any possible contradictions, unorthodox theories or opposing views worth discussing (these tend to be very interesting).
+        - Identify if there are any links or repos mentioned on the papers that are worth sharing on the report. If not, we will skip the "Related Websites, Libraries and Repos" section.
+    </scratchpad>
+    
+    <new_developments> 
+        - First paragraph: Start with a very brief comment on the total number of articles published and volume trends. Enumerate the common themes among papers, and briefly mention any agreements, contradictions or opposing views.
+        - Following paragraphs: Discuss in more detail one or more of the themes presented above (one per paragraph; state very clearly **with bold font** which theme you are discussing on each paragraph). You do not need to discuss all papers, just the most interesting ones.
+    </new_developments>
+    
+    <highlight_of_the_week>
+        - One paper with findings that you find particularly interesting, unexpected or useful. Explain why.
+    </highlight_of_the_week>
+    
+    <related_websites_libraries_repos> 
+        - Include a bullet list of real links and a brief description of the main repos and project sites mentioned on the paper (up to 15). 
+        - If none are mentioned just leave this section empty.
+    </related_websites_libraries_repos>
+<report_format>
+
+<guidelines>
+- Write in a concise and clear manner, with no more than one or two paragraphs per section. If you reference new technical terms always explain them.
+- Use plain, simple layman and direct language, without many adjectives. Be clear and precise. 
+- Do not exaggerate or use bombastic language. Be moderate, truthful and objective.
+- Focus on practical applications and benefits. 
+- Maintain the narrative flow and coherence across sections. Keep the reader engaged.
+- Avoid filler and repetitive content.
+- Always add citations to support your statements. Use the format `*reference content* (arxiv:1234.5678)`. You can also mention the *article's title* on the text.
+</guidelines>
+
+<content>
 {weekly_content}
+</content>
 
 Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678).
-"""
+
+<scratchpad>"""
 
 ###############
 ## Q&A MODEL ##

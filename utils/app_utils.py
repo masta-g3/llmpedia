@@ -217,6 +217,16 @@ query_config_json = """
 query_config = json.loads(query_config_json)
 
 
+def interrogate_paper(question: str, arxiv_code: str) -> str:
+    """Ask a question about a paper."""
+    context = db.get_extended_notes(arxiv_code, expected_tokens=8000)
+    system_message = "Read carefully the whitepaper, reason about the user question, and provide a comprehensive, git diffhelpful and truthful response. Be direct and concise, using layman's language that is easy to understand. Avoid filler content, and reply with your answer in a single short sentence or paragraph and nothing else (no preambles, greetings, etc.)."
+    user_message = ps.create_interrogate_user_prompt(question, context)
+    response = run_instructor_query(system_message, user_message, None)
+    response = response.replace("<response>", "").replace("</response>", "")
+    return response
+
+
 def decide_query_action(user_question: str) -> ps.QueryDecision:
     """Decide the query action based on the user question."""
     system_message = "Please analyze the following user query and answer the question."
@@ -306,6 +316,7 @@ def resolve_query_other(user_question: str) -> ps.QueryDecision:
     user_message = f"{user_question}"
     response = run_instructor_query(system_message, user_message, None)
     return response
+
 
 def query_llmpedia_new(user_question: str) -> str:
     """Extended workflow to query LLMpedia."""

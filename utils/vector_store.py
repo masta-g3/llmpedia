@@ -179,11 +179,11 @@ def verify_llm_paper(paper_content: str, model="GPT-3.5-Turbo-JSON"):
     return is_llm_paper
 
 
-def review_llm_paper(paper_content: str, model="claude-3-sonnet-20240229"):
+def review_llm_paper(paper_content: str, model="claude-3-haiku-20240307"):
     """Review a paper via LLMChain."""
     review = run_instructor_query(
         ps.SUMMARIZER_SYSTEM_PROMPT,
-        ps.SUMMARIZER_HUMAN_REMINDER.format(paper_content=paper_content),
+        ps.SUMMARIZER_USER_PROMPT.format(paper_content=paper_content),
         model=ps.PaperReview,
         llm_model=model,
     )
@@ -292,7 +292,7 @@ def generate_weekly_report(weekly_content_md: str, model="GPT-4-Turbo"):
     weekly_report = run_instructor_query(
         ps.WEEKLY_SYSTEM_PROMPT,
         ps.WEEKLY_USER_PROMPT.format(weekly_content=weekly_content_md),
-        model=ps.WeeklyReview,
+        # model=ps.WeeklyReview,
         llm_model="claude-3-sonnet-20240229",
     )
     return weekly_report

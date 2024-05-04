@@ -17,7 +17,7 @@ import utils.db as db
 
 token_encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
 LOCAL_PAPER_PATH = os.path.join(os.environ.get("PROJECT_PATH"), "data", "summaries")
-RETRIES = 3
+RETRIES = 1
 
 
 def main():
@@ -31,13 +31,13 @@ def main():
 
     arxiv_codes = sorted(arxiv_codes)[::-1]
     for arxiv_code in tqdm(arxiv_codes):
-        new_content = db.get_extended_notes(arxiv_code, expected_tokens=6000)
+        new_content = db.get_extended_notes(arxiv_code, expected_tokens=1200)
 
         ## Try to run LLM process up to 3 times.
         success = False
         for i in range(RETRIES):
             try:
-                summary = vs.review_llm_paper(new_content, model="claude-3-sonnet-20240229")
+                summary = vs.review_llm_paper(new_content)#, model="claude-3-sonnet-20240229")
                 success = True
                 break
             except Exception as e:

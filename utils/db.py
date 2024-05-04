@@ -494,16 +494,17 @@ def get_recursive_summary(arxiv_code: str) -> str:
     return result
 
 
-def insert_tweet_review(arxiv_code, review, tstp, tweet_type):
+def insert_tweet_review(arxiv_code, review, tstp, tweet_type, rejected=False):
     """Insert tweet review into the database."""
     engine = create_engine(database_url)
     with engine.begin() as conn:
         query = text(
             """
-            INSERT INTO tweet_reviews (arxiv_code, review, tstp, tweet_type)
-            VALUES (:arxiv_code, :review, :tstp, :tweet_type);
+            INSERT INTO tweet_reviews (arxiv_code, review, tstp, tweet_type, rejected)
+            VALUES (:arxiv_code, :review, :tstp, :tweet_type, :rejected);
             """
         )
+
         conn.execute(
             query,
             {
@@ -511,6 +512,7 @@ def insert_tweet_review(arxiv_code, review, tstp, tweet_type):
                 "review": review,
                 "tstp": tstp,
                 "tweet_type": tweet_type,
+                "rejected": rejected,
             },
         )
     return True

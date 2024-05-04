@@ -24,7 +24,7 @@ def main():
     arxiv_codes = sorted(arxiv_codes)[::-1]
 
     for arxiv_code in tqdm(arxiv_codes):
-        paper_notes = db.get_extended_notes(arxiv_code, expected_tokens=1500)
+        paper_notes = db.get_extended_notes(arxiv_code, expected_tokens=1000)
         paper_title = title_map[arxiv_code]
 
         ## Insert copywriter's summary into the database.
