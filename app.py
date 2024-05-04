@@ -460,7 +460,6 @@ def main():
     if "arxiv_code" in url_query:
         paper_code = url_query["arxiv_code"]
         st.session_state.arxiv_code = paper_code
-        time.sleep(0.1)
         click_tab(2)
 
     st.markdown(
@@ -468,13 +467,13 @@ def main():
     """,
         unsafe_allow_html=True,
     )
-    st.markdown("##### The Illustrated Language Model Encyclopedia")
+    st.markdown("##### The Illustrated Large Language Model Encyclopedia")
     ## Humorous and poetic introduction.
     st.markdown(
         "LLMpedia is a curated collection of the most significant papers on Large Language Models, selected and analyzed by GPT Maestro. "
-        "Accompanied by pixel art and structured summaries, the encyclopedia is designed to help you navigate the vast landscape of research on Language Models.\n\n"
-        "We hope you enjoy this collection and find it useful! "
-        "if you have any questions, head to the *Chat* section and consult the Maestro, "
+        "Accompanied by pixel art and structured summaries, the encyclopedia is designed to help you navigate the vast landscape of research on LLMs.\n\n"
+        "We hope you enjoy this collection and find it useful. "
+        "If you have any questions, head to the *Chat* section and consult the Maestro, "
         "and follow us at [@GPTMaestro](https://twitter.com/GPTMaestro) for the latest updates and daily paper reviews.\n\n"
         "*Buona lettura!*"
     )
