@@ -424,14 +424,16 @@ def generate_grid_gallery(df, n_cols=5, extra_key=""):
 
                     paper_code = df.iloc[i * n_cols + j]["arxiv_code"]
                     focus_btn = st.button(
-                        "Focus", key=f"focus_{paper_code}{extra_key}", use_container_width=True
+                        "Focus",
+                        key=f"focus_{paper_code}{extra_key}",
+                        use_container_width=True,
                     )
                     if focus_btn:
                         st.session_state.arxiv_code = paper_code
                         click_tab(2)
 
                     st.markdown(
-                        f'<h6 style="text-align: center"><a href="{paper_url}" style="color: #FF4B4B;">{paper_title}</a></h6>',
+                        f'<p style="text-align: center"><strong><a href="{paper_url}" style="color: #FF4B4B;">{paper_title}</a></strong></p>',
                         unsafe_allow_html=True,
                     )
 
@@ -655,7 +657,7 @@ def main():
                     pass
 
     st.sidebar.markdown(
-    """
+        """
     <style>
         .reportview-container .main footer {visibility: hidden;}
         .footer {
@@ -675,7 +677,7 @@ def main():
         <a href="https://github.com/masta-g3/llmpedia/blob/main/VERSIONS.md" target="_blank">v1.2.2</a>
     </div>
     """,
-    unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     if len(papers_df) == 0:
