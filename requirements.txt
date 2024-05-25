@@ -10,7 +10,7 @@ langchain-groq==0.1.2
 langchain-together~=0.0.2
 langchain-openai~=0.0.8
 numpy==1.24.4
-streamlit==1.32.2
+streamlit==1.35.0
 streamlit-plotly-events==0.0.6
 plotly==5.18.0
 pandas==2.0.3
