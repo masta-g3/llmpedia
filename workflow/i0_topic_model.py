@@ -32,7 +32,7 @@ db_params = pu.db_params
 nltk.download("wordnet", quiet=True)
 nltk.download("stopwords", quiet=True)
 
-REFIT = True
+REFIT = False
 
 ## Create a lemmatizer and list of stop words.
 LEMMATIZER = WordNetLemmatizer()
