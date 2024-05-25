@@ -361,7 +361,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         papers_df = st.session_state["papers"]
         if paper_code in papers_df.index:
             similar_codes = papers_df.loc[paper_code]["similar_docs"]
-            if pd.isna(similar_codes):
+            if any(pd.isna(similar_codes)):
                 st.write("Not available yet. Check back soon!")
             else:
                 similar_codes = [d for d in similar_codes if d in papers_df.index]
