@@ -298,15 +298,16 @@ def generate_query(criteria: ps.SearchCriteria, config: dict) -> str:
 
 def rerank_documents_new(user_question: str, documents: list) -> ps.RerankedDocuments:
     system_message = "You are an expert system that can identify and select relevant arxiv papers that can be used to answer a user query."
+    import streamlit as st
     rerank_msg = ps.create_rerank_user_prompt(user_question, documents)
     response = run_instructor_query(system_message, rerank_msg, ps.RerankedDocuments)
     return response
 
 
-def resolve_query(user_question: str, documents: list[Document]):
+def resolve_query(user_question: str, documents: list[Document], response_length: str):
     system_message = "You are an AI academic focused on Large Language Models. Please answer the user query leveraging the information provided in the context."
-    user_message = ps.create_resolve_user_prompt(user_question, documents)
-    response = run_instructor_query(system_message, user_message, None)
+    user_message = ps.create_resolve_user_prompt(user_question, documents, response_length)
+    response = run_instructor_query(system_message, user_message, None, llm_model="claude-3-sonnet-20240229")
     return response
 
 
@@ -318,7 +319,7 @@ def resolve_query_other(user_question: str) -> ps.QueryDecision:
     return response
 
 
-def query_llmpedia_new(user_question: str) -> str:
+def query_llmpedia_new(user_question: str, response_length: str = "Normal") -> str:
     """Extended workflow to query LLMpedia."""
     ## Decide action.
     action = decide_query_action(user_question)
@@ -330,9 +331,10 @@ def query_llmpedia_new(user_question: str) -> str:
             ps.create_query_user_prompt(user_question),
             ps.SearchCriteria,
         )
+        print(query_obj)
         ## Fetch results.
         sql = generate_query(query_obj, query_config)
-        documents = db.execute_query(sql, limit=True)
+        documents = db.execute_query(sql, limit=20)
         if len(documents) == 0:
             return "Sorry, I don't know about that."
         documents = [
@@ -347,7 +349,7 @@ def query_llmpedia_new(user_question: str) -> str:
         if len(filtered_documents) == 0:
             return "Sorry, I don't know about that."
         ## Resolve.
-        answer = resolve_query(user_question, filtered_documents)
+        answer = resolve_query(user_question, filtered_documents, response_length)
         answer_augment = add_links_to_text_blob(answer)
         return answer_augment
 

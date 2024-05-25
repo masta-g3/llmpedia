@@ -21,6 +21,14 @@ except:
 database_url = f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}"
 
 
+def list_to_pg_array(lst):
+    return '{' + ','.join(lst) + '}'
+
+
+def pg_array_to_list(array_str):
+    return array_str.strip('{}').split(',')
+
+
 def log_error_db(error):
     """Log error in DB along with streamlit app state."""
     engine = create_engine(database_url)
@@ -46,25 +54,54 @@ def log_error_db(error):
 
 def log_qna_db(user_question, response):
     """Log Q&A in DB along with streamlit app state."""
-    engine = create_engine(database_url)
-    with engine.begin() as conn:
-        qna_id = str(uuid.uuid4())
-        tstp = pd.to_datetime("now").strftime("%Y-%m-%d %H:%M:%S")
-        query = text(
+    try:
+        engine = create_engine(database_url)
+        with engine.begin() as conn:
+            qna_id = str(uuid.uuid4())
+            tstp = pd.to_datetime("now").strftime("%Y-%m-%d %H:%M:%S")
+            query = text(
+                """
+                INSERT INTO qna_logs (qna_id, tstp, user_question, response)
+                VALUES (:qna_id, :tstp, :user_question, :response);
             """
-            INSERT INTO qna_logs (qna_id, tstp, user_question, response)
-            VALUES (:qna_id, :tstp, :user_question, :response);
-        """
-        )
-        conn.execute(
-            query,
-            {
-                "qna_id": str(qna_id),
-                "tstp": tstp,
-                "user_question": str(user_question),
-                "response": str(response),
-            },
-        )
+            )
+            conn.execute(
+                query,
+                {
+                    "qna_id": str(qna_id),
+                    "tstp": tstp,
+                    "user_question": str(user_question),
+                    "response": str(response),
+                },
+            )
+    except Exception as e:
+        print(f"Error in logging Q&A: {e}")
+    return True
+
+
+def log_visit(entrypoint: str):
+    """Log user visit in DB."""
+    try:
+        engine = create_engine(database_url)
+        with engine.begin() as conn:
+            visit_id = str(uuid.uuid4())
+            tstp = pd.to_datetime("now").strftime("%Y-%m-%d %H:%M:%S")
+            query = text(
+                """
+                INSERT INTO visit_logs (visit_id, tstp, entrypoint)
+                VALUES (:visit_id, :tstp, :entrypoint);
+            """
+            )
+            conn.execute(
+                query,
+                {
+                    "visit_id": str(visit_id),
+                    "tstp": tstp,
+                    "entrypoint": str(entrypoint),
+                },
+            )
+    except Exception as e:
+        print(f"Error in logging visit: {e}")
     return True
 
 
@@ -166,6 +203,17 @@ def load_topics():
     return topics_df
 
 
+def load_similar_documents():
+    query = "SELECT * FROM similar_documents;"
+    conn = create_engine(database_url)
+    similar_docs_df = pd.read_sql(query, conn)
+    similar_docs_df.set_index("arxiv_code", inplace=True)
+    similar_docs_df["similar_docs"] = similar_docs_df["similar_docs"].apply(
+        pg_array_to_list
+    )
+    return similar_docs_df
+
+
 def load_citations(arxiv_code=None):
     query = "SELECT * FROM semantic_details"
     if arxiv_code:
@@ -175,6 +223,19 @@ def load_citations(arxiv_code=None):
     citations_df.set_index("arxiv_code", inplace=True)
     citations_df.drop(columns=["paper_id"], inplace=True)
     return citations_df
+
+
+def load_tweet_insights(arxiv_code=None):
+    query = "SELECT * FROM tweet_reviews where tweet_type = 'insight_v1'"
+    if arxiv_code:
+        query += f" WHERE arxiv_code = '{arxiv_code}';"
+    conn = create_engine(database_url)
+    tweet_reviews_df = pd.read_sql(query, conn)
+    tweet_reviews_df.set_index("arxiv_code", inplace=True)
+    tweet_reviews_df.drop(columns=["tstp", "rejected", "tweet_type"], inplace=True)
+    tweet_reviews_df.rename(columns={"review": "tweet_insight"}, inplace=True)
+    return tweet_reviews_df
+
 
 
 def get_arxiv_parent_chunk_ids(chunk_ids: list):
@@ -230,10 +291,10 @@ def get_arxiv_chunks(chunk_ids: list, source="child"):
     return chunks_df
 
 
-def execute_query(query, db_params=db_params, limit=False):
+def execute_query(query, db_params=db_params, limit=None):
     """Upload a dictionary to a database."""
     if limit and "LIMIT" not in query:
-        query = query.strip().rstrip(";") + " LIMIT 10;"
+        query = query.strip().rstrip(";") + f" LIMIT {limit};"
     with psycopg2.connect(**db_params) as conn:
         with conn.cursor() as cur:
             cur.execute(query)

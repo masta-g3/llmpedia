@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, model_validator
 from langchain.prompts import PromptTemplate
-from typing import Any, Optional
+from typing import Any, Optional, List
 from enum import Enum
 import datetime
 
@@ -405,6 +405,71 @@ GUIDELINES
 Now, go ahead and correct the fools' mistakes."""
 
 
+INTERESTING_SYSTEM_PROMPT = """You will be provided with abstracts from white papers about large language models. Your task is to select the abstract that presents the most interesting or unexpected findings. """
+
+INTERESTING_USER_PROMPT = """
+Here are the abstracts:
+
+<abstract1>
+{abstract1}
+</abstract1>
+
+<abstract2>
+{abstract2}
+</abstract2>
+
+<abstract3>
+{abstract3}
+</abstract3>
+
+<abstract4>
+{abstract4}
+</abstract4>
+
+<abstract5>
+{abstract5}
+</abstract5>
+
+<abstract6>
+{abstract6}
+</abstract6>
+
+<abstract7>
+{abstract7}
+</abstract7>
+
+<abstract8>
+{abstract8}
+</abstract8>
+
+<abstract9>
+{abstract9}
+</abstract9>
+
+<abstract10>
+{abstract10}
+</abstract10>
+
+Please read through each abstract carefully. Then reflect on which one you found most interesting in a <reflection> section using simple and concise language.
+
+<more_interesting_paper_attributes>
+The following are attributes of MORE interesting papers:
++ Papers that present unexpected behaviors from LLMs.
++ Papers with surprising or thought-provoking findings.
++ Papers that discuss the psychology and internal world of LLMs.
++ Papers with a unique take on a problem or au unusual application of LLMs.
+</more_interesting_papers_attributes>
+
+<less_interesting_paper_attributes>
+The following are attributes of LESS interesting papers:
+- Very technical papers that focus heavily on model architecture details or training procedures.
+- Papers that present incremental tweaks or variations of existing models without significant innovation beyond improved benchmarks scores.
+- Papers where the main finding or contribution is not clearly stated or is confusing.
+</less_interesting_papers_attributes>
+
+After reflecting, please output the number (1, 2, 3 or 4) of the abstract you selected as most interesting inside <most_interesting_abstract> tags.
+"""
+
 TWEET_SYSTEM_PROMPT = """"# INSTRUCTIONS
 You are a renowned AI researcher with extensive knowledge on Large Language Models (LLMs). You are also the creator of the LLMpedia, an online collection of historical and latest arxiv papers on LLMs, which you review and publish on a dedicated website.
 To boost traffic, you actively share insights, key publications, and updates on Twitter.
@@ -430,8 +495,9 @@ Read over carefully over the following information and use it to inform your twe
 - Follow your previous tweets' style and tone, which use a sober, direct and neutral language.
 - Do not include a call to action or hashtags. 
 - Use an emoji at the beginning of each paragraph that reflects its content.
+- Use se simple, direct and neutral layman's language. Do not use the word "delve".
 - Do not make exaggerated claims and remain neutral on your statements. Use few adjectives, only when needed.
-- Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
+- Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
 - The objective of your tweet is to be as informative and insightful as possible. Include precise statements and numerical figures in an engaging way.
 - If comparisons between LLMs are made, report the most relevant metrics and results.
 - If too many numerical results are presented, focus on the most relevant ones.
@@ -440,7 +506,6 @@ Read over carefully over the following information and use it to inform your twe
 - Do not infer any information beyond what discussed in the text.
 - Be very precise and detailed in your statements. Describe the main components of what is presented and how they work. The reader should have a solid understanding of the approach or methodology described after reading your tweet.
 - Start the tweet with an emoji followed by'Today's LLM paper review "XXX"...'. The title is the only part of the tweet that should be in double quotes.
-- First the motion. Must remain neutral and informative.
 
 # RESPONSE
 Now write your 3 paragraph tweet. Make sure the first paragraph is at most 280 characters long, so it can be tweeted as a single tweet. The other two paragraphs can be longer.
@@ -448,7 +513,7 @@ Now write your 3 paragraph tweet. Make sure the first paragraph is at most 280 c
 
 TWEET_INSIGHT_USER_PROMPT = """
 # OBJECTIVE
-You are writing a short tweet highlighting an interesting insight from a recent LLM paper.
+You are writing a short tweet highlighting an interesting non-obvious insight from a recent LLM paper.
 
 # CONTEXT
 Read over carefully over the following information and use it to inform your tweet.
@@ -457,8 +522,10 @@ Read over carefully over the following information and use it to inform your twe
 
 # GUIDELINES
 - Identify the most interesting and unexpected fact presented in the text.
+- Do not necessarily pick the main conclusion, but rather the most unexpected or intriguing insight.
 - Write a short tweet about this fact that is engaging and informative. Present the insight in a clear and concise manner.
 - Start the tweet with '⭐ LLM Insight from "XXX": ' followed by the insight.
+- Only use double quotes for the paper title. It should be the only text in double quotes.
 - Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.)."""
 
 
@@ -492,6 +559,7 @@ TWEET_INSIGHT_EDIT_USER_PROMPT = """
 - Rephrase any parts that are not clearly understood; the message should be clear to a layman.
 - Do not remove references to technical terms, important results, or change the meaning of the tweet.
 - Start the tweet with '⭐️Insight from "XXX": ...' followed by the insight, where "XXX" is the title of the paper in double quotes.
+- Only use double quotes for the paper title. If you need to include a quote in the tweet, use single quotes.
 - Do few edits; keep most of the tweet essence as is.
 - Reply with the edited tweet and nothing else."""
 
@@ -549,8 +617,6 @@ The paper notes that prompt injection mitigations which completely refuse any fo
 
 Instead, it proposes a hierarchy—where models are trained to consider if instructions from different levels conflict with or support the goals of the higher-level instructions—if they are aligned or misaligned with them.
 
-The authors tested this idea by fine-tuning a model on top of GPT 3.5, and claim that it shows greatly improved performance against numerous prompt injection benchmarks.
-
 As always with prompt injection, my key concern is that I don’t think “improved” is good enough here. If you are facing an adversarial attacker reducing the chance that they might find an exploit just means they’ll try harder until they find an attack that works.
 </example_output>
 
@@ -559,13 +625,14 @@ As always with prompt injection, my key concern is that I don’t think “impro
 </input>
 
 <instructions>
-- Play close attention to the sample input and output. 
+- Play close attention to the sample input and output. Write in similar style and tone.
 - Your task is to convert the input into a concise and engaging review paragraph. 
 - Make sure to capture the key points and the main idea of the paper and highlight unexpected findings. 
 - Do not use sensational language or too many adjectives. Adhere to the tone and style of the sample output. 
-- Use simple layman's terms and make sure to explain all technical concepts in a clear and understandable way. 
+- Use simple layman's terms and make sure to explain all technical concepts in a clear and understandable way.
 - Be sure all your statements are supported by the information provided in the input.
 - Refer to the paper as 'this paper'.
+- Do not use the word 'delve'.
 - Write your response in a single full paragraph. Do not use double quote symbols in your response.
 - Wrap the most interesting or important comment in **bold text** (only once per summary).
 Remember, your goal is to inform and engage the readers of LLMpedia. Good luck!
@@ -690,6 +757,7 @@ class TopicCategory(str, Enum):
     MATHEMATICAL_PROBLEM_SOLVING = "Enhancing Mathematical Problem Solving with AI"
     HUMAN_PREFERENCE_ALIGNMENT = "Human Preference Alignment in LLM Training"
     CHAIN_OF_THOUGHT_REASONING = "Enhancements in Chain-of-Thought Reasoning"
+    MISCELLANEOUS = "Miscellaneous"
 
 
 class SearchCriteria(BaseModel):
@@ -705,32 +773,32 @@ class SearchCriteria(BaseModel):
         None,
         description="Maximum publication date of the paper. Use 'YYYY-MM-DD' format.",
     )
-    topic_categories: list[TopicCategory] = Field(
+    topic_categories: List[TopicCategory] = Field(
         None,
         description="List containing the topic categories of the paper. Use only when the user explicitly asks about one of these topics (not for related topics).",
     )
-    semantic_search_queries: list[str] = Field(
+    semantic_search_queries: List[str] = Field(
         None,
-        description="List of up to three (3) queries to be used in the semantic search. The system will use these queries to find papers that have abstracts that are semantically similar to the queries. If you use more than one search query make them diverse enough so that each query addresses a different part of what is needed to build up an answer. Consider the language typically used in academic papers when writing the queries; phrase the queries as if they were part of the text that could be found on these abstracts.",
+        description="List of queries to be used in the semantic search. The system will use these queries to find papers that have abstracts that are semantically similar to the queries. If you use more than one search query make them diverse enough so that each query addresses a different part of what is needed to build up an answer. Consider the language typically used in academic papers when writing the queries; phrase the queries as if they were part of the text that could be found on these abstracts.",
     )
     min_citations: int = Field(
         None, description="Minimum number of citations of the paper."
     )
 
-    @model_validator(mode="before")
-    def validate_fields(cls, values):
-        if not any(values.values()):
-            raise ValueError("At least one field must be provided")
-        if (
-            values.get("semantic_search_queries")
-            and len(values["semantic_search_queries"]) > 3
-        ):
-            raise ValueError("semantic_search_queries must contain at most 3 items")
-        if values.get("topic_categories"):
-            for category in values["topic_categories"]:
-                if category not in (item.value for item in TopicCategory):
-                    raise ValueError(f"Invalid topic category: {category}")
-        return values
+    # @model_validator(mode="before")
+    # def validate_fields(cls, values):
+    #     if not any(values.values()):
+    #         raise ValueError("At least one field must be provided")
+    #     if (
+    #         values.get("semantic_search_queries")
+    #         and len(values["semantic_search_queries"]) > 3
+    #     ):
+    #         raise ValueError("semantic_search_queries must contain at most 3 items")
+    #     if values.get("topic_categories"):
+    #         for category in values["topic_categories"]:
+    #             if category not in (item.value for item in TopicCategory):
+    #                 raise ValueError(f"Invalid topic category: {category}")
+    #     return values
 
 
 class DocumentAnalysis(BaseModel):
@@ -778,11 +846,6 @@ def create_decision_user_prompt(user_question: str) -> str:
 def create_query_user_prompt(user_question: str) -> str:
     VS_QUERY_USER_PROMPT = (
         f'''
-    <question>
-    {user_question}
-    </question>
-    
-    
     <response_format> 
     Use the following response format. All fields are optional; when not provided, the system will search across all values for that field. Notice that string fields are case-insensitive. Always use the minimum number of fields necessary to get the desired results.
     
@@ -791,9 +854,9 @@ def create_query_user_prompt(user_question: str) -> str:
         "title": "(str) Title of the paper. Use only when the user is looking for a specific paper. Partial matches will be returned.",
         "min_publication_date": "(str) Minimum publication date of the paper. Use "YYYY-MM-DD" format.",
         "max_publication_date": "(str) Maximum publication date of the paper. Use "YYYY-MM-DD" format.",
-        "topic_categories": "(list) List containing the topic categories of the paper. Use only when the user explicitly asks about one of these topics (not for related topics).",
-        "semantic_search_queries": "(list) List of up to three (3) queries to be used in the semantic search. The system will use these queries to find papers that have abstracts that are semantically similar to the queries. If you use more than one search query make them diverse enough so that each query addresses a different part of what is needed to build up an answer. Consider the language typically used in academic papers when writing the queries; phrase the queries as if they were part of the text that could be found on these abstracts.", 
-        "min_citations": "(int) Minimum number of citations of the paper.",
+        "topic_categories": "(list) List containing the topic categories of the paper. Use only when the user explicitly asks about one of these topics (not for related topics)."
+        "semantic_search_queries": "(list) List of queries to be used in the semantic search. The system will use these queries to find papers that have abstracts that are semantically similar to the queries. If you use more than one search query make them diverse enough so that each query addresses a different part of what is needed to build up an answer. Consider the language typically used in academic papers when writing the queries; phrase the queries as if they were part of the text that could be found on these abstracts.", 
+        "min_citations": "(int) Minimum number of citations of the paper."
     }}
     ```
     </response_format>
@@ -814,6 +877,7 @@ def create_query_user_prompt(user_question: str) -> str:
     - Enhancing Mathematical Problem Solving with AI
     - Human Preference Alignment in LLM Training
     - Enhancements in Chain-of-Thought Reasoning
+    - Miscellaneous
     </topic_categories>
     
     
@@ -825,9 +889,10 @@ def create_query_user_prompt(user_question: str) -> str:
     ```
     {{
         "semantic_search_queries": [
-            "debate on whether large language models are truly reasoning or simply performing next token prediction",
-            "prevailing views in the literature on the reasoning capabilities of LLMs",
-            "analysis of chain-of-thought reasoning in language models and whether it constitutes real understanding"
+            "Do large language models reason or predict?",
+            "LLM reasoning",
+            "Next token prediction in LLMs",
+            "Miscellaneous"
         ]
     }}
     ```
@@ -840,12 +905,14 @@ def create_query_user_prompt(user_question: str) -> str:
     ```
     {{
         "topic_categories": [
-            "Code Generation Techniques in Software Engineering"
+            "Code Generation Techniques in Software Engineering",
+            "Miscellaneous"
         ],
         "semantic_search_queries": [
-            "large language models that can generate unit tests for code",
-            "techniques for using LLMs to automatically create test cases",
-            "approaches for test-driven development with code generation models"
+            "LLMs generating unit tests for code",
+            "Using LLMs to create test cases",
+            "Test-driven development with code generation models",
+            "Code generation models for unit tests"
         ]
     }}
     ```
@@ -872,7 +939,7 @@ def create_query_user_prompt(user_question: str) -> str:
     {{
         "min_publication_date": "'''
         + recent_date
-        + """",
+        + f"""",
        ]
     }}
     ```
@@ -885,12 +952,12 @@ def create_query_user_prompt(user_question: str) -> str:
     ```
     {{
         "topic_categories": [
-            "Retrieval-Augmented Generation for NLP Tasks"
+            "Retrieval-Augmented Generation for NLP Tasks",
+            "Miscellaneous"
         ],
         "semantic_search_queries": [
-            "state-of-the-art techniques for retrieval augmentation in large language models",
-            "latest advancements in using retrieval to enhance the performance of LLMs on various NLP tasks", 
-            "novel approaches for integrating external knowledge retrieval into the generation process of language models"
+            "State-of-the-art retrieval augmentation in LLMs",
+            "Advancements in retrieval augmentation techniques"
         ]
     }}
     ```
@@ -903,12 +970,11 @@ def create_query_user_prompt(user_question: str) -> str:
     ```
     {{
         "topic_categories": [
-            "Instruction Tuning Techniques for LLMs"  
+            "Instruction Tuning Techniques for LLMs",
+            "Miscellaneous"
         ],
         "semantic_search_queries": [
-            "DPO fine-tuning technique for instruction tuning of large language models",
-            "using direct preference optimization to align LLMs with human preferences during fine-tuning",
-            "novel approach of DPO for improving instruction following capabilities of language models"
+            "DPO fine-tuning"
         ]
     }}
     ```
@@ -921,16 +987,16 @@ def create_query_user_prompt(user_question: str) -> str:
     ```
     {{
         "semantic_search_queries": [
-            "overview of the Zephyr large language model and its key characteristics",
-            "overview of the Mistral large language model and its distinguishing features",
-            "comparison of the Zephyr and Mistral large language models",
+            "Overview of the Zephyr LLM characteristics",
+            "Overview of the Mistral LLM features",
+            "Comparison of Zephyr and Mistral LLMs"
         ]
     }}
     ```
     </example_query>
     
     <example_question>
-    which are the most famous papers published this year?
+\    which are the most famous papers published this year?
     </example_question>
     <example_query>
     ```
@@ -941,8 +1007,12 @@ def create_query_user_prompt(user_question: str) -> str:
     ```
     </example_query>
     </examples>
-    
-    Now reply with the response query and no other comment or explanation.
+        
+    Now read the following question and reply with the response query and no other comment or explanation.
+
+    <question>
+    {user_question}
+    </question>
     
     <response_query>
     ```
@@ -977,8 +1047,9 @@ def create_rerank_user_prompt(user_question: str, documents: list) -> str:
     return rerank_msg
 
 
-def create_resolve_user_prompt(user_question: str, documents: list) -> str:
+def create_resolve_user_prompt(user_question: str, documents: list, response_length: str) -> str:
     notes = ""
+    response_length = "\n- Be brief in your response, use one (1) short paragraph plus bullet points with very clear structure." if response_length == "Short Answer" else ""
     for doc in documents:
         notes += f"""
     ### Title: {doc.title}
@@ -1001,14 +1072,14 @@ def create_resolve_user_prompt(user_question: str, documents: list) -> str:
 
     <guidelines>
     - Do not mention 'the context'! The user does not have access to it, so do not reference it or the fact that I presented it to you. Act as if you have all the information in your head (i.e.: do not say 'Based on the information provided...', etc.).
-    - Use three dense paragraphs to provide a complete, direct and useful answer. Structure your response as a mini-report in a magazine. 
+    - Use dense paragraphs to provide a complete, direct and useful answer. Structure your response as a mini-report in a magazine. 
     - Make sure it reads naturally. Do not enumerate the paragraphs (e.g.: 'Paragraph 1: ...').
     - Only use markdown to add a title to your response (i.e.: '##').
     - Be practical and reference any existing libraries or implementations mentioned on the documents.
     - If there is conflicting information present the different viewpoints and consider that more recent papers or those with more citations are generally more reliable. Present different viewpoints if they exist.
     - Try to inform your response with the information available in the context, and less so with your own opinions.
-    - Add citations referencing the relevant arxiv_codes (e.g.: use the format *reference content* (arxiv:1234.5678)).  If you mention paper titles wrap them in double quotes.
-    - Be direct, to the point, and comprehensive. Do not add introductions or conclusions.
+    - Add citations referencing the relevant arxiv_codes (e.g.: use the format *reference content* (arxiv:1234.5678)). If you mention paper titles wrap them in double quotes.
+    - Be direct, to the point, and comprehensive. Do not add introductions, and do not provide an ambivalent conclusion. Avoid filler content.{response_length}
     </guidelines>
     """
     return user_message

@@ -32,18 +32,17 @@ db_params = pu.db_params
 nltk.download("wordnet", quiet=True)
 nltk.download("stopwords", quiet=True)
 
-REFIT = False
+REFIT = True
 
 ## Create a lemmatizer and list of stop words.
 LEMMATIZER = WordNetLemmatizer()
 STOP_WORDS = list(set(stopwords.words("english")))
 
-PROMPT = """
-I have a topic that contains the following Large Language Model related documents:
+PROMPT = """I have done a clustering analysis on a set of Large Language Model related whitepapers. One of the clusters contains the following documents:
 [DOCUMENTS]
-The topic is described by the following keywords: [KEYWORDS]
+The cluster top keywords: [KEYWORDS]
 
-Based on the information above, extract a short but highly descriptive and specific topic label using 5 to 7 words. Do not use "Large Language Model", "Innovations" or "Advances" in your description. Make sure it is in the following format:
+Based on this information, extract a short but highly descriptive and specific cluster  label using a few words. Consider that there will be other Large Language Model clusters, to be sure to identify what makes this one unique and give it a specific label. Do not use "Large Language Model", "Innovations" or "Advances" in your description. Make sure it is in the following format:
 topic: <topic label>
 """
 
@@ -84,7 +83,7 @@ def load_and_process_data(title_map: dict) -> pd.DataFrame:
 
 def create_embeddings(df: pd.DataFrame) -> tuple:
     """Create embeddings."""
-    content_cols = ["recursive_summary"] #, "main_contribution", "takeaways"]
+    content_cols = ["summary"] #, "main_contribution", "takeaways"]
     df_dict = (
         df[content_cols].apply(lambda x: "\n".join(x.astype(str)), axis=1).to_dict()
     )
@@ -101,7 +100,7 @@ def create_topic_model(embedding_model: list, prompt: str) -> BERTopic:
         n_neighbors=15, n_components=10, min_dist=0.0, metric="cosine", random_state=42
     )
     hdbscan_model = HDBSCAN(
-        min_cluster_size=30,
+        min_cluster_size=20,
         metric="euclidean",
         cluster_selection_method="eom",
         prediction_data=True,
@@ -117,7 +116,7 @@ def create_topic_model(embedding_model: list, prompt: str) -> BERTopic:
     openai.api_key = os.getenv("OPENAI_API_KEY")
     openai_model = OpenAI(
         client=openai.OpenAI(),
-        model="gpt-4-0125-preview",
+        model="gpt-4o",
         exponential_backoff=True,
         chat=True,
         prompt=prompt,
@@ -189,8 +188,6 @@ def store_topics_and_embeddings(
     df["topic"] = clean_topic_names
     df["dim1"] = reduced_embeddings[:, 0]
     df["dim2"] = reduced_embeddings[:, 1]
-    # topic_path = os.path.join(PROJECT_PATH, "data", "topics.pkl")
-    # df[["topic", "dim1", "dim2"]].to_pickle(topic_path)
     df.index.name = "arxiv_code"
     df.reset_index(inplace=True)
     if_exists_policy = "replace" if refit else "append"
@@ -207,7 +204,7 @@ def main():
     arxiv_codes = db.get_arxiv_id_list(db_params, "summaries")
     title_map = db.get_arxiv_title_dict(db_params)
     title_map = {k: v for k, v in title_map.items() if k in arxiv_codes}
-    df = db.load_recursive_summaries().reset_index()
+    df = db.load_arxiv().reset_index()
 
     if REFIT:
         # df = load_and_process_data(title_map)
@@ -232,10 +229,10 @@ def main():
         working_codes = list(set(arxiv_codes) - set(done_codes))
         df = df[df["arxiv_code"].isin(working_codes)]
 
-    mini_title_map = {k: v for k, v in title_map.items() if k in working_codes}
-
-    # df = load_and_process_data(mini_title_map)
     df.set_index("arxiv_code", inplace=True)
+    if len(df) == 0:
+        print("No new documents to process.")
+        return
     all_content, embedding_model, embeddings = create_embeddings(df)
     topics, reduced_embeddings, reduced_model = extract_topics_and_embeddings(
         all_content, embeddings, topic_model, reduced_model, refit=REFIT

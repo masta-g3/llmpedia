@@ -32,7 +32,11 @@ llm_map = {
     "GPT-4": ChatOpenAI(model_name="gpt-4", temperature=0.0),
     "GPT-4-Turbo": ChatOpenAI(model_name="gpt-4-turbo", temperature=0.0),
     "GPT-4-Turbo-JSON": ChatOpenAI(model_name="gpt-4-turbo", temperature=0.0).bind(
-        response_format={"type": "json_object"}
+        response_format={"type": "json_object"},
+    ),
+    "GPT-4o": ChatOpenAI(model_name="gpt-4o", temperature=0.2),
+    "GPT-4o-JSON": ChatOpenAI(model_name="gpt-4o", temperature=0.0).bind(
+        response_format={"type": "json_object"},
     ),
     ## Together AI.
     "openchat": Together(

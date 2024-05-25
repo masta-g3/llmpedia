@@ -316,6 +316,40 @@ tweet_edit_user_map = {
 }
 
 
+def select_most_interesting_paper(arxiv_abstracts, model="claude-haiku"):
+    """Select the most interesting paper from a list of candidates."""
+    interesting_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", ps.INTERESTING_SYSTEM_PROMPT),
+            ("user", ps.INTERESTING_USER_PROMPT),
+        ]
+    )
+    interesting_chain = LLMChain(llm=llm_map[model], prompt=interesting_prompt)
+
+    abs1, abs2, abs3, abs4, abs5, abs6, abs7, abs8, abs9, abs10 = arxiv_abstracts
+    response = interesting_chain.invoke(
+        dict(
+            abstract1=abs1,
+            abstract2=abs2,
+            abstract3=abs3,
+            abstract4=abs4,
+            abstract5=abs5,
+            abstract6=abs6,
+            abstract7=abs7,
+            abstract8=abs8,
+            abstract9=abs9,
+            abstract10=abs10,
+        )
+    )["text"]
+
+    abstract_idx = int(
+        response.split("<most_interesting_abstract>")[1].split(
+            "</most_interesting_abstract>"
+        )[0]
+    )
+    return abstract_idx
+
+
 def write_tweet(
     previous_tweets: str, tweet_facts: str, tweet_type="new_review", model="GPT-4-Turbo"
 ):

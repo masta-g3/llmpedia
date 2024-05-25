@@ -1,8 +1,10 @@
+import pandas as pd
 import random
 import datetime
 import os, sys, re
 import time
 import json
+import numpy as np
 from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -171,13 +173,17 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
         )
         tweet_box.send_keys(post_tweet.replace("\n", Keys.RETURN))
 
+    ## Send tweet.
+    # time.sleep(60*60*4)
     try:
-        button = WebDriverWait(browser, 30).until(
+        # Wait for the button to be clickable
+        wait = WebDriverWait(browser, 10)
+        button = wait.until(
             EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, "div[data-testid='tweetButtonInline']")
+                (By.CSS_SELECTOR, 'button[data-testid="tweetButton"]')
             )
         )
-        button.click()
+        browser.execute_script("arguments[0].click();", button)
     except:
         button = WebDriverWait(browser, 30).until(
             EC.element_to_be_clickable(
@@ -196,26 +202,43 @@ def main():
     """Generate a weekly review of highlights and takeaways from papers."""
     vs.validate_openai_env()
     tweet_type = "review_v2"
+    tweet_type = "fable_v1"
+    tweet_type = "insight_v1"
 
     ## Define arxiv code.
     arxiv_codes = db.get_arxiv_id_list(db.db_params, "summary_notes")
     done_codes = db.get_arxiv_id_list(db.db_params, "tweet_reviews")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
-    arxiv_codes = sorted(arxiv_codes)[-100:]
+    arxiv_codes = sorted(arxiv_codes)[-50:]
     citations_df = db.load_citations()
     citations_df = citations_df[citations_df.index.isin(arxiv_codes)]
 
     ## Select randomly, with probability based on citation count.
     citations_df["citation_count"] = citations_df["citation_count"].fillna(1) + 1
-    citations_df["weight"] = citations_df["citation_count"] / citations_df["citation_count"].sum()
+    citations_df["weight"] = (
+        citations_df["citation_count"] / citations_df["citation_count"].sum()
+    )
     citations_df["weight"] = citations_df["weight"] ** 0.5
     citations_df["weight"] = citations_df["weight"] / citations_df["weight"].sum()
-    arxiv_code = random.choices(citations_df.index, weights=citations_df["weight"])[0]
+    candidate_arxiv_codes = np.random.choice(
+        citations_df.index,
+        size=10,
+        replace=False,
+        p=citations_df["weight"] / citations_df["weight"].sum(),
+    )
 
-    # arxiv_code = random.choice(arxiv_codes)
+    candidate_arxiv_abstracts = [
+        db.get_recursive_summary(arxiv_code) for arxiv_code in candidate_arxiv_codes
+    ]
+    arxiv_code_idx = vs.select_most_interesting_paper(
+        candidate_arxiv_abstracts, model="claude-haiku"
+    )
+    arxiv_code = candidate_arxiv_codes[arxiv_code_idx - 1]
 
     last_post = db.get_latest_tstp(
-        db.db_params, "tweet_reviews", extra_condition="where tweet_type='review_v2'"
+        db.db_params,
+        "tweet_reviews",
+        extra_condition="where tweet_type='review_v2' and rejected=false",
     )
     if datetime.datetime.date(last_post) == datetime.datetime.today().date():
         tweet_type = "insight_v1"
@@ -253,7 +276,8 @@ def main():
         + paper_summary
         + "```"
     )
-    post_tweet = f"read more on the LLMpedia: https://llmpedia.streamlit.app/?arxiv_code={arxiv_code}"
+    # post_tweet = f"read more on the LLMpedia: https://llmpedia.streamlit.app/?arxiv_code={arxiv_code}"
+    post_tweet = f"arxiv link: https://arxiv.org/abs/{arxiv_code}\nllmpedia link: https://llmpedia.streamlit.app/?arxiv_code={arxiv_code}"
     # post_tweet = None
 
     ## Run model.
@@ -261,13 +285,13 @@ def main():
         previous_tweets=previous_tweets,
         tweet_facts=tweet_facts,
         tweet_type=tweet_type,
-        model="claude-opus",
+        model="GPT-4o",
     )
     print("Generated tweet: ")
     print(tweet)
 
     if tweet_type != "review_v2":
-        edited_tweet = vs.edit_tweet(tweet, tweet_type=tweet_type, model="claude-opus")
+        edited_tweet = vs.edit_tweet(tweet, tweet_type=tweet_type, model="GPT-4o")
     else:
         edited_tweet = f'💭Review of "{paper_title}"\n\n{tweet}'
     edited_tweet = bold(edited_tweet, publish_date_full)
@@ -285,7 +309,7 @@ def main():
 
     ## Store.
     db.insert_tweet_review(
-        arxiv_code, edited_tweet, datetime.datetime.now(), tweet_type
+        arxiv_code, edited_tweet, datetime.datetime.now(), tweet_type, False
     )
 
 

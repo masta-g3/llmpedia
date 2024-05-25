@@ -225,6 +225,7 @@ def main():
     ## Update and upload arxiv codes.
     paper_list = list(set(paper_list + new_codes))
     paper_list = list(set(paper_list) - set(done_codes) - set(nonllm_codes))
+
     if len(paper_list) == 0:
         print("No new papers found. Exiting...")
         sys.exit(0)

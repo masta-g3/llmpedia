@@ -79,6 +79,8 @@ def combine_input_data():
     citations_df = db.load_citations()
     recursive_summaries_df = db.load_recursive_summaries()
     markdown_summaries = db.load_summary_markdown()
+    tweets = db.load_tweet_insights()
+    similar_docs_df = db.load_similar_documents()
     # extended_summaries_dict = (
     #     extended_summaries_df.groupby("arxiv_code")[["level", "summary"]]
     #     .apply(lambda g: dict(zip(g["level"], g["summary"])))
@@ -90,6 +92,8 @@ def combine_input_data():
     papers_df = papers_df.join(citations_df, how="left")
     papers_df = papers_df.join(recursive_summaries_df, how="left")
     papers_df = papers_df.join(markdown_summaries, how="left")
+    papers_df = papers_df.join(tweets, how="left")
+    papers_df = papers_df.join(similar_docs_df, how="left")
     # papers_df["extended_summaries"] = papers_df.index.map(extended_summaries_dict)
     papers_df["arxiv_code"] = papers_df.index
     papers_df["url"] = papers_df["arxiv_code"].map(
@@ -177,7 +181,7 @@ def generate_calendar_df(df: pd.DataFrame):
 def get_similar_titles(
     title: str, df: pd.DataFrame, n: int = 5
 ) -> Tuple[List[str], str]:
-    """Returns titles of papers from the same cluster, along with cluster name and their arxiv codes."""
+    """Return similar titles based on topic cluster."""
     title = title.lower()
     if title in df["title"].str.lower().values:
         cluster = df[df["title"].str.lower() == title]["topic"].values[0]
@@ -198,6 +202,26 @@ def get_similar_titles(
         return [], ""
 
 
+@st.cache_data
+def get_similar_docs(
+    arxiv_code: str, df: pd.DataFrame, n: int = 5
+) -> Tuple[List[str], List[str], List[str]]:
+    """Get most similar documents based on cosine similarity."""
+    if arxiv_code in df.index:
+        similar_docs = df.loc[arxiv_code]["similar_docs"]
+        similar_docs = [d for d in similar_docs if d in df.index]
+
+        if len(similar_docs) > n:
+            similar_docs = np.random.choice(similar_docs, n, replace=False)
+
+        similar_titles = [df.loc[doc]["title"] for doc in similar_docs]
+        publish_dates = [df.loc[doc]["published"] for doc in similar_docs]
+
+        return similar_docs, similar_titles, publish_dates
+    else:
+        return [], [], []
+
+
 def create_paper_card(paper: Dict, mode="closed", name=""):
     """Creates card UI for paper details."""
     img_cols = st.columns((1, 3))
@@ -214,10 +238,6 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         pass
 
     paper_title = paper["title"]
-    similar_titles, cluster_name = get_similar_titles(
-        paper_title, st.session_state["papers"], n=5
-    )
-
     paper_url = paper["url"]
     img_cols[1].markdown(
         f'<h2><a href="{paper_url}" style="color: #FF4B4B;">{paper_title}</a></h2>',
@@ -226,6 +246,10 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
 
     pub_date = pd.to_datetime(paper["published"]).strftime("%B %d, %Y")
     upd_date = pd.to_datetime(paper["updated"]).strftime("%B %d, %Y")
+    tweet_insight = paper["tweet_insight"]
+    if not pd.isna(tweet_insight):
+        tweet_insight = tweet_insight.split("):")[1].strip()
+        img_cols[1].markdown(f"🐦 *{tweet_insight}*")
     img_cols[1].markdown(f"#### Published: {pub_date}")
     if pub_date != upd_date:
         img_cols[1].caption(f"Last Updated: {upd_date}")
@@ -298,6 +322,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         )
         if st.button("Send", key=f"send_{paper_code}{name}"):
             response = au.interrogate_paper(paper_question, paper_code)
+            db.log_qna_db(f"[{paper_code}] ::: {paper_question}", response)
             st.write(response)
 
     with st.expander("🌟 **GPT Assessments**", expanded=False):
@@ -332,14 +357,35 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
     #     enjoy_cols[0].metric("Readability", f"{paper['enjoyable_score']}/3", "📚")
     #     enjoy_cols[1].markdown(f"{paper['enjoyable_analysis']}")
 
-    with st.expander(f"📚 **Similar Papers** (Topic: {cluster_name})", expanded=False):
-        for title in similar_titles:
-            st.markdown(f"* {title}")
-
+    with st.expander(f"📚 **Similar Papers**", expanded=False):
+        papers_df = st.session_state["papers"]
+        if paper_code in papers_df.index:
+            similar_codes = papers_df.loc[paper_code]["similar_docs"]
+            similar_codes = [d for d in similar_codes if d in papers_df.index]
+            if len(similar_codes) > 5:
+                similar_codes = np.random.choice(similar_codes, 5, replace=False)
+            similar_df = papers_df.loc[similar_codes]
+            generate_grid_gallery(similar_df, extra_key="_sim", n_cols=5)
+        # cols = st.columns(5)
+        # for i in range(len(similar_titles)):
+        #     try:
+        #         cols[i].image(
+        #             f"https://llmpedia.s3.amazonaws.com/{similar_codes[i]}.png"
+        #         )
+        #         centered_date = (
+        #             f"<p align='center'><code>{publish_dates[i].strftime('%b %d, %Y')}</code></p>"
+        #         )
+        #         cols[i].markdown(centered_date, unsafe_allow_html=True)
+        #         centered_title = (
+        #             f"<p align='center'><small>{similar_titles[i]}</small></p>"
+        #         )
+        #         cols[i].markdown(centered_title, unsafe_allow_html=True)
+        #     except:
+        #         pass
     st.markdown("---")
 
 
-def generate_grid_gallery(df, n_cols=5):
+def generate_grid_gallery(df, n_cols=5, extra_key=""):
     """Create streamlit grid gallery of paper cards with thumbnail."""
     n_rows = int(np.ceil(len(df) / n_cols))
     for i in range(n_rows):
@@ -375,7 +421,7 @@ def generate_grid_gallery(df, n_cols=5):
 
                     paper_code = df.iloc[i * n_cols + j]["arxiv_code"]
                     focus_btn = st.button(
-                        "Focus", key=f"focus_{paper_code}", use_container_width=True
+                        "Focus", key=f"focus_{paper_code}{extra_key}", use_container_width=True
                     )
                     if focus_btn:
                         st.session_state.arxiv_code = paper_code
@@ -389,7 +435,6 @@ def generate_grid_gallery(df, n_cols=5):
                     last_updated = pd.to_datetime(
                         df.iloc[i * n_cols + j]["published"]
                     ).strftime("%b %d, %Y")
-                    # st.markdown(f"{last_updated}")
                     authors_str = df.iloc[i * n_cols + j]["authors"]
                     authors_str = (
                         authors_str[:30] + "..."
@@ -457,11 +502,26 @@ def click_tab(tab_num):
 def main():
     ## URL info extraction.
     url_query = st.query_params
-    if "arxiv_code" in url_query:
+    if "arxiv_code" in url_query and len(st.session_state.arxiv_code) == 0:
+        db.log_visit(url_query["arxiv_code"])
         paper_code = url_query["arxiv_code"]
         st.session_state.arxiv_code = paper_code
         click_tab(2)
 
+    from PIL import Image
+    with Image.open('llmpedia.png') as img:
+        width, height = img.size
+        desired_height = 230
+        offset = 227
+        left = 0
+        top = height - desired_height - offset
+        right = width
+        bottom = height - offset
+        img = img.crop((left, top, right, bottom))
+        img.save('cropped_llmpedia.png')
+
+    time.sleep(1)
+    st.image("cropped_llmpedia.png", use_column_width=True)
     st.markdown(
         """<div class="pixel-font">LLMpedia</div>
     """,
@@ -470,11 +530,10 @@ def main():
     st.markdown("##### The Illustrated Large Language Model Encyclopedia")
     ## Humorous and poetic introduction.
     st.markdown(
-        "LLMpedia is a curated collection of the most significant papers on Large Language Models, selected and analyzed by GPT Maestro. "
-        "Accompanied by pixel art and structured summaries, the encyclopedia is designed to help you navigate the vast landscape of research on LLMs.\n\n"
-        "We hope you enjoy this collection and find it useful. "
-        "If you have any questions, head to the *Chat* section and consult the Maestro, "
-        "and follow us at [@GPTMaestro](https://twitter.com/GPTMaestro) for the latest updates and daily paper reviews.\n\n"
+        "LLMpedia is a curated collection of key papers on Large Language Models, selected and analyzed by GPT Maestro. "
+        " With pixel art and structured summaries, the encyclopedia is designed to guide you through the extensive research on LLMs. "
+        "If you have any questions go to the *Chat* section and talk to the Maestro. "
+        "And don't forget to follow us [@GPTMaestro](https://twitter.com/GPTMaestro) for the latest updates and paper reviews.\n\n"
         "*Buona lettura!*"
     )
 
@@ -606,11 +665,29 @@ def main():
                 ):
                     pass
 
+    st.sidebar.markdown(
+        """
+        <style>
+            .reportview-container .main footer {visibility: hidden;}
+            .footer { 
+                position: fixed;
+                bottom: 0;
+                width: 15%;
+                text-align: center;
+                color: #888;
+                font-size: 0.75rem;
+            }
+        </style>
+        <div class="footer">
+            v1.2.2
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     if len(papers_df) == 0:
         st.markdown("No papers found.")
         return
-
-    papers = papers_df.to_dict("records")
 
     ## Content tabs.
     content_tabs = st.tabs(
@@ -742,14 +819,23 @@ def main():
             label="Ask any question about LLMs or the arxiv papers.", value=""
         )
         chat_btn_disabled = len(user_question) == 0
-        chat_btn = st.button("Send", disabled=chat_btn_disabled)
+        chat_cols = st.columns((1, 2, 1))
+        chat_btn = chat_cols[0].button("Send", disabled=chat_btn_disabled)
+        # response_length = chat_cols[2].select_slider(
+        #     "Response Length",
+        #     options=["Short Answer", "Normal"],
+        #     value="Short Answer",
+        #     label_visibility="collapsed",
+        # )
+        response_length = "Short Answer"
         if chat_btn:
             if user_question != "":
                 with st.spinner(
                     "Consulting the GPT maestro, this might take a minute..."
                 ):
                     response = au.query_llmpedia_new(
-                        user_question  # , collection_name, model="claude-haiku"
+                        user_question,
+                        response_length,  # , collection_name, model="claude-haiku"
                     )
                     db.log_qna_db(user_question, response)
                     st.divider()

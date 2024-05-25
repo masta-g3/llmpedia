@@ -27,7 +27,7 @@ def main():
     done_codes = db.get_arxiv_id_list(db.db_params, "semantic_details")
     if not OVERRIDE:
         arxiv_codes = list(set(arxiv_codes) - set(done_codes))
-    arxiv_codes = sorted(arxiv_codes)[::-1]
+    arxiv_codes = sorted(arxiv_codes)[::-1][:100]
 
     items_added = 0
     errors = 0
@@ -55,10 +55,10 @@ def main():
         db.upload_to_db(ss_info, db.db_params, "semantic_details")
         items_added += 1
         # print(f"\nAdded {arxiv_code} to semantic_details.")
-        if OVERRIDE:
-            time.sleep(random.uniform(5, 10))
-        else:
-            time.sleep(random.uniform(1, 4))
+        # if OVERRIDE:
+        #     time.sleep(random.uniform(2, 10))
+        # else:
+        time.sleep(random.uniform(0.12, 1))
 
     print(f"Process complete. Added {items_added} items in total.")
     if errors > 0:
