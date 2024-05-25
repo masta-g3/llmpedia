@@ -508,7 +508,6 @@ def main():
         st.session_state.arxiv_code = paper_code
         click_tab(2)
 
-    st.image("cropped_llmpedia.png", use_column_width=True)
     st.markdown(
         """<div class="pixel-font">LLMpedia</div>
     """,
