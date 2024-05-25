@@ -637,8 +637,10 @@ def main():
         release_calendar, padded_date = pt.plot_activity_map(heatmap_data)
         st.markdown(f"### 📅 {year} Release Calendar")
         calendar_select = plotly_events(release_calendar, override_height=220)
+        # calendar_select = st.plotly_chart(release_calendar, use_container_width=True, on_select="rerun")
+        # st.write(calendar_select)
 
-        ## Published date.
+        # Published date.
         if len(calendar_select) > 0:
             ## Select from padded dates.
             x_coord = 6 - calendar_select[0]["pointNumber"][0]
@@ -885,8 +887,8 @@ def main():
 
 
 if __name__ == "__main__":
-    # try:
-    main()
-# except Exception as e:
-#     db.log_error_db(e)
-#     st.error("Something went wrong. Please refresh the app and try again.")
+    try:
+      main()
+except Exception as e:
+    db.log_error_db(e)
+    st.error("Something went wrong. Please refresh the app and try again.")
