@@ -2,6 +2,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import plotly.io as pio
 import pandas as pd
+import colorcet as cc
 
 pio.templates.default = "plotly"
 
@@ -91,6 +92,7 @@ def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
         y="dim2",
         color="topic",
         hover_name="title",
+        color_discrete_sequence=cc.glasbey,
     )
     fig.update_layout(
         legend=dict(
@@ -101,5 +103,5 @@ def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
     )
     fig.update_xaxes(title_text=None)
     fig.update_yaxes(title_text=None)
-    fig.update_traces(marker=dict(line=dict(width=1, color="DarkSlateGrey"), size=8))
+    fig.update_traces(marker=dict(line=dict(width=0.5, color="Black"), size=8))
     return fig
