@@ -361,12 +361,15 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         papers_df = st.session_state["papers"]
         if paper_code in papers_df.index:
             similar_codes = papers_df.loc[paper_code]["similar_docs"]
-            similar_codes = [d for d in similar_codes if d in papers_df.index]
-            if len(similar_codes) > 5:
-                similar_codes = np.random.choice(similar_codes, 5, replace=False)
-            similar_df = papers_df.loc[similar_codes]
-            generate_grid_gallery(similar_df, extra_key="_sim", n_cols=5)
-        # cols = st.columns(5)
+            if pd.isna(similar_codes):
+                st.write("Not available yet. Check back soon!")
+            else:
+                similar_codes = [d for d in similar_codes if d in papers_df.index]
+                if len(similar_codes) > 5:
+                    similar_codes = np.random.choice(similar_codes, 5, replace=False)
+                similar_df = papers_df.loc[similar_codes]
+                generate_grid_gallery(similar_df, extra_key="_sim", n_cols=5)
+            # cols = st.columns(5)
         # for i in range(len(similar_titles)):
         #     try:
         #         cols[i].image(
@@ -652,23 +655,27 @@ def main():
                     pass
 
     st.sidebar.markdown(
-        """
-        <style>
-            .reportview-container .main footer {visibility: hidden;}
-            .footer { 
-                position: fixed;
-                bottom: 0;
-                width: 15%;
-                text-align: center;
-                color: #888;
-                font-size: 0.75rem;
-            }
-        </style>
-        <div class="footer">
-            v1.2.2
-        </div>
-        """,
-        unsafe_allow_html=True,
+    """
+    <style>
+        .reportview-container .main footer {visibility: hidden;}
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 0%;
+            text-align: center;
+            color: #888;
+            font-size: 0.75rem;
+        }
+        .footer a {
+            color: inherit;
+            text-decoration: none;
+        }
+    </style>
+    <div class="footer">
+        <a href="https://github.com/masta-g3/llmpedia/blob/main/VERSIONS.md" target="_blank">v1.2.2</a>
+    </div>
+    """,
+    unsafe_allow_html=True
     )
 
     if len(papers_df) == 0:
