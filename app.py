@@ -508,19 +508,6 @@ def main():
         st.session_state.arxiv_code = paper_code
         click_tab(2)
 
-    from PIL import Image
-    with Image.open('llmpedia.png') as img:
-        width, height = img.size
-        desired_height = 230
-        offset = 227
-        left = 0
-        top = height - desired_height - offset
-        right = width
-        bottom = height - offset
-        img = img.crop((left, top, right, bottom))
-        img.save('cropped_llmpedia.png')
-
-    time.sleep(1)
     st.image("cropped_llmpedia.png", use_column_width=True)
     st.markdown(
         """<div class="pixel-font">LLMpedia</div>
