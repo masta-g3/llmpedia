@@ -54,13 +54,13 @@ def bold(input_text, extra_str):
                 bold_italic_text += character
         return bold_italic_text
 
-    ## Regex to find text in quotes and apply the boldify function to them.
+    ## Regex to find text in double brackets and apply the boldify function to them.
     output = re.sub(
-        r'"([^"]*)"',
-        lambda m: '"' + boldify(m.group(1)) + '" (' + extra_str + ")",
+        r'\[\[([^]]*)\]\]',
+        lambda m: '[[' + boldify(m.group(1)) + ']] (' + extra_str + ")",
         input_text,
     )
-    output = output.replace('"', "")
+    output = output.replace('[[', "").replace(']]', "")
     # Regex to find text in double asterisks and apply the bold_italicize function to them
     output = re.sub(r"\*\*([^*]*)\*\*", lambda m: bold_italicize(m.group(1)), output)
 
@@ -174,7 +174,7 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
         tweet_box.send_keys(post_tweet.replace("\n", Keys.RETURN))
 
     ## Send tweet.
-    # time.sleep(60*60*4)
+    # time.sleep(60*60*5)
     try:
         # Wait for the button to be clickable
         wait = WebDriverWait(browser, 10)
@@ -193,7 +193,7 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
         button.click()
 
     print("Tweet sent successfully.")
-    time.sleep(30)
+    time.sleep(10)
     browser.quit()
     return True
 

@@ -1,9 +1,12 @@
-## v1.3
+## v1.2.3
+- [x]  calendar clicks.
 - [ ] bullet point summary.
 - [ ] creative paper summary (css + summary)
 - [ ] citation icons on chat.
 - [ ] hierarchical topics.
 - [ ] fix weekly report.
+- [x] improve review processing.
+- [ ] delete / rerun reported papers.
 
 ## v1.2.2
 - [x] improved RAG.

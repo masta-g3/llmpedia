@@ -534,7 +534,7 @@ def main():
 
     ## Filter sidebar.
     st.sidebar.markdown("# 📁 Filters")
-    ## Add option to filter by year of select all of them.
+    ## Filter by year or select all of them.
     year_cols = st.sidebar.columns((1, 2))
     _ = year_cols[0].markdown("#### Year")
     all_years = year_cols[0].checkbox("All ", value=st.session_state.all_years)
@@ -805,13 +805,13 @@ def main():
         #     options=["GTE-Large", "🆕 Cohere V3"],
         #     index=1,
         # )
-        embedding_name = "🆕 Cohere V3"
+        # embedding_name = "🆕 Cohere V3"
 
         # llm_name = config_cols[1]._selectbox(
         #     label="LLM", options=["GPT-3.5-Turbo", "GPT-4"]
         # )
 
-        collection_name = collection_map[embedding_name]
+        # collection_name = collection_map[embedding_name]
         user_question = st.text_area(
             label="Ask any question about LLMs or the arxiv papers.", value=""
         )

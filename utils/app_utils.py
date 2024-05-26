@@ -220,9 +220,9 @@ query_config = json.loads(query_config_json)
 def interrogate_paper(question: str, arxiv_code: str) -> str:
     """Ask a question about a paper."""
     context = db.get_extended_notes(arxiv_code, expected_tokens=8000)
-    system_message = "Read carefully the whitepaper, reason about the user question, and provide a comprehensive, git diffhelpful and truthful response. Be direct and concise, using layman's language that is easy to understand. Avoid filler content, and reply with your answer in a single short sentence or paragraph and nothing else (no preambles, greetings, etc.)."
+    system_message = "Read carefully the whitepaper, reason about the user question, and provide a comprehensive, git helpful and truthful response. Be direct and concise, using layman's language that is easy to understand. Avoid filler content, and reply with your answer in a single short sentence or paragraph and nothing else (no preambles, greetings, etc.)."
     user_message = ps.create_interrogate_user_prompt(question, context)
-    response = run_instructor_query(system_message, user_message, None)
+    response = run_instructor_query(system_message, user_message, None, llm_model="gpt-4o")
     response = response.replace("<response>", "").replace("</response>", "")
     return response
 
@@ -261,12 +261,12 @@ def format_query_condition(field_name: str, template: str, value: str):
                 min_distance,
             )
         else:
-            return "AND TRUE", "NULL as min_distance"
+            return "AND TRUE", "0 as min_distance"
     elif isinstance(value, list):
         value_str = "', '".join(value)
-        return template % value_str, "NULL as min_distance"
+        return template % value_str, "0 as min_distance"
     else:
-        return template % value, "NULL as min_distance"
+        return template % value, "0 as min_distance"
 
 
 def generate_query(criteria: ps.SearchCriteria, config: dict) -> str:
@@ -288,9 +288,9 @@ def generate_query(criteria: ps.SearchCriteria, config: dict) -> str:
             query_parts.append(f"AND {condition_str}")
             extra_selects.append(max_similarity)
 
-    query_parts[0] += ", ".join(
-        filter(lambda x: x != "NULL as min_distance", extra_selects)
-    )
+    query_parts[0] += ", ".join(extra_selects)
+        # filter(lambda x: x != "NULL as min_distance", extra_selects)
+    # )
     query_parts.append("ORDER BY 6 ASC ")
 
     return "\n".join(query_parts)

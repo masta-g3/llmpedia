@@ -31,13 +31,13 @@ def main():
 
     arxiv_codes = sorted(arxiv_codes)[::-1]
     for arxiv_code in tqdm(arxiv_codes):
-        new_content = db.get_extended_notes(arxiv_code, expected_tokens=1200)
+        new_content = db.get_extended_notes(arxiv_code, expected_tokens=2000)
 
         ## Try to run LLM process up to 3 times.
         success = False
         for i in range(RETRIES):
             try:
-                summary = vs.review_llm_paper(new_content)#, model="claude-3-sonnet-20240229")
+                summary = vs.review_llm_paper(new_content, model="gpt-4o")
                 success = True
                 break
             except Exception as e:

@@ -524,8 +524,7 @@ Read over carefully over the following information and use it to inform your twe
 - Identify the most interesting and unexpected fact presented in the text.
 - Do not necessarily pick the main conclusion, but rather the most unexpected or intriguing insight.
 - Write a short tweet about this fact that is engaging and informative. Present the insight in a clear and concise manner.
-- Start the tweet with '⭐ LLM Insight from "XXX": ' followed by the insight.
-- Only use double quotes for the paper title. It should be the only text in double quotes.
+- Start the tweet with '⭐ LLM Insight from [[XXX]] ' followed by the insight, where [[XXX]] is the title of the paper in double brackets.
 - Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.)."""
 
 
@@ -558,8 +557,7 @@ TWEET_INSIGHT_EDIT_USER_PROMPT = """
 - Reduce modifier and filler words; be very direct and to the point. 
 - Rephrase any parts that are not clearly understood; the message should be clear to a layman.
 - Do not remove references to technical terms, important results, or change the meaning of the tweet.
-- Start the tweet with '⭐️Insight from "XXX": ...' followed by the insight, where "XXX" is the title of the paper in double quotes.
-- Only use double quotes for the paper title. If you need to include a quote in the tweet, use single quotes.
+- Start the tweet with '⭐️Insight from [[XXX]]: ...' followed by the insight, where [[XXX]] is the title of the paper in double brackets.
 - Do few edits; keep most of the tweet essence as is.
 - Reply with the edited tweet and nothing else."""
 
