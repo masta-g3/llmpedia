@@ -688,7 +688,7 @@ def main():
         }
     </style>
     <div class="footer">
-        <a href="https://github.com/masta-g3/llmpedia/blob/main/VERSIONS.md" target="_blank">v1.2.2</a>
+        <a href="https://github.com/masta-g3/llmpedia/blob/main/VERSIONS.md" target="_blank">v1.2.3</a>
     </div>
     """,
         unsafe_allow_html=True,
