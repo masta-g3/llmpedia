@@ -1,6 +1,5 @@
 import argparse
 import os, sys
-import json
 import pandas as pd
 from dotenv import load_dotenv
 import psycopg2
@@ -11,21 +10,29 @@ os.chdir(os.environ.get("PROJECT_PATH"))
 
 import utils.db as db
 
+table_names = [
+    "arxiv_chunks",
+    "arxiv_details",
+    "arxiv_large_parent_chunks",
+    "arxiv_parent_chunks",
+    "arxiv_qna",
+    "bullet_list_summary",
+    "recursive_summaries",
+    "semantic_details",
+    "similar_documents",
+    "summaries",
+    "summaries_ext",
+    "summary_markdown",
+    "summary_notes",
+    "summary_tweets",
+    "topics",
+    "tweet_reviews",
+]
+
+
 def delete_from_db(arxiv_code: str):
     with psycopg2.connect(**db.db_params) as conn:
         with conn.cursor() as cur:
-            table_names = [
-                "arxiv_details",
-                "summaries",
-                "summary_notes",
-                "recursive_summaries",
-                "semantic_details",
-                "topics",
-                "arxiv_chunks",
-                "arxiv_parent_chunks",
-                "arxiv_large_parent_chunks",
-                "arxiv_qna",
-            ]
             for table_name in table_names:
                 cur.execute(
                     f"DELETE FROM {table_name} WHERE arxiv_code = %s", (arxiv_code,)
@@ -109,7 +116,13 @@ def delete_paper(arxiv_code: str):
 
 def main(arxiv_code):
     """Delete paper identified by arXiv code."""
-    delete_paper(arxiv_code)
+    if arxiv_code:
+        delete_paper(arxiv_code)
+    else:
+        arxiv_codes = db.get_reported_non_llm_papers()
+        for arxiv_code in arxiv_codes:
+            delete_paper(arxiv_code)
+            db.update_reported_status(arxiv_code, "non_llm")
 
 
 if __name__ == "__main__":
@@ -117,7 +130,11 @@ if __name__ == "__main__":
         description="Delete paper identified by arXiv code from all data sources."
     )
     parser.add_argument(
-        "arxiv_code", type=str, help="arXiv code of the paper to be deleted."
+        "arxiv_code",
+        help="arXiv code of the paper to be deleted.",
+        type=str,
+        nargs='?',
+        default=None,
     )
     args = parser.parse_args()
     main(args.arxiv_code)

@@ -32,7 +32,7 @@ db_params = pu.db_params
 nltk.download("wordnet", quiet=True)
 nltk.download("stopwords", quiet=True)
 
-REFIT = False
+REFIT = True
 
 ## Create a lemmatizer and list of stop words.
 LEMMATIZER = WordNetLemmatizer()
@@ -162,6 +162,7 @@ def extract_topics_and_embeddings(
 
 def store_topics_and_embeddings(
     df: pd.DataFrame,
+    all_content: list,
     topics: list,
     reduced_embeddings: list,
     topic_model: BERTopic,
@@ -179,6 +180,8 @@ def store_topics_and_embeddings(
             serialization="pickle",
         )
         pd.to_pickle(reduced_model, "data/reduced_model.pkl")
+        with open("data/all_content.json", "w") as f:
+            json.dump(all_content, f)
 
     topic_names = topic_model.get_topic_info().set_index("Topic")["Name"]
     topic_names[-1] = "Miscellaneous"
@@ -218,8 +221,6 @@ def main():
             metric="cosine",
             random_state=42,
         )
-        working_codes = arxiv_codes[:]
-
     else:
         ## Predict topics on new documents using existing model.
         topic_model = BERTopic.load("data/topic_model.pkl")
@@ -238,7 +239,7 @@ def main():
         all_content, embeddings, topic_model, reduced_model, refit=REFIT
     )
     store_topics_and_embeddings(
-        df, topics, reduced_embeddings, topic_model, reduced_model, refit=REFIT
+        df, all_content, topics, reduced_embeddings, topic_model, reduced_model, refit=REFIT
     )
 
     print("Done!")

@@ -78,6 +78,7 @@ def combine_input_data():
     topics_df = db.load_topics()
     citations_df = db.load_citations()
     recursive_summaries_df = db.load_recursive_summaries()
+    bullet_list_df = db.load_bullet_list_summaries()
     markdown_summaries = db.load_summary_markdown()
     tweets = db.load_tweet_insights()
     similar_docs_df = db.load_similar_documents()
@@ -91,6 +92,7 @@ def combine_input_data():
     papers_df = papers_df.join(topics_df, how="left")
     papers_df = papers_df.join(citations_df, how="left")
     papers_df = papers_df.join(recursive_summaries_df, how="left")
+    papers_df = papers_df.join(bullet_list_df, how="left")
     papers_df = papers_df.join(markdown_summaries, how="left")
     papers_df = papers_df.join(tweets, how="left")
     papers_df = papers_df.join(similar_docs_df, how="left")
@@ -291,21 +293,31 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         level_select = st.selectbox(
             "Detail",
             ## high-level overview, summary notes, detailed notes
-            ["📝 High-Level Overview", "🔎 Detailed Research Notes"],
+            [
+                "🔖 Most Interesting Findings",
+                "📝 High-Level Overview",
+                "🔎 Detailed Research Notes",
+            ],
             label_visibility="collapsed",
             index=0,
             key=f"level_select_{paper_code}{name}",
         )
 
-        # summary = paper["recursive_summary"] if paper["recursive_summary"] else paper["contribution_content"]
         summary = (
             paper["recursive_summary"]
             if not pd.isna(paper["recursive_summary"])
             else paper["contribution_content"]
         )
         markdown_summary = paper["markdown_notes"]
+        bullet_summary = (
+            paper["bullet_list_summary"]
+            if not pd.isna(paper["bullet_list_summary"])
+            else "Not available yet, check back soon!"
+        )
 
-        if level_select == "📝 High-Level Overview":
+        if level_select == "🔖 Most Interesting Findings":
+            st.markdown(bullet_summary)
+        elif level_select == "📝 High-Level Overview":
             st.markdown(summary)
         elif level_select == "🔎 Detailed Research Notes":
             if not pd.isna(markdown_summary):
@@ -830,15 +842,24 @@ def main():
                 with st.spinner(
                     "Consulting the GPT maestro, this might take a minute..."
                 ):
-                    response = au.query_llmpedia_new(
+                    response, referenced_codes = au.query_llmpedia_new(
                         user_question,
                         response_length,  # , collection_name, model="claude-haiku"
                     )
                     db.log_qna_db(user_question, response)
                     st.divider()
                     st.markdown(response)
+                    if len(referenced_codes) > 0:
+                        st.divider()
+                        st.markdown(
+                            "<h4>Referenced Papers:</h4>", unsafe_allow_html=True
+                        )
+                        reference_df = st.session_state["papers"].loc[referenced_codes]
+                        generate_grid_gallery(reference_df, n_cols=5, extra_key="_chat")
 
     with content_tabs[4]:
+        weekly_plot_container = st.empty()
+
         report_top_cols = st.columns((5, 2))
         with report_top_cols[0]:
             st.markdown("# 📰 LLM Weekly Review")
@@ -850,8 +871,12 @@ def main():
                 min_value=pd.to_datetime("2023-01-01"),
                 max_value=pd.to_datetime(max_date),
             )
-            ## convert selection to previous monday.
+            ## Convert selection to previous monday.
             date_report = week_select - pd.Timedelta(days=week_select.weekday())
+
+            ## Plot.
+            weekly_ts_plot = pt.plot_weekly_activity_ts(published_df, date_report)
+            weekly_plot_container.plotly_chart(weekly_ts_plot, use_container_width=True)
 
         weekly_report = get_weekly_summary(date_report)
         try:
@@ -888,7 +913,7 @@ def main():
 
 if __name__ == "__main__":
     try:
-      main()
+        main()
     except Exception as e:
         db.log_error_db(e)
         st.error("Something went wrong. Please refresh the app and try again.")

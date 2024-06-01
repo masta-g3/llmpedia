@@ -1,12 +1,11 @@
 ## v1.2.3
 - [x]  calendar clicks.
-- [ ] bullet point summary.
-- [ ] creative paper summary (css + summary)
-- [ ] citation icons on chat.
-- [ ] hierarchical topics.
-- [ ] fix weekly report.
+- [x] bullet point summary.
+- [x] citation icons on chat.
+- [x] hierarchical topics.
+- [x] fix weekly report.
 - [x] improve review processing.
-- [ ] delete / rerun reported papers.
+- [x] delete reported non-llm papers.
 
 ## v1.2.2
 - [x] improved RAG.
@@ -29,3 +28,5 @@
 - [x] upgrade model coverage.
 - [x] push the latest changes.
 - [x] migrate images.
+
+## v.1.3.0 

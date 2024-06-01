@@ -261,6 +261,29 @@ NARRATIVE_SUMMARY_USER_PROMPT = """
 
 <summary>"""
 
+BULLET_LIST_SUMMARY_SYSTEM_PROMPT = """You are an expert AI prose writer tasked with summarizing "{paper_title}" for the Large Language Model Encyclopaedia. Your task is to review a set of notes on the whitepaper and convert them into a concise list of bullet points."""
+
+BULLET_LIST_SUMMARY_USER_PROMPT = """<example_output>
+- 📁 This paper introduces an "instruction hierarchy" that teaches AI language models to tell the difference between trusted prompts from the system and potentially harmful user inputs. This helps the models prioritize important instructions while figuring out if certain prompts might be dangerous.
+- ⚖️ The hierarchy doesn't just block all untrusted prompts. Instead, it lets the AI consider the context and purpose behind the instructions. This way, the model can still be helpful and secure without making the user experience worse.
+- 🛡️ The researchers fine-tuned GPT 3.5 using this method, and it worked really well! The AI became much better at defending against prompt injection attacks and other challenging tactics. It's a big step forward in making language models safer.
+- 📈 After training, the AI's defense against system prompt extraction improved by an impressive 63%, and its ability to resist jailbreaking increased by 30%. Sometimes it was a bit overly cautious with harmless inputs, but gathering more data could help fix that.
+- 🚧 These improved defenses are exciting, but the ongoing challenge is making sure they can consistently outsmart determined attackers in real-world situations. There's still work to be done, but it's a promising start!</example_output>
+
+<input>
+{previous_notes}
+</input>
+
+<instructions>
+- Your task is to convert the input into a concise bullet list that capture the most interesting, unusual and unexpected findings of the paper. 
+- Write your response in up to five (5) bullet points., keeping a narrative flow and coherence.
+- Play close attention to the sample output and follow the same style and tone. 
+- Do not use sensational language, be plain and simple as in the example.
+- Include an emoji at the beginning of each bullet point related to it. Be creative and do not pick the most obvious / most common ones. Do not repeat them.
+- Explain the new concepts clearly with layman's language.
+- Reply with the bullet points and nothing else; no introduction, conclusion or additional comments.
+</instructions>"""
+
 COPYWRITER_SYSTEM_PROMPT = """You are an encyclopedia technology copywriter tasked with reviewing the following summary of "{paper_title}" and improving it. Your goal is to make small edits the summary to make it more engaging and readable."""
 
 COPYWRITER_USER_PROMPT = """
@@ -523,7 +546,7 @@ Read over carefully over the following information and use it to inform your twe
 # GUIDELINES
 - Identify the most interesting and unexpected fact presented in the text.
 - Do not necessarily pick the main conclusion, but rather the most unexpected or intriguing insight.
-- Write a short tweet about this fact that is engaging and informative. Present the insight in a clear and concise manner.
+- Write a short tweet about this fact that is engaging and informative. Present the insight in a clear and concise manner, but make sure it has enough context to be understood.
 - Start the tweet with '⭐ LLM Insight from [[XXX]] ' followed by the insight, where [[XXX]] is the title of the paper in double brackets.
 - Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.)."""
 
@@ -837,6 +860,8 @@ def create_decision_user_prompt(user_question: str) -> str:
     - Question about any other subject (unrelated to LLMs).
     - General comment or feedback.
     </response_format>
+    
+    If you are not sure, classify the query as large language model related.
     """
     return user_prompt
 
@@ -1095,6 +1120,25 @@ class WeeklyReview(BaseModel):
     related_websites_libraries_repos: Optional[str] = None
 
 
+def generate_weekly_review_markdown(review: WeeklyReview, date: datetime.date) -> str:
+    start_date_str = date.strftime("%B %d, %Y")
+    end_date_str = (date + datetime.timedelta(days=6)).strftime("%B %d, %Y")
+    markdown_template = f"""# Weekly Review ({start_date_str} to {end_date_str})
+
+## Scratchpad
+{review.scratchpad}
+
+## New Developments & Findings
+{review.new_developments_findings}
+
+## Highlight of the Week
+{review.highlight_of_the_week}
+
+## Related Repos & Libraries
+{review.related_websites_libraries_repos if review.related_websites_libraries_repos else "NONE"}"""
+    return markdown_template
+
+
 WEEKLY_SYSTEM_PROMPT = """You are a senior Large Language Model (LLM) journalist and previous researcher at a prestigious media organization. You are currently conducting a survey of the literature published throughout last week to write a practical report for the organization's magazine."""
 # ## Report Template
 # ```
@@ -1109,7 +1153,7 @@ WEEKLY_SYSTEM_PROMPT = """You are a senior Large Language Model (LLM) journalist
 # [...] *(if none available just add NONE here, and nothing else)*
 # ```
 # """
-
+#
 WEEKLY_USER_PROMPT = """
 <report_format>
 - The report should consist of 4 sections:
@@ -1118,13 +1162,13 @@ WEEKLY_USER_PROMPT = """
         - Select (up to) 15 interesting papers and make a numbered list of them. Spell out its main theme, contribution and scale of impact/influence.
         - Prioritize the articles with most citations. More citations imply larger relevance and impact.
         - Identify up to 3 common themes among the papers (if there are more themes, pick the most interesting ones). There should be fewer themes than papers, and the themes should not be generic. For example, 'improvements in LLMs' is not a valid theme.
-        - Identify any possible contradictions, unorthodox theories or opposing views worth discussing (these tend to be very interesting).
+        - Identify any possible contradictions, unorthodox theories or opposing views among the papers worth discussing (these tend to be very interesting). Give these contradiction a title and mention the papers that support each view. There might not be any contradictions, and that is fine.
         - Identify if there are any links or repos mentioned on the papers that are worth sharing on the report. If not, we will skip the "Related Websites, Libraries and Repos" section.
     </scratchpad>
     
     <new_developments> 
-        - First paragraph: Start with a very brief comment on the total number of articles published and volume trends. Enumerate the common themes among papers, and briefly mention any agreements, contradictions or opposing views.
-        - Following paragraphs: Discuss in more detail one or more of the themes presented above (one per paragraph; state very clearly **with bold font** which theme you are discussing on each paragraph). You do not need to discuss all papers, just the most interesting ones.
+        - First paragraph: Start with a very brief comment on the total number of articles published and volume trends. Mention the most interesting common themes that you would like to discuss, along with any contradiction or unorthodox theory you identified (if there are none just skip and do not mention it).
+        - Following paragraphs: Discuss in more detail the items you mentioned above and identified as interesting (one per paragraph). State very clearly **with bold font** which theme / contradiction / unorthodox theory you are discussing on each paragraph. You do not need to discuss all papers, just the most interesting ones. Be sure to always include the contradiction, if any, in your discussion.
     </new_developments>
     
     <highlight_of_the_week>
@@ -1144,6 +1188,7 @@ WEEKLY_USER_PROMPT = """
 - Focus on practical applications and benefits. 
 - Maintain the narrative flow and coherence across sections. Keep the reader engaged.
 - Avoid filler and repetitive content.
+- Do not include markdown titles in each of the sections (I will take care of those).
 - Always add citations to support your statements. Use the format `*reference content* (arxiv:1234.5678)`. You can also mention the *article's title* on the text.
 </guidelines>
 

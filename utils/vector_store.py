@@ -190,7 +190,9 @@ def review_llm_paper(paper_content: str, model="claude-3-haiku-20240307"):
     return review
 
 
-def convert_notes_to_narrative(paper_title, notes, model="GPT-3.5-Turbo"):
+def convert_notes_to_narrative(
+    paper_title: str, notes: str, model: str = "GPT-3.5-Turbo"
+) -> str:
     """Convert notes to narrative via LLMChain."""
     narrative_prompt = ChatPromptTemplate.from_messages(
         [
@@ -204,6 +206,24 @@ def convert_notes_to_narrative(paper_title, notes, model="GPT-3.5-Turbo"):
     )["text"]
     narrative = narrative.replace("<summary>", "")
     return narrative
+
+
+def convert_notes_to_bullets(
+    paper_title: str, notes: str, model: str = "GPT-3.5-Turbo"
+) -> str:
+    """Convert notes to bullet point list via LLMChain."""
+    bullet_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", ps.BULLET_LIST_SUMMARY_SYSTEM_PROMPT),
+            ("user", ps.BULLET_LIST_SUMMARY_USER_PROMPT),
+        ]
+    )
+    bullet_chain = LLMChain(llm=llm_map[model], prompt=bullet_prompt)
+    bullet_list = bullet_chain.invoke(
+        dict(paper_title=paper_title, previous_notes=notes, stop=["</summary>"])
+    )["text"]
+    bullet_list = bullet_list.replace("<summary>", "")
+    return bullet_list
 
 
 def copywrite_summary(paper_title, previous_notes, narrative, model="GPT-3.5-Turbo"):
@@ -292,8 +312,8 @@ def generate_weekly_report(weekly_content_md: str, model="GPT-4-Turbo"):
     weekly_report = run_instructor_query(
         ps.WEEKLY_SYSTEM_PROMPT,
         ps.WEEKLY_USER_PROMPT.format(weekly_content=weekly_content_md),
-        # model=ps.WeeklyReview,
-        llm_model="claude-3-sonnet-20240229",
+        model=ps.WeeklyReview,
+        llm_model="gpt-4o",
     )
     return weekly_report
 

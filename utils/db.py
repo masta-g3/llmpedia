@@ -22,11 +22,11 @@ database_url = f"postgresql+psycopg2://{db_params['user']}:{db_params['password'
 
 
 def list_to_pg_array(lst):
-    return '{' + ','.join(lst) + '}'
+    return "{" + ",".join(lst) + "}"
 
 
 def pg_array_to_list(array_str):
-    return array_str.strip('{}').split(',')
+    return array_str.strip("{}").split(",")
 
 
 def log_error_db(error):
@@ -113,8 +113,8 @@ def report_issue(arxiv_code, issue_type):
         tstp = pd.to_datetime("now").strftime("%Y-%m-%d %H:%M:%S")
         query = text(
             """
-            INSERT INTO issue_reports (issue_id, tstp, arxiv_code, issue_type)
-            VALUES (:issue_id, :tstp, :arxiv_code, :issue_type);
+            INSERT INTO issue_reports (issue_id, tstp, arxiv_code, issue_type, resolved)
+            VALUES (:issue_id, :tstp, :arxiv_code, :issue_type, :resolved);
         """
         )
         conn.execute(
@@ -124,18 +124,73 @@ def report_issue(arxiv_code, issue_type):
                 "tstp": tstp,
                 "arxiv_code": str(arxiv_code),
                 "issue_type": str(issue_type),
+                "resolved": False,
             },
         )
     return True
 
+
+def get_reported_non_llm_papers():
+    """Get a list of non-LLM papers reported by users."""
+    engine = create_engine(database_url)
+    with engine.begin() as conn:
+        query = text(
+            """
+            SELECT arxiv_code
+            FROM issue_reports
+            WHERE issue_type = 'non_llm'
+            AND resolved = False;
+            """
+        )
+        result = conn.execute(query)
+        reported_papers = result.fetchall()
+    reported_papers = [paper[0] for paper in reported_papers]
+    return reported_papers
+
+
+def update_reported_status(arxiv_code, issue_type, resolved=True):
+    """Update user-reported issue status in DB (resolved or not)."""
+    engine = create_engine(database_url)
+    with engine.begin() as conn:
+        query = text(
+            """
+            UPDATE issue_reports
+            SET resolved = :resolved
+            WHERE arxiv_code = :arxiv_code
+            AND issue_type = :issue_type;
+            """
+        )
+        conn.execute(
+            query,
+            {"resolved": resolved, "arxiv_code": arxiv_code, "issue_type": issue_type},
+        )
+    return True
+
+
 def insert_recursive_summary(arxiv_code, summary):
     """Insert data into recursive_summary table in DB."""
     engine = create_engine(database_url)
-
     with engine.begin() as conn:
         query = text(
             """
             INSERT INTO recursive_summaries (arxiv_code, summary, tstp)
+            VALUES (:arxiv_code, :summary, :tstp);
+            """
+        )
+        conn.execute(
+            query,
+            {"arxiv_code": arxiv_code, "summary": summary, "tstp": datetime.now()},
+        )
+    return True
+
+
+def insert_bullet_list_summary(arxiv_code, summary):
+    """Insert data into bullet_list_summaries table in DB."""
+    engine = create_engine(database_url)
+    with engine.begin() as conn:
+        query = text(
+            """
+            INSERT INTO bullet_list_summaries (arxiv_code, summary, tstp)
             VALUES (:arxiv_code, :summary, :tstp);
             """
         )
@@ -175,6 +230,16 @@ def load_recursive_summaries():
     )
     recursive_summaries_df.drop(columns=["tstp"], inplace=True)
     return recursive_summaries_df
+
+
+def load_bullet_list_summaries():
+    query = "SELECT * FROM bullet_list_summaries;"
+    conn = create_engine(database_url)
+    bullet_list_summaries_df = pd.read_sql(query, conn)
+    bullet_list_summaries_df.set_index("arxiv_code", inplace=True)
+    bullet_list_summaries_df.rename(columns={"summary": "bullet_list_summary"}, inplace=True)
+    bullet_list_summaries_df.drop(columns=["tstp"], inplace=True)
+    return bullet_list_summaries_df
 
 
 def load_summary_notes():
@@ -235,7 +300,6 @@ def load_tweet_insights(arxiv_code=None):
     tweet_reviews_df.drop(columns=["tstp", "rejected", "tweet_type"], inplace=True)
     tweet_reviews_df.rename(columns={"review": "tweet_insight"}, inplace=True)
     return tweet_reviews_df
-
 
 
 def get_arxiv_parent_chunk_ids(chunk_ids: list):
@@ -365,7 +429,9 @@ def get_arxiv_id_list(db_params=db_params, table_name="arxiv_details"):
             return [row[0] for row in cur.fetchall()]
 
 
-def get_latest_tstp(db_params=db_params, table_name="arxiv_details", extra_condition=""):
+def get_latest_tstp(
+    db_params=db_params, table_name="arxiv_details", extra_condition=""
+):
     """Get the latest timestamp in the database."""
     with psycopg2.connect(**db_params) as conn:
         with conn.cursor() as cur:

@@ -174,7 +174,7 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
         tweet_box.send_keys(post_tweet.replace("\n", Keys.RETURN))
 
     ## Send tweet.
-    # time.sleep(60*60*5)
+    # time.sleep(60*60*4)
     try:
         # Wait for the button to be clickable
         wait = WebDriverWait(browser, 10)
@@ -190,13 +190,12 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
                 (By.CSS_SELECTOR, "div[data-testid='tweetButton']")
             )
         )
-        button.click()
+        browser.execute_script("arguments[0].click();", button)
 
     print("Tweet sent successfully.")
     time.sleep(10)
     browser.quit()
     return True
-
 
 def main():
     """Generate a weekly review of highlights and takeaways from papers."""

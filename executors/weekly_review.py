@@ -1,8 +1,9 @@
 import sys, os
 import pandas as pd
 from tqdm import tqdm
-import time
 from dotenv import load_dotenv
+import time
+import re
 
 load_dotenv()
 
@@ -25,14 +26,13 @@ def main(date_str: str):
     ## Check if we have the summary.
     vs.validate_openai_env()
     if db.check_weekly_summary_exists(date_str):
-        # print(f"Summary for {date_str} already exists.")
         return
 
     ## Get data to generate summary.
     date_st = pd.to_datetime(date_str)
     weekly_content_df = db.get_weekly_summary_inputs(date_str)
 
-    ## Get weekly total counts for last 4 weeks.
+    ## Get weekly total counts for the last 4 weeks.
     prev_mondays = pd.date_range(
         date_st - pd.Timedelta(days=7 * 4), date_st, freq="W-MON"
     )
@@ -75,15 +75,16 @@ def main(date_str: str):
 
     with get_openai_callback() as cb:
         ## Generate summary.
-        weekly_summary_obj = vs.generate_weekly_report(weekly_content_md) #, model="claude-sonnet")
+        weekly_summary_obj = vs.generate_weekly_report(
+            weekly_content_md
+        )
         tstp_now = pd.Timestamp.now()
         date = pd.to_datetime(date_str)
+        weekly_markdown = vs.ps.generate_weekly_review_markdown(weekly_summary_obj, date)
         weekly_summary_df = pd.DataFrame(
-            {"date": [date], "tstp": [tstp_now], "review": [weekly_summary_obj.json()]}
+            {"date": [date], "tstp": [tstp_now], "review": [weekly_markdown], "review_json": [weekly_summary_obj.json()]}
         )
         db.upload_df_to_db(weekly_summary_df, "weekly_reviews", pu.db_params)
-        # print(cb)
-        # print(f"Done with {date_str}!")
 
 
 if __name__ == "__main__":
@@ -96,3 +97,4 @@ if __name__ == "__main__":
     for date_str in tqdm(date_range):
         main(date_str)
         time.sleep(5)
+

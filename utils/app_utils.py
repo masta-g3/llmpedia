@@ -48,12 +48,16 @@ def parse_weekly_report(report_md: str):
 
 def add_links_to_text_blob(response: str):
     """Add links to arxiv codes in the response."""
-
     def repl(match):
         return f"[arxiv:{match.group(1)}](https://llmpedia.streamlit.app/?arxiv_code={match.group(1)})"
 
     return re.sub(r"arxiv:(\d{4}\.\d{4,5})", repl, response)
 
+
+def extract_arxiv_codes(text: str):
+    """Extract unique arxiv codes from the text."""
+    arxiv_codes = re.findall(r"arxiv:(\d{4}\.\d{4,5})", text)
+    return list(set(arxiv_codes))
 
 def get_img_link_for_blob(text_blob: str):
     """Identify `arxiv_code:XXXX.XXXXX` from a text blob, and generate a Markdown link to its img."""
@@ -65,7 +69,7 @@ def get_img_link_for_blob(text_blob: str):
 
 
 def numbered_to_bullet_list(list_str: str):
-    """Convert a numbered list to a bullet list."""
+    """Convert a numbered liadd_links_to_text_blobst to a bullet list."""
     list_str = re.sub(r"^\d+\.", r"-", list_str, flags=re.MULTILINE).strip()
     list_str = list_str.replace("</|im_end|>", "").strip()
     ## Remove extra line breaks.
@@ -288,9 +292,10 @@ def generate_query(criteria: ps.SearchCriteria, config: dict) -> str:
             query_parts.append(f"AND {condition_str}")
             extra_selects.append(max_similarity)
 
+    if len(extra_selects) > 1:
+        extra_selects = list(filter(lambda x: x != "0 as min_distance", extra_selects))
+
     query_parts[0] += ", ".join(extra_selects)
-        # filter(lambda x: x != "NULL as min_distance", extra_selects)
-    # )
     query_parts.append("ORDER BY 6 ASC ")
 
     return "\n".join(query_parts)
@@ -319,7 +324,7 @@ def resolve_query_other(user_question: str) -> ps.QueryDecision:
     return response
 
 
-def query_llmpedia_new(user_question: str, response_length: str = "Normal") -> str:
+def query_llmpedia_new(user_question: str, response_length: str = "Normal") -> tuple:
     """Extended workflow to query LLMpedia."""
     ## Decide action.
     action = decide_query_action(user_question)
@@ -336,23 +341,25 @@ def query_llmpedia_new(user_question: str, response_length: str = "Normal") -> s
         sql = generate_query(query_obj, query_config)
         documents = db.execute_query(sql, limit=20)
         if len(documents) == 0:
-            return "Sorry, I don't know about that."
+            return "Sorry, I don't know about that.", []
         documents = [
             Document(**dict(zip(Document.__fields__.keys(), d))) for d in documents
         ]
         ## Rerank.
         reranked_documents = rerank_documents_new(user_question, documents)
+        print(reranked_documents)
         filtered_documents = {
             k: v for k, v in reranked_documents.documents.items() if v.selected
         }
         filtered_documents = [d for d in documents if d.title in filtered_documents]
         if len(filtered_documents) == 0:
-            return "Sorry, I don't know about that."
+            return "Sorry, I don't know about that.", []
         ## Resolve.
         answer = resolve_query(user_question, filtered_documents, response_length)
         answer_augment = add_links_to_text_blob(answer)
-        return answer_augment
+        arxiv_codes = extract_arxiv_codes(answer_augment)
+        return answer_augment, arxiv_codes
 
     else:
         answer = resolve_query_other(user_question)
-        return answer
+        return answer, []

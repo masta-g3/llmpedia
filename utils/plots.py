@@ -3,6 +3,7 @@ import plotly.express as px
 import plotly.io as pio
 import pandas as pd
 import colorcet as cc
+import datetime
 
 pio.templates.default = "plotly"
 
@@ -82,6 +83,47 @@ def plot_activity_map(df_year: pd.DataFrame) -> (go.Figure, pd.DataFrame):
     padded_date = padded_date.iloc[::-1]
 
     return fig, padded_date
+
+
+def plot_weekly_activity_ts(df: pd.DataFrame, date_report: datetime.date = None) -> go.Figure:
+    """ Calculate weekly activity and plot a time series. """
+    df = df.copy()
+    df["published"] = pd.to_datetime(df["published"])
+    df = df.sort_values("published")
+    df["week_start"] = df["published"].dt.to_period('W').apply(lambda r: r.start_time)
+    df = df.groupby(["week_start"])["Count"].sum().reset_index()
+    df["publish_str"] = df["week_start"].dt.strftime('%b %d')
+
+    highlight_date_str = date_report.strftime('%b %d')
+
+    fig = px.area(
+        df,
+        x="publish_str",
+        y="Count",
+        title=None,
+        labels={"title": "Papers Published"},
+        height=250,
+    )
+    fig.update_xaxes(title=None, tickfont=dict(size=17))
+    fig.update_yaxes(titlefont=dict(size=18), tickfont=dict(size=17))
+    fig.add_vline(x=highlight_date_str, line_width=2, line_dash="dash")
+
+    fig.update_layout(
+        margin=dict(t=0, b=0, l=0, r=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        yaxis_title="# Published",
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=[highlight_date_str],
+            y=[df[df["publish_str"] == highlight_date_str]["Count"].values[0]],
+            mode="markers",
+            showlegend=False, marker=dict(size=20, color="#636EFA"),
+        )
+    )
+    return fig
 
 
 def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
