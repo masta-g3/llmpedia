@@ -1,5 +1,6 @@
 import json
 import time
+from datetime import timedelta
 import streamlit as st
 
 from streamlit_plotly_events import plotly_events
@@ -122,7 +123,7 @@ def prepare_calendar_data(df: pd.DataFrame, year: int) -> pd.DataFrame:
     return df_year
 
 
-@st.cache_data
+@st.cache_data(ttl=timedelta(hours=6))
 def load_data():
     """Load data from compiled dataframe."""
     result_df = combine_input_data()

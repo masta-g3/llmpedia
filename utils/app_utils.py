@@ -338,6 +338,7 @@ def query_llmpedia_new(user_question: str, response_length: str = "Normal") -> t
         )
         print(query_obj)
         ## Fetch results.
+        query_obj.topic_categories = None
         sql = generate_query(query_obj, query_config)
         documents = db.execute_query(sql, limit=20)
         if len(documents) == 0:
