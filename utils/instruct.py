@@ -1,5 +1,5 @@
 from typing import Type, Optional
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel
 import instructor
 from anthropic import Anthropic
 from openai import OpenAI
@@ -44,7 +44,7 @@ def create_anthropic_message(
                 {"role": "user", "content": user_message},
             ],
         )
-        answer = response.content[0].text
+        answer = response.content[0].text.strip()
     else:
         client = instructor.from_anthropic(client)
         response = client.messages.create(
@@ -75,7 +75,7 @@ def create_openai_message(
                 {"role": "user", "content": user_message},
             ],
         )
-        answer = response.choices[0].message.content
+        answer = response.choices[0].message.content.strip()
     else:
         client = instructor.from_openai(client)
         response = client.chat.completions.create(

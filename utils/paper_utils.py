@@ -373,17 +373,20 @@ def get_arxiv_info(arxiv_code: str, title: Optional[str] = None):
     res = list(search.results())
     arxiv_meta = None
     if len(res) > 0:
-        if title:
-            ## Sort by title similarity.
-            res = sorted(
-                res, key=lambda x: tfidf_similarity(title, x.title), reverse=True
-            )
-            new_title = res[0].title
-            title_sim = tfidf_similarity(title, new_title)
-            if title_sim > 0.7:
+        arxiv_meta = [r for r in res if r.entry_id.split("/")[-1].split("v")[0] == arxiv_code]
+        if len(arxiv_meta) == 0:
+            if title:
+                res = sorted(
+                    res, key=lambda x: tfidf_similarity(title, x.title), reverse=True
+                )
+                new_title = res[0].title
+                title_sim = tfidf_similarity(title, new_title)
+                if title_sim > 0.7:
+                    arxiv_meta = res[0]
+            else:
                 arxiv_meta = res[0]
         else:
-            arxiv_meta = res[0]
+            arxiv_meta = arxiv_meta[0]
     return arxiv_meta
 
 

@@ -16,7 +16,7 @@ table_names = [
     "arxiv_large_parent_chunks",
     "arxiv_parent_chunks",
     "arxiv_qna",
-    "bullet_list_summary",
+    "bullet_list_summaries",
     "recursive_summaries",
     "semantic_details",
     "similar_documents",

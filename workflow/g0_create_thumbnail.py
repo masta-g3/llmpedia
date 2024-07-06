@@ -59,7 +59,7 @@ def get_value_at_index(obj: Union[Sequence, Mapping], index: int) -> Any:
 def generate_image(name, img_file):
     # keyword = vs.summarize_title_in_word(name)
     print(f"* Title: {name}")
-    name = vs.rephrase_title(name, model="GPT-4o")
+    name = vs.rephrase_title(name, model="gpt-4o")
     caption = (
         f'"{name}", "tarot and computers collection", stunning award-winning pixel art'
     )
@@ -164,7 +164,7 @@ def main():
             # .replace("transformer", "processor")
             .replace("Transformer", "Machine")
             # .replace("Matrix", "Linear Algebra")
-            .replace("LLM", "Large Language Model").replace("GPU", "")
+            .replace("Large Language Model", "LLM").replace("LLM", "Model")
         )
         generate_image(clean_name, img_file)
 

@@ -1,6 +1,4 @@
-import demjson3
 import pandas as pd
-import json
 import os
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -35,7 +33,7 @@ def validate_openai_env():
 ###################
 
 text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-    chunk_size=1000, chunk_overlap=25
+    chunk_size=2000, chunk_overlap=50
 )
 
 
@@ -123,20 +121,15 @@ def summarize_by_parts(
 
 def summarize_doc_chunk(paper_title: str, document: str, model="local"):
     """Summarize a paper by segments."""
-    summarizer_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", ps.SUMMARIZE_BY_PARTS_SYSTEM_PROMPT),
-            ("human", ps.SUMMARIZE_BY_PARTS_USER_PROMPT),
-        ]
+    summary = run_instructor_query(
+        ps.SUMMARIZE_BY_PARTS_SYSTEM_PROMPT,
+        ps.SUMMARIZE_BY_PARTS_USER_PROMPT.format(content=document),
+        llm_model=model,
     )
-    chain = LLMChain(llm=llm_map[model], prompt=summarizer_prompt, verbose=False)
-    summary = chain.invoke(
-        dict(
-            paper_title=paper_title, content=document.page_content, stop=["</summary>"]
-        )
-    )["text"]
+    summary = summary.strip()
+    if "<summary>" in summary:
+        summary = summary.split("<summary>")[1].split("</summary>")[0]
     return summary
-
 
 def summarize_doc_chunk_mlx(paper_title: str, document: str, mlx_model, mlx_tokenizer):
     """Summarize a paper by segments with MLX models."""
@@ -161,21 +154,15 @@ def summarize_doc_chunk_mlx(paper_title: str, document: str, mlx_model, mlx_toke
     return summary
 
 
-def verify_llm_paper(paper_content: str, model="GPT-3.5-Turbo-JSON"):
+def verify_llm_paper(paper_content: str, model="claude-3-haiku-20240307"):
     """Verify if a paper is about LLMs via LLMChain."""
-    llm_paper_check_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", ps.LLM_PAPER_CHECK_TEMPLATE),
-            ("human", "{paper_content}"),
-            ("human", ps.LLM_PAPER_CHECK_FMT_TEMPLATE),
-        ]
+    is_llm_paper = run_instructor_query(
+        ps.LLM_VERIFIER_SYSTEM_PROMPT,
+        ps.LLM_VERIFIER_USER_PROMPT.format(paper_content=paper_content),
+        model=ps.LLMVerifier,
+        llm_model=model,
     )
-    llm_chain = LLMChain(
-        llm=llm_map[model], prompt=llm_paper_check_prompt, verbose=False
-    )
-    is_llm_paper = llm_chain.invoke(dict(paper_content=paper_content))["text"]
-    is_llm_paper = is_llm_paper.replace("\n", "")
-    is_llm_paper = demjson3.decode(is_llm_paper)
+    is_llm_paper = is_llm_paper.dict()
     return is_llm_paper
 
 
@@ -191,20 +178,16 @@ def review_llm_paper(paper_content: str, model="claude-3-haiku-20240307"):
 
 
 def convert_notes_to_narrative(
-    paper_title: str, notes: str, model: str = "GPT-3.5-Turbo"
+    paper_title: str, notes: str, model: str = "claude-3-haiku-20240307"
 ) -> str:
     """Convert notes to narrative via LLMChain."""
-    narrative_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", ps.NARRATIVE_SUMMARY_SYSTEM_PROMPT),
-            ("user", ps.NARRATIVE_SUMMARY_USER_PROMPT),
-        ]
+    narrative = run_instructor_query(
+        ps.NARRATIVE_SUMMARY_SYSTEM_PROMPT.format(paper_title=paper_title),
+        ps.NARRATIVE_SUMMARY_USER_PROMPT.format(previous_notes=notes),
+        llm_model=model,
     )
-    narrative_chain = LLMChain(llm=llm_map[model], prompt=narrative_prompt)
-    narrative = narrative_chain.invoke(
-        dict(paper_title=paper_title, previous_notes=notes, stop=["</summary>"])
-    )["text"]
-    narrative = narrative.replace("<summary>", "")
+    if "<summary>" in narrative:
+        narrative = narrative.split("<summary>")[1].split("</summary>")[0]
     return narrative
 
 
@@ -212,62 +195,51 @@ def convert_notes_to_bullets(
     paper_title: str, notes: str, model: str = "GPT-3.5-Turbo"
 ) -> str:
     """Convert notes to bullet point list via LLMChain."""
-    bullet_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", ps.BULLET_LIST_SUMMARY_SYSTEM_PROMPT),
-            ("user", ps.BULLET_LIST_SUMMARY_USER_PROMPT),
-        ]
-    )
-    bullet_chain = LLMChain(llm=llm_map[model], prompt=bullet_prompt)
-    bullet_list = bullet_chain.invoke(
-        dict(paper_title=paper_title, previous_notes=notes, stop=["</summary>"])
-    )["text"]
-    bullet_list = bullet_list.replace("<summary>", "")
+    bullet_list = run_instructor_query(
+        ps.BULLET_LIST_SUMMARY_SYSTEM_PROMPT,
+        ps.BULLET_LIST_SUMMARY_USER_PROMPT.format(paper_title=paper_title, previous_notes=notes),
+        llm_model=model,
+    ).strip()
+    if "<summary>" in bullet_list:
+        bullet_list = bullet_list.split("<summary>")[1].split("</summary>")[0]
     return bullet_list
 
 
 def copywrite_summary(paper_title, previous_notes, narrative, model="GPT-3.5-Turbo"):
     """Copywrite a summary via LLMChain."""
-    copywriting_prompt = ChatPromptTemplate.from_messages(
-        [("system", ps.COPYWRITER_SYSTEM_PROMPT), ("user", ps.COPYWRITER_USER_PROMPT)]
-    )
-    copywriting_chain = LLMChain(llm=llm_map[model], prompt=copywriting_prompt)
-    copywritten = copywriting_chain.invoke(
-        dict(
+    copywritten = run_instructor_query(
+        ps.COPYWRITER_SYSTEM_PROMPT,
+        ps.COPYWRITER_USER_PROMPT.format(
             paper_title=paper_title,
             previous_notes=previous_notes,
             previous_summary=narrative,
-            stop=["</improved_summary>"],
-        )
-    )["text"]
-    copywritten = copywritten.replace("<improved_summary>", "")
+        ),
+        llm_model=model,
+    )
+    if "<improved_summary>" in copywritten:
+        copywritten = copywritten.split("<improved_summary>")[1].split("</improved_summary>")[0]
     return copywritten
 
 
 def organize_notes(paper_title, notes, model="GPT-3.5-Turbo"):
     """Add header titles and organize notes via LLMChain."""
-    organize_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", ps.FACTS_ORGANIZER_SYSTEM_PROMPT),
-            ("user", ps.FACTS_ORGANIZER_USER_PROMPT),
-        ]
+    organized_sections = run_instructor_query(
+        ps.FACTS_ORGANIZER_SYSTEM_PROMPT,
+        ps.FACTS_ORGANIZER_USER_PROMPT.format(
+            paper_title=paper_title, previous_notes=notes
+        ),
+        llm_model=model,
     )
-    organize_chain = LLMChain(llm=llm_map[model], prompt=organize_prompt)
-    organized_sections = organize_chain.invoke(
-        dict(paper_title=paper_title, previous_notes=notes, max_tokens=6000)
-    )["text"]
     return organized_sections
 
 
 def convert_notes_to_markdown(paper_title, notes, model="GPT-3.5-Turbo"):
     """Convert notes to markdown via LLMChain."""
-    markdown_prompt = ChatPromptTemplate.from_messages(
-        [("system", ps.MARKDOWN_SYSTEM_PROMPT), ("user", ps.MARKDOWN_USER_PROMPT)]
+    markdown = run_instructor_query(
+        ps.MARKDOWN_SYSTEM_PROMPT.format(paper_title=paper_title),
+        ps.MARKDOWN_USER_PROMPT.format(previous_notes=notes),
+        llm_model=model,
     )
-    markdown_chain = LLMChain(llm=llm_map[model], prompt=markdown_prompt)
-    markdown = markdown_chain.invoke(
-        dict(paper_title=paper_title, previous_notes=notes, max_tokens=6000)
-    )["text"]
     return markdown
 
 
@@ -283,13 +255,14 @@ def summarize_title_in_word(title, model="GPT-3.5-Turbo-HT"):
     return keyword
 
 
-def rephrase_title(title, model="GPT-3.5-Turbo-HT"):
-    """Summarize a title in a few words via LLMChain."""
-    title_rephrase_prompt = ChatPromptTemplate.from_messages(
-        [("system", ps.TITLE_REPHRASER_PROMPT)]
-    )
-    title_rephrase_chain = LLMChain(llm=llm_map[model], prompt=title_rephrase_prompt)
-    phrase = title_rephrase_chain.invoke(dict(title=title))["text"].strip()
+def rephrase_title(title, model="gpt-4o"):
+    """Summarize a title as a short visual phrase."""
+    phrase = run_instructor_query(
+        ps.TITLE_REPHRASER_SYSTEM_PROMPT,
+        ps.TITLE_REPHRASER_USER_PROMPT.format(title=title),
+        llm_model=model,
+        temperature=0.9
+    ).strip()
     return phrase
 
 
@@ -314,6 +287,7 @@ def generate_weekly_report(weekly_content_md: str, model="GPT-4-Turbo"):
         ps.WEEKLY_USER_PROMPT.format(weekly_content=weekly_content_md),
         model=ps.WeeklyReview,
         llm_model="gpt-4o",
+        # llm_model="claude-3-5-sonnet-20240620"
     )
     return weekly_report
 

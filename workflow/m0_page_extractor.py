@@ -52,7 +52,7 @@ def main():
     arxiv_codes = pu.get_local_arxiv_codes()
     done_codes = [f.replace(".png", "") for f in os.listdir(page_dir)]
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
-    arxiv_codes = sorted(arxiv_codes)[::-1][:20]
+    arxiv_codes = sorted(arxiv_codes)[::-1][:30]
 
     for arxiv_code in tqdm(arxiv_codes):
         pdf_url = f"https://arxiv.org/pdf/{arxiv_code}.pdf"

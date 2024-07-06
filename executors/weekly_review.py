@@ -42,6 +42,9 @@ def main(date_str: str):
         for date_str in prev_mondays
     }
 
+    previous_summary = db.get_weekly_summary(prev_mondays[-2])
+    previous_themes = previous_summary.split("\n##")[2]
+
     date_end = date_st + pd.Timedelta(days=6)
     date_st_long = date_st.strftime("%B %d, %Y")
     date_end_long = date_end.strftime("%B %d, %Y")
@@ -69,9 +72,13 @@ def main(date_str: str):
     for idx, row in weekly_content_df.iterrows():
         paper_markdown = pu.format_paper_summary(row)
         weekly_content_md += paper_markdown
-        if idx >= 30:
-            weekly_content_md += f"\n\n*...and {len(weekly_content_df) - idx} more.*"
+        if idx >= 50:
+            weekly_content_md += f"\n*...and {len(weekly_content_df) - idx} more.*"
             break
+
+    ## Add previous "New Developments and Findings" section.
+    weekly_content_md += f"\n\n## Last Week's Submissions for New Developments and Themes\n"
+    weekly_content_md += previous_themes
 
     with get_openai_callback() as cb:
         ## Generate summary.

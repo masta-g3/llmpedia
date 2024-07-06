@@ -28,7 +28,7 @@ def main():
         paper_title = title_map[arxiv_code]
 
         ## Insert copywriter's summary into the database.
-        bullet_list = vs.convert_notes_to_bullets(paper_title, paper_notes, model="GPT-4o")
+        bullet_list = vs.convert_notes_to_bullets(paper_title, paper_notes, model="gpt-4o")
         bullet_list = bullet_list.replace("\n\n", "\n")
         db.insert_bullet_list_summary(arxiv_code, bullet_list)
 

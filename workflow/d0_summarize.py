@@ -47,10 +47,7 @@ def main():
             paper_title,
             paper_content,
             max_tokens=500,
-            model="claude-haiku",
-            # model="mlx",
-            # mlx_model=mlx_model,
-            # mlx_tokenizer=mlx_tokenizer,
+            model="gpt-4o",
             verbose=False,
         )
 

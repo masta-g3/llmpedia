@@ -3,12 +3,14 @@ import time
 from datetime import timedelta
 import streamlit as st
 
+import streamlit.components.v1 as components
 from streamlit_plotly_events import plotly_events
 from typing import Dict, List, Tuple
 import pandas as pd
 import numpy as np
 
 import utils.app_utils as au
+import utils.data_cards as dc
 import utils.plots as pt
 import utils.db as db
 
@@ -268,6 +270,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
 
     report_log_space = img_cols[1].empty()
     action_btn_cols = img_cols[1].columns((1, 1, 1))
+
     report_btn = action_btn_cols[0].popover("🚨 Report")
     if report_btn.checkbox("Report bad image", key=f"report_v1_{paper_code}_{name}"):
         db.report_issue(paper_code, "bad_image")
@@ -287,20 +290,36 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         time.sleep(3)
         report_log_space.empty()
 
+    datacard_btn = action_btn_cols[1].button(
+        "🃏 Data Card", key=f"dashboard_{paper_code}", type="primary"
+    )
+    if datacard_btn:
+        with st.spinner("*Loading data card...*"):
+            html_card = dc.generate_data_card_html(paper_code)
+            if html_card:
+                @st.experimental_dialog(paper_title, width="large")
+                def render():
+                    components.html(html_card, height=700, scrolling=True)
+                render()
+            else:
+                error_container = st.empty()
+                error_container.warning("Data card not available yet. Check back soon!")
+                time.sleep(2)
+                error_container.empty()
+
     with st.expander(f"💭 Abstract (arXiv:{paper_code})", expanded=False):
         st.markdown(paper["summary"])
 
     with st.expander(f"🗒 **Notes**", expanded=True):
         level_select = st.selectbox(
             "Detail",
-            ## high-level overview, summary notes, detailed notes
             [
                 "🔖 Most Interesting Findings",
                 "📝 High-Level Overview",
                 "🔎 Detailed Research Notes",
             ],
             label_visibility="collapsed",
-            index=0,
+            index=1,
             key=f"level_select_{paper_code}{name}",
         )
 

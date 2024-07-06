@@ -10,11 +10,8 @@ import re, json
 import time
 from tqdm import tqdm
 
-from langchain_community.callbacks import get_openai_callback
-
 import utils.paper_utils as pu
 import utils.vector_store as vs
-import utils.db as db
 
 def update_gist(gist_id, gist_filename, paper_list):
     """Update the gist with the current queue."""

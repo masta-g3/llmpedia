@@ -643,3 +643,24 @@ def insert_tweet_review(arxiv_code, review, tstp, tweet_type, rejected=False):
             },
         )
     return True
+
+###############
+## DATA CARDS ##
+###############
+
+def get_arxiv_dashboard_script(arxiv_code: str, sel_col: str = "script_content") -> str:
+    """Query DB to get script for the arxiv dashboard."""
+    engine = create_engine(database_url)
+    with engine.begin() as conn:
+        query = text(
+            f"""
+            SELECT {sel_col}
+            FROM arxiv_dashboards
+            WHERE arxiv_code = '{arxiv_code}';
+            """
+        )
+        result = conn.execute(query)
+        row = result.fetchone()
+        script = row[0] if row else None
+    engine.dispose()
+    return script

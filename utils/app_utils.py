@@ -301,18 +301,18 @@ def generate_query(criteria: ps.SearchCriteria, config: dict) -> str:
     return "\n".join(query_parts)
 
 
-def rerank_documents_new(user_question: str, documents: list) -> ps.RerankedDocuments:
+def rerank_documents_new(user_question: str, documents: list, llm_model="gpt-4o") -> ps.RerankedDocuments:
     system_message = "You are an expert system that can identify and select relevant arxiv papers that can be used to answer a user query."
     import streamlit as st
     rerank_msg = ps.create_rerank_user_prompt(user_question, documents)
-    response = run_instructor_query(system_message, rerank_msg, ps.RerankedDocuments)
+    response = run_instructor_query(system_message, rerank_msg, ps.RerankedDocuments) #, llm_model=llm_model)
     return response
 
 
-def resolve_query(user_question: str, documents: list[Document], response_length: str):
+def resolve_query(user_question: str, documents: list[Document], response_length: str,  llm_model="gpt-4o"):
     system_message = "You are an AI academic focused on Large Language Models. Please answer the user query leveraging the information provided in the context."
     user_message = ps.create_resolve_user_prompt(user_question, documents, response_length)
-    response = run_instructor_query(system_message, user_message, None, llm_model="claude-3-sonnet-20240229")
+    response = run_instructor_query(system_message, user_message, None, llm_model=llm_model)
     return response
 
 
@@ -335,6 +335,7 @@ def query_llmpedia_new(user_question: str, response_length: str = "Normal") -> t
             ps.VS_QUERY_SYSTEM_PROMPT,
             ps.create_query_user_prompt(user_question),
             ps.SearchCriteria,
+            llm_model="gpt-4o",
         )
         print(query_obj)
         ## Fetch results.
@@ -347,7 +348,7 @@ def query_llmpedia_new(user_question: str, response_length: str = "Normal") -> t
             Document(**dict(zip(Document.__fields__.keys(), d))) for d in documents
         ]
         ## Rerank.
-        reranked_documents = rerank_documents_new(user_question, documents)
+        reranked_documents = rerank_documents_new(user_question, documents, llm_model="gpt-4o")
         print(reranked_documents)
         filtered_documents = {
             k: v for k, v in reranked_documents.documents.items() if v.selected
@@ -356,7 +357,7 @@ def query_llmpedia_new(user_question: str, response_length: str = "Normal") -> t
         if len(filtered_documents) == 0:
             return "Sorry, I don't know about that.", []
         ## Resolve.
-        answer = resolve_query(user_question, filtered_documents, response_length)
+        answer = resolve_query(user_question, filtered_documents, response_length, llm_model="gpt-4o")
         answer_augment = add_links_to_text_blob(answer)
         arxiv_codes = extract_arxiv_codes(answer_augment)
         return answer_augment, arxiv_codes

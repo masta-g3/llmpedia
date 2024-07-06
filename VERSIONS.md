@@ -30,3 +30,7 @@
 - [x] migrate images.
 
 ## v.1.3.0 
+- [ ] LLM version config.
+- [x] GPT-4o default in chat.
+- [x] Summary artifacts.
+- [ ] Remove langchain. 
