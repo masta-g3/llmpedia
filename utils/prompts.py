@@ -277,7 +277,7 @@ BULLET_LIST_SUMMARY_USER_PROMPT = """<example_output>
 
 <instructions>
 - Your task is to convert the input into a concise bullet list that capture the most interesting, unusual and unexpected findings of the paper. 
-- Write your response in up to five (5) bullet points., keeping a narrative flow and coherence.
+- Write your response in up to five (5) bullet points, keeping a narrative flow and coherence.
 - Play close attention to the sample output and follow the same style and tone. 
 - Do not use sensational language, be plain and simple as in the example.
 - Include an emoji at the beginning of each bullet point related to it. Be creative and do not pick the most obvious / most common ones. Do not repeat them.

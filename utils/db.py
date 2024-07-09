@@ -648,6 +648,31 @@ def insert_tweet_review(arxiv_code, review, tstp, tweet_type, rejected=False):
 ## DATA CARDS ##
 ###############
 
+
+def save_arxiv_dashboard_script(arxiv_code: str, summary:str, scratchpad:str, script:str) -> bool:
+    """Insert a new arxiv dashboard script into the DB."""
+    engine = create_engine(database_url)
+    tstp = pd.to_datetime("now").strftime("%Y-%m-%d %H:%M:%S")
+    with engine.begin() as conn:
+        query = text(
+            """
+            INSERT INTO arxiv_dashboards (arxiv_code, tstp, script_content, summary, scratchpad)
+            VALUES (:arxiv_code, :tstp, :script_content, :summary, :scratchpad)
+            """
+        )
+        conn.execute(
+            query,
+            {
+                "arxiv_code": arxiv_code,
+                "tstp": tstp,
+                "script_content": script,
+                "summary": summary,
+                "scratchpad": scratchpad,
+            },
+        )
+        return True
+
+
 def get_arxiv_dashboard_script(arxiv_code: str, sel_col: str = "script_content") -> str:
     """Query DB to get script for the arxiv dashboard."""
     engine = create_engine(database_url)

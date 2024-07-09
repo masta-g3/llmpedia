@@ -289,6 +289,11 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         report_log_space.success("Reported non-LLM paper. Thanks!")
         time.sleep(3)
         report_log_space.empty()
+    if report_btn.checkbox("Report bad data card", key=f"report_v4_{paper_code}_{name}"):
+        db.report_issue(paper_code, "bad_datacard")
+        report_log_space.success("Reported bad data-card. Thanks!")
+        time.sleep(3)
+        report_log_space.empty()
 
     datacard_btn = action_btn_cols[1].button(
         "🃏 Data Card", key=f"dashboard_{paper_code}", type="primary"
@@ -372,22 +377,6 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         f"✏️ **Takeaways & Applications**:  {paper['takeaway_title']}", expanded=False
     ):
         st.markdown(f"{paper['takeaway_example']}")
-
-    # with st.expander("🥉 **GPT Assessments**", expanded=False):
-    #     ## GPT Cluster category.
-    #     st.markdown(f"**GPT Cluster Group**: {paper['topic']}")
-    #
-    #     novelty_cols = st.columns((1, 10))
-    #     novelty_cols[0].metric("Novelty", f"{paper['novelty_score']}/3", "🚀")
-    #     novelty_cols[1].markdown(f"{paper['novelty_analysis']}")
-    #
-    #     tech_cols = st.columns((1, 10))
-    #     tech_cols[0].metric("Technical Depth", f"{paper['technical_score']}/3", "🔧")
-    #     tech_cols[1].markdown(f"{paper['technical_analysis']}")
-    #
-    #     enjoy_cols = st.columns((1, 10))
-    #     enjoy_cols[0].metric("Readability", f"{paper['enjoyable_score']}/3", "📚")
-    #     enjoy_cols[1].markdown(f"{paper['enjoyable_analysis']}")
 
     with st.expander(f"📚 **Similar Papers**", expanded=False):
         papers_df = st.session_state["papers"]
@@ -708,7 +697,7 @@ def main():
         }
     </style>
     <div class="footer">
-        <a href="https://github.com/masta-g3/llmpedia/blob/main/VERSIONS.md" target="_blank">v1.2.3</a>
+        <a href="https://github.com/masta-g3/llmpedia/blob/main/VERSIONS.md" target="_blank">v1.3.0</a>
     </div>
     """,
         unsafe_allow_html=True,

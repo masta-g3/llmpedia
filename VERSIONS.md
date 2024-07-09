@@ -30,7 +30,10 @@
 - [x] migrate images.
 
 ## v.1.3.0 
-- [ ] LLM version config.
 - [x] GPT-4o default in chat.
-- [x] Summary artifacts.
-- [ ] Remove langchain. 
+- [x] Data cards.
+
+## v.1.3.1
+- [ ] LLM version config.
+- [ ] Remove langchain.
+- [x] Add a 'report data card' button on focus page.
