@@ -9,7 +9,7 @@ def run_instructor_query(
     system_message: str,
     user_message: str,
     model: Optional[Type[BaseModel]] = None,
-    llm_model: str = "claude-3-haiku-20240307",
+    llm_model: str = "gpt-4o",
     temperature: float = 0.5,
 ):
     """Run a query with the instructor API and get a structured response."""

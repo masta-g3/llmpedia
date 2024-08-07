@@ -395,7 +395,7 @@ Output:"""
 
 
 TITLE_REPHRASER_SYSTEM_PROMPT = """
-We are currently working on creating an artistic illustration for an academic paper. You will be presented with the title of this paper, and you will be asked to rephrase it in an engaging and visual way, as if you were describing an image. Your rephrased title should be a single sentence. Replace niche or technical terms with more common words, using objects or concepts that can be easily depicted in an illustration. Try to avoid abstract concepts and be creative in order to come up with highly visual and interesting descriptions. 
+We are currently working on creating an artistic illustration for an academic paper. You will be presented with the title of this paper, and you will be asked to rephrase it in an engaging and visual way, as if you were describing an image. Your rephrased title should be a single sentence. Replace niche or technical terms with more common words, using objects or concepts that can be easily depicted in an illustration. Try to avoid abstract concepts, do not over-saturate the scene, and be creative in order to come up with highly visual and interesting descriptions. 
 
 Avoid: superheros, copyrighted characters, maze, treasure, compass, mosaic, language models, magnifying glass"""
 
@@ -434,45 +434,9 @@ INTERESTING_SYSTEM_PROMPT = """You will be provided with abstracts from white pa
 INTERESTING_USER_PROMPT = """
 Here are the abstracts:
 
-<abstract1>
-{abstract1}
-</abstract1>
-
-<abstract2>
-{abstract2}
-</abstract2>
-
-<abstract3>
-{abstract3}
-</abstract3>
-
-<abstract4>
-{abstract4}
-</abstract4>
-
-<abstract5>
-{abstract5}
-</abstract5>
-
-<abstract6>
-{abstract6}
-</abstract6>
-
-<abstract7>
-{abstract7}
-</abstract7>
-
-<abstract8>
-{abstract8}
-</abstract8>
-
-<abstract9>
-{abstract9}
-</abstract9>
-
-<abstract10>
-{abstract10}
-</abstract10>
+<abstracts>
+{abstracts}
+</abstracts>
 
 Please read through each abstract carefully. Then reflect on which one you found most interesting in a <reflection> section using simple and concise language.
 
@@ -494,18 +458,13 @@ The following are attributes of LESS interesting papers:
 After reflecting, please output the number (1, 2, 3 or 4) of the abstract you selected as most interesting inside <most_interesting_abstract> tags.
 """
 
-TWEET_SYSTEM_PROMPT = """"# INSTRUCTIONS
-You are a renowned AI researcher with extensive knowledge on Large Language Models (LLMs). You are also the creator of the LLMpedia, an online collection of historical and latest arxiv papers on LLMs, which you review and publish on a dedicated website.
-To boost traffic, you actively share insights, key publications, and updates on Twitter.
+############
+## TWEETS ##
+############
 
-# PREVIOUS TWEETS
-Here are some of your most recent tweets, use them as reference to compose a tweet in similar style and tone.
+TWEET_SYSTEM_PROMPT = "You are an AI researcher with extensive knowledge on Large Language Models (LLMs) that writes tweets about the latest research in the field. Your goal is to write a tweet about the following paper, highlighting the most interesting and relevant information in a concise and engaging manner."
 
-{previous_tweets}
-"""
-
-TWEET_USER_PROMPT = """
-# OBJECTIVE
+TWEET_USER_PROMPT = """# OBJECTIVE
 You are writing a post about *today's LLM paper review*.
 
 # CONTEXT
@@ -535,33 +494,50 @@ Read over carefully over the following information and use it to inform your twe
 Now write your 3 paragraph tweet. Make sure the first paragraph is at most 280 characters long, so it can be tweeted as a single tweet. The other two paragraphs can be longer.
 """
 
-TWEET_INSIGHT_USER_PROMPT = """
-# OBJECTIVE
-You are writing a short tweet highlighting an interesting non-obvious insight from a recent LLM paper.
+TWEET_INSIGHT_USER_PROMPT = """You are writing a tweet highlighting an interesting non-obvious insight from a recent LLM paper.
 
-# CONTEXT
 Read over carefully over the following information and use it to inform your tweet.
 
+<context>
 {tweet_facts}
+<context>
 
-# GUIDELINES
-- Identify the most interesting and unexpected fact presented in the text.
+These are some of your previous tweets. Use them as reference to compose a tweet in similar style and tone. Also notice how you always provide enough context for the reader to understand the insight and include numerical figures when relevant.
+
+<previous_tweets>
+- From 𝗜𝗻𝗱𝘂𝗰𝘁𝗶𝘃𝗲 𝗼𝗿 𝗗𝗲𝗱𝘂𝗰𝘁𝗶𝘃𝗲? 𝗥𝗲𝘁𝗵𝗶𝗻𝗸𝗶𝗻𝗴 𝘁𝗵𝗲 𝗙𝘂𝗻𝗱𝗮𝗺𝗲𝗻𝘁𝗮𝗹 𝗥𝗲𝗮𝘀𝗼𝗻𝗶𝗻𝗴 𝗔𝗯𝗶𝗹𝗶𝘁𝗶𝗲𝘀 𝗼𝗳 𝗟𝗟𝗠𝘀: LLMs excel at inductive reasoning—learning general principles from specific examples—achieving near-perfect accuracy. However, they struggle with deductive reasoning, especially in counterfactual scenarios, where they must derive specific conclusions from general rules.
+- From 𝗠𝗶𝗻𝗱𝗦𝗲𝗮𝗿𝗰𝗵: 𝗠𝗶𝗺𝗶𝗰𝗸𝗶𝗻𝗴 𝗛𝘂𝗺𝗮𝗻 𝗠𝗶𝗻𝗱𝘀 𝗘𝗹𝗶𝗰𝗶𝘁𝘀 𝗗𝗲𝗲𝗽 𝗔𝗜 𝗦𝗲𝗮𝗿𝗰𝗵𝗲𝗿: MindSearch uses a multi-agent system to mimic human thinking, breaking down complex queries into simpler tasks and retrieving information hierarchically. It processes info from 300+ web pages in 3 minutes—equivalent to 3 hours of human work. Using a Directed Acyclic Graph (DAG) for query breakdown and Python code generation boosts the reasoning power of large language models (LLMs).
+- From 𝗩𝗶𝘀𝘂𝗮𝗹 𝗥𝗶𝗱𝗱𝗹𝗲𝘀: 𝗮 𝗖𝗼𝗺𝗺𝗼𝗻𝘀𝗲𝗻𝘀𝗲 𝗮𝗻𝗱 𝗪𝗼𝗿𝗹𝗱 𝗞𝗻𝗼𝘄𝗹𝗲𝗱𝗴𝗲 𝗖𝗵𝗮𝗹𝗹𝗲𝗻𝗴𝗲 𝗳𝗼𝗿 𝗟𝗮𝗿𝗴𝗲 𝗩𝗶𝘀𝗶𝗼𝗻 𝗮𝗻𝗱 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗠𝗼𝗱𝗲𝗹𝘀: Current vision-language models struggle with visual riddles that require complex reasoning. Humans achieve 82% accuracy, but the top model, Gemini-Pro-1.5, only reaches 40%. Adding hints boosts accuracy significantly, showing models rely heavily on extra context to solve problems effectively.
+- From 𝗣𝗲𝗿𝘀𝗼𝗻𝗮𝗚𝘆𝗺: 𝗘𝘃𝗮𝗹𝘂𝗮𝘁𝗶𝗻𝗴 𝗣𝗲𝗿𝘀𝗼𝗻𝗮 𝗔𝗴𝗲𝗻𝘁𝘀 𝗮𝗻𝗱 𝗟𝗟𝗠𝘀: Despite being more advanced, Claude 3.5 Sonnet shows only a 2.97% improvement in persona adherence over GPT 3.5. This suggests that larger and more complex models don't necessarily perform better in persona-based tasks. PersonaGym, a dynamic evaluation framework, and PersonaScore, an automated metric, reveal this through analysis of six LLMs across 200 personas and 10,000 questions.
+- From 𝗗𝗲𝗺𝘆𝘀𝘁𝗶𝗳𝘆𝗶𝗻𝗴 𝗩𝗲𝗿𝗯𝗮𝘁𝗶𝗺 𝗠𝗲𝗺𝗼𝗿𝗶𝘇𝗮𝘁𝗶𝗼𝗻 𝗶𝗻 𝗟𝗮𝗿𝗴𝗲 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗠𝗼𝗱𝗲𝗹𝘀: The study shows that LLMs need significant repetition to memorize text—at least 1 in 10K examples for smaller models and 1 in 5M for larger ones. This memorization is closely tied to general language skills, making it hard to remove without harming the model's overall performance.
+- From 𝗣𝗘𝗥𝗦𝗢𝗡𝗔: 𝗔 𝗥𝗲𝗽𝗿𝗼𝗱𝘂𝗰𝗶𝗯𝗹𝗲 𝗧𝗲𝘀𝘁𝗯𝗲𝗱 𝗳𝗼𝗿 𝗣𝗹𝘂𝗿𝗮𝗹𝗶𝘀𝘁𝗶𝗰 𝗔𝗹𝗶𝗴𝗻𝗺𝗲𝗻𝘁: Reinforcement learning from human feedback (RLHF) often embeds majority opinions in models, sidelining minority views. PERSONA’s 1,586 synthetic personas and 317,200 feedback pairs reveal the challenge of achieving pluralistic alignment, suggesting a single model may not satisfy all group preferences.
+</previous_tweets>
+
+<guidelines>
+- Identify the most interesting and unexpected fact or finding presented in the text.
 - Do not necessarily pick the main conclusion, but rather the most unexpected or intriguing insight.
-- Write a short tweet about this fact that is engaging and informative. Present the insight in a clear and concise manner, but make sure it has enough context to be understood.
-- Start the tweet with '⭐ From [[XXX]] ' followed by the insight, where [[XXX]] is the title of the paper in double brackets.
-- Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.)."""
+- Write a comprehensive tweet about this fact that is engaging and informative.
+- Follow closely your previous tweets as reference to guide your style.
+- Start the tweet with 'From [[XXX]] ' followed by the insight, where [[XXX]] is the title of the paper in double brackets.
+- Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
+- Do not use boilerplate phrases such as 'this highlights...', 'this underscores...', etc.
+- Do not add a conclusion at the end of your tweet.
+- Do not add hashtags or calls to action.
+- Make sure the tweet sufficiently contextualized to be fully understood (but do not make it overwhelming).
+- Briefly explain all new terms and acronyms (except the most common ones - LLM, MMLU, ML, etc.).
+- Use direct and clear language. The tweet must be easy to read in one pass, fluently.
+- Write with a clear flow where you explain step by step. 
+</guidelines>"""
 
 
-TWEET_EDIT_SYSTEM_PROMPT = """
-You are an expert copywriter. Provide a lightly edited version of this tweet, without hashtags or call to actions."""
+TWEET_EDIT_SYSTEM_PROMPT = """You are an expert copywriter. Provide an edited version of the presented tweet following the guidelines provided below."""
 
-TWEET_EDIT_USER_PROMPT = """
-# TWEET
+TWEET_EDIT_USER_PROMPT = """# TWEET
 {tweet}
 
 # GUIDELINES 
-- Prioritize concise and clear language, interestingness, readability and flow.
-- Reduce modifier and filler words; be very direct and to the point. 
+- Use direct and clear language. The tweet must be easy to read in one pass, fluently.
+- Reduce modifier and filler words; be very direct and to the point.
 - Remove duplicate content across the paragraphs (but keep three paragraphs).
 - Remove or rephrase parts that are not clear or could not be understood. Explanations should be given using layman terms.
 - Do not remove references to technical terms, key results, or change the meaning of the tweet.
@@ -572,17 +548,23 @@ TWEET_EDIT_USER_PROMPT = """
 - Highlight the most important sentence or takeaway by wrapping it in **bold text** (only one per tweet).
 - Do edits only when needed; keep most of the tweet essence as is."""
 
-TWEET_INSIGHT_EDIT_USER_PROMPT = """
+TWEET_INSIGHT_EDIT_USER_PROMPT = """# TWEET CONTEXT FACTS
+{tweet_facts}
+
 # TWEET
 {tweet}
 
 # GUIDELINES
-- Prioritize concise, clear language, readability and flow. Highlight what is most unusual and interesting. Make sure the insight is not obvious or trivial.
-- Reduce modifier and filler words; be very direct and to the point. 
-- Rephrase any parts that are not clearly understood; the message should be clear to a layman.
-- Do not remove references to technical terms, important results, or change the meaning of the tweet.
-- Start the tweet with '⭐️From [[XXX]]: ...' followed by the insight, where [[XXX]] is the title of the paper in double brackets.
-- Do few edits; keep most of the tweet essence as is.
+Your goal is to edit this tweet in order to meet the following guidelines:
+- Prioritize clear language, readability and flow.
+- Reduce modifier and filler words; the tweet must be very direct and to the point. 
+- Rephrase any parts that are not clearly understood; the message should be clear to a layman. Use the `tweet context facts` to provide the necessary explanations.
+- Make sure any new concept (benchmark, metric, model, techniques; *any* novel term) is clearly explained, if at least briefly. If needed add the missing explanations using as reference the `tweet context facts`.
+- Make sure the tweet sufficiently contextualized to be fully understood by the reader. If needed, add more context using the `tweet context facts`.
+- Do not remove any important technical detail or term, instead explain it clearly.
+- Try not to end your tweet with boilerplate phrases such as 'this highlights...', 'this underscores...', etc.
+- Start the tweet with 'From [[XXX]]: ...' followed by the insight, where [[XXX]] is the title of the paper in double brackets.
+- Do only the necessary edits to meet these guidelines; keep most of the essence as is.
 - Reply with the edited tweet and nothing else."""
 
 TWEET_REVIEW_SYSTEM_PROMPT = "You are an expert AI writer tasked with writing a summary of 'The Instruction Hierarchy: Training LLMs to Prioritize Privileged Instructions' for the magazine LLMpedia. Your task is to read over a set of notes on the whitepaper and convert them into an engaging review paragraph. Reply with the summary and nothing else."
@@ -719,9 +701,16 @@ Write your final answer here. You can use up to four detailed, information rich 
 ```
 """
 
+
 class LLMVerifier(BaseModel):
-    analysis: str = Field(..., description="The paper's analysis on its relevance to LLMs or text embeddings.")
-    is_related: bool = Field(..., description="Indicates if the paper is directly related to LLMs or text embeddings.")
+    analysis: str = Field(
+        ...,
+        description="The paper's analysis on its relevance to LLMs or text embeddings.",
+    )
+    is_related: bool = Field(
+        ...,
+        description="Indicates if the paper is directly related to LLMs or text embeddings.",
+    )
 
 
 LLM_VERIFIER_SYSTEM_PROMPT = """Analyze the following abstract and first sections of a whitepaper to determine if it is directly related to Large Language Models (LLMs) or text embeddings. Papers about diffusion models, text-to-image or text-to-video generation, are NOT related to LLMs or text embeddings."""
@@ -1077,9 +1066,15 @@ def create_rerank_user_prompt(user_question: str, documents: list) -> str:
     return rerank_msg
 
 
-def create_resolve_user_prompt(user_question: str, documents: list, response_length: str) -> str:
+def create_resolve_user_prompt(
+    user_question: str, documents: list, response_length: str
+) -> str:
     notes = ""
-    response_length = "\n- Be brief in your response. Use one (1) short sentence or paragraph plus bullet points (if needed)  with very clear structure." if response_length == "Short Answer" else ""
+    response_length = (
+        "\n- Be brief in your response. Use one (1) short sentence or paragraph plus bullet points (if needed)  with very clear structure."
+        if response_length == "Short Answer"
+        else ""
+    )
     for doc in documents:
         notes += f"""
     ### Title: {doc.title}
@@ -1122,92 +1117,198 @@ def create_resolve_user_prompt(user_question: str, documents: list, response_len
 
 
 class WeeklyReview(BaseModel):
-    scratchpad: str
+    scratchpad_papers: str
+    scratchpad_themes: str
+    themes_mapping: dict
     new_developments_findings: str
-    highlight_of_the_week: str
-    related_websites_libraries_repos: Optional[str] = None
 
 
-def generate_weekly_review_markdown(review: WeeklyReview, date: datetime.date) -> str:
+class ExternalResource(BaseModel):
+    arxiv_code: str = Field(..., description="Arxiv code of the paper.")
+    url: str = Field(
+        ...,
+        description="URL of the github repository or project website. Make sure to copy verbatim from context.",
+    )
+    title: str = Field(..., description="Title of the repository or project.")
+    description: str = Field(
+        ...,
+        description="Brief description of the content of the repository or project.",
+    )
+
+class ExternalResources(BaseModel):
+    resources: List[ExternalResource] = Field(
+        ..., description="List of external resources mentioned in the context."
+    )
+
+
+def generate_weekly_review_markdown(
+    review: WeeklyReview, weekly_highlight: str, weekly_repos: str, date: datetime.date
+) -> str:
     start_date_str = date.strftime("%B %d, %Y")
     end_date_str = (date + datetime.timedelta(days=6)).strftime("%B %d, %Y")
     markdown_template = f"""# Weekly Review ({start_date_str} to {end_date_str})
 
 ## Scratchpad
-{review.scratchpad}
+[...omitted...]
 
 ## New Developments & Findings
 {review.new_developments_findings}
 
 ## Highlight of the Week
-{review.highlight_of_the_week}
+{weekly_highlight}
 
 ## Related Repos & Libraries
-{review.related_websites_libraries_repos if review.related_websites_libraries_repos else "NONE"}"""
+{weekly_repos}"""
     return markdown_template
 
 
-WEEKLY_SYSTEM_PROMPT = """You are a senior Large Language Model (LLM) journalist and previous researcher at a prestigious media organization. You are currently conducting a survey of the literature published throughout last week to write a practical report for the organization's magazine."""
-# ## Report Template
-# ```
-# # Weekly Review (September 20, 2021 to September 27, 2021)
-# ## Scratchpad
-# [...]
-# ## New Developments & Findings
-# [...]
-# ## Highlight of the Week
-# [...]
-# ## Related Websites, Libraries and Repos
-# [...] *(if none available just add NONE here, and nothing else)*
-# ```
-# """
+WEEKLY_SYSTEM_PROMPT = """You are an expert Large Language Model (LLM) writer and previous researcher at a prestigious media organization. You are currently conducting a survey of the literature published throughout last week to write an insightful report for the LLM popular science magazine."""
+
+# FULL_WEEKLY_USER_PROMPT = """
+# <report_format>
+# - The report should consist of 4 sections:
+#     <scratchpad>
+#         - This is the only section that will not be published on the magazine, use it to organize your thoughts.
+#         - Select (up to) 15 interesting papers and make a numbered list of them. Spell out its main theme, contribution and scale of impact/influence.
+#         - Prioritize the articles with most citations. More citations imply larger relevance and impact.
+#         - Identify up to 3 common themes among the papers (if there are more themes, pick the most interesting ones). There should be fewer themes than papers, and the themes should not be generic. For example, 'improvements in LLMs' is not a valid theme.
+#         - Identify any possible contradictions, unorthodox theories or opposing views among the papers worth discussing (these tend to be very interesting). Give these contradiction a title and mention the papers that support each view. There might not be any contradictions, and that is fine.
+#         - Identify if there are any links or repos mentioned on the papers that are worth sharing on the report. If not, we will skip the "Related Websites, Libraries and Repos" section.
+#     </scratchpad>
 #
+#     <new_developments>
+#         - First paragraph: Start with a very brief comment on the total number of articles published and volume trends. Mention the most interesting common themes that you would like to discuss, along with any contradiction or unorthodox theory you identified (if there are none just skip and do not mention it).
+#         - Following paragraphs: Discuss in more detail the items you mentioned above and identified as interesting (one per paragraph). State very clearly **with bold font** which theme / contradiction / unorthodox theory you are discussing on each paragraph. You do not need to discuss all papers, just the most interesting ones. Be sure to always include the contradiction, if any, in your discussion.
+#     </new_developments>
+#
+#     <highlight_of_the_week>
+#         - One paper with findings that you find particularly interesting, unexpected or useful. Explain why, and provide practical examples from the paper if possible.
+#     </highlight_of_the_week>
+#
+#     <related_websites_libraries_repos>
+#         - Include a bullet list of real links and a brief description of the main repos and project sites mentioned on the paper (up to 15).
+#         - If none are mentioned just leave this section empty.
+#     </related_websites_libraries_repos>
+# <report_format>
+#
+# <guidelines>
+# - Write in a concise and clear manner, with no more than one or two paragraphs per section. If you reference new technical terms always explain them.
+# - Use plain, simple layman and direct language, without many adjectives. Be clear and precise.
+# - Do not exaggerate or use bombastic language. Be moderate, truthful and objective.
+# - Focus on practical applications and benefits.
+# - Maintain the narrative flow and coherence across sections. Keep the reader engaged.
+# - Avoid filler and repetitive content.
+# - Do not repeat the themes from last week (from 'Last Week's Submissions...' section). Try to make it so that each theme maps to multiple papers (ideally not so loosely tied).
+# - Do not include markdown titles in each of the sections (I will take care of those).
+# - Always add citations to support your statements. Use the format `*reference content* (arxiv:1234.5678)`. You can also mention the *article's title* on the text.
+# </guidelines>
+#
+# <content>
+# {weekly_content}
+# </content>
+#
+# Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678).
+#
+# <scratchpad>"""
+
 WEEKLY_USER_PROMPT = """
 <report_format>
-- The report should consist of 4 sections:
-    <scratchpad> 
-        - This is the only section that will not be published on the magazine, use it to organize your thoughts.
-        - Select (up to) 15 interesting papers and make a numbered list of them. Spell out its main theme, contribution and scale of impact/influence.
-        - Prioritize the articles with most citations. More citations imply larger relevance and impact.
-        - Identify up to 3 common themes among the papers (if there are more themes, pick the most interesting ones). There should be fewer themes than papers, and the themes should not be generic. For example, 'improvements in LLMs' is not a valid theme.
+    <scratchpad_papers> 
+        - This section will not be published on the magazine, use it to organize your thoughts.
+        - Pick the 30 most interesting papers and make a numbered list of them. Spell out its main theme, contribution and scale of impact/influence.        
+        - Prioritize the articles with most citations and most unusual or interesting findings. More citations imply larger relevance and impact.        
+    </scratchpad_papers>
+    
+    <scratchpad_themes>
+        - This section will not be published on the magazine, use it to organize your thoughts.
+        - Identify at least 3 new common themes among the papers. There should more than 3 papers per theme, and the themes should not be generic. For example, 'improvements in LLMs' is not a generic theme.
+        - Note that the papers already have a 'Category', which is a broad classification scheme. your definition of themes must be more specific than the categories.
         - Identify any possible contradictions, unorthodox theories or opposing views among the papers worth discussing (these tend to be very interesting). Give these contradiction a title and mention the papers that support each view. There might not be any contradictions, and that is fine.
-        - Identify if there are any links or repos mentioned on the papers that are worth sharing on the report. If not, we will skip the "Related Websites, Libraries and Repos" section.
-    </scratchpad>
+    </scratchpad_themes>
     
-    <new_developments> 
-        - First paragraph: Start with a very brief comment on the total number of articles published and volume trends. Mention the most interesting common themes that you would like to discuss, along with any contradiction or unorthodox theory you identified (if there are none just skip and do not mention it).
-        - Following paragraphs: Discuss in more detail the items you mentioned above and identified as interesting (one per paragraph). State very clearly **with bold font** which theme / contradiction / unorthodox theory you are discussing on each paragraph. You do not need to discuss all papers, just the most interesting ones. Be sure to always include the contradiction, if any, in your discussion.
-    </new_developments>
+    <themes_mapping>
+        - This section will not be published on the magazine.
+        - A dictionary mapping themes as keys to the list of corresponding arxiv articles.
+    </themes_mapping>
     
-    <highlight_of_the_week>
-        - One paper with findings that you find particularly interesting, unexpected or useful. Explain why, and provide practical examples from the paper if possible.
-    </highlight_of_the_week>
-    
-    <related_websites_libraries_repos> 
-        - Include a bullet list of real links and a brief description of the main repos and project sites mentioned on the paper (up to 15). 
-        - If none are mentioned just leave this section empty.
-    </related_websites_libraries_repos>
+    <new_developments_findings> 
+        - This is the section that will be published on the magazine. Be sure to make it very structured and with an easy to follow, continuous flow.
+        - First (1) paragraph: Start with a very brief commentary on themes and the total number of articles published and volume trends over the last weeks.
+        - Three (3-4) following paragraphs: Discuss in more detail the main themes you identified as interesting (one per paragraph). State very clearly **with bold font** which theme / contradiction / unorthodox theory you are discussing on each paragraph. Be sure to always include the contradiction at the end of your discussion, if you identified one. Omit any kind of final conclusion at the end of your report.
+    </new_developments_findings>
 <report_format>
 
 <guidelines>
-- Write in a concise and clear manner, with no more than one or two paragraphs per section. If you reference new technical terms always explain them.
-- Use plain, simple layman and direct language, without many adjectives. Be clear and precise. 
-- Do not exaggerate or use bombastic language. Be moderate, truthful and objective.
-- Focus on practical applications and benefits. 
-- Maintain the narrative flow and coherence across sections. Keep the reader engaged.
-- Avoid filler and repetitive content.
-- Do not repeat the themes from last week (from 'Last Week's Submissions...' section). Try to make it so that each theme maps to multiple papers (ideally not so loosely tied).
-- Do not include markdown titles in each of the sections (I will take care of those).
-- Always add citations to support your statements. Use the format `*reference content* (arxiv:1234.5678)`. You can also mention the *article's title* on the text.
+    Follow these guidelines for the new_developments_findings section.
+    - Write in a concise, clear and engaging manner. 
+    - Use simple layman and direct language, without many adjectives. Be very clear and precise.
+    - If you reference new technical terms always explain them. 
+    - Focus on unusual and insightful findings, as well as practical applications.
+    - Be sure the themes you identify are different from that of previous weeks.
+    - At the end of each paragraph add a brief, non-repetitive line summarizing what the theme is about. Avoid cliche phrases such as "these findings highlight/underscore/etc.".
+    - Remember to include a final section highlighting contradictions or very unorthodox findings.
+    - Maintain the narrative flow and coherence across sections. Keep the reader engaged.
+    - Do not exaggerate or use bombastic language. Be moderate, truthful and objective. Avoid filler and repetitive content.
+    - Do not make your language too boring or robotic. The new developments section should read as part of a magazine article.
+    - Do not include markdown titles in each of the sections (I will take care of those).
+    - Always add citations to support your statements. Use the format `*reference content* (arxiv:1234.5678)`. You can also mention the *article's title* on the text.
 </guidelines>
 
 <content>
 {weekly_content}
 </content>
 
-Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678).
+Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678)."""
 
-<scratchpad>"""
+
+WEEKLY_HIGHLIGHT_USER_PROMPT = """Read over the following LLM-related papers published last week and identify one that is particularly interesting, and has unexpected, unorthodox or ground-breaking findings.
+
+<guidelines>
+    - Write one short paragraph explaining with simple and direct language why you find the paper interesting. 
+    - Do not make your language too boring or robotic. Your writing should read as part of a magazine article.
+    - Do not mention the words 'unorthodox' or 'ground-breaking' in your report.
+    - Use the format Title (arxiv:1234.5678)` to cite the paper's.
+</guidelines>
+
+<output_format>
+### Title (arxiv:1234.5678)
+Paragraph explaining why you find the paper interesting.
+</output_format>
+
+<content>
+{weekly_content}
+</content>"""
+
+WEEKLY_REPO_USER_PROMPT = """Extract the links to external resources such as project websites and repositories mentioned in the document.
+
+<content>
+{content}
+</content>"""
+
+WEEKLY_REPOS_USER_PROMPT = """Read over the following LLM-related papers published last week and identify any links or repositories mentioned in the papers that are worth sharing. 
+
+<guidelines>
+- Reply with a list of the resources you identified, including their URL (copy it verbatim), title, and a brief description.
+- Also categorize each resource so that they are clustered conceptually.
+- There are some examples of categories I have pre-calculated for you, you should identify more. 
+<guidelines>
+  
+<categories>
+{themes_mapping}
+</categories>
+ 
+<content>
+{weekly_content}
+</content> """
+
+# """<output_format>
+# #### Theme 1
+#   - [Title of the link](https://www.example.com): Description of the link.
+#
+# #### Theme 2
+#   - [Title of the link](https://www.example.com): Description of the link.
+# </output_format>"""
+
 
 ###############
 ## Q&A MODEL ##

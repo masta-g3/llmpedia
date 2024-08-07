@@ -181,7 +181,7 @@ def scrape_ai_news_papers(start_date, end_date=None):
 def scrape_emergentmind_papers():
     url = "https://www.emergentmind.com/feeds/rss"
     feed = feedparser.parse(url)
-    entries = [(entry.link.split("/")[-1], entry.title) for entry in feed.entries]
+    entries = [(entry.link.split("/")[-1].split("?")[0], entry.title) for entry in feed.entries]
     entries_df = pd.DataFrame(entries, columns=["arxiv_code", "title"])
     return entries_df
 
@@ -198,14 +198,19 @@ def main():
     # Perform scraping.
     print("Scraping HuggingFace...")
     hf_df = scrape_huggingface_papers(start_date, end_date)
+    print(f"Collected {hf_df.shape[0]} papers.")
     print("Scraping Research Space...")
     rsrch_df = scrape_rsrch_space_papers(start_date, end_date)
+    print(f"Collected {rsrch_df.shape[0]} papers.")
     print("Scraping ML Papers of the Week...")
     dair_df = scrape_ml_papers_of_the_week(start_date, end_date)
+    print(f"Collected {dair_df.shape[0]} papers.")
     print("Scraping AI News...")
     ai_news_df = scrape_ai_news_papers(start_date, end_date)
+    print(f"Collected {ai_news_df.shape[0]} papers.")
     print("Scraping Emergent Mind...")
     em_df = scrape_emergentmind_papers()
+    print(f"Collected {em_df.shape[0]} papers.")
 
     ## Combine and extract new codes.
     df = pd.concat([hf_df, rsrch_df, dair_df, ai_news_df, em_df], ignore_index=True)
@@ -224,7 +229,9 @@ def main():
 
     ## Update and upload arxiv codes.
     paper_list = list(set(paper_list + new_codes))
+    print(f"Total papers: {len(paper_list)}")
     paper_list = list(set(paper_list) - set(done_codes) - set(nonllm_codes))
+    print(f"New papers: {len(paper_list)}")
 
     if len(paper_list) == 0:
         print("No new papers found. Exiting...")

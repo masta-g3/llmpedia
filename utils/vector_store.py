@@ -2,8 +2,6 @@ import pandas as pd
 import os
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.prompts.chat import ChatPromptTemplate
-from langchain.chains import LLMChain
 from mlx_lm import generate
 import tiktoken
 
@@ -11,7 +9,6 @@ import utils.db as db
 import utils.prompts as ps
 import utils.app_utils as au
 from utils.instruct import run_instructor_query
-from utils.models import llm_map
 
 CONNECTION_STRING = (
     f"postgresql+psycopg2://{db.db_params['user']}:{db.db_params['password']}"
@@ -131,6 +128,7 @@ def summarize_doc_chunk(paper_title: str, document: str, model="local"):
         summary = summary.split("<summary>")[1].split("</summary>")[0]
     return summary
 
+
 def summarize_doc_chunk_mlx(paper_title: str, document: str, mlx_model, mlx_tokenizer):
     """Summarize a paper by segments with MLX models."""
     messages = [
@@ -155,7 +153,7 @@ def summarize_doc_chunk_mlx(paper_title: str, document: str, mlx_model, mlx_toke
 
 
 def verify_llm_paper(paper_content: str, model="claude-3-haiku-20240307"):
-    """Verify if a paper is about LLMs via LLMChain."""
+    """Verify if a paper is about LLMs."""
     is_llm_paper = run_instructor_query(
         ps.LLM_VERIFIER_SYSTEM_PROMPT,
         ps.LLM_VERIFIER_USER_PROMPT.format(paper_content=paper_content),
@@ -167,7 +165,7 @@ def verify_llm_paper(paper_content: str, model="claude-3-haiku-20240307"):
 
 
 def review_llm_paper(paper_content: str, model="claude-3-haiku-20240307"):
-    """Review a paper via LLMChain."""
+    """Review a paper."""
     review = run_instructor_query(
         ps.SUMMARIZER_SYSTEM_PROMPT,
         ps.SUMMARIZER_USER_PROMPT.format(paper_content=paper_content),
@@ -180,7 +178,7 @@ def review_llm_paper(paper_content: str, model="claude-3-haiku-20240307"):
 def convert_notes_to_narrative(
     paper_title: str, notes: str, model: str = "claude-3-haiku-20240307"
 ) -> str:
-    """Convert notes to narrative via LLMChain."""
+    """Convert notes to narrative."""
     narrative = run_instructor_query(
         ps.NARRATIVE_SUMMARY_SYSTEM_PROMPT.format(paper_title=paper_title),
         ps.NARRATIVE_SUMMARY_USER_PROMPT.format(previous_notes=notes),
@@ -194,10 +192,12 @@ def convert_notes_to_narrative(
 def convert_notes_to_bullets(
     paper_title: str, notes: str, model: str = "GPT-3.5-Turbo"
 ) -> str:
-    """Convert notes to bullet point list via LLMChain."""
+    """Convert notes to bullet point list."""
     bullet_list = run_instructor_query(
         ps.BULLET_LIST_SUMMARY_SYSTEM_PROMPT,
-        ps.BULLET_LIST_SUMMARY_USER_PROMPT.format(paper_title=paper_title, previous_notes=notes),
+        ps.BULLET_LIST_SUMMARY_USER_PROMPT.format(
+            paper_title=paper_title, previous_notes=notes
+        ),
         llm_model=model,
     ).strip()
     if "<summary>" in bullet_list:
@@ -206,7 +206,7 @@ def convert_notes_to_bullets(
 
 
 def copywrite_summary(paper_title, previous_notes, narrative, model="GPT-3.5-Turbo"):
-    """Copywrite a summary via LLMChain."""
+    """Copywrite a summary."""
     copywritten = run_instructor_query(
         ps.COPYWRITER_SYSTEM_PROMPT,
         ps.COPYWRITER_USER_PROMPT.format(
@@ -217,12 +217,14 @@ def copywrite_summary(paper_title, previous_notes, narrative, model="GPT-3.5-Tur
         llm_model=model,
     )
     if "<improved_summary>" in copywritten:
-        copywritten = copywritten.split("<improved_summary>")[1].split("</improved_summary>")[0]
+        copywritten = copywritten.split("<improved_summary>")[1].split(
+            "</improved_summary>"
+        )[0]
     return copywritten
 
 
 def organize_notes(paper_title, notes, model="GPT-3.5-Turbo"):
-    """Add header titles and organize notes via LLMChain."""
+    """Add header titles and organize notes."""
     organized_sections = run_instructor_query(
         ps.FACTS_ORGANIZER_SYSTEM_PROMPT,
         ps.FACTS_ORGANIZER_USER_PROMPT.format(
@@ -234,7 +236,7 @@ def organize_notes(paper_title, notes, model="GPT-3.5-Turbo"):
 
 
 def convert_notes_to_markdown(paper_title, notes, model="GPT-3.5-Turbo"):
-    """Convert notes to markdown via LLMChain."""
+    """Convert notes to markdown."""
     markdown = run_instructor_query(
         ps.MARKDOWN_SYSTEM_PROMPT.format(paper_title=paper_title),
         ps.MARKDOWN_USER_PROMPT.format(previous_notes=notes),
@@ -243,99 +245,73 @@ def convert_notes_to_markdown(paper_title, notes, model="GPT-3.5-Turbo"):
     return markdown
 
 
-def summarize_title_in_word(title, model="GPT-3.5-Turbo-HT"):
-    """Summarize a title in a few words via LLMChain."""
-    title_summarizer_prompt = ChatPromptTemplate.from_messages(
-        [("system", ps.TITLE_SUMMARIZER_PROMPT)]
-    )
-    title_summarizer_chain = LLMChain(
-        llm=llm_map[model], prompt=title_summarizer_prompt
-    )
-    keyword = title_summarizer_chain.invoke(dict(title=title))["text"].strip()
-    return keyword
-
-
 def rephrase_title(title, model="gpt-4o"):
     """Summarize a title as a short visual phrase."""
     phrase = run_instructor_query(
         ps.TITLE_REPHRASER_SYSTEM_PROMPT,
         ps.TITLE_REPHRASER_USER_PROMPT.format(title=title),
         llm_model=model,
-        temperature=0.9
+        temperature=1.2,
     ).strip()
     return phrase
 
 
-def generate_weekly_report(weekly_content_md: str, model="GPT-4-Turbo"):
-    """Generate weekly report via LLMChain."""
-    # weekly_report_prompt = ChatPromptTemplate.from_messages(
-    #     [
-    #         ("system", ps.WEEKLY_SYSTEM_PROMPT),
-    #         ("user", ps.WEEKLY_USER_PROMPT),
-    #         # (
-    #         #     "user",
-    #         #     "Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678).",
-    #         # ),
-    #     ]
-    # )
-    # weekly_report_chain = LLMChain(llm=llm_map[model], prompt=weekly_report_prompt)
-    # weekly_report = weekly_report_chain.invoke(dict(weekly_content=weekly_content_md))[
-    #     "text"
-    # ]
+def generate_weekly_report(weekly_content_md: str, model="gpt-4o"):
+    """Generate weekly report."""
     weekly_report = run_instructor_query(
         ps.WEEKLY_SYSTEM_PROMPT,
         ps.WEEKLY_USER_PROMPT.format(weekly_content=weekly_content_md),
         model=ps.WeeklyReview,
-        llm_model="gpt-4o",
-        # llm_model="claude-3-5-sonnet-20240620"
+        llm_model=model,
+        temperature=0.8,
     )
     return weekly_report
 
 
-tweet_system_map = {
-    "review_v1": ps.TWEET_USER_PROMPT,
-    "insight_v1": ps.TWEET_INSIGHT_USER_PROMPT,
-    "review_v2": ps.TWEET_REVIEW_SYSTEM_PROMPT,
-}
+def generate_weekly_highlight(weekly_content_md: str, model="gpt-4o"):
+    """Generate weekly highlight."""
+    weekly_highlight = run_instructor_query(
+        ps.WEEKLY_SYSTEM_PROMPT,
+        ps.WEEKLY_HIGHLIGHT_USER_PROMPT.format(weekly_content=weekly_content_md),
+        llm_model=model,
+        temperature=0.5,
+    )
+    return weekly_highlight
+
+
+def extract_document_repo(paper_content: str, model="gpt-4o"):
+    """Extract weekly repos."""
+    weekly_repos = run_instructor_query(
+        ps.WEEKLY_SYSTEM_PROMPT,
+        ps.WEEKLY_REPO_USER_PROMPT.format(
+            content=paper_content
+        ),
+        llm_model=model,
+        model=ps.ExternalResources,
+        temperature=0.,
+    )
+    return weekly_repos
+
 
 tweet_user_map = {
-    "review_v1": ps.TWEET_USER_PROMPT,
+    # "review_v1": ps.TWEET_USER_PROMPT,
     "insight_v1": ps.TWEET_INSIGHT_USER_PROMPT,
-    "review_v2": ps.TWEET_REVIEW_USER_PROMPT,
+    # "review_v2": ps.TWEET_REVIEW_USER_PROMPT,
 }
 
 tweet_edit_user_map = {
-    "review_v1": ps.TWEET_EDIT_USER_PROMPT,
+    # "review_v1": ps.TWEET_EDIT_USER_PROMPT,
     "insight_v1": ps.TWEET_INSIGHT_EDIT_USER_PROMPT,
 }
 
 
-def select_most_interesting_paper(arxiv_abstracts, model="claude-haiku"):
+def select_most_interesting_paper(arxiv_abstracts: str, model: str = "claude-haiku"):
     """Select the most interesting paper from a list of candidates."""
-    interesting_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", ps.INTERESTING_SYSTEM_PROMPT),
-            ("user", ps.INTERESTING_USER_PROMPT),
-        ]
+    response = run_instructor_query(
+        ps.INTERESTING_SYSTEM_PROMPT,
+        ps.INTERESTING_USER_PROMPT.format(abstracts=arxiv_abstracts),
+        llm_model=model,
     )
-    interesting_chain = LLMChain(llm=llm_map[model], prompt=interesting_prompt)
-
-    abs1, abs2, abs3, abs4, abs5, abs6, abs7, abs8, abs9, abs10 = arxiv_abstracts
-    response = interesting_chain.invoke(
-        dict(
-            abstract1=abs1,
-            abstract2=abs2,
-            abstract3=abs3,
-            abstract4=abs4,
-            abstract5=abs5,
-            abstract6=abs6,
-            abstract7=abs7,
-            abstract8=abs8,
-            abstract9=abs9,
-            abstract10=abs10,
-        )
-    )["text"]
-
     abstract_idx = int(
         response.split("<most_interesting_abstract>")[1].split(
             "</most_interesting_abstract>"
@@ -345,33 +321,26 @@ def select_most_interesting_paper(arxiv_abstracts, model="claude-haiku"):
 
 
 def write_tweet(
-    previous_tweets: str, tweet_facts: str, tweet_type="new_review", model="GPT-4-Turbo"
-):
-    """Write a tweet via LLMChain."""
-    tweet_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", tweet_system_map[tweet_type]),
-            ("user", tweet_user_map[tweet_type]),
-        ]
+    previous_tweets: str, tweet_facts: str, tweet_type="new_review", model="gpt-4o"
+) -> str:
+    """Write a tweet about an LLM paper."""
+    system_prompt = ps.TWEET_SYSTEM_PROMPT
+    user_prompt = tweet_user_map[tweet_type].format(
+        previous_tweets=previous_tweets, tweet_facts=tweet_facts
     )
-    tweet_chain = LLMChain(llm=llm_map[model], prompt=tweet_prompt)
-    tweet = tweet_chain.invoke(
-        dict(
-            previous_tweets=previous_tweets,
-            tweet_facts=tweet_facts,
-        )
-    )["text"]
+    tweet = run_instructor_query(
+        system_prompt, user_prompt, llm_model=model, temperature=0.8
+    )
     return tweet
 
 
-def edit_tweet(tweet: str, tweet_type="review", model="GPT-4-Turbo"):
-    """Edit a tweet via LLMChain."""
-    tweet_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", ps.TWEET_EDIT_SYSTEM_PROMPT),
-            ("user", tweet_edit_user_map[tweet_type]),
-        ]
+def edit_tweet(
+    tweet: str, tweet_facts: str, tweet_type="review", model="gpt-4o"
+) -> str:
+    """Edit a tweet via run_instructor_query."""
+    system_prompt = ps.TWEET_EDIT_SYSTEM_PROMPT
+    user_prompt = tweet_edit_user_map[tweet_type].format(
+        tweet=tweet, tweet_facts=tweet_facts
     )
-    tweet_chain = LLMChain(llm=llm_map[model], prompt=tweet_prompt)
-    edited_tweet = tweet_chain.invoke(dict(tweet=tweet))["text"]
+    edited_tweet = run_instructor_query(system_prompt, user_prompt, llm_model=model)
     return edited_tweet

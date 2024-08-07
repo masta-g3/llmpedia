@@ -61,7 +61,7 @@ def extract_arxiv_codes(text: str):
 
 def get_img_link_for_blob(text_blob: str):
     """Identify `arxiv_code:XXXX.XXXXX` from a text blob, and generate a Markdown link to its img."""
-    arxiv_code = re.findall(r"arxiv:(\d{4}\.\d{4,5})", text_blob)
+    arxiv_code = re.findall(r"arxiv(?:_code)?:(\d{4}\.\d{4,5})", text_blob)
     if len(arxiv_code) == 0:
         return None
     arxiv_code = arxiv_code[0]

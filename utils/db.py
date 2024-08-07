@@ -22,6 +22,8 @@ database_url = f"postgresql+psycopg2://{db_params['user']}:{db_params['password'
 
 
 def list_to_pg_array(lst):
+    lst = [str(x).replace("arxiv_code:", "") for x in lst]
+    lst = [x.replace("arxiv:", "") for x in lst]
     return "{" + ",".join(lst) + "}"
 
 
@@ -279,7 +281,7 @@ def load_similar_documents():
     return similar_docs_df
 
 
-def load_citations(arxiv_code=None):
+def load_citations(arxiv_code: str = None):
     query = "SELECT * FROM semantic_details"
     if arxiv_code:
         query += f" WHERE arxiv_code = '{arxiv_code}';"
@@ -290,13 +292,16 @@ def load_citations(arxiv_code=None):
     return citations_df
 
 
-def load_tweet_insights(arxiv_code=None):
+def load_tweet_insights(arxiv_code: str = None, drop_rejected: bool = False):
     query = "SELECT * FROM tweet_reviews where tweet_type = 'insight_v1'"
     if arxiv_code:
         query += f" WHERE arxiv_code = '{arxiv_code}';"
     conn = create_engine(database_url)
     tweet_reviews_df = pd.read_sql(query, conn)
     tweet_reviews_df.set_index("arxiv_code", inplace=True)
+    if drop_rejected:
+        tweet_reviews_df = tweet_reviews_df[tweet_reviews_df["rejected"] == False]
+    tweet_reviews_df.sort_values(by="tstp", ascending=False, inplace=True)
     tweet_reviews_df.drop(columns=["tstp", "rejected", "tweet_type"], inplace=True)
     tweet_reviews_df.rename(columns={"review": "tweet_insight"}, inplace=True)
     return tweet_reviews_df
@@ -510,11 +515,12 @@ def get_weekly_summary_inputs(date: str):
             f"""
                 SELECT d.published, d.arxiv_code, d.title, d.authors, sd.citation_count, d.arxiv_comment,
                        d.summary, s.contribution_content, s.takeaway_content, s.takeaway_example, 
-                       d.summary AS recursive_summary, sn.tokens
+                       d.summary AS recursive_summary, sn.tokens, t.topic
                 FROM summaries s
                 JOIN arxiv_details d ON s.arxiv_code = d.arxiv_code
                 LEFT JOIN semantic_details sd ON s.arxiv_code = sd.arxiv_code
                 JOIN summary_notes sn ON s.arxiv_code = sn.arxiv_code
+                JOIN topics t ON s.arxiv_code = t.arxiv_code
                 WHERE d.published BETWEEN '{date_st}' AND '{date_end}'
                 AND sn.level = (SELECT MAX(level) FROM summary_notes WHERE arxiv_code = s.arxiv_code)
             """
@@ -533,7 +539,7 @@ def check_weekly_summary_exists(date_str: str):
         query = text(
             f"""
             SELECT COUNT(*)
-            FROM weekly_reviews
+            FROM weekly_content
             WHERE date = '{date_str}'
             """
         )
@@ -544,8 +550,56 @@ def check_weekly_summary_exists(date_str: str):
     return count > 0
 
 
-def get_weekly_summary(date_str: str):
-    """Get weekly summary for a given date."""
+def get_weekly_content(date_str: str, content_type: str = "content"):
+    """Get weekly content for a given date."""
+    engine = create_engine(database_url)
+    with engine.begin() as conn:
+        query = text(
+            f"""
+            SELECT {content_type}
+            FROM weekly_content
+            WHERE date = '{date_str}'
+            """
+        )
+        result = conn.execute(query)
+        content = result.fetchone()[0]
+
+    engine.dispose()
+    return content
+
+
+import pandas as pd
+from sqlalchemy import create_engine, text
+
+def get_weekly_repos(date_str):
+    """Get weekly repos for a given date."""
+    engine = create_engine(database_url)
+    start_date = (
+        pd.to_datetime(date_str).date() - pd.Timedelta(days=pd.to_datetime(date_str).weekday())
+    ).strftime("%Y-%m-%d")
+    end_date = (
+        pd.to_datetime(date_str).date() + pd.Timedelta(days=6 - pd.to_datetime(date_str).weekday())
+    ).strftime("%Y-%m-%d")
+
+    with engine.begin() as conn:
+        query = text(
+            """
+            SELECT a.published, t.topic, r.url, r.title, r.description
+            FROM arxiv_details a
+            JOIN arxiv_repos r ON a.arxiv_code = r.arxiv_code
+            JOIN topics t ON a.arxiv_code = t.arxiv_code
+            WHERE a.published BETWEEN :start_date AND :end_date
+            """
+        )
+        result = conn.execute(query, {"start_date": start_date, "end_date": end_date})
+        repos = result.fetchall()
+        repos_df = pd.DataFrame(repos, columns=["published", "topic", "url", "title", "description"])
+
+    return repos_df
+
+
+def get_weekly_summary_old(date_str: str):
+    """Get weekly summary for a given date (old approach)."""
     engine = create_engine(database_url)
     date_str = (
         pd.to_datetime(date_str).date()
@@ -560,7 +614,8 @@ def get_weekly_summary(date_str: str):
             """
         )
         result = conn.execute(query)
-        review = result.fetchone()[0]
+        review = result.fetchone()
+        review = review[0] if review else None
 
     engine.dispose()
     return review

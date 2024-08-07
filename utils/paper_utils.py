@@ -229,6 +229,7 @@ def format_paper_summary(summary_row):
     date = summary_row["published"].strftime("%B %d, %Y")
     arxiv_code = summary_row["arxiv_code"]
     citations = int(summary_row["citation_count"])
+    topic = summary_row["topic"]
     summary = (
         summary_row["recursive_summary"]
         if summary_row["recursive_summary"]
@@ -238,7 +239,8 @@ def format_paper_summary(summary_row):
     takeaways = summary_row["takeaway_content"]
     arxiv_comments = summary_row["arxiv_comment"]
     arxiv_comments = "\n\n*" + arxiv_comments + "*" if arxiv_comments else ""
-    return f"### {title}\n*({date} / arxiv_code:{arxiv_code} / {citations} citations)*{arxiv_comments}\n\n**Summary:**\n{summary}\n\n**Main Contribution:**\n{main_contribution}\n\n**Takeaways:**\n{takeaways}\n\n-------------\n\n"
+    # return f"### {title}\n*({date} / arxiv_code:{arxiv_code} / {citations} citations)*{arxiv_comments}\n\n**Summary:**\n{summary}\n\n**Main Contribution:**\n{main_contribution}\n\n**Takeaways:**\n{takeaways}\n\n-------------\n\n"
+    return f"### {title}\n*({date} / arxiv_code:{arxiv_code} / {citations} citations / Category: {topic})\n*{arxiv_comments}*\n\n**Summary:**\n{summary}\n\n-------------\n\n"
 
 
 def numbered_to_bullet_list(list_str: str):
@@ -368,9 +370,10 @@ def preprocess_arxiv_doc(
 def get_arxiv_info(arxiv_code: str, title: Optional[str] = None):
     """Search article in Arxiv by name and retrieve meta-data."""
     search = arxiv.Search(
-        query=arxiv_code, max_results=40, sort_by=arxiv.SortCriterion.Relevance
+        id_list=[arxiv_code], max_results=40, sort_by=arxiv.SortCriterion.Relevance
     )
-    res = list(search.results())
+    client = arxiv.Client()
+    res = list(client.results(search))
     arxiv_meta = None
     if len(res) > 0:
         arxiv_meta = [r for r in res if r.entry_id.split("/")[-1].split("v")[0] == arxiv_code]

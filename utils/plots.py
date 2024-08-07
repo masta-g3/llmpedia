@@ -107,7 +107,6 @@ def plot_weekly_activity_ts(df: pd.DataFrame, date_report: datetime.date = None)
     fig.update_xaxes(title=None, tickfont=dict(size=17))
     fig.update_yaxes(titlefont=dict(size=18), tickfont=dict(size=17))
     fig.add_vline(x=highlight_date_str, line_width=2, line_dash="dash")
-
     fig.update_layout(
         margin=dict(t=0, b=0, l=0, r=0),
         paper_bgcolor="rgba(0,0,0,0)",
@@ -115,10 +114,15 @@ def plot_weekly_activity_ts(df: pd.DataFrame, date_report: datetime.date = None)
         yaxis_title="# Published",
     )
 
+    bar_height = df[df["publish_str"] == highlight_date_str]["Count"]
+    if len(bar_height) > 0:
+        bar_height = bar_height.values[0]
+    else:
+        bar_height = 0
     fig.add_trace(
         go.Scatter(
             x=[highlight_date_str],
-            y=[df[df["publish_str"] == highlight_date_str]["Count"].values[0]],
+            y=[bar_height],
             mode="markers",
             showlegend=False, marker=dict(size=20, color="#636EFA"),
         )

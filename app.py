@@ -14,6 +14,7 @@ import utils.data_cards as dc
 import utils.plots as pt
 import utils.db as db
 
+
 ## Page config.
 st.set_page_config(
     layout="wide",
@@ -85,11 +86,6 @@ def combine_input_data():
     markdown_summaries = db.load_summary_markdown()
     tweets = db.load_tweet_insights()
     similar_docs_df = db.load_similar_documents()
-    # extended_summaries_dict = (
-    #     extended_summaries_df.groupby("arxiv_code")[["level", "summary"]]
-    #     .apply(lambda g: dict(zip(g["level"], g["summary"])))
-    #     .to_dict()
-    # )
 
     papers_df = summaries_df.join(arxiv_df, how="left")
     papers_df = papers_df.join(topics_df, how="left")
@@ -154,8 +150,53 @@ def load_data():
 
 
 @st.cache_data
-def get_weekly_summary(date: str):
-    return db.get_weekly_summary(date)
+def get_weekly_summary(date_str: str):
+    try:
+        weekly_content = db.get_weekly_content(date_str, content_type="content")
+        weekly_content = au.add_links_to_text_blob(weekly_content)
+        weekly_highlight = db.get_weekly_content(date_str, content_type="highlight")
+        weekly_highlight = au.add_links_to_text_blob(weekly_highlight)
+        ## ToDo: Remove this.
+        ## ---------------------
+        if "\n" in weekly_highlight:
+            weekly_highlight = "#### " + weekly_highlight.replace("###", "")
+        ## ---------------------
+        weekly_repos_df = db.get_weekly_repos(date_str)
+
+        ## Process repo content.
+        weekly_repos_df["repo_link"] = weekly_repos_df.apply(
+            lambda row: f"[{row['title']}]({row['url']}): {row['description']}", axis=1
+        )
+
+        grouped_repos = (
+            weekly_repos_df.groupby("topic")["repo_link"]
+            .apply(lambda l: "\n".join(l))
+            .reset_index()
+        )
+        grouped_repos["repo_count"] = (
+            weekly_repos_df.groupby("topic")["repo_link"].count().values
+        )
+        grouped_repos.sort_values(by="repo_count", ascending=False, inplace=True)
+
+        miscellaneous_row = grouped_repos[grouped_repos["topic"] == "Miscellaneous"]
+        grouped_repos = grouped_repos[grouped_repos["topic"] != "Miscellaneous"]
+        grouped_repos = pd.concat([grouped_repos, miscellaneous_row], ignore_index=True)
+
+        repos_section = "## 💿 Repos & Libraries\n\n"
+        repos_section += "Many web resources were shared this week. Below are some of them, grouped by topic.\n\n"
+        for _, row in grouped_repos.iterrows():
+            repos_section += f"#### {row['topic']}\n"
+            repo_links = row["repo_link"].split("\n")
+            for link in repo_links:
+                repos_section += f"- {link}\n"
+            repos_section += "\n"
+
+    except:
+        weekly_content = db.get_weekly_summary_old(date_str)
+        weekly_highlight = ""
+        repos_section = ""
+
+    return weekly_content, weekly_highlight, repos_section
 
 
 @st.cache_data
@@ -235,7 +276,6 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         expanded = True
     paper_code = paper["arxiv_code"]
     try:
-        # img_cols[0].image(f"imgs/{paper_code}.png", use_column_width=True)
         img_cols[0].image(
             f"https://llmpedia.s3.amazonaws.com/{paper_code}.png", use_column_width=True
         )
@@ -289,7 +329,9 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         report_log_space.success("Reported non-LLM paper. Thanks!")
         time.sleep(3)
         report_log_space.empty()
-    if report_btn.checkbox("Report bad data card", key=f"report_v4_{paper_code}_{name}"):
+    if report_btn.checkbox(
+        "Report bad data card", key=f"report_v4_{paper_code}_{name}"
+    ):
         db.report_issue(paper_code, "bad_datacard")
         report_log_space.success("Reported bad data-card. Thanks!")
         time.sleep(3)
@@ -302,9 +344,11 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         with st.spinner("*Loading data card...*"):
             html_card = dc.generate_data_card_html(paper_code)
             if html_card:
+
                 @st.experimental_dialog(paper_title, width="large")
                 def render():
                     components.html(html_card, height=700, scrolling=True)
+
                 render()
             else:
                 error_container = st.empty()
@@ -390,22 +434,6 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
                     similar_codes = np.random.choice(similar_codes, 5, replace=False)
                 similar_df = papers_df.loc[similar_codes]
                 generate_grid_gallery(similar_df, extra_key="_sim", n_cols=5)
-            # cols = st.columns(5)
-        # for i in range(len(similar_titles)):
-        #     try:
-        #         cols[i].image(
-        #             f"https://llmpedia.s3.amazonaws.com/{similar_codes[i]}.png"
-        #         )
-        #         centered_date = (
-        #             f"<p align='center'><code>{publish_dates[i].strftime('%b %d, %Y')}</code></p>"
-        #         )
-        #         cols[i].markdown(centered_date, unsafe_allow_html=True)
-        #         centered_title = (
-        #             f"<p align='center'><small>{similar_titles[i]}</small></p>"
-        #         )
-        #         cols[i].markdown(centered_title, unsafe_allow_html=True)
-        #     except:
-        #         pass
     st.markdown("---")
 
 
@@ -658,8 +686,6 @@ def main():
         release_calendar, padded_date = pt.plot_activity_map(heatmap_data)
         st.markdown(f"### 📅 {year} Release Calendar")
         calendar_select = plotly_events(release_calendar, override_height=220)
-        # calendar_select = st.plotly_chart(release_calendar, use_container_width=True, on_select="rerun")
-        # st.write(calendar_select)
 
         # Published date.
         if len(calendar_select) > 0:
@@ -711,8 +737,6 @@ def main():
     content_tabs = st.tabs(
         [
             "🧮 Grid View",
-            # "🎞 Feed View",
-            # "🗒️ Table View",
             "🗺️ Over View",
             "🔍 Focus View",
             "🤖 Chat",
@@ -728,64 +752,6 @@ def main():
         papers_df_subset = create_pagination(papers_df, items_per_page=25, label="grid")
         generate_grid_gallery(papers_df_subset)
         create_bottom_navigation(label="grid")
-
-    # with content_tabs[1]:
-    #     ## Feed view.
-    #     if "page_number" not in st.session_state:
-    #         st.session_state.page_number = 0
-    #
-    #     papers_subset = create_pagination(papers, items_per_page=7, label="summaries")
-    #     st.markdown(f"**{len(papers)} papers found.**")
-    #     for paper in papers_subset:
-    #         create_paper_card(paper, mode="closed", name="_feed")
-    #     create_bottom_navigation(label="summaries")
-
-    # with content_tabs[1]:
-    #     ## Table view.
-    #     display_df = papers_df.reset_index(drop=True)
-    #     # https://llmpedia.s3.amazonaws.com/2403.14624.png
-    #     display_df["display_url"] = display_df["arxiv_code"].map(
-    #         lambda l: f"https://llmpedia.s3.amazonaws.com/{l}.png"
-    #     )
-    #     column_config = {
-    #         "url": st.column_config.LinkColumn(
-    #             label="Arxiv Link",
-    #             display_text="https://arxiv\.org/abs/(.*?)(?:v\d+)?$",
-    #         ),
-    #         "display_url": st.column_config.ImageColumn(
-    #             label="Artwork",
-    #         ),
-    #         "published": st.column_config.DateColumn(
-    #             label="Published",
-    #             format="MMM DD, YYYY",
-    #             # width="small",
-    #         ),
-    #         "title": st.column_config.TextColumn(
-    #             label="Title",
-    #             width="large",
-    #         ),
-    #         "topic": st.column_config.TextColumn(
-    #             label="Topic",
-    #             width="large",
-    #         ),
-    #         "citation_count": "Citations",
-    #         "influential_citation_count": "⭐️Influential Citations",
-    #     }
-    #     display_cols = [
-    #         "display_url",
-    #         "published",
-    #         "title",
-    #         "citation_count",
-    #         "influential_citation_count",
-    #         "topic",
-    #     ]
-    #     display_df = display_df[column_config.keys()]
-    #     st.dataframe(
-    #         display_df,
-    #         column_config=column_config,
-    #         hide_index=True,
-    #         use_container_width=True,
-    #     )
 
     with content_tabs[1]:
         ## Over view.
@@ -820,19 +786,6 @@ def main():
 
     with content_tabs[3]:
         st.markdown("##### 🤖 Chat with the GPT maestro.")
-        config_cols = st.columns((3, 3, 10))
-        # embedding_name = config_cols[0]._selectbox(
-        #     label="Embeddings",
-        #     options=["GTE-Large", "🆕 Cohere V3"],
-        #     index=1,
-        # )
-        # embedding_name = "🆕 Cohere V3"
-
-        # llm_name = config_cols[1]._selectbox(
-        #     label="LLM", options=["GPT-3.5-Turbo", "GPT-4"]
-        # )
-
-        # collection_name = collection_map[embedding_name]
         user_question = st.text_area(
             label="Ask any question about LLMs or the arxiv papers.", value=""
         )
@@ -873,11 +826,15 @@ def main():
         with report_top_cols[0]:
             st.markdown("# 📰 LLM Weekly Review")
         with report_top_cols[1]:
-            max_date = get_max_report_date()
+            ## ToDo: Make dynamic?
+            if year == 2024:
+                max_date = get_max_report_date()
+            else:
+                max_date = pd.to_datetime(f"{year}-12-31").date()
             week_select = st.date_input(
                 "Select Week",
                 value=pd.to_datetime(max_date),
-                min_value=pd.to_datetime("2023-01-01"),
+                min_value=pd.to_datetime(f"{year}-01-01"),
                 max_value=pd.to_datetime(max_date),
             )
             ## Convert selection to previous monday.
@@ -887,42 +844,69 @@ def main():
             weekly_ts_plot = pt.plot_weekly_activity_ts(published_df, date_report)
             weekly_plot_container.plotly_chart(weekly_ts_plot, use_container_width=True)
 
-        weekly_report = get_weekly_summary(date_report)
-        try:
-            weekly_report_dict = json.loads(weekly_report)
-            weekly_report_dict = {
-                au.report_sections_map[k]: au.add_links_to_text_blob(v)
-                for k, v in weekly_report_dict.items()
-            }
-            report_sections = list(weekly_report_dict.keys())[1:]
-            title = f"###### *({date_report.strftime('%B %d, %Y')} to {(date_report + pd.Timedelta(days=6)).strftime('%B %d, %Y')})*"
-        except:
-            weekly_report_dict = au.parse_weekly_report(weekly_report)
-            report_sections = list(weekly_report_dict.keys())[1:]
-            title = list(weekly_report_dict.keys())[0]
+        if year < 2023:
+            st.warning("Weekly reports are available from 2023 onwards.")
+        else:
+            weekly_content, weekly_highlight, weekly_repos = get_weekly_summary(date_report)
 
-        ## Title & developments.
-        title = title.replace("# Weekly Review ", "##### ")
-        st.markdown(f"{title}")
-        st.markdown(f"## 🔬 {report_sections[0]}")
-        st.markdown(weekly_report_dict[report_sections[0]])
+            ## ToDo: Remove this.
+            ## --------------------------------
+            try:
+                weekly_report_dict = json.loads(weekly_content)
+                weekly_report_dict = {
+                    au.report_sections_map[k]: au.add_links_to_text_blob(v)
+                    for k, v in weekly_report_dict.items()
+                }
+                report_sections = list(weekly_report_dict.keys())[1:]
+                title = (f"###### *({date_report.strftime('%B %d, %Y')} to "
+                            f"{(date_report + pd.Timedelta(days=6)).strftime('%B %d, %Y')})*")
 
-        ## Highlights.
-        st.markdown(f"## 🌟 {report_sections[1]}")
-        report_highlights_cols = st.columns((1, 4))
-        highlight_img = au.get_img_link_for_blob(weekly_report_dict[report_sections[1]])
-        report_highlights_cols[0].image(highlight_img, use_column_width=True)
-        report_highlights_cols[1].markdown(weekly_report_dict[report_sections[1]])
+            except:
+                weekly_report_dict = au.parse_weekly_report(weekly_content)
+                report_sections = list(weekly_report_dict.keys())[1:]
+                title = list(weekly_report_dict.keys())[0]
+            ## --------------------------------
 
-        ## Repos (optional).
-        if len(report_sections) > 2:
-            st.markdown(f"## 💿 {report_sections[2]}")
-            st.markdown(weekly_report_dict[report_sections[2]])
+            if len(weekly_highlight) == 0:
+                ## ToDo: Remove this.
+                title = title.replace("# Weekly Review ", "##### ")
+                st.markdown(f"{title}")
+                st.markdown(f"## 🔬 {report_sections[0]}")
+                st.markdown(weekly_report_dict[report_sections[0]])
+
+                ## Highlights.
+                st.markdown(f"## 🌟 {report_sections[1]}")
+                report_highlights_cols = st.columns((1, 4))
+                highlight_img = au.get_img_link_for_blob(weekly_report_dict[report_sections[1]])
+                report_highlights_cols[0].image(highlight_img, use_column_width=True)
+                report_highlights_cols[1].markdown(weekly_report_dict[report_sections[1]])
+
+                ## Repos (optional).
+                if len(report_sections) > 2:
+                    st.markdown(f"## 💿 {report_sections[2]}")
+                    st.markdown(weekly_report_dict[report_sections[2]])
+                ## --------------------------------
+
+            else:
+                ## ToDo: Move to function.
+                ## --------------------------------
+                weekly_report = (f"##### ({date_report.strftime('%B %d, %Y')} to "
+                                              f"{(date_report + pd.Timedelta(days=6)).strftime('%B %d, %Y')})\n\n"
+                                              f"## 🔬 New Developments & Findings\n\n{weekly_content}\n\n"
+                                                f"## 🌟 Highlight of the Week\n\n")
+
+                st.write(weekly_report)
+                report_highlights_cols = st.columns((1, 2.5))
+                highlight_img = au.get_img_link_for_blob(weekly_highlight)
+                report_highlights_cols[0].image(highlight_img, use_column_width=True)
+                report_highlights_cols[1].markdown(weekly_highlight)
+                st.markdown(weekly_repos)
+                ## --------------------------------
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        db.log_error_db(e)
-        st.error("Something went wrong. Please refresh the app and try again.")
+    # try:
+    main()
+# except Exception as e:
+#     db.log_error_db(e)
+#     st.error("Something went wrong. Please refresh the app and try again.")
