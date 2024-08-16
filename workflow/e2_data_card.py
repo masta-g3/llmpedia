@@ -19,7 +19,7 @@ def main():
     arxiv_codes = pu.get_local_arxiv_codes()
     done_codes = db.get_arxiv_id_list(db.db_params, "arxiv_dashboards")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
-    arxiv_codes = sorted(arxiv_codes)[::-1][:10]
+    arxiv_codes = sorted(arxiv_codes)[::-1][:20]
 
     for arxiv_code in tqdm(arxiv_codes):
         title = db.get_arxiv_title_dict()[arxiv_code]

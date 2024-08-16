@@ -2,6 +2,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import plotly.io as pio
 import pandas as pd
+import numpy as np
 import colorcet as cc
 import datetime
 
@@ -67,7 +68,7 @@ def plot_activity_map(df_year: pd.DataFrame) -> (go.Figure, pd.DataFrame):
             y=["Sun", "Sat", "Fri", "Thu", "Wed", "Tue", "Mon"],
             hoverongaps=False,
             hovertext=padded_date.values,
-            hovertemplate='%{hovertext}<extra>Count: %{z}</extra>',
+            hovertemplate="%{hovertext}<extra>Count: %{z}</extra>",
             colorscale=colors,
             showscale=False,
         )
@@ -85,16 +86,18 @@ def plot_activity_map(df_year: pd.DataFrame) -> (go.Figure, pd.DataFrame):
     return fig, padded_date
 
 
-def plot_weekly_activity_ts(df: pd.DataFrame, date_report: datetime.date = None) -> go.Figure:
-    """ Calculate weekly activity and plot a time series. """
+def plot_weekly_activity_ts(
+    df: pd.DataFrame, date_report: datetime.date = None
+) -> go.Figure:
+    """Calculate weekly activity and plot a time series."""
     df = df.copy()
     df["published"] = pd.to_datetime(df["published"])
     df = df.sort_values("published")
-    df["week_start"] = df["published"].dt.to_period('W').apply(lambda r: r.start_time)
+    df["week_start"] = df["published"].dt.to_period("W").apply(lambda r: r.start_time)
     df = df.groupby(["week_start"])["Count"].sum().reset_index()
-    df["publish_str"] = df["week_start"].dt.strftime('%b %d')
+    df["publish_str"] = df["week_start"].dt.strftime("%b %d")
 
-    highlight_date_str = date_report.strftime('%b %d')
+    highlight_date_str = date_report.strftime("%b %d")
 
     fig = px.area(
         df,
@@ -124,7 +127,8 @@ def plot_weekly_activity_ts(df: pd.DataFrame, date_report: datetime.date = None)
             x=[highlight_date_str],
             y=[bar_height],
             mode="markers",
-            showlegend=False, marker=dict(size=20, color="#636EFA"),
+            showlegend=False,
+            marker=dict(size=20, color="#636EFA"),
         )
     )
     return fig
@@ -149,5 +153,23 @@ def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
     )
     fig.update_xaxes(title_text=None)
     fig.update_yaxes(title_text=None)
-    fig.update_traces(marker=dict(line=dict(width=0.5, color="Black"), size=8))
+    fig.update_traces(marker=dict(line=dict(width=0.5, color="Black"), size=4))
+    return fig
+
+
+def plot_repos_by_feature(
+    df: pd.DataFrame, plot_by: str, max_chars: int = 30
+) -> go.Figure:
+    """Plot bar chart of repositories by a feature."""
+    count_df = df.groupby(plot_by).count()[["repo_title"]].reset_index()
+    count_df[plot_by] = np.where(count_df["repo_title"] < 10, "Other", count_df[plot_by])
+    count_df = count_df.sort_values("repo_title", ascending=False)
+    count_df["topic_label"] = count_df[plot_by].apply(
+        lambda x: (x[:max_chars] + "...") if len(x) > max_chars else x
+    )
+
+    fig = px.bar(count_df, x="topic_label", y="repo_title", title=None, hover_data=[plot_by])
+    fig.update_xaxes(title=None, tickfont=dict(size=15), tickangle=75)
+    fig.update_yaxes(titlefont=dict(size=14), title="# Resources")
+    fig.update_traces(marker_color="darkorange", marker_line_color="orange")
     return fig

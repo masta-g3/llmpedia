@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 import utils.paper_utils as pu
 import utils.vector_store as vs
+import utils.db as db
 
 def update_gist(gist_id, gist_filename, paper_list):
     """Update the gist with the current queue."""
@@ -42,22 +43,26 @@ def main():
     paper_list = list(set(paper_list) - set(local_codes) - set(nonllm_papers))
     paper_list_iter = paper_list[:]
 
+    arxiv_map = db.get_arxiv_title_dict()
+    existing_paper_names = list(arxiv_map.values())
+    existing_paper_ids = list(arxiv_map.keys())
+
     ## Iterate.
     gist_url = None
     for paper_name in tqdm(paper_list_iter):
-        time.sleep(10)
-        # existing = pu.check_if_exists(
-        #     paper_name, existing_paper_names, existing_paper_ids
-        # )
-        #
-        # ## Check if we already have the document.
-        # if existing:
-        #     print(f"\nSkipping '{paper_name}' as it is already in the database.")
-        #     ## Update gist.
-        #     parsed_list.append(paper_name)
-        #     paper_list = list(set(paper_list) - set(parsed_list))
-        #     gist_url = update_gist(gist_id, gist_filename, paper_list)
-        #     continue
+        time.sleep(3)
+        existing = pu.check_if_exists(
+            paper_name, existing_paper_names, existing_paper_ids
+        )
+
+        ## Check if we already have the document.
+        if existing:
+            print(f"\nSkipping '{paper_name}' as it is already in the database.")
+            ## Update gist.
+            parsed_list.append(paper_name)
+            paper_list = list(set(paper_list) - set(parsed_list))
+            gist_url = update_gist(gist_id, gist_filename, paper_list)
+            continue
 
         ## Search content.
         try:

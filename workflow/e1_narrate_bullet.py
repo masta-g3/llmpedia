@@ -21,7 +21,7 @@ def main():
     title_map = db.get_arxiv_title_dict(db.db_params)
     done_codes = db.get_arxiv_id_list(db.db_params, "bullet_list_summaries")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
-    arxiv_codes = sorted(arxiv_codes)[::-1][:20]
+    arxiv_codes = sorted(arxiv_codes)[::-1]
 
     for arxiv_code in tqdm(arxiv_codes):
         paper_notes = db.get_extended_notes(arxiv_code, expected_tokens=500)

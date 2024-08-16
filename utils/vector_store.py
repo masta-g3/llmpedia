@@ -283,12 +283,10 @@ def extract_document_repo(paper_content: str, model="gpt-4o"):
     """Extract weekly repos."""
     weekly_repos = run_instructor_query(
         ps.WEEKLY_SYSTEM_PROMPT,
-        ps.WEEKLY_REPO_USER_PROMPT.format(
-            content=paper_content
-        ),
+        ps.WEEKLY_REPO_USER_PROMPT.format(content=paper_content),
         llm_model=model,
         model=ps.ExternalResources,
-        temperature=0.,
+        temperature=0.0,
     )
     return weekly_repos
 
@@ -321,7 +319,11 @@ def select_most_interesting_paper(arxiv_abstracts: str, model: str = "claude-hai
 
 
 def write_tweet(
-    previous_tweets: str, tweet_facts: str, tweet_type="new_review", model="gpt-4o"
+    previous_tweets: str,
+    tweet_facts: str,
+    tweet_type="new_review",
+    model="gpt-4o",
+    temperature: float = 0.8,
 ) -> str:
     """Write a tweet about an LLM paper."""
     system_prompt = ps.TWEET_SYSTEM_PROMPT
@@ -329,18 +331,24 @@ def write_tweet(
         previous_tweets=previous_tweets, tweet_facts=tweet_facts
     )
     tweet = run_instructor_query(
-        system_prompt, user_prompt, llm_model=model, temperature=0.8
+        system_prompt, user_prompt, llm_model=model, temperature=temperature
     )
     return tweet
 
 
 def edit_tweet(
-    tweet: str, tweet_facts: str, tweet_type="review", model="gpt-4o"
+    tweet: str,
+    tweet_facts: str,
+    tweet_type="review",
+    model="gpt-4o",
+    temperature: float = 0.8,
 ) -> str:
     """Edit a tweet via run_instructor_query."""
     system_prompt = ps.TWEET_EDIT_SYSTEM_PROMPT
     user_prompt = tweet_edit_user_map[tweet_type].format(
         tweet=tweet, tweet_facts=tweet_facts
     )
-    edited_tweet = run_instructor_query(system_prompt, user_prompt, llm_model=model)
+    edited_tweet = run_instructor_query(
+        system_prompt, user_prompt, llm_model=model, temperature=temperature
+    )
     return edited_tweet

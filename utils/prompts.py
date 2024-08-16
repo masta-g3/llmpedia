@@ -455,7 +455,7 @@ The following are attributes of LESS interesting papers:
 - Papers where the main finding or contribution is not clearly stated or is confusing.
 </less_interesting_papers_attributes>
 
-After reflecting, please output the number (1, 2, 3 or 4) of the abstract you selected as most interesting inside <most_interesting_abstract> tags.
+After reflecting, please output the number (1, 2, 3, 4, ...) of the abstract you selected as most interesting inside <most_interesting_abstract> tags.
 """
 
 ############
@@ -819,12 +819,13 @@ class SearchCriteria(BaseModel):
 
 
 class DocumentAnalysis(BaseModel):
+    document_id: int
     analysis: str
     selected: bool
 
 
 class RerankedDocuments(BaseModel):
-    documents: dict[str, DocumentAnalysis]
+    documents: List[DocumentAnalysis]
 
 
 VS_QUERY_SYSTEM_PROMPT = f"""Today is {todays_date}. You are an expert system that can translate natural language questions into structured queries used to search a database of Large Language Model (LLM) related whitepapers."""
@@ -1042,8 +1043,9 @@ def create_query_user_prompt(user_question: str) -> str:
 
 def create_rerank_user_prompt(user_question: str, documents: list) -> str:
     document_str = ""
-    for doc in documents:
+    for idx, doc in enumerate(documents):
         document_str += f"""
+    ### Doc ID: {idx}
     ### Title: {doc.title}
     *Published*: {doc.published_date.strftime("%Y-%m-%d")}
     *Citations*: {doc.citations}
@@ -1061,7 +1063,9 @@ def create_rerank_user_prompt(user_question: str, documents: list) -> str:
     </documents>
 
     <response_format>
-    Reply with a JSON object containing the titles of all the papers as keys, and as values a dictionary with two elements: 'analysis' and 'selected'. The 'analysis' element should contain a brief analysis of if and why the paper is relevant to the user query. The 'selected' element should be a boolean indicating whether the paper should be included in the final answer. Make sure to be stringent and only select the documents that are **directly** relevant to answer the specific user query.
+    - Reply with a list of JSON object according to the provided schema. Each element must contain the document IDs, plus two additional fields: 'analysis' and 'selected'. 
+    - The 'analysis' element should contain a brief analysis of if and why the paper is relevant to the user query. 
+    - The 'selected' element should be a boolean indicating whether the paper should be included in the final answer. Make sure to be stringent and only select the documents that are **directly** relevant to answer the specific user query.
     </response_format>"""
     return rerank_msg
 
@@ -1097,8 +1101,9 @@ def create_resolve_user_prompt(
 
     <guidelines>
     - Do not mention 'the context'! The user does not have access to it, so do not reference it or the fact that I presented it to you. Act as if you have all the information in your head (i.e.: do not say 'Based on the information provided...', etc.).
-    - Use narrative writting to provide a complete, direct and useful answer. Structure your response as a mini-report in a magazine. 
-    - Make sure it reads naturally and is easy to the eye. Do not enumerate the paragraphs (e.g.: 'Paragraph 1: ...').
+    - Use narrative writing to provide a complete, direct and useful answer. Structure your response as a mini-report in a magazine. 
+    - Include practical examples and pseudocode to illustrate main steps of components when applicable.
+    - Make sure your report reads naturally and is easy to the eye. Do not enumerate the paragraphs (e.g.: 'Paragraph 1: ...').
     - Only use markdown to add a title to your response (i.e.: '##').
     - Be practical and reference any existing libraries or implementations mentioned on the documents.
     - If there is conflicting information present the different viewpoints and consider that more recent papers or those with more citations are generally more reliable. Present different viewpoints if they exist.
@@ -1132,7 +1137,7 @@ class ExternalResource(BaseModel):
     title: str = Field(..., description="Title of the repository or project.")
     description: str = Field(
         ...,
-        description="Brief description of the content of the repository or project.",
+        description="Brief description of the content of the repository or project. Explain what is the purpose of the underlying resource or model.",
     )
 
 class ExternalResources(BaseModel):

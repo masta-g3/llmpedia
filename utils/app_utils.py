@@ -1,5 +1,7 @@
 from pydantic import BaseModel
+from typing import List, Tuple
 import pandas as pd
+import numpy as np
 import datetime
 import json
 import os, re
@@ -31,6 +33,72 @@ report_sections_map = {
 }
 
 
+def prepare_calendar_data(df: pd.DataFrame, year: int) -> pd.DataFrame:
+    """Prepares data for the creation of a calendar heatmap."""
+    df["published"] = pd.to_datetime(df["published"])
+    df_year = df[df["published"].dt.year == int(year)].copy()
+    ## publishes dates with zero 'Counts' with full year dates.
+    df_year = (
+        df_year.set_index("published")
+        .reindex(pd.date_range(start=f"{year}-01-01", end=f"{year}-12-31", freq="D"))
+        .fillna(0)
+        .reset_index()
+    )
+    df_year.columns = ["published", "Count"]
+    df_year["week"] = df_year["published"].dt.isocalendar().week - 1
+    df_year["weekday"] = df_year["published"].dt.weekday
+    return df_year
+
+
+def get_weekly_summary(date_str: str):
+    try:
+        weekly_content = db.get_weekly_content(date_str, content_type="content")
+        weekly_content = add_links_to_text_blob(weekly_content)
+        weekly_highlight = db.get_weekly_content(date_str, content_type="highlight")
+        weekly_highlight = add_links_to_text_blob(weekly_highlight)
+        ## ToDo: Remove this.
+        ## ---------------------
+        if "\n" in weekly_highlight:
+            weekly_highlight = "#### " + weekly_highlight.replace("###", "")
+        ## ---------------------
+        weekly_repos_df = db.get_weekly_repos(date_str)
+
+        ## Process repo content.
+        weekly_repos_df["repo_link"] = weekly_repos_df.apply(
+            lambda row: f"[{row['title']}]({row['url']}): {row['description']}", axis=1
+        )
+
+        grouped_repos = (
+            weekly_repos_df.groupby("topic")["repo_link"]
+            .apply(lambda l: "\n".join(l))
+            .reset_index()
+        )
+        grouped_repos["repo_count"] = (
+            weekly_repos_df.groupby("topic")["repo_link"].count().values
+        )
+        grouped_repos.sort_values(by="repo_count", ascending=False, inplace=True)
+
+        miscellaneous_row = grouped_repos[grouped_repos["topic"] == "Miscellaneous"]
+        grouped_repos = grouped_repos[grouped_repos["topic"] != "Miscellaneous"]
+        grouped_repos = pd.concat([grouped_repos, miscellaneous_row], ignore_index=True)
+
+        repos_section = "## 💿 Repos & Libraries\n\n"
+        repos_section += "Many web resources were shared this week. Below are some of them, grouped by topic.\n\n"
+        for _, row in grouped_repos.iterrows():
+            repos_section += f"#### {row['topic']}\n"
+            repo_links = row["repo_link"].split("\n")
+            for link in repo_links:
+                repos_section += f"- {link}\n"
+            repos_section += "\n"
+
+    except:
+        weekly_content = db.get_weekly_summary_old(date_str)
+        weekly_highlight = ""
+        repos_section = ""
+
+    return weekly_content, weekly_highlight, repos_section
+
+
 def parse_weekly_report(report_md: str):
     """Extract sections of the weekly report into dict."""
     sections = report_md.split("\n## ")
@@ -48,6 +116,7 @@ def parse_weekly_report(report_md: str):
 
 def add_links_to_text_blob(response: str):
     """Add links to arxiv codes in the response."""
+
     def repl(match):
         return f"[arxiv:{match.group(1)}](https://llmpedia.streamlit.app/?arxiv_code={match.group(1)})"
 
@@ -58,6 +127,7 @@ def extract_arxiv_codes(text: str):
     """Extract unique arxiv codes from the text."""
     arxiv_codes = re.findall(r"arxiv:(\d{4}\.\d{4,5})", text)
     return list(set(arxiv_codes))
+
 
 def get_img_link_for_blob(text_blob: str):
     """Identify `arxiv_code:XXXX.XXXXX` from a text blob, and generate a Markdown link to its img."""
@@ -226,7 +296,9 @@ def interrogate_paper(question: str, arxiv_code: str) -> str:
     context = db.get_extended_notes(arxiv_code, expected_tokens=8000)
     system_message = "Read carefully the whitepaper, reason about the user question, and provide a comprehensive, git helpful and truthful response. Be direct and concise, using layman's language that is easy to understand. Avoid filler content, and reply with your answer in a single short sentence or paragraph and nothing else (no preambles, greetings, etc.)."
     user_message = ps.create_interrogate_user_prompt(question, context)
-    response = run_instructor_query(system_message, user_message, None, llm_model="gpt-4o")
+    response = run_instructor_query(
+        system_message, user_message, None, llm_model="gpt-4o"
+    )
     response = response.replace("<response>", "").replace("</response>", "")
     return response
 
@@ -301,22 +373,36 @@ def generate_query(criteria: ps.SearchCriteria, config: dict) -> str:
     return "\n".join(query_parts)
 
 
-def rerank_documents_new(user_question: str, documents: list, llm_model="gpt-4o") -> ps.RerankedDocuments:
+def rerank_documents_new(
+    user_question: str, documents: list, llm_model="gpt-4o"
+) -> ps.RerankedDocuments:
     system_message = "You are an expert system that can identify and select relevant arxiv papers that can be used to answer a user query."
     import streamlit as st
+
     rerank_msg = ps.create_rerank_user_prompt(user_question, documents)
-    response = run_instructor_query(system_message, rerank_msg, ps.RerankedDocuments) #, llm_model=llm_model)
+    response = run_instructor_query(
+        system_message, rerank_msg, ps.RerankedDocuments, llm_model=llm_model
+    )
     return response
 
 
-def resolve_query(user_question: str, documents: list[Document], response_length: str,  llm_model="gpt-4o"):
+def resolve_query(
+    user_question: str,
+    documents: list[Document],
+    response_length: str,
+    llm_model="gpt-4o",
+):
     system_message = "You are an AI academic focused on Large Language Models. Please answer the user query leveraging the information provided in the context."
-    user_message = ps.create_resolve_user_prompt(user_question, documents, response_length)
-    response = run_instructor_query(system_message, user_message, None, llm_model=llm_model)
+    user_message = ps.create_resolve_user_prompt(
+        user_question, documents, response_length
+    )
+    response = run_instructor_query(
+        system_message, user_message, None, llm_model=llm_model
+    )
     return response
 
 
-def resolve_query_other(user_question: str) -> ps.QueryDecision:
+def resolve_query_other(user_question: str) -> str:
     """Decide the query action based on the user question."""
     system_message = "You are the GPT Maestro, maintainer of the LLMpedia, a web-based Large Language Model encyclopedia. You received the following unrelated comment from a user via our chat based system. Please respond to it in a friendly, slightly-sarcastic, serious and very concise (less than 20 words) manner."
     user_message = f"{user_question}"
@@ -324,9 +410,14 @@ def resolve_query_other(user_question: str) -> ps.QueryDecision:
     return response
 
 
-def query_llmpedia_new(user_question: str, response_length: str = "Normal") -> tuple:
-    """Extended workflow to query LLMpedia."""
-    ## Decide action.
+def query_llmpedia_new(
+    user_question: str,
+    response_length: str = "Normal",
+    query_llm_model="gpt-4o",
+    rerank_llm_model="gpt-4o-mini",
+    response_llm_model="gpt-4o",
+) -> Tuple[str, List[str], List[str]]:
+    """Extended RAG workflow to answer a user query with the LLMpedia."""
     action = decide_query_action(user_question)
 
     if action.llm_query:
@@ -335,33 +426,90 @@ def query_llmpedia_new(user_question: str, response_length: str = "Normal") -> t
             ps.VS_QUERY_SYSTEM_PROMPT,
             ps.create_query_user_prompt(user_question),
             ps.SearchCriteria,
-            llm_model="gpt-4o",
+            llm_model=query_llm_model,
         )
         print(query_obj)
+
         ## Fetch results.
         query_obj.topic_categories = None
         sql = generate_query(query_obj, query_config)
         documents = db.execute_query(sql, limit=20)
         if len(documents) == 0:
-            return "Sorry, I don't know about that.", []
+            return "Sorry, I don't know about that.", [], []
         documents = [
             Document(**dict(zip(Document.__fields__.keys(), d))) for d in documents
         ]
+
         ## Rerank.
-        reranked_documents = rerank_documents_new(user_question, documents, llm_model="gpt-4o")
-        print(reranked_documents)
-        filtered_documents = {
-            k: v for k, v in reranked_documents.documents.items() if v.selected
-        }
-        filtered_documents = [d for d in documents if d.title in filtered_documents]
+        reranked_documents = rerank_documents_new(
+            user_question, documents, llm_model=rerank_llm_model
+        )
+        filtered_document_ids = [
+            int(d.document_id) for d in reranked_documents.documents if d.selected
+        ]
+        filtered_documents = [
+            d for i, d in enumerate(documents) if i in filtered_document_ids
+        ]
         if len(filtered_documents) == 0:
-            return "Sorry, I don't know about that.", []
+            return "Sorry, I don't know about that.", [], []
         ## Resolve.
-        answer = resolve_query(user_question, filtered_documents, response_length, llm_model="gpt-4o")
+        answer = resolve_query(
+            user_question,
+            filtered_documents,
+            response_length,
+            llm_model=response_llm_model,
+        )
         answer_augment = add_links_to_text_blob(answer)
-        arxiv_codes = extract_arxiv_codes(answer_augment)
-        return answer_augment, arxiv_codes
+        referenced_arxiv_codes = extract_arxiv_codes(answer_augment)
+        filtered_arxiv_codes = [d.arxiv_code for d in filtered_documents]
+        filtered_arxiv_codes = [
+            d for d in filtered_arxiv_codes if d not in referenced_arxiv_codes
+        ]
+        return answer_augment, referenced_arxiv_codes, filtered_arxiv_codes
 
     else:
         answer = resolve_query_other(user_question)
-        return answer, []
+        return answer, [], []
+
+
+def get_similar_titles(
+    title: str, df: pd.DataFrame, n: int = 5
+) -> Tuple[List[str], str]:
+    """Return similar titles based on topic cluster."""
+    title = title.lower()
+    if title in df["title"].str.lower().values:
+        cluster = df[df["title"].str.lower() == title]["topic"].values[0]
+        similar_df = df[df["topic"] == cluster]
+        similar_df = similar_df[similar_df["title"].str.lower() != title]
+
+        size = similar_df.shape[0]
+        similar_df = similar_df.sample(min(n, size))
+
+        similar_names = [
+            f"{row['title']} (arxiv:{row['arxiv_code']})"
+            for index, row in similar_df.iterrows()
+        ]
+        similar_names = [add_links_to_text_blob(title) for title in similar_names]
+
+        return similar_names, cluster
+    else:
+        return [], ""
+
+
+def get_similar_docs(
+    arxiv_code: str, df: pd.DataFrame, n: int = 5
+) -> Tuple[List[str], List[str], List[str]]:
+    """Get most similar documents based on cosine similarity."""
+    if arxiv_code in df.index:
+        similar_docs = df.loc[arxiv_code]["similar_docs"]
+        similar_docs = [d for d in similar_docs if d in df.index]
+
+        if len(similar_docs) > n:
+            similar_docs = np.random.choice(similar_docs, n, replace=False)
+
+        similar_titles = [df.loc[doc]["title"] for doc in similar_docs]
+        publish_dates = [df.loc[doc]["published"] for doc in similar_docs]
+
+        return similar_docs, similar_titles, publish_dates
+    else:
+        return [], [], []

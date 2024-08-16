@@ -228,7 +228,9 @@ def format_paper_summary(summary_row):
     title = summary_row["title"]
     date = summary_row["published"].strftime("%B %d, %Y")
     arxiv_code = summary_row["arxiv_code"]
-    citations = int(summary_row["citation_count"])
+    citations = (
+        int(summary_row["citation_count"]) if summary_row["citation_count"] else 0
+    )
     topic = summary_row["topic"]
     summary = (
         summary_row["recursive_summary"]
@@ -376,7 +378,9 @@ def get_arxiv_info(arxiv_code: str, title: Optional[str] = None):
     res = list(client.results(search))
     arxiv_meta = None
     if len(res) > 0:
-        arxiv_meta = [r for r in res if r.entry_id.split("/")[-1].split("v")[0] == arxiv_code]
+        arxiv_meta = [
+            r for r in res if r.entry_id.split("/")[-1].split("v")[0] == arxiv_code
+        ]
         if len(arxiv_meta) == 0:
             if title:
                 res = sorted(

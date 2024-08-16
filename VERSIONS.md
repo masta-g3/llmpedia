@@ -34,6 +34,16 @@
 - [x] Data cards.
 
 ## v.1.3.1
-- [ ] LLM version config.
-- [ ] Remove langchain.
+- [x] Remove langchain.
 - [x] Add a 'report data card' button on focus page.
+- [x] Improved weekly summaries (all repos, better flow, etc.).
+- [x] Add an extra-doc collection to workflow.
+- [x] Repo collections.
+- [x] Chatbot review v0.5.
+- [x] Extract repo processing.
+- [x]  Factor main sector two.
+
+## v.1.3.2
+- [ ] LLM version config.
+- [ ] Productionize fables.
+- [ ] Remove langchain pgvector.

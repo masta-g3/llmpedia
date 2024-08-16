@@ -239,7 +239,9 @@ def load_bullet_list_summaries():
     conn = create_engine(database_url)
     bullet_list_summaries_df = pd.read_sql(query, conn)
     bullet_list_summaries_df.set_index("arxiv_code", inplace=True)
-    bullet_list_summaries_df.rename(columns={"summary": "bullet_list_summary"}, inplace=True)
+    bullet_list_summaries_df.rename(
+        columns={"summary": "bullet_list_summary"}, inplace=True
+    )
     bullet_list_summaries_df.drop(columns=["tstp"], inplace=True)
     return bullet_list_summaries_df
 
@@ -290,6 +292,26 @@ def load_citations(arxiv_code: str = None):
     citations_df.set_index("arxiv_code", inplace=True)
     citations_df.drop(columns=["paper_id"], inplace=True)
     return citations_df
+
+
+def load_repositories(arxiv_code: str = None):
+    query = "SELECT * FROM arxiv_repos"
+    if arxiv_code:
+        query += f" WHERE arxiv_code = '{arxiv_code}';"
+    conn = create_engine(database_url)
+    repos_df = pd.read_sql(query, conn)
+    repos_df.set_index("arxiv_code", inplace=True)
+    repos_df.rename(
+        columns={
+            "title": "repo_title",
+            "description": "repo_description",
+            "url": "repo_url",
+        },
+        inplace=True,
+    )
+    repos_df.dropna(subset=["repo_url"], inplace=True)
+    repos_df.drop(columns=["tstp"], inplace=True)
+    return repos_df
 
 
 def load_tweet_insights(arxiv_code: str = None, drop_rejected: bool = False):
@@ -499,6 +521,30 @@ def get_topic_embedding_dist(db_params=db_params):
             return res
 
 
+def get_extended_content(arxiv_code: str):
+    """Get extended content for a given arxiv code."""
+    engine = create_engine(database_url)
+    with engine.begin() as conn:
+        query = text(
+            """
+            SELECT d.published, d.arxiv_code, d.title, d.authors, sd.citation_count, d.arxiv_comment,
+                   d.summary, s.contribution_content, s.takeaway_content, s.takeaway_example, 
+                   d.summary AS recursive_summary, sn.tokens, t.topic
+            FROM summaries s
+            JOIN arxiv_details d ON s.arxiv_code = d.arxiv_code
+            LEFT JOIN semantic_details sd ON s.arxiv_code = sd.arxiv_code
+            JOIN summary_notes sn ON s.arxiv_code = sn.arxiv_code
+            JOIN topics t ON s.arxiv_code = t.arxiv_code
+            WHERE d.arxiv_code = :arxiv_code
+            AND sn.level = (SELECT MAX(level) FROM summary_notes WHERE arxiv_code = s.arxiv_code)
+            """
+        )
+        result = conn.execute(query, {"arxiv_code": arxiv_code})
+        summaries = result.fetchall()
+        summaries_df = pd.DataFrame(summaries)
+    return summaries_df
+
+
 def get_weekly_summary_inputs(date: str):
     """Get weekly summaries for a given date (from last monday to next sunday)."""
     engine = create_engine(database_url)
@@ -571,14 +617,17 @@ def get_weekly_content(date_str: str, content_type: str = "content"):
 import pandas as pd
 from sqlalchemy import create_engine, text
 
+
 def get_weekly_repos(date_str):
     """Get weekly repos for a given date."""
     engine = create_engine(database_url)
     start_date = (
-        pd.to_datetime(date_str).date() - pd.Timedelta(days=pd.to_datetime(date_str).weekday())
+        pd.to_datetime(date_str).date()
+        - pd.Timedelta(days=pd.to_datetime(date_str).weekday())
     ).strftime("%Y-%m-%d")
     end_date = (
-        pd.to_datetime(date_str).date() + pd.Timedelta(days=6 - pd.to_datetime(date_str).weekday())
+        pd.to_datetime(date_str).date()
+        + pd.Timedelta(days=6 - pd.to_datetime(date_str).weekday())
     ).strftime("%Y-%m-%d")
 
     with engine.begin() as conn:
@@ -589,11 +638,14 @@ def get_weekly_repos(date_str):
             JOIN arxiv_repos r ON a.arxiv_code = r.arxiv_code
             JOIN topics t ON a.arxiv_code = t.arxiv_code
             WHERE a.published BETWEEN :start_date AND :end_date
+            AND r.url IS NOT NULL
             """
         )
         result = conn.execute(query, {"start_date": start_date, "end_date": end_date})
         repos = result.fetchall()
-        repos_df = pd.DataFrame(repos, columns=["published", "topic", "url", "title", "description"])
+        repos_df = pd.DataFrame(
+            repos, columns=["published", "topic", "url", "title", "description"]
+        )
 
     return repos_df
 
@@ -699,12 +751,15 @@ def insert_tweet_review(arxiv_code, review, tstp, tweet_type, rejected=False):
         )
     return True
 
+
 ###############
 ## DATA CARDS ##
 ###############
 
 
-def save_arxiv_dashboard_script(arxiv_code: str, summary:str, scratchpad:str, script:str) -> bool:
+def save_arxiv_dashboard_script(
+    arxiv_code: str, summary: str, scratchpad: str, script: str
+) -> bool:
     """Insert a new arxiv dashboard script into the DB."""
     engine = create_engine(database_url)
     tstp = pd.to_datetime("now").strftime("%Y-%m-%d %H:%M:%S")

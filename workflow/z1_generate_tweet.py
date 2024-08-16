@@ -56,11 +56,11 @@ def bold(input_text, extra_str):
 
     ## Regex to find text in double brackets and apply the boldify function to them.
     output = re.sub(
-        r'\[\[([^]]*)\]\]',
-        lambda m: '[[' + boldify(m.group(1)) + ']] (' + extra_str + ")",
+        r"\[\[([^]]*)\]\]",
+        lambda m: "[[" + boldify(m.group(1)) + "]] (" + extra_str + ")",
         input_text,
     )
-    output = output.replace('[[', "").replace(']]', "")
+    output = output.replace("[[", "").replace("]]", "")
     # Regex to find text in double asterisks and apply the bold_italicize function to them
     output = re.sub(r"\*\*([^*]*)\*\*", lambda m: bold_italicize(m.group(1)), output)
 
@@ -197,6 +197,7 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
     browser.quit()
     return True
 
+
 def main():
     """Generate a weekly review of highlights and takeaways from papers."""
     vs.validate_openai_env()
@@ -221,16 +222,24 @@ def main():
     citations_df["weight"] = citations_df["weight"] / citations_df["weight"].sum()
     candidate_arxiv_codes = np.random.choice(
         citations_df.index,
-        size=10,
+        size=15,
         replace=False,
         p=citations_df["weight"] / citations_df["weight"].sum(),
     )
 
-    candidate_arxiv_abstracts = [
+    candidate_abstracts = [
         db.get_recursive_summary(arxiv_code) for arxiv_code in candidate_arxiv_codes
     ]
+
+    abstracts_str = "\n".join(
+        [
+            f"<abstract{idx+1}>\n{abstract}\n</abstract{idx+1}>\n"
+            for idx, abstract in enumerate(candidate_abstracts)
+        ]
+    )
+
     arxiv_code_idx = vs.select_most_interesting_paper(
-        candidate_arxiv_abstracts, model="claude-haiku"
+        abstracts_str, model="gpt-4o-mini"
     )
     arxiv_code = candidate_arxiv_codes[arxiv_code_idx - 1]
 
@@ -243,16 +252,9 @@ def main():
         tweet_type = "insight_v1"
 
     ## Load previous tweets.
-    n_tweets = 5
-    with open(f"{DATA_PATH}/tweets.json", "r") as f:
-        tweets = json.load(f)
-    previous_tweets = "\n----------\n".join(
-        [
-            f"[{k}] {v}"
-            for i, (k, v) in enumerate(tweets.items())
-            if i > len(tweets) - n_tweets
-        ]
-    )
+    previous_tweets_df = db.load_tweet_insights(drop_rejected=True).head(5)
+    previous_tweets = previous_tweets_df["tweet_insight"].values
+    previous_tweets_str = "\n".join(previous_tweets)
 
     paper_summary = db.get_extended_notes(arxiv_code, expected_tokens=1500)
     paper_details = db.load_arxiv(arxiv_code)
@@ -263,34 +265,29 @@ def main():
     paper_title = title_map[arxiv_code]
 
     tweet_facts = (
-        """```
-    **Title: """
-        + paper_title
-        + """**"""
-        + "\n"
-        + """**Authors: """
-        + author
-        + """**"""
-        + "\n"
-        + paper_summary
-        + "```"
+        f"```**Title: {paper_title}**\n**Authors: {author}**\n{paper_summary}```"
     )
-    # post_tweet = f"read more on the LLMpedia: https://llmpedia.streamlit.app/?arxiv_code={arxiv_code}"
     post_tweet = f"arxiv link: https://arxiv.org/abs/{arxiv_code}\nllmpedia link: https://llmpedia.streamlit.app/?arxiv_code={arxiv_code}"
-    # post_tweet = None
 
     ## Run model.
     tweet = vs.write_tweet(
-        previous_tweets=previous_tweets,
+        previous_tweets=previous_tweets_str,
         tweet_facts=tweet_facts,
         tweet_type=tweet_type,
-        model="GPT-4o",
+        model="gpt-4o",
+        temperature=0.5,
     )
     print("Generated tweet: ")
     print(tweet)
 
     if tweet_type != "review_v2":
-        edited_tweet = vs.edit_tweet(tweet, tweet_type=tweet_type, model="GPT-4o")
+        edited_tweet = vs.edit_tweet(
+            tweet,
+            tweet_facts=tweet_facts,
+            tweet_type=tweet_type,
+            model="gpt-4o",
+            temperature=0.5,
+        )
     else:
         edited_tweet = f'💭Review of "{paper_title}"\n\n{tweet}'
     edited_tweet = bold(edited_tweet, publish_date_full)
@@ -308,7 +305,7 @@ def main():
 
     ## Store.
     db.insert_tweet_review(
-        arxiv_code, edited_tweet, datetime.datetime.now(), tweet_type, False
+        arxiv_code, edited_tweet, datetime.datetime.now(), tweet_type, rejected=False
     )
 
 
