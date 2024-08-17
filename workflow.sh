@@ -12,6 +12,7 @@ function run_step() {
 }
 
 run_step "0: Web Scraper" "workflow/a0_scrape_lists.py"
+run_step "1 Tweet Scraper" "workflow/a1_scrape_tweets.py"
 run_step "1: Document Fetcher" "workflow/b0_download_paper.py"
 run_step "2: Meta-Data Collect" "workflow/c0_fetch_meta.py"
 run_step "3: Summarizer" "workflow/d0_summarize.py"
@@ -26,7 +27,8 @@ run_step "9: Document Chunker" "workflow/j0_doc_chunker.py"
 run_step "10: Document Embedder" "workflow/k0_rag_embedder.py"
 run_step "11: Abstract Embedder" "workflow/l0_abstract_embedder.py"
 run_step "12: Page Extractor" "workflow/m0_page_extractor.py"
-run_step "13: GIST Updater" "workflow/z0_update_gist.py"
+run_step "13:  Repo Extractor" "workflow/n0_repo_extractor.py"
+run_step "14: GIST Updater" "workflow/z0_update_gist.py"
 #run_step "14: Generate tweet" "workflow/z1_generate_tweet.py"
 
 echo "Done! Please enjoy the rest of your day and spread love around your neighbourhood."

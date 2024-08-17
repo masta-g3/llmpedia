@@ -222,7 +222,7 @@ def main():
     done_codes = pu.get_local_arxiv_codes()
     nonllm_codes = pu.get_local_arxiv_codes("nonllm_arxiv_text")
 
-    ## Get paper list.
+    ## Remote paper list.
     gist_id = "1dd189493c1890df6e04aaea6d049643"
     gist_filename = "llm_queue.txt"
     paper_list = pu.fetch_queue_gist(gist_id, gist_filename)
