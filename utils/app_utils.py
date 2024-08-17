@@ -428,7 +428,6 @@ def query_llmpedia_new(
             ps.SearchCriteria,
             llm_model=query_llm_model,
         )
-        print(query_obj)
 
         ## Fetch results.
         query_obj.topic_categories = None
@@ -452,6 +451,7 @@ def query_llmpedia_new(
         ]
         if len(filtered_documents) == 0:
             return "Sorry, I don't know about that.", [], []
+
         ## Resolve.
         answer = resolve_query(
             user_question,

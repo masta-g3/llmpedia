@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, model_validator
 from langchain.prompts import PromptTemplate
-from typing import Any, Optional, List
+from typing import Any, Optional, List, Dict
 from enum import Enum
 import datetime
 
@@ -1122,10 +1122,10 @@ def create_resolve_user_prompt(
 
 
 class WeeklyReview(BaseModel):
-    scratchpad_papers: str
-    scratchpad_themes: str
-    themes_mapping: dict
-    new_developments_findings: str
+    scratchpad_papers: str = Field(..., description="List of ~20 interesting papers, their main themes and contributions.")
+    scratchpad_themes: str = Field(..., description="At least 3 common themes identified among the papers.")
+    themes_mapping: Dict[str, List[str]] = Field(..., description="Mapping of themes to papers.")
+    new_developments_findings: str = Field(..., description="New developments and findings.")
 
 
 class ExternalResource(BaseModel):
@@ -1220,13 +1220,13 @@ WEEKLY_USER_PROMPT = """
 <report_format>
     <scratchpad_papers> 
         - This section will not be published on the magazine, use it to organize your thoughts.
-        - Pick the 30 most interesting papers and make a numbered list of them. Spell out its main theme, contribution and scale of impact/influence.        
-        - Prioritize the articles with most citations and most unusual or interesting findings. More citations imply larger relevance and impact.        
+        - Pick the ~20 most interesting papers and make a numbered list of them. Briefly identify its main theme, contribution and impact.
+        - When selecting articles prioritize the articles with most citations and those with the most unusual or interesting findings. 
     </scratchpad_papers>
     
     <scratchpad_themes>
         - This section will not be published on the magazine, use it to organize your thoughts.
-        - Identify at least 3 new common themes among the papers. There should more than 3 papers per theme, and the themes should not be generic. For example, 'improvements in LLMs' is not a generic theme.
+        - Identify 3 new common themes among the papers. There should more than 3 papers per theme, and the themes should not be generic. For example, 'improvements in LLMs' is not a generic theme.
         - Note that the papers already have a 'Category', which is a broad classification scheme. your definition of themes must be more specific than the categories.
         - Identify any possible contradictions, unorthodox theories or opposing views among the papers worth discussing (these tend to be very interesting). Give these contradiction a title and mention the papers that support each view. There might not be any contradictions, and that is fine.
     </scratchpad_themes>
@@ -1238,19 +1238,24 @@ WEEKLY_USER_PROMPT = """
     
     <new_developments_findings> 
         - This is the section that will be published on the magazine. Be sure to make it very structured and with an easy to follow, continuous flow.
-        - First (1) paragraph: Start with a very brief commentary on themes and the total number of articles published and volume trends over the last weeks.
+        - First (1) paragraph: Start with a very brief commentary on themes and the total number of articles published. Compare this week's volume not only to the previous one; instead identify and comment on general trends.
         - Three (3-4) following paragraphs: Discuss in more detail the main themes you identified as interesting (one per paragraph). State very clearly **with bold font** which theme / contradiction / unorthodox theory you are discussing on each paragraph. Be sure to always include the contradiction at the end of your discussion, if you identified one. Omit any kind of final conclusion at the end of your report.
     </new_developments_findings>
 <report_format>
 
+<content>
+{weekly_content}
+</content>
+
 <guidelines>
-    Follow these guidelines for the new_developments_findings section.
+- Remember to include all requested sections ('scratchpad_papers', 'scratchpad_themes', 'themes_mapping', 'new_developments_findings') in your response.
+- Follow these guidelines for the new_developments_findings section.
     - Write in a concise, clear and engaging manner. 
     - Use simple layman and direct language, without many adjectives. Be very clear and precise.
     - If you reference new technical terms always explain them. 
     - Focus on unusual and insightful findings, as well as practical applications.
     - Be sure the themes you identify are different from that of previous weeks.
-    - At the end of each paragraph add a brief, non-repetitive line summarizing what the theme is about. Avoid cliche phrases such as "these findings highlight/underscore/etc.".
+    - At the end of each paragraph add a brief, non-repetitive line summarizing what the theme is about. Avoid cliche phrases and concluding remarks such as "these findings suggest/highlight/underscore/etc.".
     - Remember to include a final section highlighting contradictions or very unorthodox findings.
     - Maintain the narrative flow and coherence across sections. Keep the reader engaged.
     - Do not exaggerate or use bombastic language. Be moderate, truthful and objective. Avoid filler and repetitive content.
@@ -1258,10 +1263,6 @@ WEEKLY_USER_PROMPT = """
     - Do not include markdown titles in each of the sections (I will take care of those).
     - Always add citations to support your statements. Use the format `*reference content* (arxiv:1234.5678)`. You can also mention the *article's title* on the text.
 </guidelines>
-
-<content>
-{weekly_content}
-</content>
 
 Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678)."""
 

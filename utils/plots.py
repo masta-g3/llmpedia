@@ -92,12 +92,14 @@ def plot_weekly_activity_ts(
     """Calculate weekly activity and plot a time series."""
     df = df.copy()
     df["published"] = pd.to_datetime(df["published"])
+    year_range = df["published"].dt.year.unique()
+    date_format = "%b %d, %y" if len(year_range) > 1 else "%b %d"
     df = df.sort_values("published")
     df["week_start"] = df["published"].dt.to_period("W").apply(lambda r: r.start_time)
     df = df.groupby(["week_start"])["Count"].sum().reset_index()
-    df["publish_str"] = df["week_start"].dt.strftime("%b %d")
+    df["publish_str"] = df["week_start"].dt.strftime(date_format)
 
-    highlight_date_str = date_report.strftime("%b %d")
+    highlight_date_str = date_report.strftime(date_format)
 
     fig = px.area(
         df,
@@ -162,13 +164,21 @@ def plot_repos_by_feature(
 ) -> go.Figure:
     """Plot bar chart of repositories by a feature."""
     count_df = df.groupby(plot_by).count()[["repo_title"]].reset_index()
-    count_df[plot_by] = np.where(count_df["repo_title"] < 10, "Other", count_df[plot_by])
-    count_df = count_df.sort_values("repo_title", ascending=False)
-    count_df["topic_label"] = count_df[plot_by].apply(
-        lambda x: (x[:max_chars] + "...") if len(x) > max_chars else x
-    )
 
-    fig = px.bar(count_df, x="topic_label", y="repo_title", title=None, hover_data=[plot_by])
+    if plot_by != "published":
+        count_df[plot_by] = np.where(count_df["repo_title"] < 10, "Other", count_df[plot_by])
+        count_df = count_df.sort_values("repo_title", ascending=False)
+        count_df["topic_label"] = count_df[plot_by].apply(
+            lambda x: (x[:max_chars] + "...") if len(x) > max_chars else x
+        )
+    else:
+        count_df[plot_by] = pd.to_datetime(count_df[plot_by])
+        count_df[plot_by] = count_df[plot_by].dt.to_period("W").apply(lambda r: r.start_time)
+        count_df = count_df.groupby(plot_by).sum().reset_index()
+        count_df = count_df.sort_values(plot_by, ascending=True)
+        count_df["topic_label"] = count_df[plot_by].dt.strftime("%b %d")
+
+    fig = px.bar(count_df, x=plot_by, y="repo_title", title=None, hover_data=[plot_by])
     fig.update_xaxes(title=None, tickfont=dict(size=15), tickangle=75)
     fig.update_yaxes(titlefont=dict(size=14), title="# Resources")
     fig.update_traces(marker_color="darkorange", marker_line_color="orange")

@@ -92,17 +92,9 @@ def main(date_str: str):
     weekly_summary_obj = vs.generate_weekly_report(weekly_content_md, model="gpt-4o")
     weekly_highlight = vs.generate_weekly_highlight(weekly_content_md, model="gpt-4o")
 
-    ## Find repos.
-    external_resources = []
-    for html_markdown in html_markdowns:
-        tmp_resources = vs.extract_document_repo(html_markdown)
-        external_resources.extend(tmp_resources.resources)
-
     ## Format content.
     date = pd.to_datetime(date_str)
     tstp_now = pd.Timestamp.now()
-    weekly_repos_df = pd.DataFrame([obj.dict() for obj in external_resources])
-    weekly_repos_df["tstp"] = tstp_now
 
     weekly_topics_df = pd.DataFrame(
         [
@@ -126,7 +118,6 @@ def main(date_str: str):
 
     ## Store.
     db.upload_df_to_db(weekly_content_df, "weekly_content", pu.db_params)
-    db.upload_df_to_db(weekly_repos_df, "arxiv_repos", pu.db_params)
     db.upload_df_to_db(weekly_topics_df, "weekly_topics", pu.db_params)
 
 

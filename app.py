@@ -131,14 +131,18 @@ def load_data():
 
 
 @st.cache_data
-def load_repositories():
+def load_repositories(year: int, filter_by_year=True):
     repos_df = db.load_repositories()
     topics_df = db.load_topics()
+    meta_df = db.load_arxiv()
     topics_df.drop(columns=["dim1", "dim2"], inplace=True)
     repos_df = repos_df.join(topics_df, how="left")
+    repos_df = repos_df.join(meta_df[["published"]], how="left")
     repos_df["domain"] = repos_df["repo_url"].apply(
         lambda x: x.split("/")[2].split(".")[-2]
     )
+    if filter_by_year:
+        repos_df = repos_df[repos_df["published"].dt.year == year]
     return repos_df
 
 
@@ -173,7 +177,7 @@ def initialize_weekly_summary(date_report: str):
 def get_max_report_date():
     max_date = db.get_max_table_date(
         db.db_params,
-        "weekly_reviews",
+        "weekly_content",
     )
     if max_date.weekday() != 6:
         max_date = max_date + pd.Timedelta(days=6 - max_date.weekday())
@@ -227,12 +231,13 @@ def main():
 
     ## Main content.
     full_papers_df = load_data()
-    repositories_df = load_repositories()
+    papers_df, year = su.create_sidebar(full_papers_df)
+
+    filter_by_year = not st.session_state.all_years
+    repositories_df = load_repositories(year, filter_by_year=filter_by_year)
 
     st.session_state["papers"] = full_papers_df
     st.session_state["repos"] = repositories_df
-
-    papers_df, year = su.create_sidebar(full_papers_df)
 
     if len(papers_df) == 0:
         st.error("No papers found.")
@@ -426,9 +431,10 @@ def main():
             repos_df, search_term, topic_filter, domain_filter
         )
         repo_count = len(filtered_repos)
-        st.markdown(f"### 📦 Total resources found: {repo_count}")
+        repos_title = f"### 📦 Total resources found: {repo_count}"
+        st.markdown(repos_title)
         st.data_editor(
-            filtered_repos,
+            filtered_repos.drop(columns=["published"]).sort_index(ascending=False),
             column_config={
                 "topic": st.column_config.ListColumn(
                     "Topic",
@@ -443,6 +449,7 @@ def main():
                 ),
                 "repo_title": st.column_config.TextColumn(
                     "Repository Title",
+                    width="medium",
                 ),
                 "repo_description": st.column_config.TextColumn(
                     "Repository Description",
@@ -453,7 +460,7 @@ def main():
 
         plot_by = st.selectbox(
             "Plot total resources by",
-            options=["topic", "domain"],
+            options=["topic", "domain", "published"],
             index=0,
         )
 
