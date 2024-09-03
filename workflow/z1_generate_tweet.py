@@ -239,7 +239,7 @@ def main():
     )
 
     arxiv_code_idx = vs.select_most_interesting_paper(
-        abstracts_str, model="gpt-4o-mini"
+        abstracts_str, model="gpt-4o"
     )
     arxiv_code = candidate_arxiv_codes[arxiv_code_idx - 1]
 
@@ -268,6 +268,12 @@ def main():
         f"```**Title: {paper_title}**\n**Authors: {author}**\n{paper_summary}```"
     )
     post_tweet = f"arxiv link: https://arxiv.org/abs/{arxiv_code}\nllmpedia link: https://llmpedia.streamlit.app/?arxiv_code={arxiv_code}"
+
+    repo_df = db.load_repositories(arxiv_code)
+    if not repo_df.empty:
+        repo_link = repo_df["repo_url"].values[0]
+        if repo_link:
+            post_tweet += f"\nrepo: {repo_link}"
 
     ## Run model.
     tweet = vs.write_tweet(

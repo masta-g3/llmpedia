@@ -178,6 +178,38 @@ def scrape_ai_news_papers(start_date, end_date=None):
     return df
 
 
+def scrape_llm_research_papers():
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    response = requests.get("https://www.llmsresearch.com", headers=headers)
+    soup = BeautifulSoup(response.content, "html.parser")
+    hyperlinks = soup.find_all("a", href=lambda href: href and href.startswith("/p/summary"))
+    df = pd.DataFrame(columns=["arxiv_code", "title"])
+    
+    for link in hyperlinks:
+        time.sleep(1)  # To avoid overwhelming the server
+        paper_url = "https://www.llmsresearch.com" + link['href']
+        paper_response = requests.get(paper_url, headers=headers)
+        paper_soup = BeautifulSoup(paper_response.content, "html.parser")
+        
+        arxiv_links = paper_soup.find_all("a", class_="link", href=lambda href: href and "arxiv.org/abs" in href)
+        
+        for arxiv_link in arxiv_links:
+            href = arxiv_link['href']
+            arxiv_code = href.split("/")[-1].split("?")[0].split("v")[0]  # Extract code and remove version
+            title = arxiv_link.get_text(strip=True)
+            
+            df = df._append(
+                {"arxiv_code": arxiv_code, "title": title},
+                ignore_index=True
+            )
+    
+    df.drop_duplicates(subset="arxiv_code", keep="first", inplace=True)
+    return df
+    
+    
+
 def scrape_emergentmind_papers():
     url = "https://www.emergentmind.com/feeds/rss"
     feed = feedparser.parse(url)
@@ -211,9 +243,12 @@ def main():
     print("Scraping Emergent Mind...")
     em_df = scrape_emergentmind_papers()
     print(f"Collected {em_df.shape[0]} papers.")
+    print("Scraping LLM Research ...")
+    llmr_df = scrape_llm_research_papers()
+    print(f"Collected {llmr_df.shape[0]} papers.")
 
     ## Combine and extract new codes.
-    df = pd.concat([hf_df, rsrch_df, dair_df, ai_news_df, em_df], ignore_index=True)
+    df = pd.concat([hf_df, rsrch_df, dair_df, ai_news_df, em_df, llmr_df], ignore_index=True)
     df.drop_duplicates(subset="arxiv_code", keep="first", inplace=True)
     ## Remove "vX" from arxiv codes if present.
     df["arxiv_code"] = df["arxiv_code"].str.replace(r"v\d+$", "", regex=True)

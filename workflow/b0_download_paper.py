@@ -83,7 +83,7 @@ def main():
         arxiv_code = re.sub(r"v\d+$", "", arxiv_code)
 
         ## Verify it's an LLM paper.
-        is_llm_paper = vs.verify_llm_paper(new_content[:1500] + " ...[continued]...")
+        is_llm_paper = vs.verify_llm_paper(new_content[:1500] + " ...[continued]...", model="gpt-4o")
         if not is_llm_paper["is_related"]:
             print(f"\n'{paper_name}' - '{title}' is not a LLM paper. Skipping...")
             parsed_list.append(paper_name)

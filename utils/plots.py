@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import colorcet as cc
 import datetime
+from typing import Tuple
 
 pio.templates.default = "plotly"
 
@@ -37,10 +38,10 @@ def plot_publication_counts(df: pd.DataFrame, cumulative=False) -> go.Figure:
     return fig
 
 
-def plot_activity_map(df_year: pd.DataFrame) -> (go.Figure, pd.DataFrame):
+def plot_activity_map(df_year: pd.DataFrame) -> Tuple[go.Figure, pd.DataFrame]:
     """Creates a calendar heatmap plot along with corresponding map of dates in a DF."""
     colors = ["#003366", "#005599", "#0077CC", "#3399FF", "#66B2FF", "#99CCFF"]
-    colors = ["#994400", "#CC6600", "#FF8833", "#FFAA66", "#FFCC99"]
+    colors = ["#994400", "#CC6600", "#FF8833", "#FF8833", "#FFCC99"]
 
     week_max_dates = (
         df_year.groupby(df_year["published"].dt.isocalendar().week)["published"]
@@ -179,7 +180,7 @@ def plot_repos_by_feature(
         count_df["topic_label"] = count_df[plot_by].dt.strftime("%b %d")
 
     fig = px.bar(count_df, x=plot_by, y="repo_title", title=None, hover_data=[plot_by])
-    fig.update_xaxes(title=None, tickfont=dict(size=15), tickangle=75)
+    fig.update_xaxes(title=None, tickfont=dict(size=13), tickangle=75)
     fig.update_yaxes(titlefont=dict(size=14), title="# Resources")
     fig.update_traces(marker_color="darkorange", marker_line_color="orange")
     return fig

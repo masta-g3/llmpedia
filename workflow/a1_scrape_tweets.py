@@ -32,6 +32,9 @@ tweet_accounts = [
     "arankomatsuzaki",
     "papers_anon",
     "fly51fly",
+    "gm8xx8",
+    "cwolferesearch",
+    "HEI"
 ]
 
 

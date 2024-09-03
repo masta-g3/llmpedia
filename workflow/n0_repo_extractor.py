@@ -29,7 +29,9 @@ def main():
         row = content_df.iloc[0]
         paper_markdown = pu.format_paper_summary(row)
         if "http" in paper_markdown:
-            tmp_resources = vs.extract_document_repo(paper_markdown)
+            tmp_resources = vs.extract_document_repo(paper_markdown, model="gpt-4o")
+            for r in tmp_resources.resources:
+                r.arxiv_code = arxiv_code
             if tmp_resources.resources:
                 tmp_resources_dicts = [e.model_dump() for e in tmp_resources.resources]
                 external_resources.extend(tmp_resources_dicts)

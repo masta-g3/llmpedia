@@ -152,7 +152,7 @@ def summarize_doc_chunk_mlx(paper_title: str, document: str, mlx_model, mlx_toke
     return summary
 
 
-def verify_llm_paper(paper_content: str, model="claude-3-haiku-20240307"):
+def verify_llm_paper(paper_content: str, model="gpt-4o"):
     """Verify if a paper is about LLMs."""
     is_llm_paper = run_instructor_query(
         ps.LLM_VERIFIER_SYSTEM_PROMPT,
@@ -164,7 +164,7 @@ def verify_llm_paper(paper_content: str, model="claude-3-haiku-20240307"):
     return is_llm_paper
 
 
-def review_llm_paper(paper_content: str, model="claude-3-haiku-20240307"):
+def review_llm_paper(paper_content: str, model="gpt-4o"):
     """Review a paper."""
     review = run_instructor_query(
         ps.SUMMARIZER_SYSTEM_PROMPT,
@@ -176,7 +176,7 @@ def review_llm_paper(paper_content: str, model="claude-3-haiku-20240307"):
 
 
 def convert_notes_to_narrative(
-    paper_title: str, notes: str, model: str = "claude-3-haiku-20240307"
+    paper_title: str, notes: str, model: str = "gpt-4o"
 ) -> str:
     """Convert notes to narrative."""
     narrative = run_instructor_query(

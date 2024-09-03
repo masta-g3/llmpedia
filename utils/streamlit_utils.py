@@ -182,10 +182,11 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
     )
     if datacard_btn:
         with st.spinner("*Loading data card...*"):
+            db.log_visit(f"data_card_{paper_code}")
             html_card = dc.generate_data_card_html(paper_code)
             if html_card:
 
-                @st.experimental_dialog(paper_title, width="large")
+                @st.dialog(paper_title, width="large")
                 def render():
                     components.html(html_card, height=700, scrolling=True)
 

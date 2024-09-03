@@ -44,6 +44,8 @@
 - [x]  Factor main sector two.
 
 ## v.1.3.2
+- [x] Add repos to tweet insights.
 - [ ] LLM version config.
 - [ ] Productionize fables.
-- [ ] Remove langchain pgvector.
+- [x] Remove langchain pgvector.
+- [x] Add LLM research.

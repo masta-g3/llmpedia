@@ -1,6 +1,6 @@
+import streamlit as st
 import json
 from datetime import timedelta
-import streamlit as st
 
 from streamlit_plotly_events import plotly_events
 from typing import List, Tuple

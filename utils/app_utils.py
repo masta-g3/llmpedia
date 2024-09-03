@@ -391,13 +391,14 @@ def resolve_query(
     documents: list[Document],
     response_length: str,
     llm_model="gpt-4o",
+    temperature=0.8
 ):
     system_message = "You are an AI academic focused on Large Language Models. Please answer the user query leveraging the information provided in the context."
     user_message = ps.create_resolve_user_prompt(
         user_question, documents, response_length
     )
     response = run_instructor_query(
-        system_message, user_message, None, llm_model=llm_model
+        system_message, user_message, None, llm_model=llm_model, temperature=temperature
     )
     return response
 
@@ -458,6 +459,7 @@ def query_llmpedia_new(
             filtered_documents,
             response_length,
             llm_model=response_llm_model,
+            temperature=0.8
         )
         answer_augment = add_links_to_text_blob(answer)
         referenced_arxiv_codes = extract_arxiv_codes(answer_augment)
