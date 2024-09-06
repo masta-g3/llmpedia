@@ -294,7 +294,7 @@ query_config = json.loads(query_config_json)
 def interrogate_paper(question: str, arxiv_code: str) -> str:
     """Ask a question about a paper."""
     context = db.get_extended_notes(arxiv_code, expected_tokens=8000)
-    system_message = "Read carefully the whitepaper, reason about the user question, and provide a comprehensive, git helpful and truthful response. Be direct and concise, using layman's language that is easy to understand. Avoid filler content, and reply with your answer in a single short sentence or paragraph and nothing else (no preambles, greetings, etc.)."
+    system_message = "Read carefully the whitepaper, reason about the user question, and provide a comprehensive, helpful and truthful response. Be direct and to the point, using layman's language that is easy to understand. Avoid filler content, and reply with your answer in a consice paragraph and nothing else (no preambles, greetings, etc.)."
     user_message = ps.create_interrogate_user_prompt(question, context)
     response = run_instructor_query(
         system_message, user_message, None, llm_model="gpt-4o"

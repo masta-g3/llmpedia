@@ -1,11 +1,9 @@
 import streamlit as st
-import json
 from datetime import timedelta
 
 from streamlit_plotly_events import plotly_events
 from typing import List, Tuple
 import pandas as pd
-import numpy as np
 
 import utils.streamlit_utils as su
 import utils.app_utils as au

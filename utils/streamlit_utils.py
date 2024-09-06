@@ -268,7 +268,10 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
     #     assessment_cols[5].caption(f"{paper['enjoyable_analysis']}")
 
     paper_repos = st.session_state["repos"]
-    paper_repos = paper_repos.loc[paper_code]
+    if paper_code in paper_repos.index:
+        paper_repos = paper_repos.loc[paper_code]
+    else:
+        paper_repos = pd.DataFrame()
 
     if len(paper_repos) > 0:
         with st.expander("🔗 **Repos & Other Resources**", expanded=False):
