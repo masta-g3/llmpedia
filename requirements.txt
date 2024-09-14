@@ -4,11 +4,11 @@ colorcet==3.0.1
 instructor==1.4.1
 langchain==0.2.1
 langchain-community==0.2.1
-langchain-anthropic~=0.1.15
+langchain-anthropic==0.1.15
 langchain-cohere==0.1.5
-langchain-groq==0.1.2
-langchain-together~=0.0.2
-langchain-openai~=0.1.8
+langchain-groq==0.1.4
+langchain-together==0.0.2
+langchain-openai==0.1.8
 numpy==1.24.4
 streamlit==1.37.1
 streamlit-plotly-events==0.0.6
