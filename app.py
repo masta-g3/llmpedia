@@ -302,7 +302,7 @@ def main():
             "🔍 Paper Details",
             "🤖 Chat Assistant",
             "⚙️  Links & Repositories",
-            "🗞 Weekly Release Report",
+            "🗞 Weekly Report",
         ]
     )
 
