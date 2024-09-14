@@ -122,6 +122,7 @@ def summarize_doc_chunk(paper_title: str, document: str, model="local"):
         ps.SUMMARIZE_BY_PARTS_SYSTEM_PROMPT,
         ps.SUMMARIZE_BY_PARTS_USER_PROMPT.format(content=document),
         llm_model=model,
+        process_id="summarize_doc_chunk",
     )
     summary = summary.strip()
     if "<summary>" in summary:
@@ -159,6 +160,7 @@ def verify_llm_paper(paper_content: str, model="gpt-4o"):
         ps.LLM_VERIFIER_USER_PROMPT.format(paper_content=paper_content),
         model=ps.LLMVerifier,
         llm_model=model,
+        process_id="verify_llm_paper",
     )
     is_llm_paper = is_llm_paper.dict()
     return is_llm_paper
@@ -171,6 +173,7 @@ def review_llm_paper(paper_content: str, model="gpt-4o"):
         ps.SUMMARIZER_USER_PROMPT.format(paper_content=paper_content),
         model=ps.PaperReview,
         llm_model=model,
+        process_id="review_llm_paper",
     )
     return review
 
@@ -183,6 +186,7 @@ def convert_notes_to_narrative(
         ps.NARRATIVE_SUMMARY_SYSTEM_PROMPT.format(paper_title=paper_title),
         ps.NARRATIVE_SUMMARY_USER_PROMPT.format(previous_notes=notes),
         llm_model=model,
+        process_id="convert_notes_to_narrative",
     )
     if "<summary>" in narrative:
         narrative = narrative.split("<summary>")[1].split("</summary>")[0]
@@ -199,6 +203,7 @@ def convert_notes_to_bullets(
             paper_title=paper_title, previous_notes=notes
         ),
         llm_model=model,
+        process_id="convert_notes_to_bullets",
     ).strip()
     if "<summary>" in bullet_list:
         bullet_list = bullet_list.split("<summary>")[1].split("</summary>")[0]
@@ -215,6 +220,7 @@ def copywrite_summary(paper_title, previous_notes, narrative, model="GPT-3.5-Tur
             previous_summary=narrative,
         ),
         llm_model=model,
+        process_id="copywrite_summary",
     )
     if "<improved_summary>" in copywritten:
         copywritten = copywritten.split("<improved_summary>")[1].split(
@@ -231,6 +237,7 @@ def organize_notes(paper_title, notes, model="GPT-3.5-Turbo"):
             paper_title=paper_title, previous_notes=notes
         ),
         llm_model=model,
+        process_id="organize_notes",
     )
     return organized_sections
 
@@ -241,6 +248,7 @@ def convert_notes_to_markdown(paper_title, notes, model="GPT-3.5-Turbo"):
         ps.MARKDOWN_SYSTEM_PROMPT.format(paper_title=paper_title),
         ps.MARKDOWN_USER_PROMPT.format(previous_notes=notes),
         llm_model=model,
+        process_id="convert_notes_to_markdown",
     )
     return markdown
 
@@ -251,7 +259,8 @@ def rephrase_title(title, model="gpt-4o"):
         ps.TITLE_REPHRASER_SYSTEM_PROMPT,
         ps.TITLE_REPHRASER_USER_PROMPT.format(title=title),
         llm_model=model,
-        temperature=1.2,
+        temperature=0.6,
+        process_id="rephrase_title",
     ).strip()
     return phrase
 
@@ -264,6 +273,7 @@ def generate_weekly_report(weekly_content_md: str, model="gpt-4o"):
         model=ps.WeeklyReview,
         llm_model=model,
         temperature=0.8,
+        process_id="generate_weekly_report",
     )
     return weekly_report
 
@@ -275,6 +285,7 @@ def generate_weekly_highlight(weekly_content_md: str, model="gpt-4o"):
         ps.WEEKLY_HIGHLIGHT_USER_PROMPT.format(weekly_content=weekly_content_md),
         llm_model=model,
         temperature=0.5,
+        process_id="generate_weekly_highlight",
     )
     return weekly_highlight
 
@@ -287,6 +298,7 @@ def extract_document_repo(paper_content: str, model="gpt-4o"):
         llm_model=model,
         model=ps.ExternalResources,
         temperature=0.0,
+        process_id="extract_document_repo",
     )
     return weekly_repos
 
@@ -309,6 +321,7 @@ def select_most_interesting_paper(arxiv_abstracts: str, model: str = "claude-hai
         ps.INTERESTING_SYSTEM_PROMPT,
         ps.INTERESTING_USER_PROMPT.format(abstracts=arxiv_abstracts),
         llm_model=model,
+        process_id="select_most_interesting_paper",
     )
     abstract_idx = int(
         response.split("<most_interesting_abstract>")[1].split(
@@ -331,7 +344,11 @@ def write_tweet(
         previous_tweets=previous_tweets, tweet_facts=tweet_facts
     )
     tweet = run_instructor_query(
-        system_prompt, user_prompt, llm_model=model, temperature=temperature
+        system_prompt,
+        user_prompt,
+        llm_model=model,
+        temperature=temperature,
+        process_id="write_tweet",
     )
     return tweet
 
@@ -349,6 +366,11 @@ def edit_tweet(
         tweet=tweet, tweet_facts=tweet_facts
     )
     edited_tweet = run_instructor_query(
-        system_prompt, user_prompt, llm_model=model, temperature=temperature
+        system_prompt,
+        user_prompt,
+        llm_model=model,
+        temperature=temperature,
+        process_id="edit_tweet",
     )
+    edited_tweet = edited_tweet.split("<final_tweet>")[1].split("</final_tweet>")[0]
     return edited_tweet

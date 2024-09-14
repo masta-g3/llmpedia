@@ -8,14 +8,11 @@ os.chdir(os.environ.get("PROJECT_PATH"))
 
 import pandas as pd
 from tqdm import tqdm
-import tiktoken
 
-from langchain_community.callbacks import get_openai_callback
 import utils.paper_utils as pu
 import utils.vector_store as vs
 import utils.db as db
 
-token_encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
 LOCAL_PAPER_PATH = os.path.join(os.environ.get("PROJECT_PATH"), "data", "summaries")
 RETRIES = 1
 
@@ -31,13 +28,13 @@ def main():
 
     arxiv_codes = sorted(arxiv_codes)[::-1]
     for arxiv_code in tqdm(arxiv_codes):
-        new_content = db.get_extended_notes(arxiv_code, expected_tokens=2000)
+        new_content = db.get_extended_notes(arxiv_code, expected_tokens=1500)
 
         ## Try to run LLM process up to 3 times.
         success = False
         for i in range(RETRIES):
             try:
-                summary = vs.review_llm_paper(new_content, model="gpt-4o")
+                summary = vs.review_llm_paper(new_content, model="claude-3-5-sonnet-20240620")
                 success = True
                 break
             except Exception as e:
@@ -65,7 +62,6 @@ def main():
         flat_entries["arxiv_code"] = arxiv_code
         flat_entries["tstp"] = pd.Timestamp.now()
         db.upload_to_db(flat_entries, pu.db_params, "summaries")
-        # print(f"Added '{arxiv_code}' to summaries table.")
 
     print("Done!")
 

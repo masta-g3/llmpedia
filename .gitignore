@@ -1,8 +1,15 @@
 .streamlit/secrets.toml
 .env
+.DS_Store
 */__pycache__/
 data/
 imgs/
 workflow_old/
 notebooks/
 */.DS_Store
+.idea/
+.history/
+front_page/
+eval_apps/
+.vscode/
+*.log

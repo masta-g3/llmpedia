@@ -1,0 +1,21 @@
+version: '3'
+services:
+  llmpedia:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./imgs:/app/imgs
+      - .:/app/src
+    ports:
+      - "8188:8188"  # ComfyUI interface
+
+  cronicle:
+    image: jhuckaby/cronicle
+    ports:
+      - "3012:3012"  # Cronicle web interface
+    volumes:
+      - ./cronicle_data:/opt/cronicle/data
+    environment:
+      - TZ=UTC

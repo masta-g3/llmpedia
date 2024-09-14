@@ -28,7 +28,8 @@ def main():
             p.DATA_CARD_SYSTEM_PROMPT,
             p.PDATA_CARD_USER_PROMPT.format(title=title, content=content),
             llm_model="claude-3-5-sonnet-20240620",
-            temperature=0.7
+            temperature=0.5,
+            process_id="data_card"
         )
         summary = res_str.split("<summary>")[1].split("</summary>")[0].strip()
         script = res_str.split("<script>")[1].split("</script>")[0].strip()

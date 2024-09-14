@@ -243,9 +243,11 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             key=f"chat_{paper_code}{name}",
         )
         if st.button("Send", key=f"send_{paper_code}{name}"):
-            response = au.interrogate_paper(paper_question, paper_code)
+            response = au.interrogate_paper(
+                paper_question, paper_code, model="claude-3-5-sonnet-20240620"
+            )
             db.log_qna_db(f"[{paper_code}] ::: {paper_question}", response)
-            st.write(response)
+            st.chat_message("assistant").write(response)
 
     # if not pd.isna(paper["repo_url"]):
     #     with st.expander("🔗 **Repositories & Libraries**", expanded=False):
@@ -290,8 +292,8 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
     with st.expander(f"📚 **Similar Papers**", expanded=False):
         papers_df = st.session_state["papers"]
         if paper_code in papers_df.index:
-            similar_codes = papers_df.loc[paper_code]["similar_docs"]
-            if any(pd.isna(similar_codes)):
+            similar_codes = pd.Series(papers_df.loc[paper_code]["similar_docs"])
+            if pd.isna(similar_codes).any():
                 st.write("Not available yet. Check back soon!")
             else:
                 similar_codes = [d for d in similar_codes if d in papers_df.index]

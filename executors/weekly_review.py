@@ -89,8 +89,8 @@ def main(date_str: str):
     weekly_content_md += f"```{previous_themes}```"
 
     ## Generate summary.
-    weekly_summary_obj = vs.generate_weekly_report(weekly_content_md, model="gpt-4o")
-    weekly_highlight = vs.generate_weekly_highlight(weekly_content_md, model="gpt-4o")
+    weekly_summary_obj = vs.generate_weekly_report(weekly_content_md, model="gpt-4o-2024-08-06")
+    weekly_highlight = vs.generate_weekly_highlight(weekly_content_md, model="gpt-4o-2024-08-06")
 
     ## Format content.
     date = pd.to_datetime(date_str)

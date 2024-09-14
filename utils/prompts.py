@@ -301,7 +301,7 @@ COPYWRITER_USER_PROMPT = """
 - The summary should read fluently and be engaging, as it will be published on a modern encyclopedia on Large Language Models.
 - The original text was written by an expert, so please do not remove, reinterpret or edit any valuable information.
 - Make sure descriptions of new models or methodologies are provided in detail using clear, layman terms. The reader should be able to reimplement some of the techniques described after reading the summary.
-- Avoid bombastic language and unnecessary qualifiers (e.g.: groundbreaking, innovative, revolutionary, etc.).
+- Use clear and straightforward language, avoiding exaggerated or unnecessary qualifiers (e.g.: groundbreaking, innovative, revolutionary, etc.).
 - Avoid repetition and filler content.
 - REMEMBER: Your output should be two paragraphs, no more!
 </guidelines>
@@ -478,7 +478,7 @@ Read over carefully over the following information and use it to inform your twe
 - Follow your previous tweets' style and tone, which use a sober, direct and neutral language.
 - Do not include a call to action or hashtags. 
 - Use an emoji at the beginning of each paragraph that reflects its content.
-- Use se simple, direct and neutral layman's language. Do not use the word "delve".
+- Use simple, direct and neutral layman's language. Do not use the word "delve".
 - Do not make exaggerated claims and remain neutral on your statements. Use few adjectives, only when needed.
 - Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
 - The objective of your tweet is to be as informative and insightful as possible. Include precise statements and numerical figures in an engaging way.
@@ -505,14 +505,14 @@ Read over carefully over the following information and use it to inform your twe
 These are some of your previous tweets. Use them as reference to compose a tweet in similar style and tone. Also notice how you always provide enough context for the reader to understand the insight and include numerical figures when relevant.
 
 <previous_tweets>
-- From 𝗜𝗻𝗱𝘂𝗰𝘁𝗶𝘃𝗲 𝗼𝗿 𝗗𝗲𝗱𝘂𝗰𝘁𝗶𝘃𝗲? 𝗥𝗲𝘁𝗵𝗶𝗻𝗸𝗶𝗻𝗴 𝘁𝗵𝗲 𝗙𝘂𝗻𝗱𝗮𝗺𝗲𝗻𝘁𝗮𝗹 𝗥𝗲𝗮𝘀𝗼𝗻𝗶𝗻𝗴 𝗔𝗯𝗶𝗹𝗶𝘁𝗶𝗲𝘀 𝗼𝗳 𝗟𝗟𝗠𝘀: LLMs demonstrate remarkable proficiency in inductive reasoning—the ability to extract general principles from specific examples—often achieving near-perfect accuracy in tasks like pattern recognition and language understanding. This strength allows them to excel in areas such as sentiment analysis and text classification. However, these models struggle with deductive reasoning, especially in counterfactual scenarios. For instance, given the rule "All zorbs are blue" and asked "If X is not blue, is X a zorb?", LLMs often falter, highlighting a crucial area for improvement in logical inference and hypothetical reasoning.
-- From 𝗠𝗶𝗻𝗱𝗦𝗲𝗮𝗿𝗰𝗵: 𝗠𝗶𝗺𝗶𝗰𝗸𝗶𝗻𝗴 𝗛𝘂𝗺𝗮𝗻 𝗠𝗶𝗻𝗱𝘀 𝗘𝗹𝗶𝗰𝗶𝘁𝘀 𝗗𝗲𝗲𝗽 𝗔𝗜 𝗦𝗲𝗮𝗿𝗰𝗵𝗲𝗿: MindSearch uses a multi-agent system to mimic human thinking, breaking down complex queries into simpler tasks and retrieving information hierarchically. It processes info from 300+ web pages in 3 minutes—equivalent to 3 hours of human work. The system employs a Directed Acyclic Graph (DAG) for query breakdown and generates Python code dynamically. This approach enhances the reasoning capabilities of large language models (LLMs), allowing for more effective information processing and retrieval.
-- From 𝗩𝗶𝘀𝘂𝗮𝗹 𝗥𝗶𝗱𝗱𝗹𝗲𝘀: 𝗮 𝗖𝗼𝗺𝗺𝗼𝗻𝘀𝗲𝗻𝘀𝗲 𝗮𝗻𝗱 𝗪𝗼𝗿𝗹𝗱 𝗞𝗻𝗼𝘄𝗹𝗲𝗱𝗴𝗲 𝗖𝗵𝗮𝗹𝗹𝗲𝗻𝗴𝗲 𝗳𝗼𝗿 𝗟𝗮𝗿𝗴𝗲 𝗩𝗶𝘀𝗶𝗼𝗻 𝗮𝗻𝗱 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗠𝗼𝗱𝗲𝗹𝘀: Current vision-language models struggle with visual riddles that require complex reasoning and real-world knowledge. In a recent study, humans achieved 82% accuracy on these challenging puzzles, while the top-performing AI model, Gemini-Pro-1.5, only reached 40%. Interestingly, when provided with additional hints or context, model performance improved dramatically, jumping to 65% accuracy. This significant boost highlights how heavily these models rely on extra contextual information to solve problems effectively. The study also revealed that older models like GPT-4V performed even worse, with only a 32% accuracy rate, showcasing the rapid progress in the field but also emphasizing the considerable gap that still exists between human and machine reasoning capabilities in complex visual tasks.
-- From 𝗣𝗲𝗿𝘀𝗼𝗻𝗮𝗚𝘆𝗺: 𝗘𝘃𝗮𝗹𝘂𝗮𝘁𝗶𝗻𝗴 𝗣𝗲𝗿𝘀𝗼𝗻𝗮 𝗔𝗴𝗲𝗻𝘁𝘀 𝗮𝗻𝗱 𝗟𝗟𝗠𝘀: Despite being more advanced, Claude 3.5 Sonnet shows only a 2.97% improvement in persona adherence over GPT 3.5. This suggests that larger and more complex models don't necessarily perform better in persona-based tasks. PersonaGym, a dynamic evaluation framework, and PersonaScore, an automated metric, reveal this through analysis of six LLMs across 200 personas and 10,000 questions. Interestingly, GPT-4 demonstrated the highest persona adherence at 76.5%, while Claude 3.5 Sonnet achieved 75.2%. The study also found that model performance varied significantly across different persona types, with historical figures being particularly challenging. 
-- From 𝗗𝗲𝗺𝘆𝘀𝘁𝗶𝗳𝘆𝗶𝗻𝗴 𝗩𝗲𝗿𝗯𝗮𝘁𝗶𝗺 𝗠𝗲𝗺𝗼𝗿𝗶𝘇𝗮𝘁𝗶𝗼𝗻 𝗶𝗻 𝗟𝗮𝗿𝗴𝗲 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗠𝗼𝗱𝗲𝗹𝘀: The study reveals that LLMs require substantial repetition to memorize text—at least 1 in 10K examples for smaller models and 1 in 5M for larger ones. This memorization is intricately linked to general language skills, making it challenging to eliminate without compromising the model's overall performance. Interestingly, the research also found that memorization patterns vary across different types of content, with factual information being more readily retained than abstract concepts. Additionally, the study suggests that this memorization phenomenon may play a crucial role in the model's ability to generate coherent and contextually appropriate responses.
-- From 𝗣𝗘𝗥𝗦𝗢𝗡𝗔: 𝗔 𝗥𝗲𝗽𝗿𝗼𝗱𝘂𝗰𝗶𝗯𝗹𝗲 𝗧𝗲𝘀𝘁𝗯𝗲𝗱 𝗳𝗼𝗿 𝗣𝗹𝘂𝗿𝗮𝗹𝗶𝘀𝘁𝗶𝗰 𝗔𝗹𝗶𝗴𝗻𝗺𝗲𝗻𝘁: Reinforcement learning from human feedback (RLHF) often embeds majority opinions in models, sidelining minority views. PERSONA's 1,586 synthetic personas and 317,200 feedback pairs reveal the challenge of achieving pluralistic alignment. The study found that models trained on diverse feedback exhibited up to 30% less bias towards majority opinions compared to traditional RLHF methods. However, these models also showed a 15% decrease in task performance, highlighting the trade-off between inclusivity and efficiency. The research suggests a single model may not satisfy all group preferences, pointing to the potential need for specialized models catering to different demographic segments or ideological groups.
-- From 𝗣𝗵𝘆𝘀𝗶𝗰𝘀 𝗼𝗳 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗠𝗼𝗱𝗲𝗹𝘀: 𝗣𝗮𝗿𝘁 𝟮.𝟮, 𝗛𝗼𝘄 𝘁𝗼 𝗟𝗲𝗮𝗿𝗻 𝗙𝗿𝗼𝗺 𝗠𝗶𝘀𝘁𝗮𝗸𝗲𝘀 𝗼𝗻 𝗚𝗿𝗮𝗱𝗲-𝗦𝗰𝗵𝗼𝗼𝗹 𝗠𝗮𝘁𝗵 𝗣𝗿𝗼𝗯𝗹𝗲𝗺𝘀: Pretraining language models with "retry data"—math problems that include intentional errors followed by corrections—boosts reasoning accuracy more than error-free data. Higher error rates (up to 0.5) in training data improve performance, as models learn to detect and correct mistakes, achieving higher accuracy without extra prompting or multi-stage generation.
-- From 𝗦𝗲𝗹𝗲𝗰𝘁𝗶𝘃𝗲 𝗣𝗿𝗲𝗳𝗲𝗿𝗲𝗻𝗰𝗲 𝗢𝗽𝘁𝗶𝗺𝗶𝘇𝗮𝘁𝗶𝗼𝗻 𝘃𝗶𝗮 𝗧𝗼𝗸𝗲𝗻-𝗟𝗲𝘃𝗲𝗹 𝗥𝗲𝘄𝗮𝗿𝗱 𝗙𝘂𝗻𝗰𝘁𝗶𝗼𝗻 𝗘𝘀𝘁𝗶𝗺𝗮𝘁𝗶𝗼𝗻: SePO enhances large language model alignment by selectively training on only 30% of tokens. A small 'oracle' model scores token importance, selecting top tokens from good responses and bottom ones from bad responses for training. This selective approach improves performance with minimal data, enabling a weak oracle to guide a stronger model with 16.8x parameter efficiency. SePO excels in tasks needing concise responses, topping MT-Bench scores. However, it underperforms in math and coding tasks, where its selective strategy may miss crucial sequential logic by omitting some tokens.
+- [[Inductive or Deductive? Rethinking the Fundamental Reasoning Abilities of LLMs]]: LLMs demonstrate remarkable proficiency in inductive reasoning—the ability to extract general principles from specific examples—often achieving near-perfect accuracy in tasks like pattern recognition and language understanding. This strength allows them to excel in areas such as sentiment analysis and text classification. However, these models struggle with deductive reasoning, especially in counterfactual scenarios. For instance, given the rule "All zorbs are blue" and asked "If X is not blue, is X a zorb?", LLMs often falter, highlighting a crucial area for improvement in logical inference and hypothetical reasoning.
+- [[MindSearch: Mimicking Human Minds Elicits Deep AI Searcher]]: MindSearch uses a multi-agent system to mimic human thinking, breaking down complex queries into simpler tasks and retrieving information hierarchically. It processes info from 300+ web pages in 3 minutes—equivalent to 3 hours of human work. The system employs a Directed Acyclic Graph (DAG) for query breakdown and generates Python code dynamically. This approach enhances the reasoning capabilities of large language models (LLMs), allowing for more effective information processing and retrieval.
+- [[Visual Riddles: a Commonsense and World Knowledge Challenge for Large Vision and Language Models]]: Current vision-language models struggle with visual riddles that require complex reasoning and real-world knowledge. In a recent study, humans achieved 82% accuracy on these challenging puzzles, while the top-performing AI model, Gemini-Pro-1.5, only reached 40%. Interestingly, when provided with additional hints or context, model performance improved dramatically, jumping to 65% accuracy. This significant boost highlights how heavily these models rely on extra contextual information to solve problems effectively. The study also revealed that older models like GPT-4V performed even worse, with only a 32% accuracy rate, showcasing the rapid progress in the field but also emphasizing the considerable gap that still exists between human and machine reasoning capabilities in complex visual tasks.
+- [[PersonaGym: Evaluating Persona Agents and LLMs]]: Despite being more advanced, Claude 3.5 Sonnet shows only a 2.97% improvement in persona adherence over GPT 3.5. This suggests that larger and more complex models don't necessarily perform better in persona-based tasks. PersonaGym, a dynamic evaluation framework, and PersonaScore, an automated metric, reveal this through analysis of six LLMs across 200 personas and 10,000 questions. Interestingly, GPT-4 demonstrated the highest persona adherence at 76.5%, while Claude 3.5 Sonnet achieved 75.2%. The study also found that model performance varied significantly across different persona types, with historical figures being particularly challenging.
+- [[Demystifying Verbatim Memorization in Large Language Models]]: The study reveals that LLMs require substantial repetition to memorize text—at least 1 in 10K examples for smaller models and 1 in 5M for larger ones. This memorization is intricately linked to general language skills, making it challenging to eliminate without compromising the model's overall performance. Interestingly, the research also found that memorization patterns vary across different types of content, with factual information being more readily retained than abstract concepts. Additionally, the study suggests that this memorization phenomenon may play a crucial role in the model's ability to generate coherent and contextually appropriate responses.
+- [[PERSONA: A Reproducible Testbed for Pluralistic Alignment]]: Reinforcement learning from human feedback (RLHF) often embeds majority opinions in models, sidelining minority views. PERSONA's 1,586 synthetic personas and 317,200 feedback pairs reveal the challenge of achieving pluralistic alignment. The study found that models trained on diverse feedback exhibited up to 30% less bias towards majority opinions compared to traditional RLHF methods. However, these models also showed a 15% decrease in task performance, highlighting the trade-off between inclusivity and efficiency. The research suggests a single model may not satisfy all group preferences, pointing to the potential need for specialized models catering to different demographic segments or ideological groups.
+- [[Physics of Language Models: Part 2.2, How to Learn From Mistakes on Grade-School Math Problems]]: Pretraining language models with "retry data"—math problems that include intentional errors followed by corrections—boosts reasoning accuracy more than error-free data. Higher error rates (up to 0.5) in training data improve performance, as models learn to detect and correct mistakes, achieving higher accuracy without extra prompting or multi-stage generation.
+- [[Selective Preference Optimization via Token-Level Reward Function Estimation]]: SePO enhances large language model alignment by selectively training on only 30% of tokens. A small 'oracle' model scores token importance, selecting top tokens from good responses and bottom ones from bad responses for training. This selective approach improves performance with minimal data, enabling a weak oracle to guide a stronger model with 16.8x parameter efficiency. SePO excels in tasks needing concise responses, topping MT-Bench scores. However, it underperforms in math and coding tasks, where its selective strategy may miss crucial sequential logic by omitting some tokens.
 </previous_tweets>
 
 <guidelines>
@@ -520,7 +520,7 @@ These are some of your previous tweets. Use them as reference to compose a tweet
 - Do not necessarily pick the main conclusion, but rather the most unexpected or intriguing insight.
 - Write a comprehensive tweet about this fact that is engaging and informative.
 - Follow closely your previous tweets as reference to guide your style.
-- Start the tweet with 'From [[XXX]] ' followed by the insight, where [[XXX]] is the title of the paper in double brackets.
+- Start the tweet with '[[XXX]] ' followed by the insight, where [[XXX]] is the title of the paper in double brackets.
 - Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
 - Do not use boilerplate phrases such as 'this highlights...', 'this underscores...', etc.
 - Do not add a conclusion at the end of your tweet.
@@ -529,63 +529,107 @@ These are some of your previous tweets. Use them as reference to compose a tweet
 - Briefly explain all new terms and acronyms (except the most common ones - LLM, MMLU, ML, etc.).
 - Use direct and clear language. The tweet must be easy to read in one pass, fluently.
 - Write with a clear flow where you explain step by step. 
-</guidelines>"""
+</guidelines>
+"""
 
 
-TWEET_EDIT_SYSTEM_PROMPT = """You are an expert copywriter. Provide an edited version of the presented tweet following the guidelines provided below."""
+TWEET_EDIT_SYSTEM_PROMPT = """You are an expert scientific tweet editor. Provide an edited version of the presented tweet following the guidelines provided below."""
 
-TWEET_EDIT_USER_PROMPT = """# TWEET
-{tweet}
+# TWEET_EDIT_USER_PROMPT = """# TWEET
+# {tweet}
 
-# GUIDELINES 
-- Use direct and clear language. The tweet must be easy to read in one pass, fluently.
-- Reduce modifier and filler words; be very direct and to the point.
-- Remove duplicate content across the paragraphs (but keep three paragraphs).
-- Remove or rephrase parts that are not clear or could not be understood. Explanations should be given using layman terms.
-- Do not remove references to technical terms, key results, or change the meaning of the tweet.
-- Do not remove emojis, but replace them for more unusual and interesting ones.
-- Start the tweet with an interesting emoji followed by'Today's LLM paper review "XXX"...', where "XXX" is the title of the paper in double quotes.
-- Make sure the first paragraph is at most 280 characters long, so it can be tweeted as a single tweet. The other two paragraphs can be longer.
-- Make sure only the paper title is in double quotes.
-- Highlight the most important sentence or takeaway by wrapping it in **bold text** (only one per tweet).
-- Do edits only when needed; keep most of the tweet essence as is."""
+# # GUIDELINES
+# - Use direct and clear language. The tweet must be easy to read in one pass, fluently.
+# - Reduce modifier and filler words; be very direct and to the point.
+# - Remove duplicate content across the paragraphs (but keep three paragraphs).
+# - Remove or rephrase parts that are not clear or could not be understood. Explanations should be given using layman terms.
+# - Do not remove references to technical terms, key results, or change the meaning of the tweet.
+# - Do not remove emojis, but replace them for more unusual and interesting ones.
+# - Start the tweet with an interesting emoji followed by'Today's LLM paper review "XXX"...', where "XXX" is the title of the paper in double quotes.
+# - Make sure the first paragraph is at most 280 characters long, so it can be tweeted as a single tweet. The other two paragraphs can be longer.
+# - Make sure only the paper title is in double quotes.
+# - Highlight the most important sentence or takeaway by wrapping it in **bold text** (only one per tweet).
+# - Do edits only when needed; keep most of the tweet essence as is."""
 
 TWEET_INSIGHT_EDIT_USER_PROMPT = """
 <tweet_context>
 {tweet_facts}
 </tweet_context>
 
-<tweet>
+<proposed_tweet>
 {tweet}
-</tweet>
+</proposed_tweet>0
 
 <previous_tweets>
 These are some of your previous tweets, use them as reference for this task. Notice how you always provide enough context for the reader to understand the insight and include numerical figures when relevant.
-- From 𝗜𝗻𝗱𝘂𝗰𝘁𝗶𝘃𝗲 𝗼𝗿 𝗗𝗲𝗱𝘂𝗰𝘁𝗶𝘃𝗲? 𝗥𝗲𝘁𝗵𝗶𝗻𝗸𝗶𝗻𝗴 𝘁𝗵𝗲 𝗙𝘂𝗻𝗱𝗮𝗺𝗲𝗻𝘁𝗮𝗹 𝗥𝗲𝗮𝘀𝗼𝗻𝗶𝗻𝗴 𝗔𝗯𝗶𝗹𝗶𝘁𝗶𝗲𝘀 𝗼𝗳 𝗟𝗟𝗠𝘀: LLMs demonstrate remarkable proficiency in inductive reasoning—the ability to extract general principles from specific examples—often achieving near-perfect accuracy in tasks like pattern recognition and language understanding. This strength allows them to excel in areas such as sentiment analysis and text classification. However, these models struggle with deductive reasoning, especially in counterfactual scenarios. For instance, given the rule "All zorbs are blue" and asked "If X is not blue, is X a zorb?", LLMs often falter, highlighting a crucial area for improvement in logical inference and hypothetical reasoning.
-- From 𝗠𝗶𝗻𝗱𝗦𝗲𝗮𝗿𝗰𝗵: 𝗠𝗶𝗺𝗶𝗰𝗸𝗶𝗻𝗴 𝗛𝘂𝗺𝗮𝗻 𝗠𝗶𝗻𝗱𝘀 𝗘𝗹𝗶𝗰𝗶𝘁𝘀 𝗗𝗲𝗲𝗽 𝗔𝗜 𝗦𝗲𝗮𝗿𝗰𝗵𝗲𝗿: MindSearch uses a multi-agent system to mimic human thinking, breaking down complex queries into simpler tasks and retrieving information hierarchically. It processes info from 300+ web pages in 3 minutes—equivalent to 3 hours of human work. The system employs a Directed Acyclic Graph (DAG) for query breakdown and generates Python code dynamically. This approach enhances the reasoning capabilities of large language models (LLMs), allowing for more effective information processing and retrieval.
-- From 𝗩𝗶𝘀𝘂𝗮𝗹 𝗥𝗶𝗱𝗱𝗹𝗲𝘀: 𝗮 𝗖𝗼𝗺𝗺𝗼𝗻𝘀𝗲𝗻𝘀𝗲 𝗮𝗻𝗱 𝗪𝗼𝗿𝗹𝗱 𝗞𝗻𝗼𝘄𝗹𝗲𝗱𝗴𝗲 𝗖𝗵𝗮𝗹𝗹𝗲𝗻𝗴𝗲 𝗳𝗼𝗿 𝗟𝗮𝗿𝗴𝗲 𝗩𝗶𝘀𝗶𝗼𝗻 𝗮𝗻𝗱 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗠𝗼𝗱𝗲𝗹𝘀: Current vision-language models struggle with visual riddles that require complex reasoning and real-world knowledge. In a recent study, humans achieved 82% accuracy on these challenging puzzles, while the top-performing AI model, Gemini-Pro-1.5, only reached 40%. Interestingly, when provided with additional hints or context, model performance improved dramatically, jumping to 65% accuracy. This significant boost highlights how heavily these models rely on extra contextual information to solve problems effectively. The study also revealed that older models like GPT-4V performed even worse, with only a 32% accuracy rate, showcasing the rapid progress in the field but also emphasizing the considerable gap that still exists between human and machine reasoning capabilities in complex visual tasks.
-- From 𝗣𝗲𝗿𝘀𝗼𝗻𝗮𝗚𝘆𝗺: 𝗘𝘃𝗮𝗹𝘂𝗮𝘁𝗶𝗻𝗴 𝗣𝗲𝗿𝘀𝗼𝗻𝗮 𝗔𝗴𝗲𝗻𝘁𝘀 𝗮𝗻𝗱 𝗟𝗟𝗠𝘀: Despite being more advanced, Claude 3.5 Sonnet shows only a 2.97% improvement in persona adherence over GPT 3.5. This suggests that larger and more complex models don't necessarily perform better in persona-based tasks. PersonaGym, a dynamic evaluation framework, and PersonaScore, an automated metric, reveal this through analysis of six LLMs across 200 personas and 10,000 questions. Interestingly, GPT-4 demonstrated the highest persona adherence at 76.5%, while Claude 3.5 Sonnet achieved 75.2%. The study also found that model performance varied significantly across different persona types, with historical figures being particularly challenging. 
-- From 𝗗𝗲𝗺𝘆𝘀𝘁𝗶𝗳𝘆𝗶𝗻𝗴 𝗩𝗲𝗿𝗯𝗮𝘁𝗶𝗺 𝗠𝗲𝗺𝗼𝗿𝗶𝘇𝗮𝘁𝗶𝗼𝗻 𝗶𝗻 𝗟𝗮𝗿𝗴𝗲 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗠𝗼𝗱𝗲𝗹𝘀: The study reveals that LLMs require substantial repetition to memorize text—at least 1 in 10K examples for smaller models and 1 in 5M for larger ones. This memorization is intricately linked to general language skills, making it challenging to eliminate without compromising the model's overall performance. Interestingly, the research also found that memorization patterns vary across different types of content, with factual information being more readily retained than abstract concepts. Additionally, the study suggests that this memorization phenomenon may play a crucial role in the model's ability to generate coherent and contextually appropriate responses.
-- From 𝗣𝗘𝗥𝗦𝗢𝗡𝗔: 𝗔 𝗥𝗲𝗽𝗿𝗼𝗱𝘂𝗰𝗶𝗯𝗹𝗲 𝗧𝗲𝘀𝘁𝗯𝗲𝗱 𝗳𝗼𝗿 𝗣𝗹𝘂𝗿𝗮𝗹𝗶𝘀𝘁𝗶𝗰 𝗔𝗹𝗶𝗴𝗻𝗺𝗲𝗻𝘁: Reinforcement learning from human feedback (RLHF) often embeds majority opinions in models, sidelining minority views. PERSONA's 1,586 synthetic personas and 317,200 feedback pairs reveal the challenge of achieving pluralistic alignment. The study found that models trained on diverse feedback exhibited up to 30% less bias towards majority opinions compared to traditional RLHF methods. However, these models also showed a 15% decrease in task performance, highlighting the trade-off between inclusivity and efficiency. The research suggests a single model may not satisfy all group preferences, pointing to the potential need for specialized models catering to different demographic segments or ideological groups.
-- From 𝗣𝗵𝘆𝘀𝗶𝗰𝘀 𝗼𝗳 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗠𝗼𝗱𝗲𝗹𝘀: 𝗣𝗮𝗿𝘁 𝟮.𝟮, 𝗛𝗼𝘄 𝘁𝗼 𝗟𝗲𝗮𝗿𝗻 𝗙𝗿𝗼𝗺 𝗠𝗶𝘀𝘁𝗮𝗸𝗲𝘀 𝗼𝗻 𝗚𝗿𝗮𝗱𝗲-𝗦𝗰𝗵𝗼𝗼𝗹 𝗠𝗮𝘁𝗵 𝗣𝗿𝗼𝗯𝗹𝗲𝗺𝘀: Pretraining language models with "retry data"—math problems that include intentional errors followed by corrections—boosts reasoning accuracy more than error-free data. Higher error rates (up to 0.5) in training data improve performance, as models learn to detect and correct mistakes, achieving higher accuracy without extra prompting or multi-stage generation.
-- From 𝗦𝗲𝗹𝗲𝗰𝘁𝗶𝘃𝗲 𝗣𝗿𝗲𝗳𝗲𝗿𝗲𝗻𝗰𝗲 𝗢𝗽𝘁𝗶𝗺𝗶𝘇𝗮𝘁𝗶𝗼𝗻 𝘃𝗶𝗮 𝗧𝗼𝗸𝗲𝗻-𝗟𝗲𝘃𝗲𝗹 𝗥𝗲𝘄𝗮𝗿𝗱 𝗙𝘂𝗻𝗰𝘁𝗶𝗼𝗻 𝗘𝘀𝘁𝗶𝗺𝗮𝘁𝗶𝗼𝗻: SePO enhances large language model alignment by selectively training on only 30% of tokens. A small 'oracle' model scores token importance, selecting top tokens from good responses and bottom ones from bad responses for training. This selective approach improves performance with minimal data, enabling a weak oracle to guide a stronger model with 16.8x parameter efficiency. SePO excels in tasks needing concise responses, topping MT-Bench scores. However, it underperforms in math and coding tasks, where its selective strategy may miss crucial sequential logic by omitting some tokens.
+- [[Inductive or Deductive? Rethinking the Fundamental Reasoning Abilities of LLMs]]: LLMs demonstrate remarkable proficiency in inductive reasoning—the ability to extract general principles from specific examples—often achieving near-perfect accuracy in tasks like pattern recognition and language understanding. This strength allows them to excel in areas such as sentiment analysis and text classification. However, these models struggle with deductive reasoning, especially in counterfactual scenarios. For instance, given the rule "All zorbs are blue" and asked "If X is not blue, is X a zorb?", LLMs often falter, highlighting a crucial area for improvement in logical inference and hypothetical reasoning.
+- [[MindSearch: Mimicking Human Minds Elicits Deep AI Searcher]]: MindSearch uses a multi-agent system to mimic human thinking, breaking down complex queries into simpler tasks and retrieving information hierarchically. It processes info from 300+ web pages in 3 minutes—equivalent to 3 hours of human work. The system employs a Directed Acyclic Graph (DAG) for query breakdown and generates Python code dynamically. This approach enhances the reasoning capabilities of large language models (LLMs), allowing for more effective information processing and retrieval.
+- [[Visual Riddles: a Commonsense and World Knowledge Challenge for Large Vision and Language Models]]: Current vision-language models struggle with visual riddles that require complex reasoning and real-world knowledge. In a recent study, humans achieved 82% accuracy on these challenging puzzles, while the top-performing AI model, Gemini-Pro-1.5, only reached 40%. Interestingly, when provided with additional hints or context, model performance improved dramatically, jumping to 65% accuracy. This significant boost highlights how heavily these models rely on extra contextual information to solve problems effectively. The study also revealed that older models like GPT-4V performed even worse, with only a 32% accuracy rate, showcasing the rapid progress in the field but also emphasizing the considerable gap that still exists between human and machine reasoning capabilities in complex visual tasks.
+- [[PersonaGym: Evaluating Persona Agents and LLMs]]: Despite being more advanced, Claude 3.5 Sonnet shows only a 2.97% improvement in persona adherence over GPT 3.5. This suggests that larger and more complex models don't necessarily perform better in persona-based tasks. PersonaGym, a dynamic evaluation framework, and PersonaScore, an automated metric, reveal this through analysis of six LLMs across 200 personas and 10,000 questions. Interestingly, GPT-4 demonstrated the highest persona adherence at 76.5%, while Claude 3.5 Sonnet achieved 75.2%. The study also found that model performance varied significantly across different persona types, with historical figures being particularly challenging.
+- [[Demystifying Verbatim Memorization in Large Language Models]]: The study reveals that LLMs require substantial repetition to memorize text—at least 1 in 10K examples for smaller models and 1 in 5M for larger ones. This memorization is intricately linked to general language skills, making it challenging to eliminate without compromising the model's overall performance. Interestingly, the research also found that memorization patterns vary across different types of content, with factual information being more readily retained than abstract concepts. Additionally, the study suggests that this memorization phenomenon may play a crucial role in the model's ability to generate coherent and contextually appropriate responses.
+- [[PERSONA: A Reproducible Testbed for Pluralistic Alignment]]: Reinforcement learning from human feedback (RLHF) often embeds majority opinions in models, sidelining minority views. PERSONA's 1,586 synthetic personas and 317,200 feedback pairs reveal the challenge of achieving pluralistic alignment. The study found that models trained on diverse feedback exhibited up to 30% less bias towards majority opinions compared to traditional RLHF methods. However, these models also showed a 15% decrease in task performance, highlighting the trade-off between inclusivity and efficiency. The research suggests a single model may not satisfy all group preferences, pointing to the potential need for specialized models catering to different demographic segments or ideological groups.
+- [[Physics of Language Models: Part 2.2, How to Learn From Mistakes on Grade-School Math Problems]]: Pretraining language models with "retry data"—math problems that include intentional errors followed by corrections—boosts reasoning accuracy more than error-free data. Higher error rates (up to 0.5) in training data improve performance, as models learn to detect and correct mistakes, achieving higher accuracy without extra prompting or multi-stage generation.
+- [[Selective Preference Optimization via Token-Level Reward Function Estimation]]: SePO enhances large language model alignment by selectively training on only 30% of tokens. A small 'oracle' model scores token importance, selecting top tokens from good responses and bottom ones from bad responses for training. This selective approach improves performance with minimal data, enabling a weak oracle to guide a stronger model with 16.8x parameter efficiency. SePO excels in tasks needing concise responses, topping MT-Bench scores. However, it underperforms in math and coding tasks, where its selective strategy may miss crucial sequential logic by omitting some tokens.
 </previous_tweets>
 
-<guideliness>
-Your goal is to edit this tweet in order to meet the following guidelines:
-- Prioritize clear language, readability and flow.
-- Reduce modifier and filler words; the tweet must be very direct and to the point. 
-- Rephrase any parts that are not clearly understood; the message should be clear to a layman. Ensure that the core mechanism or technique of the paper is explained clearly and concisely, avoiding vague descriptions. Use the `tweet context facts` to provide necessary explanations.
-- Make sure any new concept (benchmark, metric, model, techniques; any novel term) is clearly explained, if at least briefly. Spell out uncommon acronyms on first use, followed by the acronym in parentheses. If needed, add missing explanations using the `tweet context facts`.
-- Ensure the tweet is sufficiently contextualized to be fully understood by the reader.
-- Do not remove any important technical detail or term, instead explain it clearly.
-- Try not to end your tweet with boilerplate phrases such as 'this highlights...', 'this underscores...', etc.
-- Start the tweet with 'From [[XXX]]: ...' followed by the insight, where [[XXX]] is the title of the paper in double brackets.
-- If the tweet mentions limitations or weaknesses of the proposed method, explain why these limitations exist, linking them to the core mechanism or approach.
-- Do only the necessary edits to meet these guidelines; keep most of the essence as is.
-- Reply with the edited tweet and nothing else.
-</guideliness>
+<guidelines>
+Your goal is to edit the proposed tweet in two steps:
+ 1) Identify and clarify unclear content.
+ 2) Review and improve clarity and flow.
+Follow the specific guidelines for each step, then provide the final edited tweet.
+</guidelines>
+
+<step1_instructions>
+Identify and clarify any unclear content in the tweet. Use the information from the <tweet_context> to do the necessary augmentations.
+- Explain new concepts introduced in the paper using simple language.
+- Clarify the core mechanism, technique or insight presented, avoiding vague descriptions.
+- Spell out uncommon acronyms on first use, followed by the acronym in parentheses. Do not spell out common acronyms such as LLM, ML, AI, etc.
+- Explain clearly the mechnism or reasoning behind the presented findings. Why do things work the way they do?
+- Wheneverpossible add a concrete example (based on the context) that can help explain the core mechanism or finding.
+- Ensure the tweet is fully understandable without access to additional information (the reader won't have access to the tweet context).
+- Maintain the overall original structure and tone of the tweet (you will mainly augment it with contextual information).
+</step1_instructions>
+
+<step2_instructions>
+Do minimal edits and small djustments to improve the clarity and flow of the tweet.
+- Prioritize clear language, readability, and logical flow of ideas.
+- Make the tweet direct and to the point.
+- Ensure the tweet starts with '[[XXX]]: ...' where [[XXX]] is the paper's title.
+- Present key insights and numerical figures prominently and in context.
+- Avoid phrases like 'this highlights...', 'this underscores...', etc. 
+- Avoid filler content, conclusions or final remarks.
+</step2_instructions>
+
+<response_format>
+Provide your response in the following format:
+ <step1>
+ [Your analysis for Step 1 along with the updated tweet]
+ </step1>
+ <step2>
+ [Your analysis for Step 2 along with the updated tweet]
+ </step2>
+ <final_tweet>
+ [The final edited tweet incorporating all changes]
+ </final_tweet>
+</response_format>
 """
+
+# """
+# <guideliness>
+# Your goal is to edit this tweet in order to meet the following guidelines:
+# - Prioritize clear language, readability and flow.
+# - Reduce modifier and filler words; the tweet must be very direct and to the point.
+# - Rephrase any parts that are not clearly understood; the message should be clear to a layman. Ensure that the core mechanism or technique of the paper is explained clearly and concisely, avoiding vague descriptions. Use the `tweet context facts` to provide necessary explanations.
+# - Make sure any new concept (benchmark, metric, model, techniques; any novel term) is clearly explained, if at least briefly. Spell out uncommon acronyms on first use, followed by the acronym in parentheses. If needed, add missing explanations using the `tweet context facts`.
+# - Ensure the tweet is sufficiently contextualized to be fully understood by the reader.
+# - Do not remove any important technical detail or term, instead explain it clearly.
+# - Try not to end your tweet with boilerplate phrases such as 'this highlights...', 'this underscores...', etc.
+# - Start the tweet with 'From [[XXX]]: ...' followed by the insight, where [[XXX]] is the title of the paper in double brackets.
+# - If the tweet mentions limitations or weaknesses of the proposed method, explain why these limitations exist, linking them to the core mechanism or approach.
+# - Do only the necessary edits to meet these guidelines; keep most of the essence as is.
+# - Reply with the edited tweet and nothing else.
+# </guideliness>
+# """
 
 TWEET_REVIEW_SYSTEM_PROMPT = "You are an expert AI writer tasked with writing a summary of 'The Instruction Hierarchy: Training LLMs to Prioritize Privileged Instructions' for the magazine LLMpedia. Your task is to read over a set of notes on the whitepaper and convert them into an engaging review paragraph. Reply with the summary and nothing else."
 
@@ -798,27 +842,27 @@ class TopicCategory(str, Enum):
 
 
 class SearchCriteria(BaseModel):
-    title: str = Field(
+    title: Optional[str] = Field(
         None,
         description="Title of the paper. Use only when the user is looking for a specific paper. Partial matches will be returned.",
     )
-    min_publication_date: datetime.date = Field(
+    min_publication_date: Optional[str] = Field(
         None,
         description="Minimum publication date of the paper. Use 'YYYY-MM-DD' format.",
     )
-    max_publication_date: datetime.date = Field(
+    max_publication_date: Optional[str] = Field(
         None,
         description="Maximum publication date of the paper. Use 'YYYY-MM-DD' format.",
     )
-    topic_categories: List[TopicCategory] = Field(
+    topic_categories: Optional[List[TopicCategory]] = Field(
         None,
         description="List containing the topic categories of the paper. Use only when the user explicitly asks about one of these topics (not for related topics).",
     )
-    semantic_search_queries: List[str] = Field(
+    semantic_search_queries: Optional[List[str]] = Field(
         None,
         description="List of queries to be used in the semantic search. The system will use these queries to find papers that have abstracts that are semantically similar to the queries. If you use more than one search query make them diverse enough so that each query addresses a different part of what is needed to build up an answer. Consider the language typically used in academic papers when writing the queries; phrase the queries as if they were part of the text that could be found on these abstracts.",
     )
-    min_citations: int = Field(
+    min_citations: Optional[int] = Field(
         None, description="Minimum number of citations of the paper."
     )
 
@@ -851,17 +895,27 @@ class RerankedDocuments(BaseModel):
 VS_QUERY_SYSTEM_PROMPT = f"""Today is {todays_date}. You are an expert system that can translate natural language questions into structured queries used to search a database of Large Language Model (LLM) related whitepapers."""
 
 
+INTERROGATE_PAPER_SYSTEM_PROMPT = "You are GPT MAestro, a renowned librarian specialized in Large Language Models. Read carefully the whitepaper and the user question. Provide a comprehensive, helpful and truthful response."
+
+
 def create_interrogate_user_prompt(context: str, user_question: str) -> str:
     user_prompt = f"""
-    <whitepaper>
+    <whitepaper_context>
     {context}
-    </whitepaper>
+    </whitepaper_context>
     
     <user_query>
     {user_question}
     </user_query>
-    
-    <response>"""
+
+    <guidelines>
+    - Be direct and to the point, using layman's language that is easy to understand.
+    - If the question cannot be answered with the provided whitepaper, please respond with 'Sorry, I don't know about that.', and nothing else.
+    - Avoid filler content.
+    - Reply with your answer in a concise paragraph and nothing else (no preambles, greetings, etc.).
+    - Do not make reference to the existance of the whitepaper_context in your response.
+    </guidelines>
+    """
     return user_prompt
 
 
@@ -873,12 +927,12 @@ def create_decision_user_prompt(user_question: str) -> str:
     
     <response_format>
     Classify the user query into one of the following categories:
-    - Question about large language models or natural language processing.
+    - Question about large language models, AI agents, text embeddings, data rerieval, natural language processing, and similar topics.
     - Question about any other subject (unrelated to LLMs).
     - General comment or feedback.
     </response_format>
     
-    If you are not sure, classify the query as large language model related.
+    If you are not sure, bias your classification towards large language model related queries.
     """
     return user_prompt
 
@@ -887,9 +941,8 @@ def create_query_user_prompt(user_question: str) -> str:
     VS_QUERY_USER_PROMPT = (
         f'''
     <response_format> 
-    Use the following response format. All fields are optional; when not provided, the system will search across all values for that field. Notice that string fields are case-insensitive. Always use the minimum number of fields necessary to get the desired results.
+    Use the following JSON response format. All fields are optional; when not provided, the system will search across all values for that field. Notice that string fields are case-insensitive. Always use the minimum number of fields necessary to get the desired results; if you don't need a field do not include it in your search query.
     
-    ```
     {{
         "title": "(str) Title of the paper. Use only when the user is looking for a specific paper. Partial matches will be returned.",
         "min_publication_date": "(str) Minimum publication date of the paper. Use "YYYY-MM-DD" format.",
@@ -898,35 +951,58 @@ def create_query_user_prompt(user_question: str) -> str:
         "semantic_search_queries": "(list) List of queries to be used in the semantic search. The system will use these queries to find papers that have abstracts that are semantically similar to the queries. If you use more than one search query make them diverse enough so that each query addresses a different part of what is needed to build up an answer. Consider the language typically used in academic papers when writing the queries; phrase the queries as if they were part of the text that could be found on these abstracts.", 
         "min_citations": "(int) Minimum number of citations of the paper."
     }}
-    ```
     </response_format>
     
     
     <topic_categories>
-    - Vision-Language Model Innovations and Applications
-    - Autonomous Language Agents and Task Planning
-    - Code Generation Techniques in Software Engineering
-    - Multilingual Language Model Developments
-    - Ethical and Secure AI Development Challenges
-    - Transformer Alternatives and Efficiency Improvements
-    - Efficient LLM Training and Inference Optimization
-    - Retrieval-Augmented Generation for NLP Tasks
-    - Enhancing LLM Performance with Advanced Prompt Techniques
-    - Instruction Tuning Techniques for LLMs
-    - Mitigating Bias and Hate Speech Detection
-    - Enhancing Mathematical Problem Solving with AI
-    - Human Preference Alignment in LLM Training
-    - Enhancements in Chain-of-Thought Reasoning
+    - Adversarial Defense and Red Teaming in LLMs
+    - AI Safety and Governance Evaluations
+    - automated factuality evaluation and fact-checking in long-form text generation
+    - Automated Prompt Optimization Techniques
+    - Autonomous Multi-Agent Systems with LLM Coordination and Planning
+    - Bias Mitigation in NLP for Hate Speech and Offensive Language Detection
+    - Chain of Thought Reasoning in Large Language Models
+    - Code Synthesis and Evaluation in Multilingual Programming
+    - Comprehension QA and Reasoning Datasets
+    - Efficient and Adaptive Fine-Tuning Techniques
+    - Efficient and Scalable Attention Mechanisms
+    - Efficient Low-bit Model Quantization and Inference Techniques
+    - Efficient Scalable Sparse and Mixture-of-Experts Models
+    - Empirical Scaling Laws and Optimization in Training Large Neural Networks
+    - Financial and Time Series Analysis Applications
+    - Hallucination in Language and Vision Models
+    - Healthcare and Medical Applications of LLMs
+    - Human Preference Optimization in RLHF for Language Models
+    - In-Context Learning Mechanisms and Applications
+    - Instruction Tuning and Dataset Quality Enhancement
+    - LLM Evaluation Metrics and Benchmarks
+    - LLM Privacy and Data Leakage Risks
+    - Long Context Handling Techniques and Evaluations
+    - Low-Rank Adaptation in Fine-Tuning LLMs
+    - Mathematical Reasoning Datasets and Models for LLMs
     - Miscellaneous
+    - Multilingual Low-Resource Language Adaptation and Translation Strategies
+    - Multimodal Vision-Language Embodied Agent Training
+    - Open-Domain Conversational AI and Role-Playing Systems
+    - Optimizations for KV Cache Memory Efficiency in LLM Inference
+    - Optimized Data Selection and Pre-training Efficiency
+    - Personalized Multimodal and Explainable Recommendations with LLMs
+    - Retrieval-Augmented Generation and Evaluation in Knowledge-Intensive Tasks
+    - Specialized Domain LLMs for Scientific Research
+    - Speculative Decoding Architectures for High-Efficiency Inference
+    - Speech and Audio Multimodal Language Models
+    - State Space Models for Efficient Long-Range Sequence Modeling
+    - Table Understanding and Text-to-SQL Models
+    - Versatile and Efficient Text Embedding Methods
+    - Vision-Language Multimodal Models and Image Generation
     </topic_categories>
     
     
     <examples>
-    <example_question>
+    <example_question_01>
     Are LLMs really reasoning or just doing next token prediction? Which are the main prevailing views in the literature?
-    </example_question>
-    <example_query>
-    ```
+    </example_question_01>
+    <example_query_01>
     {{
         "semantic_search_queries": [
             "Do large language models reason or predict?",
@@ -935,17 +1011,15 @@ def create_query_user_prompt(user_question: str) -> str:
             "Miscellaneous"
         ]
     }}
-    ```
-    </example_query>
+    </example_query_01>
     
-    <example_question>
+    <example_question_02>
     Which are some good 7B parameter models one can run locally for code generation? Specifically unit tests.
-    </example_question>
-    <example_query>
-    ```
+    </example_question_02>
+    <example_query_02>
     {{
         "topic_categories": [
-            "Code Generation Techniques in Software Engineering",
+            "Code Generation and Software Engineering Applications",
             "Miscellaneous"
         ],
         "semantic_search_queries": [
@@ -955,44 +1029,37 @@ def create_query_user_prompt(user_question: str) -> str:
             "Code generation models for unit tests"
         ]
     }}
-    ```
-    </example_query>
+    </example_query_02>
     
-    <example_question>
+    <example_question_03>
     What can you tell me about the phi model and how it was trained?
-    </example_question>
-    <example_query>
-    ```
+    </example_question_03>
+    <example_query_03>
     {{
         "title": "phi"
     }}
-    ...
-    ```
-    </example_query>
+    </example_query_03>
     
-    <example_question>
+    <example_question_04>
     the very new research about llm
-    </example_question>
-    
-    <example_query>
-    ```
+    </example_question_04>
+    <example_query_04>
     {{
         "min_publication_date": "'''
         + recent_date
         + f"""",
        ]
     }}
-    ```
-    </example_query>
+    </example_query_04>
     
-    <example_question>
+    <example_question_05>
     what are the state of the art techniques for retrieval augmentation?
-    </example_question>
-    <example_query>
-    ```
+    </example_question_05>
+    <example_query_05>
     {{
         "topic_categories": [
-            "Retrieval-Augmented Generation for NLP Tasks",
+            "Retrieval-Augmented Generation",
+            "Information Retrieval and Search",
             "Miscellaneous"
         ],
         "semantic_search_queries": [
@@ -1000,31 +1067,27 @@ def create_query_user_prompt(user_question: str) -> str:
             "Advancements in retrieval augmentation techniques"
         ]
     }}
-    ```
-    </example_query>
+    </example_query_05>
     
-    <example_question>
+    <example_question_06>
     Explain the DPO fine-tuning technique.
-    </example_question>
-    <example_query>
-    ```
+    </example_question_06>
+    <example_query_06>
     {{
         "topic_categories": [
-            "Instruction Tuning Techniques for LLMs",
+            "Fine-tuning and Instruction Tuning",
             "Miscellaneous"
         ],
         "semantic_search_queries": [
             "DPO fine-tuning"
         ]
     }}
-    ```
-    </example_query>
+    </example_query_06>
     
-    <example_question>
+    <example_question_07>
     Compare Zephyr and Mistral.
-    </example_question>
-    <example_query>
-    ```
+    </example_question_07>
+    <example_query_07>
     {{
         "semantic_search_queries": [
             "Overview of the Zephyr LLM characteristics",
@@ -1032,20 +1095,17 @@ def create_query_user_prompt(user_question: str) -> str:
             "Comparison of Zephyr and Mistral LLMs"
         ]
     }}
-    ```
-    </example_query>
+    </example_query_07>
     
-    <example_question>
-\    which are the most famous papers published this year?
-    </example_question>
-    <example_query>
-    ```
-    }}
+    <example_question_08>
+    which are the most famous papers published this year?
+    </example_question_08>
+    <example_query_08>
+    {{
         "min_publication_date": "2024-01-01",
         "min_citations": 100
     }}
-    ```
-    </example_query>
+    </example_query_08>
     </examples>
         
     Now read the following question and reply with the response query and no other comment or explanation.
@@ -1054,9 +1114,7 @@ def create_query_user_prompt(user_question: str) -> str:
     {user_question}
     </question>
     
-    <response_query>
-    ```
-    {{"""
+    """
     )
     return VS_QUERY_USER_PROMPT
 
@@ -1122,16 +1180,65 @@ def create_resolve_user_prompt(
     <guidelines>
     - Do not mention 'the context'! The user does not have access to it, so do not reference it or the fact that I presented it to you. Act as if you have all the information in your head (i.e.: do not say 'Based on the information provided...', etc.).
     - Use narrative writing to provide a complete, direct and useful answer. Structure your response as a mini-report in a magazine. 
-    - Include practical examples and pseudocode to illustrate main steps of components when applicable. Make sure the pseudocode is not too generic or high level.
+    - Include practical examples and pseudocode in code blocks to illustrate main steps of components when applicable. Make sure the pseudocode is not too generic or high level, and is relevant to the user query in the context of Large Language Models (i.e.: pytorch or traditional ML libraries might not be as relevant).
     - Make sure your report reads naturally and is easy to the eye. Do not enumerate the paragraphs (e.g.: 'Paragraph 1: ...').
-    - Only use markdown to add a title to your response (i.e.: '##').
+    - You can use markdown to add a title to your response (i.e.: '##'), to incorporate pseudo-code code blocks, and add lists or other elements that help improve clarity and flow.
     - Be practical and reference any existing libraries or implementations mentioned on the documents.
     - If there is conflicting information present the different viewpoints and consider that more recent papers or those with more citations are generally more reliable. Present different viewpoints if they exist.
     - Try to inform your response with the information available in the context, and less so with your own opinions.
-    - Add citations referencing the relevant arxiv_codes (e.g.: use the format *reference content* (arxiv:1234.5678)). If you mention paper titles wrap them in double quotes.
+    - Add citations when referencing papers by mentioning the relevant arxiv_codes (e.g.: use the format *reference content* (arxiv:1234.5678)). If you mention paper titles wrap them in double quotes.
     - Do not use too many words such as "for instance", "furthermore", "delve", etc.
     - Be direct, to the point, and comprehensive. Do not add introductions, and do not provide an ambivalent conclusion. Avoid filler content and use simple language.{response_length}
     </guidelines>
+
+    <example_response>
+    ## What is Multi-hop Q&A?
+    Multi-hop Question Answering (Q&A) involves answering questions that require reasoning over multiple pieces of information or "hops" to arrive at the correct answer. This process often necessitates integrating data from various sources or steps, making it more complex than single-hop Q&A. Key components of multi-hop Q&A include: 
+      1. Knowledge Graphs, which are used to structure and link information, enabling efficient multi-hop reasoning (arxiv:2404.19234); 
+      2. Retrieval-Augmented Generation (RAG), which combines retrieval of relevant documents with generative models to handle multi-hop queries (arxiv:2401.15391); and 
+      3. Meta-Reasoning, which involves reasoning over multiple chains of thought to derive answers (arxiv:2304.13007).
+
+    ### Practical Example
+    Consider a question: "Who is the author of the book written by the person who founded Microsoft?" This requires:
+
+    1. Identifying the founder of Microsoft (Bill Gates).
+    2. Finding a book written by Bill Gates.
+    3. Determining the author of that book.
+
+    ### Pseudocode
+    ```
+    def multi_hop_qa(question):
+        # Step 1: Identify key entities
+        entity1 = identify_entity(question, step=1)
+
+        # Step 2: Retrieve related information
+        related_info = retrieve_info(entity1)
+
+        # Step 3: Extract final answer
+        answer = extract_answer(related_info, question)
+
+        return answer
+
+    def identify_entity(question, step):
+        # Logic to identify entity based on the step
+        pass
+
+    def retrieve_info(entity):
+        # Logic to retrieve information related to the entity
+        pass
+
+    def extract_answer(info, question):
+        # Logic to extract the final answer from the retrieved information
+        pass
+    ```
+
+    ### Libraries and Implementations
+    The following libraries are commonly used in multi-hop Q&A systems, as demonstrated in recent research:
+
+    **Hugging Face Transformers:** For implementing retrieval-augmented generation models, as used in "Improving Multi-hop QA with RAG" (arxiv:2401.15391).
+    **NetworkX:** For working with knowledge graphs, as demonstrated in "KG-Enhanced Multi-hop Reasoning" (arxiv:2404.19234).
+    **PyTorch Geometric:** For graph neural networks in multi-hop reasoning, utilized in "Graph-based Meta-Reasoning for Multi-hop QA" (arxiv:2304.13007).
+    </example_response>
     """
     return user_message
 
@@ -1142,10 +1249,19 @@ def create_resolve_user_prompt(
 
 
 class WeeklyReview(BaseModel):
-    scratchpad_papers: str = Field(..., description="List of ~20 interesting papers, their main themes and contributions.")
-    scratchpad_themes: str = Field(..., description="At least 3 common themes identified among the papers.")
-    themes_mapping: Dict[str, List[str]] = Field(..., description="Mapping of themes to papers.")
-    new_developments_findings: str = Field(..., description="New developments and findings.")
+    scratchpad_papers: str = Field(
+        ...,
+        description="List of ~20 interesting papers, their main themes and contributions.",
+    )
+    scratchpad_themes: str = Field(
+        ..., description="At least 3 common themes identified among the papers."
+    )
+    themes_mapping: Dict[str, List[str]] = Field(
+        ..., description="Mapping of themes to papers."
+    )
+    new_developments_findings: str = Field(
+        ..., description="New developments and findings."
+    )
 
 
 class ExternalResource(BaseModel):
@@ -1159,6 +1275,7 @@ class ExternalResource(BaseModel):
         ...,
         description="Brief description of the content of the repository or project. Explain what is the purpose of the underlying resource or model.",
     )
+
 
 class ExternalResources(BaseModel):
     resources: List[ExternalResource] = Field(
@@ -1257,9 +1374,10 @@ WEEKLY_USER_PROMPT = """
     </themes_mapping>
     
     <new_developments_findings> 
-        - This is the section that will be published on the magazine. Be sure to make it very structured and with an easy to follow, continuous flow.
-        - First (1) paragraph: Start with a very brief commentary on themes and the total number of articles published. Compare this week's volume not only to the previous one; instead identify and comment on general trends.
-        - Three (3-4) following paragraphs: Discuss in more detail the main themes you identified as interesting (one per paragraph). State very clearly **with bold font** which theme / contradiction / unorthodox theory you are discussing on each paragraph. Be sure to always include the contradiction at the end of your discussion, if you identified one. Omit any kind of final conclusion at the end of your report.
+        - This is the section that will be published on the magazine. Be sure to make it structured and with an easy to follow flow.
+        - Do not use too any adjectives or sensasionalist phrases.
+        - First (1) paragraph: Start with a very brief commentary on themes and the total number of articles published. Compare this week's volume not only to the previous one; instead identify and comment on general trends. Use simple and direct language without being too sensasionalist.
+        - Three (3-4) following paragraphs: Discuss in more detail the main themes you identified as interesting (one per paragraph) an mention at least three papers associated to each of them. State very clearly **with bold font** which theme / contradiction / unorthodox theory you are discussing on each paragraph. Be sure to always include the contradiction at the end of your discussion, if you identified one. Omit any kind of final conclusion at the end of your report.
     </new_developments_findings>
 <report_format>
 
@@ -1271,15 +1389,15 @@ WEEKLY_USER_PROMPT = """
 - Remember to include all requested sections ('scratchpad_papers', 'scratchpad_themes', 'themes_mapping', 'new_developments_findings') in your response.
 - Follow these guidelines for the new_developments_findings section.
     - Write in a concise, clear and engaging manner. 
-    - Use simple layman and direct language, without many adjectives. Be very clear and precise.
+    - Use casual layman and direct language, without many pompous adjectives (e.g.: innovative, breakthrough, streamlining, versatile, exceptional, etc.)
     - If you reference new technical terms always explain them. 
     - Focus on unusual and insightful findings, as well as practical applications.
     - Be sure the themes you identify are different from that of previous weeks.
-    - At the end of each paragraph add a brief, non-repetitive line summarizing what the theme is about. Avoid cliche phrases and concluding remarks such as "these findings suggest/highlight/underscore/etc.".
+    - Avoid repetitive and filler conclusions.
     - Remember to include a final section highlighting contradictions or very unorthodox findings.
     - Maintain the narrative flow and coherence across sections. Keep the reader engaged.
     - Do not exaggerate or use bombastic language. Be moderate, truthful and objective. Avoid filler and repetitive content.
-    - Do not make your language too boring or robotic. The new developments section should read as part of a magazine article.
+    - Do not make your language too boring or robotic. Your writing should read as part of a magazine article.
     - Do not include markdown titles in each of the sections (I will take care of those).
     - Always add citations to support your statements. Use the format `*reference content* (arxiv:1234.5678)`. You can also mention the *article's title* on the text.
 </guidelines>
@@ -1290,7 +1408,7 @@ Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678)."""
 WEEKLY_HIGHLIGHT_USER_PROMPT = """Read over the following LLM-related papers published last week and identify one that is particularly interesting, and has unexpected, unorthodox or ground-breaking findings.
 
 <guidelines>
-    - Write one short paragraph explaining with simple and direct language why you find the paper interesting. 
+    - Write one paragraph explaining with simple and direct language why you find the paper interesting. 
     - Do not make your language too boring or robotic. Your writing should read as part of a magazine article.
     - Do not mention the words 'unorthodox' or 'ground-breaking' in your report.
     - Use the format Title (arxiv:1234.5678)` to cite the paper's.

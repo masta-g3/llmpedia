@@ -209,7 +209,7 @@ def main():
     arxiv_codes = db.get_arxiv_id_list(db.db_params, "summary_notes")
     done_codes = db.get_arxiv_id_list(db.db_params, "tweet_reviews")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
-    arxiv_codes = sorted(arxiv_codes)[-50:]
+    arxiv_codes = sorted(arxiv_codes)[-100:]
     citations_df = db.load_citations()
     citations_df = citations_df[citations_df.index.isin(arxiv_codes)]
 
@@ -222,7 +222,7 @@ def main():
     citations_df["weight"] = citations_df["weight"] / citations_df["weight"].sum()
     candidate_arxiv_codes = np.random.choice(
         citations_df.index,
-        size=15,
+        size=50,
         replace=False,
         p=citations_df["weight"] / citations_df["weight"].sum(),
     )
@@ -239,7 +239,7 @@ def main():
     )
 
     arxiv_code_idx = vs.select_most_interesting_paper(
-        abstracts_str, model="gpt-4o"
+        abstracts_str, model="gpt-4o-mini"
     )
     arxiv_code = candidate_arxiv_codes[arxiv_code_idx - 1]
 
@@ -256,10 +256,10 @@ def main():
     previous_tweets = previous_tweets_df["tweet_insight"].values
     previous_tweets_str = "\n".join(previous_tweets)
 
-    paper_summary = db.get_extended_notes(arxiv_code, expected_tokens=1500)
+    paper_summary = db.get_extended_notes(arxiv_code, expected_tokens=3000)
     paper_details = db.load_arxiv(arxiv_code)
     publish_date = paper_details["published"][0].strftime("%B %Y")
-    publish_date_full = paper_details["published"][0].strftime("%B %d, %Y")
+    publish_date_full = paper_details["published"][0].strftime("%b %d, %Y")
     author = paper_details["authors"][0]
     title_map = db.get_arxiv_title_dict()
     paper_title = title_map[arxiv_code]
@@ -280,8 +280,8 @@ def main():
         previous_tweets=previous_tweets_str,
         tweet_facts=tweet_facts,
         tweet_type=tweet_type,
-        model="gpt-4o",
-        temperature=0.5,
+        model="claude-3-5-sonnet-20240620", # "gpt-4o-2024-08-06",
+        temperature=0.8,
     )
     print("Generated tweet: ")
     print(tweet)
@@ -291,7 +291,7 @@ def main():
             tweet,
             tweet_facts=tweet_facts,
             tweet_type=tweet_type,
-            model="gpt-4o",
+            model="claude-3-5-sonnet-20240620", # "gpt-4o-2024-08-06",
             temperature=0.5,
         )
     else:

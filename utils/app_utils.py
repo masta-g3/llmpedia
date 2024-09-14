@@ -291,13 +291,19 @@ query_config_json = """
 query_config = json.loads(query_config_json)
 
 
-def interrogate_paper(question: str, arxiv_code: str) -> str:
+def interrogate_paper(question: str, arxiv_code: str, model="gpt-4o") -> str:
     """Ask a question about a paper."""
-    context = db.get_extended_notes(arxiv_code, expected_tokens=8000)
-    system_message = "Read carefully the whitepaper, reason about the user question, and provide a comprehensive, helpful and truthful response. Be direct and to the point, using layman's language that is easy to understand. Avoid filler content, and reply with your answer in a consice paragraph and nothing else (no preambles, greetings, etc.)."
-    user_message = ps.create_interrogate_user_prompt(question, context)
+    context = db.get_extended_notes(arxiv_code, expected_tokens=2000)
+    user_message = ps.create_interrogate_user_prompt(
+        context=context, user_question=question
+    )
     response = run_instructor_query(
-        system_message, user_message, None, llm_model="gpt-4o"
+        system_message=ps.INTERROGATE_PAPER_SYSTEM_PROMPT,
+        user_message=user_message,
+        model=None,
+        llm_model=model,
+        temperature=0.3,
+        process_id="paper_qna",
     )
     response = response.replace("<response>", "").replace("</response>", "")
     return response
@@ -307,7 +313,9 @@ def decide_query_action(user_question: str) -> ps.QueryDecision:
     """Decide the query action based on the user question."""
     system_message = "Please analyze the following user query and answer the question."
     user_message = ps.create_decision_user_prompt(user_question)
-    response = run_instructor_query(system_message, user_message, ps.QueryDecision)
+    response = run_instructor_query(
+        system_message, user_message, ps.QueryDecision, process_id="decide_query_action"
+    )
     return response
 
 
@@ -374,14 +382,19 @@ def generate_query(criteria: ps.SearchCriteria, config: dict) -> str:
 
 
 def rerank_documents_new(
-    user_question: str, documents: list, llm_model="gpt-4o"
+    user_question: str, documents: list, llm_model="gpt-4o", temperature=0.2
 ) -> ps.RerankedDocuments:
     system_message = "You are an expert system that can identify and select relevant arxiv papers that can be used to answer a user query."
     import streamlit as st
 
     rerank_msg = ps.create_rerank_user_prompt(user_question, documents)
     response = run_instructor_query(
-        system_message, rerank_msg, ps.RerankedDocuments, llm_model=llm_model
+        system_message,
+        rerank_msg,
+        ps.RerankedDocuments,
+        llm_model=llm_model,
+        temperature=temperature,
+        process_id="rerank_documents",
     )
     return response
 
@@ -391,14 +404,19 @@ def resolve_query(
     documents: list[Document],
     response_length: str,
     llm_model="gpt-4o",
-    temperature=0.8
+    temperature=0.2,
 ):
     system_message = "You are an AI academic focused on Large Language Models. Please answer the user query leveraging the information provided in the context."
     user_message = ps.create_resolve_user_prompt(
         user_question, documents, response_length
     )
     response = run_instructor_query(
-        system_message, user_message, None, llm_model=llm_model, temperature=temperature
+        system_message=system_message,
+        user_message=user_message,
+        model=None,
+        llm_model=llm_model,
+        temperature=temperature,
+        process_id="resolve_query",
     )
     return response
 
@@ -407,7 +425,9 @@ def resolve_query_other(user_question: str) -> str:
     """Decide the query action based on the user question."""
     system_message = "You are the GPT Maestro, maintainer of the LLMpedia, a web-based Large Language Model encyclopedia. You received the following unrelated comment from a user via our chat based system. Please respond to it in a friendly, slightly-sarcastic, serious and very concise (less than 20 words) manner."
     user_message = f"{user_question}"
-    response = run_instructor_query(system_message, user_message, None)
+    response = run_instructor_query(
+        system_message, user_message, None, process_id="resolve_query_other"
+    )
     return response
 
 
@@ -428,6 +448,8 @@ def query_llmpedia_new(
             ps.create_query_user_prompt(user_question),
             ps.SearchCriteria,
             llm_model=query_llm_model,
+            temperature=0.5,
+            process_id="generate_query_object",
         )
 
         ## Fetch results.
@@ -442,7 +464,7 @@ def query_llmpedia_new(
 
         ## Rerank.
         reranked_documents = rerank_documents_new(
-            user_question, documents, llm_model=rerank_llm_model
+            user_question, documents, llm_model=rerank_llm_model, temperature=0.2
         )
         filtered_document_ids = [
             int(d.document_id) for d in reranked_documents.documents if d.selected
@@ -459,7 +481,7 @@ def query_llmpedia_new(
             filtered_documents,
             response_length,
             llm_model=response_llm_model,
-            temperature=0.8
+            temperature=0.2,
         )
         answer_augment = add_links_to_text_blob(answer)
         referenced_arxiv_codes = extract_arxiv_codes(answer_augment)

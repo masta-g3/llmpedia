@@ -49,3 +49,8 @@
 - [ ] Productionize fables.
 - [x] Remove langchain pgvector.
 - [x] Add LLM research.
+- [x] Track card views.
+- [x] Log cost per run (cost, items processed, per item?).
+- [ ] Automate weekly report run.
+- [x] Add token usage logging.
+- [ ] Extract pydantic objects to repo.

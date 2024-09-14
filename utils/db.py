@@ -31,6 +31,37 @@ def pg_array_to_list(array_str):
     return array_str.strip("{}").split(",")
 
 
+def log_instructor_query(model_name: str, process_id: str, prompt_tokens: int, completion_tokens: int, prompt_cost: float, completion_cost: float):
+    """Log token usage in DB."""
+    try:
+        engine = create_engine(database_url)
+        with engine.begin() as conn:
+            id = str(uuid.uuid4())
+            tstp = pd.to_datetime("now").strftime("%Y-%m-%d %H:%M:%S")
+            query = text(
+                """
+                INSERT INTO token_usage_logs (id, tstp, model_name, process_id, prompt_tokens, completion_tokens, prompt_cost, completion_cost)
+                VALUES (:id, :tstp, :model_name, :process_id, :prompt_tokens, :completion_tokens, :prompt_cost, :completion_cost);
+            """
+            )
+            conn.execute(
+                query,
+                {
+                    "id": id,
+                    "tstp": tstp,
+                    "model_name": model_name,
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                    "process_id": process_id,
+                    "prompt_cost": prompt_cost,
+                    "completion_cost": completion_cost,
+                },
+            )
+    except Exception as e:
+        print(f"Error in logging token usage: {e}")
+    return True
+
+
 def log_error_db(error):
     """Log error in DB along with streamlit app state."""
     engine = create_engine(database_url)

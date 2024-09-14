@@ -47,7 +47,7 @@ def main():
             paper_title,
             paper_content,
             max_tokens=500,
-            model="gpt-4o",
+            model="gpt-4o-mini",
             verbose=False,
         )
 

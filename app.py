@@ -222,7 +222,7 @@ def main():
     st.markdown(
         "LLMpedia is a curated collection of key papers on Large Language Models, selected and analyzed by GPT Maestro. "
         " With pixel art and structured summaries, the encyclopedia is designed to guide you through the extensive research on LLMs. "
-        "If you have any questions go to the *Chat* section and talk to the Maestro. "
+        "If you have any questions or want to do LLM research, go to the *Chat* section and talk to the Maestro. "
         "And don't forget to follow us [@GPTMaestro](https://twitter.com/GPTMaestro) for the latest updates and paper reviews.\n\n"
         "*Buona lettura!*"
     )
@@ -297,12 +297,12 @@ def main():
     ## Content tabs.
     content_tabs = st.tabs(
         [
-            "🧮 Grid View",
-            "🗺️ Over View",
-            "🔍 Focus View",
-            "🤖 Chat",
-            "⚙️  Repositories",
-            "🗞 Weekly Report",
+            "🧮 Release Feed",
+            "🗺️ Statistics",
+            "🔍 Paper Details",
+            "🤖 Chat Assistant",
+            "⚙️  Links & Repositories",
+            "🗞 Weekly Release Report",
         ]
     )
 
