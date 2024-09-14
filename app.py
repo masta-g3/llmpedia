@@ -514,8 +514,8 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
+    # try:
         main()
-    except Exception as e:
-        db.log_error_db(e)
-        st.error("Something went wrong. Please refresh the app and try again.")
+    # except Exception as e:
+        # db.log_error_db(e)
+        # st.error("Something went wrong. Please refresh the app and try again.")
