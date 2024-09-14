@@ -61,7 +61,7 @@ def create_anthropic_message(
             ],
         )
         answer = response.content[0].text.strip()
-        usage = response.to_dict()["usage"]
+        usage = response["usage"]
     else:
         client = instructor.from_anthropic(client)
         response, completion = client.messages.create_with_completion(
