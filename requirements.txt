@@ -19,5 +19,4 @@ pgvector==0.2.3
 pydantic==2.7.0
 openai==1.10.0
 demjson3==3.0.6
-tiktoken==0.6.0
-tokencost==0.1.12
+tokencost>=0.1.12
