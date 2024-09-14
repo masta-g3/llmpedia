@@ -46,7 +46,6 @@
 ## v.1.3.2
 - [x] Add repos to tweet insights.
 - [ ] LLM version config.
-- [ ] Productionize fables.
 - [x] Remove langchain pgvector.
 - [x] Add LLM research.
 - [x] Track card views.
@@ -54,3 +53,4 @@
 - [ ] Automate weekly report run.
 - [x] Add token usage logging.
 - [ ] Extract pydantic objects to repo.
+- [ ] Reorg images.
