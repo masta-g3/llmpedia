@@ -330,6 +330,20 @@ def convert_query_to_vector(query: str, model_name: str):
     return embeddings.embed_query(query)
 
 
+def generate_query_object(user_question: str, llm_model: str):
+    system_message = ps.VS_QUERY_SYSTEM_PROMPT
+    user_message = ps.create_query_user_prompt(user_question)
+    query_obj = run_instructor_query(
+        system_message,
+        user_message,
+        ps.SearchCriteria,
+        llm_model=llm_model,
+        temperature=0.5,
+        process_id="generate_query_object",
+    )
+    return query_obj
+
+
 def format_query_condition(field_name: str, template: str, value: str):
     if isinstance(value, list) and "semantic_search_queries" in field_name:
         distance_scores = []
@@ -400,11 +414,7 @@ def rerank_documents_new(
 
 
 def resolve_query(
-    user_question: str,
-    documents: list[Document],
-    response_length: str,
-    llm_model="gpt-4o",
-    temperature=0.2,
+    user_question: str, documents: list[Document], response_length: str, llm_model: str
 ):
     system_message = "You are an AI academic focused on Large Language Models. Please answer the user query leveraging the information provided in the context."
     user_message = ps.create_resolve_user_prompt(
@@ -415,7 +425,7 @@ def resolve_query(
         user_message=user_message,
         model=None,
         llm_model=llm_model,
-        temperature=temperature,
+        temperature=0.2,
         process_id="resolve_query",
     )
     return response
@@ -423,33 +433,32 @@ def resolve_query(
 
 def resolve_query_other(user_question: str) -> str:
     """Decide the query action based on the user question."""
-    system_message = "You are the GPT Maestro, maintainer of the LLMpedia, a web-based Large Language Model encyclopedia. You received the following unrelated comment from a user via our chat based system. Please respond to it in a friendly, slightly-sarcastic, serious and very concise (less than 20 words) manner."
+    system_message = "You are the GPT Maestro, maintainer of the LLMpedia, a web-based Large Language Model encyclopedia and collection of research papers. You received the following unrelated comment from a user via our chat based system. Please respond to it in a friendly, yet serious and very concise (less than 20 words) manner."
     user_message = f"{user_question}"
     response = run_instructor_query(
-        system_message, user_message, None, process_id="resolve_query_other"
+        system_message,
+        user_message,
+        None,
+        llm_model="gpt-4o-mini",
+        process_id="resolve_query_other",
     )
     return response
 
 
 def query_llmpedia_new(
     user_question: str,
-    response_length: str = "Normal",
-    query_llm_model="gpt-4o",
-    rerank_llm_model="gpt-4o-mini",
-    response_llm_model="gpt-4o",
+    response_length: str,
+    query_llm_model: str,
+    rerank_llm_model: str,
+    response_llm_model: str,
 ) -> Tuple[str, List[str], List[str]]:
     """Extended RAG workflow to answer a user query with the LLMpedia."""
     action = decide_query_action(user_question)
 
     if action.llm_query:
         ## Create query.
-        query_obj = run_instructor_query(
-            ps.VS_QUERY_SYSTEM_PROMPT,
-            ps.create_query_user_prompt(user_question),
-            ps.SearchCriteria,
-            llm_model=query_llm_model,
-            temperature=0.5,
-            process_id="generate_query_object",
+        query_obj = generate_query_object(
+            user_question=user_question, llm_model=query_llm_model
         )
 
         ## Fetch results.
@@ -464,7 +473,7 @@ def query_llmpedia_new(
 
         ## Rerank.
         reranked_documents = rerank_documents_new(
-            user_question, documents, llm_model=rerank_llm_model, temperature=0.2
+            user_question, documents, llm_model=rerank_llm_model
         )
         filtered_document_ids = [
             int(d.document_id) for d in reranked_documents.documents if d.selected
@@ -481,7 +490,6 @@ def query_llmpedia_new(
             filtered_documents,
             response_length,
             llm_model=response_llm_model,
-            temperature=0.2,
         )
         answer_augment = add_links_to_text_blob(answer)
         referenced_arxiv_codes = extract_arxiv_codes(answer_augment)

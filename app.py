@@ -368,8 +368,11 @@ def main():
                     "Consulting the GPT maestro, this might take a minute..."
                 ):
                     response, referenced_codes, relevant_codes = au.query_llmpedia_new(
-                        user_question,
-                        response_length,
+                        user_question=user_question,
+                        response_length=response_length,
+                        query_llm_model="gpt-4o",
+                        rerank_llm_model="gpt-4o-mini",
+                        response_llm_model="gpt-4o",
                     )
                     db.log_qna_db(user_question, response)
                     st.divider()
@@ -514,8 +517,8 @@ def main():
 
 
 if __name__ == "__main__":
-    # try:
+    try:
         main()
-    # except Exception as e:
-        # db.log_error_db(e)
-        # st.error("Something went wrong. Please refresh the app and try again.")
+    except Exception as e:
+        db.log_error_db(e)
+        st.error("Something went wrong. Please refresh the app and try again.")
