@@ -2,13 +2,15 @@
 
 set -e  # Exit immediately if any command fails
 
-LOG_FILE="workflow.log"
+# Use environment variable with fallback
+PROJECT_PATH=${PROJECT_PATH:-$(pwd)}
+LOG_FILE="${PROJECT_PATH}/workflow.log"
 
 function run_step() {
     local step_name="$1"
     local script="$2"
     echo ">> [$step_name]" | tee -a "$LOG_FILE"
-    python "$script" 2>&1 | tee -a "$LOG_FILE"
+    python "${PROJECT_PATH}/src/${script}" 2>&1 | tee -a "$LOG_FILE"
 }
 
 run_step "0: Web Scraper" "workflow/a0_scrape_lists.py"
