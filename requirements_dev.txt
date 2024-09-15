@@ -1,3 +1,4 @@
+-i https://pypi.org/simple
 arxiv~=2.1.0
 bertopic~=0.16.0
 einops~=0.6.1
