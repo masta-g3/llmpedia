@@ -277,6 +277,11 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
 
     if len(paper_repos) > 0:
         with st.expander("🔗 **Repos & Other Resources**", expanded=False):
+            paper_repos = (
+                pd.DataFrame(paper_repos).T
+                if not isinstance(paper_repos, pd.DataFrame)
+                else paper_repos
+            )
             for i, row in paper_repos.iterrows():
                 repo_link = row["repo_url"]
                 repo_title = row["repo_title"]
