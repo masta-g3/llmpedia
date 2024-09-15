@@ -21,4 +21,4 @@ services:
       - CRONICLE_log_level=9
        - CRONICLE_server_comm_use_hostnames=1
        - CRONICLE_web_socket_use_hostnames=1
-       - CRONICLE_base_app_url=http://localhost:3012
+       - CRONICLE_base_app_url=http://159.89.81.16:3012
