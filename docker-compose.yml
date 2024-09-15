@@ -19,3 +19,6 @@ services:
       - TZ=America/Los_Angeles
       - CRONICLE_echo=1
       - CRONICLE_log_level=9
+       - CRONICLE_server_comm_use_hostnames=1
+       - CRONICLE_web_socket_use_hostnames=1
+       - CRONICLE_base_app_url=http://localhost:3012
