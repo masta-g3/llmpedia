@@ -19,7 +19,7 @@ numpy==1.24.4
 open-clip-torch~=2.20.0
 openai==1.44.1
 pandas==2.0.3
-pgvector==0.2.3
+pgvector==0.2.5
 plotly==5.18.0
 python-dotenv~=1.0.0
 safetensors>=0.3.0
