@@ -8,13 +8,11 @@ services:
       - ./data:/app/data
       - ./imgs:/app/imgs
       - .:/app/src
-    ports:
-      - "8188:8188"  # ComfyUI interface
 
   cronicle:
-    image: jhuckaby/cronicle
+    image: vimagick/cronicle
     ports:
-      - "3012:3012"  # Cronicle web interface
+      - "3012:3012"
     volumes:
       - ./cronicle_data:/opt/cronicle/data
     environment:

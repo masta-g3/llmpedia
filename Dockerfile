@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y cron git && \
+RUN apt-get update && apt-get install -y git && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -21,9 +21,6 @@ RUN pip install --no-cache-dir -r requirements_dev.txt
 
 COPY workflow.sh .
 COPY utils ./utils
+COPY workflow ./workflow
+
 RUN chmod +x workflow.sh
-
-# Create cron log file
-RUN touch /var/log/cron.log
-
-CMD ["/bin/bash", "-c", "cron && tail -f /var/log/cron.log"]
