@@ -16,4 +16,6 @@ services:
     volumes:
       - ./cronicle_data:/opt/cronicle/data
     environment:
-      - TZ=UTC
+      - TZ=America/Los_Angeles
+      - CRONICLE_echo=1
+      - CRONICLE_log_level=9
