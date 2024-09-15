@@ -7,8 +7,10 @@ load_dotenv()
 from tqdm import tqdm
 
 PROJECT_PATH = os.environ.get("PROJECT_PATH")
-sys.path.append(os.environ.get("PROJECT_PATH"))
-os.chdir(os.environ.get("PROJECT_PATH"))
+PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
+sys.path.append(PROJECT_PATH)
+
+os.chdir(PROJECT_PATH)
 
 import utils.paper_utils as pu
 import utils.db as db

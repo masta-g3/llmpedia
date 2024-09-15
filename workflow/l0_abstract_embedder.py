@@ -13,7 +13,9 @@ import json
 from dotenv import load_dotenv
 
 load_dotenv()
-sys.path.append(os.environ.get("PROJECT_PATH"))
+PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
+sys.path.append(PROJECT_PATH)
+
 
 import utils.paper_utils as pu
 import utils.db as db

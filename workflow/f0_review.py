@@ -3,8 +3,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-sys.path.append(os.environ.get("PROJECT_PATH"))
-os.chdir(os.environ.get("PROJECT_PATH"))
+PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
+sys.path.append(PROJECT_PATH)
+
+os.chdir(PROJECT_PATH)
 
 import pandas as pd
 from tqdm import tqdm

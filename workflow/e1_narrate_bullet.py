@@ -7,8 +7,10 @@ load_dotenv()
 from langchain_community.callbacks import get_openai_callback
 from tqdm import tqdm
 
-sys.path.append(os.environ.get("PROJECT_PATH"))
-os.chdir(os.environ.get("PROJECT_PATH"))
+PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
+sys.path.append(PROJECT_PATH)
+
+os.chdir(PROJECT_PATH)
 
 import utils.vector_store as vs
 import utils.db as db

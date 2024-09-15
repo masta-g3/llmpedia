@@ -14,7 +14,9 @@ import json
 from dotenv import load_dotenv
 
 load_dotenv()
-sys.path.append(os.environ.get("PROJECT_PATH"))
+PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
+sys.path.append(PROJECT_PATH)
+
 chunk_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_chunks")
 
 import utils.paper_utils as pu

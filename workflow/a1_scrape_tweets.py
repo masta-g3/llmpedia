@@ -4,7 +4,9 @@ import re
 from dotenv import load_dotenv
 
 load_dotenv()
-sys.path.append(os.environ.get("PROJECT_PATH"))
+PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
+sys.path.append(PROJECT_PATH)
+
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By

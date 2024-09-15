@@ -22,6 +22,9 @@ services:
       - ./cronicle_data/logs:/opt/cronicle/logs:rw
       - ./cronicle_data/plugins:/opt/cronicle/plugins:rw
     environment:
+      - PYTHONUNBUFFERED=1
+      - DISPLAY=:99
+      - CHROME_BIN=/usr/bin/google-chrome-stable
       - TZ=America/Los_Angeles
       - CRONICLE_echo=1
       - CRONICLE_log_level=9

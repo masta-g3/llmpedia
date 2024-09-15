@@ -5,12 +5,16 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from dateutil.parser import parse
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from dotenv import load_dotenv
 import feedparser
 import time
 
 load_dotenv()
-sys.path.append(os.environ.get("PROJECT_PATH"))
+PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
+sys.path.append(PROJECT_PATH)
 
 import utils.paper_utils as pu
 import utils.db as db
@@ -115,7 +119,16 @@ def scrape_rsrch_space_papers(start_date, end_date=None):
     end_date = datetime.strptime(end_date, "%Y-%m-%d")
     df = pd.DataFrame(columns=["arxiv_code", "title"])
 
-    driver = webdriver.Chrome()
+    # Set up Chrome options for headless browsing
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+
+    # Set up the Chrome driver
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+
     driver.get("http://rsrch.space")
 
     time.sleep(5)
