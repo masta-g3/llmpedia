@@ -204,7 +204,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         level_select = st.selectbox(
             "Detail",
             [
-                "🔖 Most Interesting Findings",
+                "5️⃣ Takeaways",
                 "📝 High-Level Overview",
                 "🔎 Detailed Research Notes",
             ],
@@ -225,10 +225,22 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             else "Not available yet, check back soon!"
         )
 
-        if level_select == "🔖 Most Interesting Findings":
-            st.markdown(bullet_summary)
+        if level_select == "5️⃣ Takeaways":
+            bullet_summary_lines = bullet_summary.split('\n')
+            numbered_summary = []
+            number = 1
+            for line in bullet_summary_lines:
+                print(line)
+                if line.strip().startswith('- '):
+                    numbered_summary.append(f"{number}. {line.strip()[2:]}")
+                    number += 1
+                else:
+                    numbered_summary.append(line)
+            st.markdown('\n'.join(numbered_summary))
+
         elif level_select == "📝 High-Level Overview":
             st.markdown(summary)
+
         elif level_select == "🔎 Detailed Research Notes":
             if not pd.isna(markdown_summary):
                 markdown_summary = markdown_summary.replace("#", "###")

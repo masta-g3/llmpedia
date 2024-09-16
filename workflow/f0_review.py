@@ -30,7 +30,7 @@ def main():
 
     arxiv_codes = sorted(arxiv_codes)[::-1]
     for arxiv_code in tqdm(arxiv_codes):
-        new_content = db.get_extended_notes(arxiv_code, expected_tokens=1500)
+        new_content = db.get_extended_notes(arxiv_code, expected_tokens=1200)
 
         ## Try to run LLM process up to 3 times.
         success = False
@@ -49,7 +49,7 @@ def main():
 
         ## Extract and combine results.
         result_dict = summary.json()
-        pu.store_local(result_dict, arxiv_code, "summaries")
+        # pu.store_local(result_dict, arxiv_code, "summaries")
 
         ## Store on DB.
         data = pu.convert_innert_dict_strings_to_actual_dicts(result_dict)
