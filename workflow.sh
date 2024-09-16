@@ -10,7 +10,7 @@ function run_step() {
     local step_name="$1"
     local script="$2"
     echo ">> [$step_name]" | tee -a "$LOG_FILE"
-    python "${PROJECT_PATH}/src/${script}" 2>&1 | tee -a "$LOG_FILE"
+    python "${PROJECT_PATH}/${script}" 2>&1 | tee -a "$LOG_FILE"
 }
 
 run_step "0: Web Scraper" "workflow/a0_scrape_lists.py"
