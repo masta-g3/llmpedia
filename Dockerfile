@@ -20,6 +20,7 @@ RUN pip install --no-cache-dir -r requirements_dev.txt
 
 COPY workflow.sh .
 COPY utils ./utils
+COPY workflow ./workflow
 RUN chmod +x workflow.sh
 
 # Copy crontab file and set up the cron job
@@ -42,6 +43,9 @@ RUN apt-get update && apt-get install -y \
 ENV PROJECT_PATH=/app
 ENV MODELS_PATH=/app/models
 ENV COMFY_PATH=/app/ComfyUI
+
+# Copy the rest of your application
+COPY . .
 
 # Start cron in the foreground
 CMD ["cron", "-f"]
