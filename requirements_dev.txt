@@ -31,3 +31,12 @@ torchdiffeq~=0.2.3
 torchsde~=0.2.5
 torch~=2.4.0
 transformers~=4.38.2
+anthropic==0.28.0
+cohere==5.5.4
+colorcet==3.0.1
+instructor==1.4.1
+psycopg2-binary==2.9.7
+pydantic==2.9.1
+tokencost>=0.1.12
+streamlit==1.37.1
+streamlit-plotly-events==0.0.6

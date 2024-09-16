@@ -7,7 +7,6 @@ services:
     volumes:
       - ./data:/app/data
       - ./imgs:/app/imgs
-      - .:/app/src
     ports:
       - "8188:8188"  # ComfyUI interface
     environment:
