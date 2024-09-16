@@ -112,42 +112,69 @@ def scrape_huggingface_papers(start_date, end_date=None):
 
 
 def scrape_rsrch_space_papers(start_date, end_date=None):
+    print("Starting scrape_rsrch_space_papers function")
     if end_date is None:
         end_date = start_date
+    print(f"Start date: {start_date}, End date: {end_date}")
 
     start_date = datetime.strptime(start_date, "%Y-%m-%d")
     end_date = datetime.strptime(end_date, "%Y-%m-%d")
-    df = pd.DataFrame(columns=["arxiv_code", "title"])
+    print(f"Parsed dates - Start: {start_date}, End: {end_date}")
 
-    # Set up Chrome options for headless browsing
+    df = pd.DataFrame(columns=["arxiv_code", "title"])
+    print("Created empty DataFrame")
+
+    print("Setting up Chrome options")
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
 
-    # Set up the Chrome driver
+    print("Setting up Chrome driver")
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
+    print("Chrome driver set up complete")
 
+    print("Navigating to rsrch.space")
     driver.get("http://rsrch.space")
+    print("Page loaded")
 
+    print("Parsing page source")
     soup = BeautifulSoup(driver.page_source, "html.parser")
-    driver.quit()
+    print("Page source parsed")
 
-    for entry in soup.find_all(
+    print("Closing driver")
+    driver.quit()
+    print("Driver closed")
+
+    print("Searching for paper entries")
+    entries = soup.find_all(
         "a", class_="flex justify-between text-secondary py-1 group text-md"
-    ):
+    )
+    print(f"Found {len(entries)} entries")
+
+    for entry in entries:
+        print("Processing entry")
         date_str = entry.find("p", class_="font-berkeley").text.strip()
+        print(f"Date string: {date_str}")
         entry_date = datetime.strptime(date_str, "%Y-%m-%d")
+        print(f"Parsed entry date: {entry_date}")
 
         if start_date <= entry_date <= end_date:
+            print("Entry date within range")
             href = entry["href"]
             arxiv_code = href.split("/")[-1]
+            print(f"arXiv code: {arxiv_code}")
             title = entry.find("strong").get_text(strip=True)
+            print(f"Title: {title}")
             df = df._append(
                 {"arxiv_code": arxiv_code, "title": title}, ignore_index=True
             )
+            print("Added entry to DataFrame")
+        else:
+            print("Entry date out of range")
 
+    print(f"Scraping complete. DataFrame has {len(df)} entries")
     return df
 
 
