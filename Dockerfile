@@ -28,7 +28,7 @@ COPY crontab /etc/cron.d/my-crontab
 RUN chmod 0644 /etc/cron.d/my-crontab && \
     crontab /etc/cron.d/my-crontab
 
-# Install Chrome and dependencies for Selenium
+# Install Chrome, ChromeDriver, and dependencies for Selenium
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -37,6 +37,12 @@ RUN apt-get update && apt-get install -y \
     && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
     && apt-get update \
     && apt-get install -y google-chrome-stable \
+    && CHROME_VERSION=$(google-chrome --version | awk '{ print $3 }' | awk -F'.' '{ print $1 }') \
+    && CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION") \
+    && wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip" \
+    && unzip chromedriver_linux64.zip -d /usr/local/bin \
+    && rm chromedriver_linux64.zip \
+    && chmod +x /usr/local/bin/chromedriver \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

@@ -1,3 +1,4 @@
+import platform
 import sys, os
 import requests
 import pandas as pd
@@ -5,9 +6,12 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from dateutil.parser import parse
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.firefox.service import Service as FirefoxService
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
 from dotenv import load_dotenv
 import feedparser
 import time
@@ -111,6 +115,25 @@ def scrape_huggingface_papers(start_date, end_date=None):
     return df
 
 
+def setup_browser():
+    chrome_options = ChromeOptions()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    if os.path.exists('/.dockerenv'):
+        # Docker-specific setup with Chrome
+        service = ChromeService('/usr/local/bin/chromedriver')  # Path in Docker
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+    else:
+        # Local setup
+        if platform.system() == 'Darwin':  # macOS
+           driver = webdriver.Chrome(options=chrome_options)
+        else:
+            raise ValueError("Unsupported operating system")
+
+    return driver
+
+
 def scrape_rsrch_space_papers(start_date, end_date=None):
     print("Starting scrape_rsrch_space_papers function")
     if end_date is None:
@@ -124,22 +147,16 @@ def scrape_rsrch_space_papers(start_date, end_date=None):
     df = pd.DataFrame(columns=["arxiv_code", "title"])
     print("Created empty DataFrame")
 
-    print("Setting up Chrome options")
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-
-    print("Setting up Chrome driver")
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    print("Chrome driver set up complete")
+    print("Setting up browser")
+    driver = setup_browser()
+    print("Browser setup complete")
 
     print("Navigating to rsrch.space")
     driver.get("http://rsrch.space")
     print("Page loaded")
 
     print("Parsing page source")
+    time.sleep(5)
     soup = BeautifulSoup(driver.page_source, "html.parser")
     print("Page source parsed")
 
@@ -259,7 +276,7 @@ def scrape_emergentmind_papers():
 def main():
     """Scrape arxiv codes and titles from huggingface.co/papers."""
     if len(sys.argv) < 2 or len(sys.argv) > 3:
-        start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+        start_date = (datetime.now() - timedelta(days=14)).strftime("%Y-%m-%d")
         end_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
     else:
         start_date = sys.argv[1]
