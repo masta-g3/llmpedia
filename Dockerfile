@@ -40,6 +40,19 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Firefox and GeckoDriver
+RUN apt-get update && apt-get install -y \
+    firefox-esr \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*4
+
+# Install GeckoDriver
+RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.30.0/geckodriver-v0.30.0-linux64.tar.gz \
+    && tar -xvzf geckodriver-v0.30.0-linux64.tar.gz \
+    && chmod +x geckodriver \
+    && mv geckodriver /usr/local/bin/ \
+    && rm geckodriver-v0.30.0-linux64.tar.gz
+
 # Set environment variables
 ENV PROJECT_PATH=/app
 ENV MODELS_PATH=/app/models

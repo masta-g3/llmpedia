@@ -131,8 +131,6 @@ def scrape_rsrch_space_papers(start_date, end_date=None):
 
     driver.get("http://rsrch.space")
 
-    time.sleep(5)
-
     soup = BeautifulSoup(driver.page_source, "html.parser")
     driver.quit()
 
@@ -234,7 +232,7 @@ def scrape_emergentmind_papers():
 def main():
     """Scrape arxiv codes and titles from huggingface.co/papers."""
     if len(sys.argv) < 2 or len(sys.argv) > 3:
-        start_date = (datetime.now() - timedelta(days=15)).strftime("%Y-%m-%d")
+        start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
         end_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
     else:
         start_date = sys.argv[1]

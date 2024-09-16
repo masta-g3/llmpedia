@@ -521,4 +521,4 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         db.log_error_db(e)
-        st.error("Something went wrong. Please refresh the app and try again.")
+        st.error("Something went wrong. Please refresh the app and try again, we will look into it.")

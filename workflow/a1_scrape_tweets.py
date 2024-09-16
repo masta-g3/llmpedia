@@ -1,4 +1,5 @@
 import random
+import platform
 import sys, os
 import re
 from dotenv import load_dotenv
@@ -8,6 +9,9 @@ PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
 sys.path.append(PROJECT_PATH)
 
 
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.firefox.service import Service
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -162,9 +166,32 @@ def save_tweets_to_csv(tweets: List[dict], filename: str):
             writer.writerow(tweet)
 
 
+def setup_browser():
+    if os.path.exists('/.dockerenv'):
+        # Docker-specific setup with Chrome
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        service = Service('/usr/local/bin/chromedriver')  # Path in Docker
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+    else:
+        # Local setup with Firefox
+        if platform.system() == 'Darwin':  # macOS
+            firefox_options = FirefoxOptions()
+            firefox_options.add_argument("--headless")
+            driver = webdriver.Firefox(options=firefox_options)
+        else:
+            raise Exception("Unsupported OS")
+
+    return driver
+
+
 def main():
     all_tweets = []
-    browser = webdriver.Firefox()
+
+    browser = setup_browser()
+    
     login = True
 
     try:
