@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 import feedparser
 import time
 
+
 load_dotenv()
 PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
 sys.path.append(PROJECT_PATH)
@@ -120,18 +121,27 @@ def setup_browser():
     chrome_options.add_argument("--headless")
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
-    if os.path.exists('/.dockerenv'):
-        # Docker-specific setup with Chrome
-        service = ChromeService('/usr/local/bin/chromedriver')  # Path in Docker
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-    else:
-        # Local setup
-        if platform.system() == 'Darwin':  # macOS
-           driver = webdriver.Chrome(options=chrome_options)
-        else:
-            raise ValueError("Unsupported operating system")
 
-    return driver
+    try:
+        if os.path.exists('/.dockerenv'):
+            print("Running in Docker environment")
+            # Docker-specific setup with Chrome
+            chrome_options.binary_location = '/usr/bin/chromium'
+            service = ChromeService('/usr/bin/chromedriver')
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+        else:
+            print(f"Running on local machine: {platform.system()}")
+            # Local setup
+            if platform.system() == 'Darwin':  # macOS
+                driver = webdriver.Chrome(options=chrome_options)
+            else:
+                driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
+        
+        print("Browser setup successful")
+        return driver
+    except Exception as e:
+        print(f"Error setting up browser: {str(e)}")
+        raise
 
 
 def scrape_rsrch_space_papers(start_date, end_date=None):
