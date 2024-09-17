@@ -127,7 +127,9 @@ def setup_browser():
             print("Running in Docker environment")
             # Docker-specific setup with Chrome
             chrome_options.binary_location = '/usr/bin/chromium'
+            print(chrome_options.binary_location)
             service = ChromeService('/usr/bin/chromedriver')
+            print(service)
             driver = webdriver.Chrome(service=service, options=chrome_options)
         else:
             print(f"Running on local machine: {platform.system()}")
