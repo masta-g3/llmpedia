@@ -14,14 +14,11 @@ from dotenv import load_dotenv
 import feedparser
 import time
 
-
 load_dotenv()
 PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
 sys.path.append(PROJECT_PATH)
 
 import utils.paper_utils as pu
-import utils.db as db
-
 
 def scrape_ml_papers_of_the_week(start_date, end_date=None):
     if end_date is None:
@@ -115,7 +112,6 @@ def scrape_huggingface_papers(start_date, end_date=None):
 
 
 def setup_browser():
-    print("Starting browser setup...")
     chrome_options = ChromeOptions()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument('--no-sandbox')
@@ -129,20 +125,15 @@ def setup_browser():
 
     try:
         if os.path.exists('/.dockerenv'):
-            print("Running in Docker environment")
             chrome_options.binary_location = '/usr/bin/chromium'
             service = ChromeService('/usr/bin/chromedriver')
-            print("Creating Chrome driver...")
             driver = webdriver.Chrome(service=service, options=chrome_options)
         else:
-            print(f"Running on local machine: {platform.system()}")
-            # Local setup
             if platform.system() == 'Darwin':  # macOS
-                driver = webdriver.Chrome(options=chrome_options, desired_capabilities=capabilities)
+                driver = webdriver.Chrome(options=chrome_options)
             else:
                 driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
         
-        print("Browser setup successful")
         return driver
     except Exception as e:
         print(f"Error setting up browser: {str(e)}")
@@ -150,63 +141,34 @@ def setup_browser():
 
 
 def scrape_rsrch_space_papers(start_date, end_date=None):
-    print("Starting scrape_rsrch_space_papers function")
     if end_date is None:
         end_date = start_date
-    print(f"Start date: {start_date}, End date: {end_date}")
 
     start_date = datetime.strptime(start_date, "%Y-%m-%d")
     end_date = datetime.strptime(end_date, "%Y-%m-%d")
-    print(f"Parsed dates - Start: {start_date}, End: {end_date}")
 
     df = pd.DataFrame(columns=["arxiv_code", "title"])
-    print("Created empty DataFrame")
 
-    print("Setting up browser")
     driver = setup_browser()
-    print("Browser setup complete")
-
-    print("Navigating to rsrch.space")
     driver.get("http://rsrch.space")
-    print("Page loaded")
-
-    print("Parsing page source")
     time.sleep(5)
     soup = BeautifulSoup(driver.page_source, "html.parser")
-    print("Page source parsed")
-
-    print("Closing driver")
     driver.quit()
-    print("Driver closed")
 
-    print("Searching for paper entries")
     entries = soup.find_all(
         "a", class_="flex justify-between text-secondary py-1 group text-md"
     )
-    print(f"Found {len(entries)} entries")
-
     for entry in entries:
-        print("Processing entry")
         date_str = entry.find("p", class_="font-berkeley").text.strip()
-        print(f"Date string: {date_str}")
         entry_date = datetime.strptime(date_str, "%Y-%m-%d")
-        print(f"Parsed entry date: {entry_date}")
 
         if start_date <= entry_date <= end_date:
-            print("Entry date within range")
             href = entry["href"]
             arxiv_code = href.split("/")[-1]
-            print(f"arXiv code: {arxiv_code}")
             title = entry.find("strong").get_text(strip=True)
-            print(f"Title: {title}")
             df = df._append(
                 {"arxiv_code": arxiv_code, "title": title}, ignore_index=True
             )
-            print("Added entry to DataFrame")
-        else:
-            print("Entry date out of range")
-
-    print(f"Scraping complete. DataFrame has {len(df)} entries")
     return df
 
 
@@ -324,8 +286,8 @@ def main():
     df["arxiv_code"] = df["arxiv_code"].str.replace(r"v\d+$", "", regex=True)
     new_codes = df["arxiv_code"].tolist()
     new_codes = [code for code in new_codes if pu.is_arxiv_code(code)]
-    done_codes = pu.get_local_arxiv_codes()
-    nonllm_codes = pu.get_local_arxiv_codes("nonllm_arxiv_text")
+    done_codes = pu.list_s3_files("arxiv-text")
+    nonllm_codes = pu.list_s3_files("nonllm-arxiv-text")
 
     ## Remote paper list.
     gist_id = "1dd189493c1890df6e04aaea6d049643"

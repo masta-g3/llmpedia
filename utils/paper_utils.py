@@ -1,7 +1,7 @@
 import os
 import re, json
 import time
-import random
+import boto3
 import arxiv
 import requests
 import pandas as pd
@@ -156,8 +156,6 @@ def classify_llm_paper(paper_content):
 #####################
 ## LOCAL DATA MGMT ##
 #####################
-
-
 def get_local_arxiv_codes(directory="arxiv_text", format=".txt"):
     """Get a list of local Arxiv codes."""
     local_paper_codes = os.path.join(PROJECT_PATH, "data", directory)
@@ -209,6 +207,37 @@ def delete_local(arxiv_code, data_path, relative=True, format="json"):
         os.remove(os.path.join(data_path, f"{arxiv_code}.txt"))
     else:
         raise ValueError("Format not supported.")
+    
+
+##################
+## S3 DATA MGMT ##
+##################
+def list_s3_files(bucket_name: str, strip_extension: bool = True) -> list[str]:
+    """List all files in an S3 bucket."""
+    s3 = boto3.client("s3")
+    paginator = s3.get_paginator('list_objects_v2')
+    files = []
+    for page in paginator.paginate(Bucket=bucket_name):
+        if "Contents" in page:
+            if strip_extension:
+                files.extend([os.path.splitext(obj["Key"])[0] for obj in page["Contents"]])
+            else:
+                files.extend([obj["Key"] for obj in page["Contents"]])
+    return files
+
+
+def download_s3_file(arxiv_code: str, bucket_name: str, format: str = "json") -> str:
+    """Load data from S3."""
+    s3 = boto3.client("s3")
+    s3.download_file(bucket_name, f"{arxiv_code}.{format}", f"{arxiv_code}.{format}")
+    return True
+
+
+def upload_s3_file(arxiv_code: str, bucket_name: str, format: str = "json") -> bool:
+    """Upload data to S3."""
+    s3 = boto3.client("s3")
+    s3.upload_file(f"{arxiv_code}.{format}", bucket_name, f"{arxiv_code}.{format}")
+    return True
 
 
 #####################
