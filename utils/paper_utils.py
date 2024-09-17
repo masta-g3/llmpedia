@@ -214,7 +214,12 @@ def delete_local(arxiv_code, data_path, relative=True, format="json"):
 ##################
 def list_s3_files(bucket_name: str, strip_extension: bool = True) -> list[str]:
     """List all files in an S3 bucket."""
-    s3 = boto3.client("s3")
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+        region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+    )
     paginator = s3.get_paginator('list_objects_v2')
     files = []
     for page in paginator.paginate(Bucket=bucket_name):
