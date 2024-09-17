@@ -117,25 +117,30 @@ def scrape_huggingface_papers(start_date, end_date=None):
 
 
 def setup_browser():
+    print("Starting browser setup...")
     chrome_options = ChromeOptions()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--remote-debugging-port=9222')
+
+    # Enable verbose logging
+    capabilities = DesiredCapabilities.CHROME
+    capabilities['goog:loggingPrefs'] = {'browser': 'ALL'}
 
     try:
         if os.path.exists('/.dockerenv'):
             print("Running in Docker environment")
-            # Docker-specific setup with Chrome
             chrome_options.binary_location = '/usr/bin/chromium'
-            print(chrome_options.binary_location)
             service = ChromeService('/usr/bin/chromedriver')
-            print(service)
+            print("Creating Chrome driver...")
             driver = webdriver.Chrome(service=service, options=chrome_options)
         else:
             print(f"Running on local machine: {platform.system()}")
             # Local setup
             if platform.system() == 'Darwin':  # macOS
-                driver = webdriver.Chrome(options=chrome_options)
+                driver = webdriver.Chrome(options=chrome_options, desired_capabilities=capabilities)
             else:
                 driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
         
