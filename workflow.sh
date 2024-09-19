@@ -1,8 +1,10 @@
 #!/bin/bash
 
 set -e  # Exit immediately if any command fails
+set -a
+source /app/.env
+set +a
 
-# Use environment variable with fallback
 PROJECT_PATH=${PROJECT_PATH:-/app}
 LOG_FILE="${PROJECT_PATH}/workflow.log"
 
