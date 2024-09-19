@@ -112,6 +112,7 @@ def main():
 
         ## Store.
         pu.store_local(new_content, arxiv_code, "arxiv_text", format="txt")
+        pu.upload_s3_file(arxiv_code, "arxiv-text", format="txt")
         print(f"\nText for '{paper_name}' - '{title}' stored locally.")
 
         ## Update gist.

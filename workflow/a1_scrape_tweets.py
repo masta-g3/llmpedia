@@ -11,12 +11,15 @@ sys.path.append(PROJECT_PATH)
 
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
-from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.firefox.service import Service as FirefoxService
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from bs4 import BeautifulSoup
 from typing import List
 import time
@@ -168,16 +171,18 @@ def save_tweets_to_csv(tweets: List[dict], filename: str):
 
 def setup_browser():
     if os.path.exists('/.dockerenv'):
-        # Docker-specific setup with Chrome
-        chrome_options = Options()
+        chrome_options = ChromeOptions()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
-        service = Service('/usr/local/bin/chromedriver')  # Path in Docker
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--remote-debugging-port=9222')
+        
+        chrome_options.binary_location = '/usr/bin/chromium'
+        service = ChromeService('/usr/bin/chromedriver')
         driver = webdriver.Chrome(service=service, options=chrome_options)
     else:
-        # Local setup with Firefox
-        if platform.system() == 'Darwin':  # macOS
+        if platform.system() == 'Darwin':
             firefox_options = FirefoxOptions()
             firefox_options.add_argument("--headless")
             driver = webdriver.Firefox(options=firefox_options)

@@ -207,7 +207,7 @@ def delete_local(arxiv_code, data_path, relative=True, format="json"):
         os.remove(os.path.join(data_path, f"{arxiv_code}.txt"))
     else:
         raise ValueError("Format not supported.")
-    
+
 
 ##################
 ## S3 DATA MGMT ##
@@ -218,30 +218,41 @@ def list_s3_files(bucket_name: str, strip_extension: bool = True) -> list[str]:
         "s3",
         aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
         aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
-        region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+        region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"),
     )
-    paginator = s3.get_paginator('list_objects_v2')
+    paginator = s3.get_paginator("list_objects_v2")
     files = []
     for page in paginator.paginate(Bucket=bucket_name):
         if "Contents" in page:
             if strip_extension:
-                files.extend([os.path.splitext(obj["Key"])[0] for obj in page["Contents"]])
+                files.extend(
+                    [os.path.splitext(obj["Key"])[0] for obj in page["Contents"]]
+                )
             else:
                 files.extend([obj["Key"] for obj in page["Contents"]])
     return files
 
 
-def download_s3_file(arxiv_code: str, bucket_name: str, format: str = "json") -> str:
+def download_s3_file(
+    arxiv_code: str, bucket_name: str, prefix: str = "data", format: str = "json"
+) -> bool:
     """Load data from S3."""
     s3 = boto3.client("s3")
-    s3.download_file(bucket_name, f"{arxiv_code}.{format}", f"{arxiv_code}.{format}")
+    local_path = os.path.join(prefix, bucket_name, f"{arxiv_code}.{format}")
+    s3.download_file(bucket_name, f"{arxiv_code}.{format}", local_path)
     return True
 
 
-def upload_s3_file(arxiv_code: str, bucket_name: str, format: str = "json") -> bool:
+def upload_s3_file(
+    arxiv_code: str,
+    bucket_name: str,
+    prefix: str = "data",
+    format: str = "json",
+) -> bool:
     """Upload data to S3."""
     s3 = boto3.client("s3")
-    s3.upload_file(f"{arxiv_code}.{format}", bucket_name, f"{arxiv_code}.{format}")
+    local_path = os.path.join(prefix, bucket_name.replace("-", "_"), f"{arxiv_code}.{format}")
+    s3.upload_file(local_path, bucket_name, f"{arxiv_code}.{format}")
     return True
 
 
@@ -389,6 +400,9 @@ def preprocess_arxiv_doc(
     """Preprocess an Arxiv document."""
     # doc_content = reformat_text(doc_content)
     doc_content = doc_content.replace("<|endoftext|>", "|endoftext|")
+    doc_content = doc_content.replace("<|fim_prefix|>", "|fim_prefix|")
+    doc_content = doc_content.replace("<|fim_middle|>", "|fim_middle|")
+    doc_content = doc_content.replace("<|fim_suffix|>", "|fim_suffix|")
 
     if remove_references:
         if len(doc_content.split("References")) == 2:

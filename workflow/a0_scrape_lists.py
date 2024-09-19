@@ -8,7 +8,6 @@ from dateutil.parser import parse
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.chrome.service import Service as ChromeService
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from dotenv import load_dotenv
 import feedparser
@@ -119,25 +118,17 @@ def setup_browser():
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--remote-debugging-port=9222')
 
-    # Enable verbose logging
-    capabilities = DesiredCapabilities.CHROME
-    capabilities['goog:loggingPrefs'] = {'browser': 'ALL'}
-
-    try:
-        if os.path.exists('/.dockerenv'):
-            chrome_options.binary_location = '/usr/bin/chromium'
-            service = ChromeService('/usr/bin/chromedriver')
-            driver = webdriver.Chrome(service=service, options=chrome_options)
+    if os.path.exists('/.dockerenv'):
+        chrome_options.binary_location = '/usr/bin/chromium'
+        service = ChromeService('/usr/bin/chromedriver')
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+    else:
+        if platform.system() == 'Darwin':
+            driver = webdriver.Chrome(options=chrome_options)
         else:
-            if platform.system() == 'Darwin':  # macOS
-                driver = webdriver.Chrome(options=chrome_options)
-            else:
-                driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
+            raise Exception("Unsupported OS")
         
-        return driver
-    except Exception as e:
-        print(f"Error setting up browser: {str(e)}")
-        raise
+    return driver
 
 
 def scrape_rsrch_space_papers(start_date, end_date=None):
