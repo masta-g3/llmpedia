@@ -38,11 +38,11 @@ def main():
     paper_list = pu.fetch_queue_gist(gist_id, gist_filename)
 
     ## Check local files.
-    local_codes = pu.get_local_arxiv_codes("arxiv_text")
-    nonllm_papers = pu.get_local_arxiv_codes("nonllm_arxiv_text") + ["..."]
+    done_codes = pu.list_s3_files("arxiv-text")
+    nonllm_codes = pu.list_s3_files("nonllm-arxiv-text") + ["..."]
 
     ## Remove duplicates.
-    paper_list = list(set(paper_list) - set(local_codes) - set(nonllm_papers))
+    paper_list = list(set(paper_list) - set(done_codes) - set(nonllm_codes))
     paper_list_iter = paper_list[:]
 
     arxiv_map = db.get_arxiv_title_dict()
@@ -92,7 +92,7 @@ def main():
             paper_list = list(set(paper_list) - set(parsed_list))
             gist_url = update_gist(gist_id, gist_filename, paper_list)
             ## Store in nonllm_arxiv_text.
-            pu.store_local(new_content, arxiv_code, "nonllm_arxiv_text", format="txt")
+            pu.upload_s3_file(arxiv_code, "nonllm-arxiv-text", prefix="data", format="txt")
             continue
 
         ## Check if we have a summary locally.
@@ -112,7 +112,7 @@ def main():
 
         ## Store.
         pu.store_local(new_content, arxiv_code, "arxiv_text", format="txt")
-        pu.upload_s3_file(arxiv_code, "arxiv-text", format="txt")
+        pu.upload_s3_file(arxiv_code, "arxiv-text", prefix="data", format="txt")
         print(f"\nText for '{paper_name}' - '{title}' stored locally.")
 
         ## Update gist.

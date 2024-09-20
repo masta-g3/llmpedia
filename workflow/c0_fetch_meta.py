@@ -14,7 +14,7 @@ import utils.db as db
 
 
 def main():
-    arxiv_codes = pu.get_local_arxiv_codes()
+    arxiv_codes = pu.list_s3_files("arxiv-text")
     done_codes = db.get_arxiv_id_list(db.db_params, "arxiv_details")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
@@ -27,7 +27,6 @@ def main():
         processed_meta = pu.process_arxiv_data(arxiv_info._raw)
 
         ## Store.
-        pu.store_local(arxiv_info._raw, arxiv_code, "arxiv_meta")
         db.upload_to_db(processed_meta, pu.db_params, "arxiv_details")
 
     print("Done.")
