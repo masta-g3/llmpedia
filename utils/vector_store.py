@@ -2,7 +2,6 @@ import pandas as pd
 import os
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from mlx_lm import generate
 import tiktoken
 
 import utils.db as db
@@ -132,6 +131,8 @@ def summarize_doc_chunk(paper_title: str, document: str, model="local"):
 
 def summarize_doc_chunk_mlx(paper_title: str, document: str, mlx_model, mlx_tokenizer):
     """Summarize a paper by segments with MLX models."""
+    from mlx_lm import generate
+    
     messages = [
         ("system", ps.SUMMARIZE_BY_PARTS_SYSTEM_PROMPT.format(paper_title=paper_title)),
         ("user", ps.SUMMARIZE_BY_PARTS_USER_PROMPT.format(content=document)),
