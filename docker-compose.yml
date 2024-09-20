@@ -6,7 +6,8 @@ services:
       - .env
     volumes:
       - ./data:/app/data
-      - ./imgs:/app/imgs
+      - ./data/arxiv_text:/app/data/arxiv_text
+      - ./data/nonllm_arxiv_text:/app/data/nonllm_arxiv_text
     ports:
       - "8188:8188"  # ComfyUI interface
     environment:
