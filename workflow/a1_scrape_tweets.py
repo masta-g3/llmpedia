@@ -219,8 +219,10 @@ def main():
 
         ## Update and upload arxiv codes.
         paper_list = list(set(paper_list + new_codes))
-        done_codes = pu.get_local_arxiv_codes()
-        nonllm_codes = pu.get_local_arxiv_codes("nonllm_arxiv_text")
+        # done_codes = pu.get_local_arxiv_codes()
+        # nonllm_codes = pu.get_local_arxiv_codes("nonllm_arxiv_text")
+        done_codes = pu.list_s3_files("arxiv-text")
+        nonllm_codes = pu.list_s3_files("nonllm-arxiv-text")
 
         print(f"Total papers: {len(paper_list)}")
         paper_list = list(set(paper_list) - set(done_codes) - set(nonllm_codes))
