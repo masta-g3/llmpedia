@@ -92,6 +92,7 @@ def main():
             paper_list = list(set(paper_list) - set(parsed_list))
             gist_url = update_gist(gist_id, gist_filename, paper_list)
             ## Store in nonllm_arxiv_text.
+            pu.store_local(new_content, arxiv_code, "nonllm_arxiv_text", format="txt")
             pu.upload_s3_file(arxiv_code, "nonllm-arxiv-text", prefix="data", format="txt")
             continue
 

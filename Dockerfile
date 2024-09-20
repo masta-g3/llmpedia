@@ -57,6 +57,8 @@ RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.30.0/geckod
     && mv geckodriver /usr/local/bin/ \
     && rm geckodriver-v0.30.0-linux64.tar.gz
 
+RUN mkdir -p /app/data/arxiv_text /app/data/nonllm_arxiv_text
+
 # Set environment variables
 ENV PROJECT_PATH=/app
 ENV MODELS_PATH=/app/models

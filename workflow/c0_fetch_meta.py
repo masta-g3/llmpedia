@@ -25,8 +25,6 @@ def main():
             print(f"\nCould not find '{arxiv_code}' in Arxiv meta-data. Skipping...")
             continue
         processed_meta = pu.process_arxiv_data(arxiv_info._raw)
-
-        ## Store.
         db.upload_to_db(processed_meta, pu.db_params, "arxiv_details")
 
     print("Done.")
