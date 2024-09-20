@@ -17,8 +17,8 @@ function run_step() {
 
 run_step "0: Web Scraper" "workflow/a0_scrape_lists.py"
 run_step "1 Tweet Scraper" "workflow/a1_scrape_tweets.py"
-# run_step "1: Document Fetcher" "workflow/b0_download_paper.py"
-# run_step "2: Meta-Data Collect" "workflow/c0_fetch_meta.py"
+run_step "1: Document Fetcher" "workflow/b0_download_paper.py"
+run_step "2: Meta-Data Collect" "workflow/c0_fetch_meta.py"
 # run_step "3: Summarizer" "workflow/d0_summarize.py"
 # run_step "4: Narrator" "workflow/e0_narrate.py"
 # run_step "4.1: Bullet List" "workflow/e1_narrate_bullet.py"
