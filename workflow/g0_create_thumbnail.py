@@ -20,11 +20,14 @@ import utils.db as db
 COMFY_PATH = os.getenv('COMFY_PATH', '/app/ComfyUI')
 sys.path.append(COMFY_PATH)
 
-IS_DOCKER = os.getenv('DOCKER_CONTAINER', 'false').lower() == 'true'
+IS_DOCKER = os.getenv('DOCKER_CONTAINER', 'true').lower() == 'true'
 
 if IS_DOCKER:
-    from utils.cpu_override import apply_overrides
+    from utils.cpu_override import apply_overrides, modify_comfy_model_management
     apply_overrides()
+    modify_comfy_model_management()
+else:
+    print("Not running in Docker, skipping CPU overrides.")
 
 s3 = boto3.client("s3")
 

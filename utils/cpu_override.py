@@ -7,9 +7,8 @@ import numpy as np
 import os
 import json
 from PIL.PngImagePlugin import PngInfo
+import re
 
-def get_torch_device():
-    return torch.device("cpu")
 
 class SaveImage(nodes.SaveImage):
     def __init__(self, output_dir=None):
@@ -41,9 +40,31 @@ class SaveImage(nodes.SaveImage):
         return metadata
 
 def apply_overrides():
-    comfy.model_management.get_torch_device = get_torch_device
     torch.cuda.is_available = lambda: False
     torch.cuda.current_device = lambda: -1
     torch.cuda.device_count = lambda: 0
     nodes.SaveImage = SaveImage
     print("CPU and SaveImage overrides applied successfully.")
+
+def modify_comfy_model_management():
+    file_path = os.path.join(os.path.dirname(__file__), '..', 'comfy', 'model_management.py')
+    
+    with open(file_path, 'r') as file:
+        content = file.read()
+
+    # Check if the function is already overridden
+    if 'return torch.device("cpu")' in content:
+        # print("get_torch_device() is already set to return CPU. No changes needed.")
+        return
+
+    # Replace the get_torch_device function
+    pattern = r'def get_torch_device\(\):[^}]*return[^}]*\n'
+    replacement = 'def get_torch_device():\n    return torch.device("cpu")  # Overridden for CPU usage\n'
+    modified_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+
+    if modified_content != content:
+        with open(file_path, 'w') as file:
+            file.write(modified_content)
+        print("comfy/model_management.py has been modified to force CPU usage.")
+    else:
+        print("Failed to modify get_torch_device(). The function might have an unexpected format.")
