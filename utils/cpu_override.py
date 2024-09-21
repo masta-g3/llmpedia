@@ -10,7 +10,6 @@ import re
 def apply_overrides():
     import nodes
 
-
     class SaveImage(nodes.SaveImage):
         def __init__(self, output_dir=None):
             super().__init__()
@@ -47,20 +46,22 @@ def apply_overrides():
     print("CPU and SaveImage overrides applied successfully.")
 
 def modify_comfy_model_management():
-    file_path = os.path.join(os.path.dirname(__file__), '..', 'comfy', 'model_management.py')
+    file_path = os.path.join(os.path.dirname(__file__), '..', 'ComfyUI', 'comfy', 'model_management.py')
     
     with open(file_path, 'r') as file:
         content = file.read()
 
     # Check if the function is already overridden
-    if 'return torch.device("cpu")' in content:
-        # print("get_torch_device() is already set to return CPU. No changes needed.")
+    if 'return torch.device("cpu")  # Overridden for CPU usage' in content:
+        print("get_torch_device() is already set to return CPU. No changes needed.")
         return
 
-    # Replace the get_torch_device function
-    pattern = r'def get_torch_device\(\):[^}]*return[^}]*\n'
-    replacement = 'def get_torch_device():\n    return torch.device("cpu")  # Overridden for CPU usage\n'
-    modified_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+    # More specific pattern to match the get_torch_device function
+    pattern = r'def get_torch_device\(\):\s*(?:.*\n)*?\s*return.*'
+    replacement = '''def get_torch_device():
+    return torch.device("cpu")  # Overridden for CPU usage'''
+    
+    modified_content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
 
     if modified_content != content:
         with open(file_path, 'w') as file:
