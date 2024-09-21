@@ -181,18 +181,23 @@ def store_local(data, arxiv_code, data_path, relative=True, format="json"):
         raise ValueError("Format not supported.")
 
 
-def load_local(arxiv_code, data_path, relative=True, format="json"):
-    """Load data locally."""
+def load_local(arxiv_code, data_path, relative=True, format="json", s3_bucket=None):
+    """Load data locally, downloading from S3 if not found."""
     if relative:
         data_path = os.path.join(PROJECT_PATH, "data", data_path)
+    file_path = os.path.join(data_path, f"{arxiv_code}.{format}")
+    
+    if not os.path.exists(file_path) and s3_bucket:
+        download_s3_file(arxiv_code, s3_bucket, data_path, format)
+    
     if format == "json":
-        with open(os.path.join(data_path, f"{arxiv_code}.json"), "r") as f:
+        with open(file_path, "r") as f:
             return json.load(f)
     elif format == "txt":
-        with open(os.path.join(data_path, f"{arxiv_code}.txt"), "r") as f:
+        with open(file_path, "r") as f:
             return f.read()
     elif format == "csv":
-        return pd.read_csv(os.path.join(data_path, f"{arxiv_code}.csv"))
+        return pd.read_csv(file_path)
     else:
         raise ValueError("Format not supported.")
 
@@ -555,7 +560,7 @@ def update_gist(
     )
 
     if response.status_code == 200:
-        print(f"Gist {gist_filename} updated successfully.")
+        # print(f"Gist {gist_filename} updated successfully.")
         return response.json()["html_url"]
     else:
         print(f"Failed to update gist. Status code: {response.status_code}.")

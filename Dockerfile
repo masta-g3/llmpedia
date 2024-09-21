@@ -60,7 +60,8 @@ RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.30.0/geckod
 # Copy the rest of your application
 COPY . .
 
-RUN mkdir -p /app/data && \
+RUN mkdir -p /app/imgs && \
+    mkdir -p /app/data && \
     mkdir -p /app/data/arxiv_text && \
     mkdir -p /app/data/nonllm_arxiv_text
 

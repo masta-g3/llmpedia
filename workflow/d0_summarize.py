@@ -29,17 +29,15 @@ def shorten_list(list_str: str):
 
 
 def main():
-    arxiv_codes = pu.get_local_arxiv_codes()
+    arxiv_codes = pu.list_s3_files("arxiv-text")
     done_codes = db.get_arxiv_id_list(db.db_params, "summary_notes")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
 
-    # mlx_model, mlx_tokenizer = get_mlx_model()
-
     for arxiv_code in tqdm(arxiv_codes):
-        paper_content = pu.load_local(arxiv_code, "arxiv_text", format="txt")
+        paper_content = pu.load_local(arxiv_code, "arxiv_text", format="txt", s3_bucket="arxiv-text")
         paper_content = pu.preprocess_arxiv_doc(paper_content)
-        title_dict = db.get_arxiv_title_dict(db.db_params)
+        title_dict = db.get_arxiv_title_dict()
         paper_title = title_dict.get(arxiv_code, None)
         if paper_title is None:
             print(f"Could not find '{arxiv_code}' in the meta-database. Skipping...")
@@ -53,7 +51,6 @@ def main():
             verbose=False,
         )
 
-        ## Insert notes as code, level, summary & tokens,
         summary_notes = pd.DataFrame(
             summaries_dict.items(), columns=["level", "summary"]
         )

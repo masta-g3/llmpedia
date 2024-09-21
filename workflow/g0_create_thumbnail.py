@@ -11,6 +11,8 @@ PROJECT_PATH = os.environ.get("PROJECT_PATH")
 COMFY_PATH = os.environ.get("COMFY_PATH")
 sys.path.append(COMFY_PATH)
 sys.path.append(PROJECT_PATH)
+os.chdir(PROJECT_PATH)
+
 warnings.filterwarnings("ignore")
 
 import utils.paper_utils as pu
@@ -152,7 +154,7 @@ def main():
     title_dict = db.get_arxiv_title_dict(pu.db_params)
     img_dir = os.path.join(PROJECT_PATH, "imgs/")
 
-    done_imgs = [f.replace(".png", "") for f in os.listdir(img_dir)]
+    done_imgs = pu.list_s3_files("llmpedia", strip_extension=True)
     arxiv_codes = list(set(arxiv_codes) - set(done_imgs))
     arxiv_codes = sorted(arxiv_codes)[::-1]
 

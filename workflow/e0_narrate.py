@@ -29,7 +29,6 @@ def main():
         paper_notes = db.get_extended_notes(arxiv_code, expected_tokens=1200)
         paper_title = title_map[arxiv_code]
 
-        ## Insert copywriter's summary into the database.
         narrative = vs.convert_notes_to_narrative(
             paper_title, paper_notes, model="claude-3-5-sonnet-20240620"
         )
@@ -37,7 +36,6 @@ def main():
             paper_title, paper_notes, narrative, model="claude-3-5-sonnet-20240620"
         )
         db.insert_recursive_summary(arxiv_code, copywritten)
-
     print("Done!")
 
 

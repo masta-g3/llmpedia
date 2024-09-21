@@ -5,6 +5,7 @@ services:
     env_file:
       - .env
     volumes:
+      - ./imgs:/app/imgs
       - ./data:/app/data
       - ./data/arxiv_text:/app/data/arxiv_text
       - ./data/nonllm_arxiv_text:/app/data/nonllm_arxiv_text

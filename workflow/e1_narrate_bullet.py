@@ -29,7 +29,6 @@ def main():
         paper_notes = db.get_extended_notes(arxiv_code, expected_tokens=500)
         paper_title = title_map[arxiv_code]
 
-        ## Insert copywriter's summary into the database.
         bullet_list = vs.convert_notes_to_bullets(
             paper_title, paper_notes, model="claude-3-5-sonnet-20240620"
         )

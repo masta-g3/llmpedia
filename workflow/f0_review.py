@@ -49,7 +49,6 @@ def main():
 
         ## Extract and combine results.
         result_dict = summary.json()
-        # pu.store_local(result_dict, arxiv_code, "summaries")
 
         ## Store on DB.
         data = pu.convert_innert_dict_strings_to_actual_dicts(result_dict)
