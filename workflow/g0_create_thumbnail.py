@@ -8,8 +8,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
-COMFY_PATH = os.getenv('COMFY_PATH', '/app/ComfyUI')
-sys.path.append(COMFY_PATH)
 sys.path.append(PROJECT_PATH)
 os.chdir(PROJECT_PATH)
 
@@ -18,6 +16,11 @@ warnings.filterwarnings("ignore")
 import utils.paper_utils as pu
 import utils.vector_store as vs
 import utils.db as db
+
+COMFY_PATH = os.getenv('COMFY_PATH', '/app/ComfyUI')
+sys.path.append(COMFY_PATH)
+
+IS_DOCKER = os.getenv('IS_DOCKER', 'false').lower() == 'true'
 
 s3 = boto3.client("s3")
 
@@ -67,6 +70,11 @@ def generate_image(name, img_file):
     )
     print("--> " + caption)
 
+    # Force CPU usage if not in Docker
+    if not IS_DOCKER:
+        device = torch.device("cpu")
+        torch.set_default_tensor_type(torch.FloatTensor)
+
     with torch.inference_mode():
         checkpointloadersimple = CheckpointLoaderSimple()
         checkpointloadersimple_4 = checkpointloadersimple.load_checkpoint(
@@ -113,7 +121,7 @@ def generate_image(name, img_file):
                 seed=random.randint(1, 2**64),
                 steps=20,
                 cfg=8,
-                sampler_name="dpmpp_2m_sde_gpu",
+                sampler_name="dpmpp_2m_sde_gpu" if IS_DOCKER else "dpmpp_2m_sde",
                 scheduler="karras",
                 denoise=1,
                 model=get_value_at_index(loraloader_39, 0),

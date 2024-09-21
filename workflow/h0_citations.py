@@ -53,7 +53,6 @@ def main():
 
         ss_info = pu.transform_flat_dict(pu.flatten_dict(ss_info), semantic_map)
         ss_info["arxiv_code"] = arxiv_code
-        pu.store_local(ss_info, arxiv_code, "semantic_meta")
         db.upload_to_db(ss_info, db.db_params, "semantic_details")
         items_added += 1
         time.sleep(random.uniform(0.12, 0.5))
