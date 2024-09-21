@@ -20,7 +20,11 @@ import utils.db as db
 COMFY_PATH = os.getenv('COMFY_PATH', '/app/ComfyUI')
 sys.path.append(COMFY_PATH)
 
-IS_DOCKER = os.getenv('IS_DOCKER', 'false').lower() == 'true'
+IS_DOCKER = os.getenv('DOCKER_CONTAINER', 'false').lower() == 'true'
+
+if IS_DOCKER:
+    from utils.cpu_override import apply_overrides
+    apply_overrides()
 
 s3 = boto3.client("s3")
 
@@ -69,11 +73,6 @@ def generate_image(name, img_file):
         f'"{name}", "tarot and computers collection", stunning award-winning pixel art'
     )
     print("--> " + caption)
-
-    # Force CPU usage if not in Docker
-    if not IS_DOCKER:
-        device = torch.device("cpu")
-        torch.set_default_tensor_type(torch.FloatTensor)
 
     with torch.inference_mode():
         checkpointloadersimple = CheckpointLoaderSimple()
