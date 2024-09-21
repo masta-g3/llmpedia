@@ -7,8 +7,8 @@ import warnings
 from dotenv import load_dotenv
 
 load_dotenv()
-PROJECT_PATH = os.environ.get("PROJECT_PATH")
-COMFY_PATH = os.environ.get("COMFY_PATH")
+PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
+COMFY_PATH = os.getenv('COMFY_PATH', '/app/ComfyUI')
 sys.path.append(COMFY_PATH)
 sys.path.append(PROJECT_PATH)
 os.chdir(PROJECT_PATH)
