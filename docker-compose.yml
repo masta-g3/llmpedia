@@ -9,6 +9,7 @@ services:
       - ./data:/app/data
       - ./data/arxiv_text:/app/data/arxiv_text
       - ./data/nonllm_arxiv_text:/app/data/nonllm_arxiv_text
+      - /mnt/artifacts/models:/app/ComfyUI/models
     ports:
       - "8188:8188"  # ComfyUI interface
     environment:

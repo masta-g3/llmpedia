@@ -57,16 +57,6 @@ RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.30.0/geckod
     && mv geckodriver /usr/local/bin/ \
     && rm geckodriver-v0.30.0-linux64.tar.gz
 
-# Create necessary directories
-RUN mkdir -p /app/ComfyUI/models/checkpoints && \
-    mkdir -p /app/models/vae && \
-    mkdir -p /app/models/loras
-
-# Download the Hugging Face models
-RUN wget -O /app/ComfyUI/models/checkpoints/sd_xl_base_1.0.safetensors https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors && \
-    wget -O /app/models/vae/sdxl_vae.safetensors https://huggingface.co/stabilityai/sdxl-vae/resolve/main/sdxl_vae.safetensors && \
-    wget -O /app/models/loras/pixel-art-xl.safetensors https://huggingface.co/nerijs/pixel-art-xl/resolve/main/pixel-art-xl.safetensors
-
 # Copy the rest of your application
 COPY . .
 
@@ -77,7 +67,7 @@ RUN mkdir -p /app/imgs && \
 
 # Set environment variables
 ENV PROJECT_PATH=/app
-ENV MODELS_PATH=/app/models
+ENV MODELS_PATH=/app/ComfyUI/models
 ENV COMFY_PATH=/app/ComfyUI
 
 # Start cron in the foreground
