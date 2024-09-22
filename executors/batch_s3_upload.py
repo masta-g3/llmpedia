@@ -46,7 +46,13 @@ def upload_nonllm_arxiv_text():
     text_dir = os.path.join(PROJECT_PATH, "data", "nonllm_arxiv_text")
     upload_files_to_s3(text_dir, "nonllm-arxiv-text", ".txt")
 
+def upload_arxiv_first_page():
+    print("Uploading arxiv first page...")
+    page_dir = os.path.join(PROJECT_PATH, "arxiv_first_page")
+    upload_files_to_s3(page_dir, "arxiv-first-page", ".png")
+
 if __name__ == "__main__":
     upload_arxiv_images()
     upload_arxiv_text()
     upload_nonllm_arxiv_text()
+    upload_arxiv_first_page()

@@ -9,7 +9,7 @@ notebooks/
 */.DS_Store
 .idea/
 .history/
-front_page/
+arxiv_first_page/
 eval_apps/
 .vscode/
 *.log
