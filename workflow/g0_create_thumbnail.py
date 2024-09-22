@@ -26,8 +26,6 @@ if IS_DOCKER:
     from utils.cpu_override import apply_overrides, modify_comfy_model_management
     modify_comfy_model_management()
     apply_overrides()
-else:
-    print("Not running in Docker, skipping CPU overrides.")
 
 s3 = boto3.client("s3")
 

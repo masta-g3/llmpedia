@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 PROJECT_PATH = os.environ.get("PROJECT_PATH")
+TOPIC_PATH = os.environ.get("TOPIC_PATH")
+
 sys.path.append(PROJECT_PATH)
 os.chdir(PROJECT_PATH)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -174,13 +176,13 @@ def store_topics_and_embeddings(
         ## Avoid lock issue.
         topic_model.representation_model = None
         topic_model.save(
-            "data/topic_model.pkl",
+            TOPIC_PATH + "/topic_model.pkl",
             save_ctfidf=True,
             save_embedding_model=True,
             serialization="pickle",
         )
-        pd.to_pickle(reduced_model, "data/reduced_model.pkl")
-        with open("data/all_content.json", "w") as f:
+        pd.to_pickle(reduced_model, TOPIC_PATH + "/reduced_model.pkl")
+        with open(TOPIC_PATH + "/all_content.json", "w") as f:
             json.dump(all_content, f)
 
     topic_names = topic_model.get_topic_info().set_index("Topic")["Name"]
@@ -223,8 +225,8 @@ def main():
         )
     else:
         ## Predict topics on new documents using existing model.
-        topic_model = BERTopic.load("data/topic_model.pkl")
-        reduced_model = pd.read_pickle("data/reduced_model.pkl")
+        topic_model = BERTopic.load(TOPIC_PATH + "/topic_model.pkl")
+        reduced_model = pd.read_pickle(TOPIC_PATH + "/reduced_model.pkl")
 
         done_codes = db.get_arxiv_id_list(db_params, "topics")
         working_codes = list(set(arxiv_codes) - set(done_codes))
