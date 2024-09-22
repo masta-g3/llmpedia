@@ -62,9 +62,7 @@ def load_and_process_data(title_map: dict) -> pd.DataFrame:
     df = pd.DataFrame(columns=["title", "summary"]) #, "main_contribution", "takeaways"])
     for arxiv_code, title in title_map.items():
         fpath = os.path.join(PROJECT_PATH, "data", "summaries", f"{arxiv_code}.json")
-        fpath_meta = os.path.join(
-            PROJECT_PATH, "data", "arxiv_meta", f"{arxiv_code}.json"
-        )
+        fpath_meta = os.path.join(PROJECT_PATH, "data", "arxiv_meta", f"{arxiv_code}.json")
         with open(fpath) as f:
             summary = json.load(f)
             summary = pu.convert_innert_dict_strings_to_actual_dicts(summary)
@@ -174,13 +172,13 @@ def store_topics_and_embeddings(
         ## Avoid lock issue.
         topic_model.representation_model = None
         topic_model.save(
-            "data/bertopic/topic_model.pkl",
+            os.path.join(PROJECT_PATH, "data", "bertopic", "topic_model.pkl"),
             save_ctfidf=True,
             save_embedding_model=True,
             serialization="pickle",
         )
-        pd.to_pickle(reduced_model, "data/reduced_model.pkl")
-        with open("data/bertopic/all_content.json", "w") as f:
+        pd.to_pickle(reduced_model, os.path.join(PROJECT_PATH, "data", "reduced_model.pkl"))
+        with open(os.path.join(PROJECT_PATH, "data", "bertopic", "all_content.json"), "w") as f:
             json.dump(all_content, f)
 
     topic_names = topic_model.get_topic_info().set_index("Topic")["Name"]
@@ -223,8 +221,8 @@ def main():
         )
     else:
         ## Predict topics on new documents using existing model.
-        topic_model = BERTopic.load("data/bertopic/topic_model.pkl")
-        reduced_model = pd.read_pickle("data/bertopic/reduced_model.pkl")
+        topic_model = BERTopic.load(os.path.join(PROJECT_PATH, "data", "bertopic", "topic_model.pkl"))
+        reduced_model = pd.read_pickle(os.path.join(PROJECT_PATH, "data", "bertopic", "reduced_model.pkl"))
 
         done_codes = db.get_arxiv_id_list(db_params, "topics")
         working_codes = list(set(arxiv_codes) - set(done_codes))
