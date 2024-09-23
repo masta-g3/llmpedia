@@ -123,18 +123,17 @@ def map_child_to_parent_by_content(child_chunks, parent_chunks):
 
 def main():
     """Chunk arxiv docs into smaller blocks."""
-    ## Get raw paper list.
-    local_codes = pu.get_local_arxiv_codes()
+    arxiv_codes = db.get_arxiv_id_list(db.db_params, "arxiv_details")
 
     ## Child chunks.
     print("Creating child chunks...")
     child_done = db.get_arxiv_id_list(pu.db_params, "arxiv_chunks")
-    child_codes = list(set(local_codes) - set(child_done))
+    child_codes = list(set(arxiv_codes) - set(child_done))
     print(f"Found {len(child_codes)} child papers pending.")
 
     for arxiv_code in tqdm(child_codes):
         ## Open doc and meta_data.
-        doc_txt = pu.load_local(arxiv_code, data_path, False, "txt")
+        doc_txt = pu.load_local(arxiv_code, data_path, relative=False, format="txt", s3_bucket="arxiv-text")
         doc_texts = text_splitter.split_text(doc_txt)
         doc_chunks = [doc.replace("\n", " ") for doc in doc_texts]
 
@@ -147,19 +146,19 @@ def main():
 
         ## Store document chunks in JSON.
         doc_chunks_list = doc_chunks_df.to_dict(orient="records")
-        pu.store_local(doc_chunks_list, arxiv_code, child_path, relative=False)
+        pu.store_local(doc_chunks_list, arxiv_code, child_path, relative=False, format="json")
+        pu.upload_s3_file(arxiv_code, "arxiv-chunks", prefix="data", format="json")
 
     ## Parent chunks.
     print("Creating parent chunks...")
     parent_table_name = version_name_map[VERSION_NAME]
     parent_done = db.get_arxiv_id_list(pu.db_params, parent_table_name)
-    parent_codes = list(set(local_codes) - set(parent_done))
+    parent_codes = list(set(arxiv_codes) - set(parent_done))
     print(f"Found {len(parent_codes)} parent papers pending.")
 
     for arxiv_code in tqdm(parent_codes):
         ## Open doc and meta_data.
-        doc_txt = pu.load_local(arxiv_code, data_path, False, "txt")
-        doc_meta = pu.load_local(arxiv_code, meta_path, False, "json")
+        doc_txt = pu.load_local(arxiv_code, data_path, relative=False, format="txt", s3_bucket="arxiv-text")
         doc_texts = parent_splitter.split_text(doc_txt)
         doc_chunks = [doc.replace("\n", " ") for doc in doc_texts]
 
@@ -172,13 +171,14 @@ def main():
 
         ## Store document chunks in JSON.
         doc_chunks_list = doc_chunks_df.to_dict(orient="records")
-        pu.store_local(doc_chunks_list, arxiv_code, parent_path, relative=False)
+        pu.store_local(doc_chunks_list, arxiv_code, parent_path, relative=False, format="json")
+        pu.upload_s3_file(arxiv_code, "arxiv-chunks", prefix="data", format="json")
 
     ## Mapping of child-to-parent.
     print("Mapping child-to-parent...")
     ## ToDo: Allow version param here.
     mapping_done = db.get_arxiv_id_list(pu.db_params, "arxiv_chunk_map")
-    mapping_codes = list(set(local_codes) - set(mapping_done))
+    mapping_codes = list(set(arxiv_codes) - set(mapping_done))
     print(f"Found {len(mapping_codes)} mapping papers pending.")
 
     mapping_df = parallel_process_mapping(mapping_codes, child_path, parent_path)
