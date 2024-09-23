@@ -36,6 +36,7 @@ anthropic==0.28.0
 cohere==5.5.4
 colorcet==3.0.1
 instructor==1.4.1
+pdf2image==1.17.0
 psycopg2-binary==2.9.7
 pydantic==2.9.1
 tokencost>=0.1.12
