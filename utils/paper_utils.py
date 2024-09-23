@@ -2,6 +2,7 @@ import os
 import re, json
 import time
 import boto3
+import botocore
 import arxiv
 import requests
 import pandas as pd
@@ -244,8 +245,15 @@ def download_s3_file(
     """Load data from S3."""
     s3 = boto3.client("s3")
     local_path = os.path.join(PROJECT_PATH, prefix, bucket_name.replace("-", "_"), f"{arxiv_code}.{format}")
-    s3.download_file(bucket_name, f"{arxiv_code}.{format}", local_path)
-    return True
+    try:
+        s3.download_file(bucket_name, f"{arxiv_code}.{format}", local_path)
+        return True
+    except botocore.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == "404":
+            print(f"The object {arxiv_code}.{format} does not exist in the bucket {bucket_name}.")
+        else:
+            print(f"An error occurred while downloading the file: {e}")
+        return False
 
 
 def upload_s3_file(
