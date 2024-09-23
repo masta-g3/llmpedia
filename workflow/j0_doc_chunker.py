@@ -123,7 +123,7 @@ def map_child_to_parent_by_content(child_chunks, parent_chunks):
 
 def main():
     """Chunk arxiv docs into smaller blocks."""
-    arxiv_codes = db.get_arxiv_id_list(db.db_params, "arxiv_details")
+    arxiv_codes = pu.list_s3_files("arxiv-text", strip_extension=True)
 
     ## Child chunks.
     print("Creating child chunks...")
