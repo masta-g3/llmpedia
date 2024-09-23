@@ -28,7 +28,7 @@ COPY crontab /etc/cron.d/my-crontab
 RUN chmod 0644 /etc/cron.d/my-crontab && \
     crontab /etc/cron.d/my-crontab
 
-# Install Chromium, ChromeDriver, and dependencies for Selenium
+# Install Chromium, ChromeDriver, dependencies for Selenium, and poppler-utils
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -37,6 +37,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     chromium \
     chromium-driver \
+    poppler-utils \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
