@@ -134,6 +134,8 @@ def main():
     for arxiv_code in tqdm(child_codes):
         ## Open doc and meta_data.
         doc_txt = pu.load_local(arxiv_code, data_path, relative=False, format="txt", s3_bucket="arxiv-text")
+        print(arxiv_code)
+        print(doc_txt)
         doc_texts = text_splitter.split_text(doc_txt)
         doc_chunks = [doc.replace("\n", " ") for doc in doc_texts]
 
