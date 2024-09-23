@@ -13,7 +13,7 @@ os.chdir(PROJECT_PATH)
 import utils.paper_utils as pu
 
 def main():
-    page_dir = os.path.join(PROJECT_PATH, "arxiv_first_page/")
+    page_dir = os.path.join(PROJECT_PATH, "data", "arxiv_first_page/")
     
     # Get arxiv codes from the S3 "arxiv-text" bucket
     arxiv_codes = pu.list_s3_files("arxiv-text", strip_extension=True)
