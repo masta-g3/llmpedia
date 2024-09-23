@@ -63,7 +63,10 @@ COPY . .
 RUN mkdir -p /app/imgs && \
     mkdir -p /app/data && \
     mkdir -p /app/data/arxiv_text && \
-    mkdir -p /app/data/nonllm_arxiv_text
+    mkdir -p /app/data/nonllm_arxiv_text && \
+    mkdir -p /app/data/arxiv_first_page && \
+    mkdir -p /app/data/arxiv_chunks && \
+    mkdir -p /app/data/arxiv_large_chunks
 
 # Set environment variables
 ENV PROJECT_PATH=/app

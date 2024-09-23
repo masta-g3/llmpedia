@@ -22,7 +22,7 @@ data_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_text")
 meta_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_meta")
 child_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_chunks")
 parent_path = os.path.join(
-    os.environ.get("PROJECT_PATH"), "data", "arxiv_large_parent_chunks"
+    os.environ.get("PROJECT_PATH"), "data", "arxiv_large_chunks"
 )
 
 ## Splitters setup.
@@ -184,18 +184,6 @@ def main():
     mapping_df = parallel_process_mapping(mapping_codes, child_path, parent_path)
     mapping_df["version"] = VERSION_NAME
     db.upload_df_to_db(mapping_df, "arxiv_chunk_map", pu.db_params)
-
-    # for arxiv_code in tqdm(mapping_codes):
-    #     ## Open doc and meta_data.
-    #     child_chunks = pu.load_local(arxiv_code, child_path, False, "json")
-    #     parent_chunks = pu.load_local(arxiv_code, parent_path, False, "json")
-    #     mapping = map_child_to_parent_by_content(child_chunks, parent_chunks)
-    #     mapping = [
-    #         {"arxiv_code": arxiv_code, "child_id": k, "parent_id": v}
-    #         for k, v in mapping.items()
-    #     ]
-    #     mapping_df = pd.DataFrame.from_dict(mapping)
-    #     db.upload_df_to_db(mapping_df, "arxiv_chunk_map", pu.db_params)
 
 
 if __name__ == "__main__":

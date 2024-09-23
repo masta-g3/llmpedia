@@ -51,8 +51,20 @@ def upload_arxiv_first_page():
     page_dir = os.path.join(PROJECT_PATH, "arxiv_first_page")
     upload_files_to_s3(page_dir, "arxiv-first-page", ".png")
 
+def upload_arxiv_chunks():
+    print("Uploading arxiv chunks...")
+    chunk_dir = os.path.join(PROJECT_PATH, "data", "arxiv_chunks")
+    upload_files_to_s3(chunk_dir, "arxiv-chunks", ".json")
+
+def upload_arxiv_large_chunks():
+    print("Uploading arxiv large chunks...")
+    chunk_dir = os.path.join(PROJECT_PATH, "data", "arxiv_large_chunks")
+    upload_files_to_s3(chunk_dir, "arxiv-large-chunks", ".json")
+
 if __name__ == "__main__":
     upload_arxiv_images()
     upload_arxiv_text()
     upload_nonllm_arxiv_text()
     upload_arxiv_first_page()
+    upload_arxiv_chunks()
+    upload_arxiv_large_chunks()
