@@ -459,6 +459,7 @@ def upload_df_to_db(
         f"@{params['host']}:{params['port']}/{params['dbname']}"
     )
     engine = create_engine(db_url)
+    df = df.replace('\x00', '', regex=True)
     df.to_sql(
         table_name,
         engine,
