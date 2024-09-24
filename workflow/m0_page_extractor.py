@@ -42,7 +42,7 @@ def main():
                 first_page.save(png_path, "PNG")
 
                 # Upload to S3 "arxiv-first-page" bucket
-                pu.upload_s3_file(arxiv_code=arxiv_code, bucket_name="arxiv-first-page", prefix="data", extension="png")
+                pu.upload_s3_file(arxiv_code=arxiv_code, bucket_name="arxiv-first-page", prefix="data", format="png")
                 print(f"Processed and uploaded {arxiv_code}")
             else:
                 print(f"\nCould not extract the first page of '{arxiv_code}'. Skipping...")
