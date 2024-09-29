@@ -390,7 +390,7 @@ def create_pagination(items, items_per_page, label="summaries"):
 
     st.session_state["num_pages"] = num_pages
 
-    st.markdown(f"**{num_items} items found.**")
+    st.markdown(f"**{num_items} papers found.**")
     st.markdown(f"**Pg. {st.session_state.page_number + 1} of {num_pages}**")
     prev_button, mid, next_button = st.columns((1, 10, 1))
     prev_clicked = prev_button.button("Prev", key=f"prev_{label}")

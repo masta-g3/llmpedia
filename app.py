@@ -284,7 +284,7 @@ def main():
         }
     </style>
     <div class="footer">
-        <a href="https://github.com/masta-g3/llmpedia/blob/main/VERSIONS.md" target="_blank">v1.3.1</a>
+        <a href="https://github.com/masta-g3/llmpedia/blob/main/VERSIONS.md" target="_blank">v1.3.2</a>
     </div>
 
     <div style="font-size: 0.7em; font-style: italic; text-align: center; position: relative; top: 20px; left: 0; right: 0; color: #888;">

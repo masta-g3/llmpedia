@@ -17,6 +17,7 @@ from langchain.chains import LLMChain
 from utils.custom_langchain import NewCohereEmbeddings, NewPGVector
 from utils.models import llm_map
 from utils.instruct import run_instructor_query
+import utils.pydantic_objects as po
 import utils.prompts as ps
 import utils.db as db
 
@@ -309,12 +310,12 @@ def interrogate_paper(question: str, arxiv_code: str, model="gpt-4o") -> str:
     return response
 
 
-def decide_query_action(user_question: str) -> ps.QueryDecision:
+def decide_query_action(user_question: str) -> po.QueryDecision:
     """Decide the query action based on the user question."""
     system_message = "Please analyze the following user query and answer the question."
     user_message = ps.create_decision_user_prompt(user_question)
     response = run_instructor_query(
-        system_message, user_message, ps.QueryDecision, process_id="decide_query_action"
+        system_message, user_message, po.QueryDecision, process_id="decide_query_action"
     )
     return response
 
@@ -336,7 +337,7 @@ def generate_query_object(user_question: str, llm_model: str):
     query_obj = run_instructor_query(
         system_message,
         user_message,
-        ps.SearchCriteria,
+        po.SearchCriteria,
         llm_model=llm_model,
         temperature=0.5,
         process_id="generate_query_object",
@@ -367,7 +368,7 @@ def format_query_condition(field_name: str, template: str, value: str):
         return template % value, "0 as min_distance"
 
 
-def generate_query(criteria: ps.SearchCriteria, config: dict) -> str:
+def generate_query(criteria: po.SearchCriteria, config: dict) -> str:
     query_parts = [
         "SELECT a.arxiv_code, a.title,  a.published, s.citation_count, a.summary AS abstract, ",
         "FROM arxiv_details a, semantic_details s, topics t, langchain_pg_embedding l ",
@@ -397,7 +398,7 @@ def generate_query(criteria: ps.SearchCriteria, config: dict) -> str:
 
 def rerank_documents_new(
     user_question: str, documents: list, llm_model="gpt-4o", temperature=0.2
-) -> ps.RerankedDocuments:
+) -> po.RerankedDocuments:
     system_message = "You are an expert system that can identify and select relevant arxiv papers that can be used to answer a user query."
     import streamlit as st
 
@@ -405,7 +406,7 @@ def rerank_documents_new(
     response = run_instructor_query(
         system_message,
         rerank_msg,
-        ps.RerankedDocuments,
+        po.RerankedDocuments,
         llm_model=llm_model,
         temperature=temperature,
         process_id="rerank_documents",

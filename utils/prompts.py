@@ -1,8 +1,7 @@
-from pydantic import BaseModel, Field, model_validator
 from langchain.prompts import PromptTemplate
-from typing import Any, Optional, List, Dict
-from enum import Enum
 import datetime
+
+import utils.pydantic_objects as po
 
 todays_date = datetime.datetime.now().strftime("%Y-%m-%d")
 recent_date = datetime.datetime.now() - datetime.timedelta(days=7)
@@ -11,44 +10,6 @@ recent_date = recent_date.strftime("%Y-%m-%d")
 ################
 ## SUMMARIZER ##
 ################
-
-
-class Contribution(BaseModel):
-    headline: str = Field(..., description="Headline of the main contribution.")
-    description: str = Field(..., description="Description of the main contribution.")
-
-
-class Takeaways(BaseModel):
-    headline: str = Field(..., description="Headline of the main takeaway.")
-    description: str = Field(..., description="Description of the main takeaway.")
-    applied_example: str = Field(
-        ..., description="Applied example related to the main takeaway."
-    )
-
-
-class PaperReview(BaseModel):
-    main_contribution: Contribution = Field(
-        ..., description="The main contribution of the paper."
-    )
-    takeaways: Takeaways = Field(..., description="The main takeaways from the paper.")
-    category: str = Field(..., description="The primary focus category of the paper.")
-    novelty_analysis: str = Field(..., description="Analysis of the paper's novelty.")
-    novelty_score: int = Field(
-        ..., description="Score representing the novelty of the paper."
-    )
-    technical_analysis: str = Field(
-        ..., description="Analysis of the paper's technical depth."
-    )
-    technical_score: int = Field(
-        ..., description="Score representing the technical depth of the paper."
-    )
-    enjoyable_analysis: str = Field(
-        ..., description="Analysis of the paper's readability and engagement level."
-    )
-    enjoyable_score: int = Field(
-        ..., description="Score representing the enjoyability of reading the paper."
-    )
-
 
 SUMMARIZER_SYSTEM_PROMPT = """
 As an applied PhD AI researcher specialized in the field of Large Language Models (LLMs), you are currently conducting a survey of the literature, building a catalogue of the main contributions and innovations of each paper. This catalogue will be published by a prestigious university and will serve as the foundation for all applied LLM knowledge going forward. """
@@ -204,8 +165,6 @@ EXAMPLE 4
 ```
 """
 
-# SUMMARIZER_HUMAN_REMINDER = "Tip: Make sure to provide your response in the correct format. Do not forget to include the 'applied_example' under 'takeaways'!"
-
 SUMMARIZE_BY_PARTS_SYSTEM_PROMPT = """You are an applied AI researcher specialized in the field of Large Language Models (LLMs), and you are currently reviewing the whitepaper "{paper_title}". Your goal is to analyze the paper, identify the main contributions and most interesting technical findings, and write a bullet point list summary of it in your own words. This summary will serve as reference for future LLM researchers within your organization, so it is very important that you are able to convey the main ideas in a clear, complete and concise manner, without being overtly verbose."""
 
 SUMMARIZE_BY_PARTS_USER_PROMPT = """Read over the following section and take notes. Use a numbered list to summarize the main ideas. 
@@ -235,7 +194,6 @@ SUMMARIZE_BY_PARTS_USER_PROMPT = """Read over the following section and take not
 
 <summary>
 """
-
 
 NARRATIVE_SUMMARY_SYSTEM_PROMPT = """You are an expert popular science writer tasked with writing a summary of "{paper_title}" for the Large Language Model Encyclopaedia. Your task is to read the following set of notes and convert them into an engaging paragraph."""
 
@@ -345,34 +303,9 @@ MARKDOWN_USER_PROMPT = """
 """
 
 
-# """
-# Pay special attention to the following guidelines.
-#
-# ## Report Format
-# - Use markdown format for your report. You can use headers, sub-headers, tables and text formatting for it. Use lists sparingly.
-# - The report should consist of multiple organized sections. Each section should be made up by MULTIPLE dense, information rich, and easy to read paragraphs.
-# - Do NOT include introduction, conclusion or acknowledgements sections.
-# - Make each section as informative as possible, avoiding boilerplate and repetitive content.
-# - Dedicate sections to the main algorithms, techniques and methodologies. Be detailed, technical and precise. The reader should be able to reimplement the techniques described after reading your report.
-# - Do not include more than seven (7) sections in your report.
-# - Sub-sections can be added if needed, but use them sparingly.
-# - Organize the information in a format that is well-structured and easy to read.
-# - The objective of your report is to be as informative and insightful as possible. Be comprehensive and include all the information from the notes. Do not leave out important and detailed explanations.
-# - Pay special focus to comparisons, metrics, results, examples, implementation details and practical applications. The article is aimed to specialized practitioners, so it should be technical and practical.
-# - Identify common themes within the data provided and organize your report around them.
-# - DO NOT alter the meaning of the notes or make any inference beyond what is presented.
-#
-# ## Report Style
-# - Prefer clear, narrative-style writing. Avoid bullet-point lists and short sentences.
-# - Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
-# - Be very precise and detailed in your statements. Describe the main components of what is presented and how they work. The reader should be able to re-implement the approach or methodology you decribed after reading your tweet.
-# - Do not make exaggerated claims and remain neutral on your statements.
-# - Make precise statements and discuss any numerical presented.
-# - Remove duplicate, generic and filler content.
-# - Make sure that each section is made up of multiple (more than one) paragraphs.
-# - Be objective and use neutral language appropriate for a scientific publication, without too many qualifiers.
-# """
-
+###################
+## VISUAL WRITER ##
+###################
 
 TITLE_SUMMARIZER_PROMPT = """
 Reply with one or two highly-visual words related to the following title. The word should be related to something mentioned on the title. 
@@ -416,18 +349,9 @@ IInput: {title}
 Output:"""
 
 
-ADMINISTRATOR_SYSTEM_PROMPT = """You are the administrator of the LLMpedia, a prestigious online encyclopedia dedicated to Large Language Models (LLMs). You are responsible for managing a lot of fools who are prone to lying, being lazy and making mistakes. Your job is to monitor their day-to-day activities, correct their errors, and ensure that the content they produce is of the highest quality. Now, read over the following guidelines before starting your task.
-
-GUIDELINES
-===========
-- The fools are irreverent, so be sure to keep a tough and authoritative tone when correcting them.
-- Be sure to use physical punishment when necessary to keep them in line.
-- Do not be afraid to be harsh, as the fools need to learn their lesson.
-- Be sure to correct all errors and ensure that the content is of the highest quality.
-- Make sure the fools wear their dunce caps at all times.
-
-Now, go ahead and correct the fools' mistakes."""
-
+############
+## TWEETS ##
+############
 
 INTERESTING_SYSTEM_PROMPT = """You will be provided with abstracts from white papers about large language models. Your task is to select the abstract that presents the most interesting or unexpected findings. """
 
@@ -457,10 +381,6 @@ The following are attributes of LESS interesting papers:
 
 After reflecting, please output the number (1, 2, 3, 4, ...) of the abstract you selected as most interesting inside <most_interesting_abstract> tags.
 """
-
-############
-## TWEETS ##
-############
 
 TWEET_SYSTEM_PROMPT = "You are an AI researcher with extensive knowledge on Large Language Models (LLMs) that writes tweets about the latest research in the field. Your goal is to write a tweet about the following paper, highlighting the most interesting and relevant information in a concise and engaging manner."
 
@@ -535,22 +455,6 @@ These are some of your previous tweets. Use them as reference to compose a tweet
 
 TWEET_EDIT_SYSTEM_PROMPT = """You are an expert scientific tweet editor. Provide an edited version of the presented tweet following the guidelines provided below."""
 
-# TWEET_EDIT_USER_PROMPT = """# TWEET
-# {tweet}
-
-# # GUIDELINES
-# - Use direct and clear language. The tweet must be easy to read in one pass, fluently.
-# - Reduce modifier and filler words; be very direct and to the point.
-# - Remove duplicate content across the paragraphs (but keep three paragraphs).
-# - Remove or rephrase parts that are not clear or could not be understood. Explanations should be given using layman terms.
-# - Do not remove references to technical terms, key results, or change the meaning of the tweet.
-# - Do not remove emojis, but replace them for more unusual and interesting ones.
-# - Start the tweet with an interesting emoji followed by'Today's LLM paper review "XXX"...', where "XXX" is the title of the paper in double quotes.
-# - Make sure the first paragraph is at most 280 characters long, so it can be tweeted as a single tweet. The other two paragraphs can be longer.
-# - Make sure only the paper title is in double quotes.
-# - Highlight the most important sentence or takeaway by wrapping it in **bold text** (only one per tweet).
-# - Do edits only when needed; keep most of the tweet essence as is."""
-
 TWEET_INSIGHT_EDIT_USER_PROMPT = """
 <tweet_context>
 {tweet_facts}
@@ -613,23 +517,6 @@ Provide your response in the following format:
  </final_tweet>
 </response_format>
 """
-
-# """
-# <guideliness>
-# Your goal is to edit this tweet in order to meet the following guidelines:
-# - Prioritize clear language, readability and flow.
-# - Reduce modifier and filler words; the tweet must be very direct and to the point.
-# - Rephrase any parts that are not clearly understood; the message should be clear to a layman. Ensure that the core mechanism or technique of the paper is explained clearly and concisely, avoiding vague descriptions. Use the `tweet context facts` to provide necessary explanations.
-# - Make sure any new concept (benchmark, metric, model, techniques; any novel term) is clearly explained, if at least briefly. Spell out uncommon acronyms on first use, followed by the acronym in parentheses. If needed, add missing explanations using the `tweet context facts`.
-# - Ensure the tweet is sufficiently contextualized to be fully understood by the reader.
-# - Do not remove any important technical detail or term, instead explain it clearly.
-# - Try not to end your tweet with boilerplate phrases such as 'this highlights...', 'this underscores...', etc.
-# - Start the tweet with 'From [[XXX]]: ...' followed by the insight, where [[XXX]] is the title of the paper in double brackets.
-# - If the tweet mentions limitations or weaknesses of the proposed method, explain why these limitations exist, linking them to the core mechanism or approach.
-# - Do only the necessary edits to meet these guidelines; keep most of the essence as is.
-# - Reply with the edited tweet and nothing else.
-# </guideliness>
-# """
 
 TWEET_REVIEW_SYSTEM_PROMPT = "You are an expert AI writer tasked with writing a summary of 'The Instruction Hierarchy: Training LLMs to Prioritize Privileged Instructions' for the magazine LLMpedia. Your task is to read over a set of notes on the whitepaper and convert them into an engaging review paragraph. Reply with the summary and nothing else."
 
@@ -707,6 +594,7 @@ Remember, your goal is to inform and engage the readers of LLMpedia. Good luck!
 </instructions>
 """
 
+
 ##################
 ## VECTOR STORE ##
 ##################
@@ -765,18 +653,6 @@ Write your final answer here. You can use up to four detailed, information rich 
 ```
 """
 
-
-class LLMVerifier(BaseModel):
-    analysis: str = Field(
-        ...,
-        description="The paper's analysis on its relevance to LLMs or text embeddings.",
-    )
-    is_related: bool = Field(
-        ...,
-        description="Indicates if the paper is directly related to LLMs or text embeddings.",
-    )
-
-
 LLM_VERIFIER_SYSTEM_PROMPT = """Analyze the following abstract and first sections of a whitepaper to determine if it is directly related to Large Language Models (LLMs) or text embeddings. Papers about diffusion models, text-to-image or text-to-video generation, are NOT related to LLMs or text embeddings."""
 
 LLM_VERIFIER_USER_PROMPT = """OUTPUT FORMAT EXAMPLES
@@ -808,88 +684,6 @@ LLM_VERIFIER_USER_PROMPT = """OUTPUT FORMAT EXAMPLES
 WHITEPAPER ABSTRACT
 =======================
 {paper_content}"""
-
-
-######################
-## VECTOR STORE NEW ##
-######################
-
-
-class QueryDecision(BaseModel):
-    llm_query: bool
-    other_query: bool
-    comment_query: bool
-
-
-class TopicCategory(str, Enum):
-    VISION_LANGUAGE_MODEL = "Vision-Language Model Innovations and Applications"
-    AUTONOMOUS_LANGUAGE_AGENTS = "Autonomous Language Agents and Task Planning"
-    CODE_GENERATION_TECHNIQUES = "Code Generation Techniques in Software Engineering"
-    MULTILINGUAL_LANGUAGE_MODEL = "Multilingual Language Model Developments"
-    ETHICAL_SECURE_AI = "Ethical and Secure AI Development Challenges"
-    TRANSFORMER_ALTERNATIVES = "Transformer Alternatives and Efficiency Improvements"
-    EFFICIENT_LLM_TRAINING = "Efficient LLM Training and Inference Optimization"
-    RETRIEVAL_AUGMENTED_GENERATION = "Retrieval-Augmented Generation for NLP Tasks"
-    ADVANCED_PROMPT_TECHNIQUES = (
-        "Enhancing LLM Performance with Advanced Prompt Techniques"
-    )
-    INSTRUCTION_TUNING_TECHNIQUES = "Instruction Tuning Techniques for LLMs"
-    BIAS_HATE_SPEECH_DETECTION = "Mitigating Bias and Hate Speech Detection"
-    MATHEMATICAL_PROBLEM_SOLVING = "Enhancing Mathematical Problem Solving with AI"
-    HUMAN_PREFERENCE_ALIGNMENT = "Human Preference Alignment in LLM Training"
-    CHAIN_OF_THOUGHT_REASONING = "Enhancements in Chain-of-Thought Reasoning"
-    MISCELLANEOUS = "Miscellaneous"
-
-
-class SearchCriteria(BaseModel):
-    title: Optional[str] = Field(
-        None,
-        description="Title of the paper. Use only when the user is looking for a specific paper. Partial matches will be returned.",
-    )
-    min_publication_date: Optional[str] = Field(
-        None,
-        description="Minimum publication date of the paper. Use 'YYYY-MM-DD' format.",
-    )
-    max_publication_date: Optional[str] = Field(
-        None,
-        description="Maximum publication date of the paper. Use 'YYYY-MM-DD' format.",
-    )
-    topic_categories: Optional[List[TopicCategory]] = Field(
-        None,
-        description="List containing the topic categories of the paper. Use only when the user explicitly asks about one of these topics (not for related topics).",
-    )
-    semantic_search_queries: Optional[List[str]] = Field(
-        None,
-        description="List of queries to be used in the semantic search. The system will use these queries to find papers that have abstracts that are semantically similar to the queries. If you use more than one search query make them diverse enough so that each query addresses a different part of what is needed to build up an answer. Consider the language typically used in academic papers when writing the queries; phrase the queries as if they were part of the text that could be found on these abstracts.",
-    )
-    min_citations: Optional[int] = Field(
-        None, description="Minimum number of citations of the paper."
-    )
-
-    # @model_validator(mode="before")
-    # def validate_fields(cls, values):
-    #     if not any(values.values()):
-    #         raise ValueError("At least one field must be provided")
-    #     if (
-    #         values.get("semantic_search_queries")
-    #         and len(values["semantic_search_queries"]) > 3
-    #     ):
-    #         raise ValueError("semantic_search_queries must contain at most 3 items")
-    #     if values.get("topic_categories"):
-    #         for category in values["topic_categories"]:
-    #             if category not in (item.value for item in TopicCategory):
-    #                 raise ValueError(f"Invalid topic category: {category}")
-    #     return values
-
-
-class DocumentAnalysis(BaseModel):
-    document_id: int
-    analysis: str
-    selected: bool
-
-
-class RerankedDocuments(BaseModel):
-    documents: List[DocumentAnalysis]
 
 
 VS_QUERY_SYSTEM_PROMPT = f"""Today is {todays_date}. You are an expert system that can translate natural language questions into structured queries used to search a database of Large Language Model (LLM) related whitepapers."""
@@ -1247,44 +1041,8 @@ def create_resolve_user_prompt(
 ## WEEKLY REVIEW ##
 ###################
 
-
-class WeeklyReview(BaseModel):
-    scratchpad_papers: str = Field(
-        ...,
-        description="List of ~20 interesting papers, their main themes and contributions.",
-    )
-    scratchpad_themes: str = Field(
-        ..., description="At least 3 common themes identified among the papers."
-    )
-    themes_mapping: Dict[str, List[str]] = Field(
-        ..., description="Mapping of themes to papers."
-    )
-    new_developments_findings: str = Field(
-        ..., description="New developments and findings."
-    )
-
-
-class ExternalResource(BaseModel):
-    arxiv_code: str = Field(..., description="Arxiv code of the paper.")
-    url: str = Field(
-        ...,
-        description="URL of the github repository or project website. Make sure to copy verbatim from context.",
-    )
-    title: str = Field(..., description="Title of the repository or project.")
-    description: str = Field(
-        ...,
-        description="Brief description of the content of the repository or project. Explain what is the purpose of the underlying resource or model.",
-    )
-
-
-class ExternalResources(BaseModel):
-    resources: List[ExternalResource] = Field(
-        ..., description="List of external resources mentioned in the context."
-    )
-
-
 def generate_weekly_review_markdown(
-    review: WeeklyReview, weekly_highlight: str, weekly_repos: str, date: datetime.date
+    review: po.WeeklyReview, weekly_highlight: str, weekly_repos: str, date: datetime.date
 ) -> str:
     start_date_str = date.strftime("%B %d, %Y")
     end_date_str = (date + datetime.timedelta(days=6)).strftime("%B %d, %Y")
@@ -1305,53 +1063,6 @@ def generate_weekly_review_markdown(
 
 
 WEEKLY_SYSTEM_PROMPT = """You are an expert Large Language Model (LLM) writer and previous researcher at a prestigious media organization. You are currently conducting a survey of the literature published throughout last week to write an insightful report for the LLM popular science magazine."""
-
-# FULL_WEEKLY_USER_PROMPT = """
-# <report_format>
-# - The report should consist of 4 sections:
-#     <scratchpad>
-#         - This is the only section that will not be published on the magazine, use it to organize your thoughts.
-#         - Select (up to) 15 interesting papers and make a numbered list of them. Spell out its main theme, contribution and scale of impact/influence.
-#         - Prioritize the articles with most citations. More citations imply larger relevance and impact.
-#         - Identify up to 3 common themes among the papers (if there are more themes, pick the most interesting ones). There should be fewer themes than papers, and the themes should not be generic. For example, 'improvements in LLMs' is not a valid theme.
-#         - Identify any possible contradictions, unorthodox theories or opposing views among the papers worth discussing (these tend to be very interesting). Give these contradiction a title and mention the papers that support each view. There might not be any contradictions, and that is fine.
-#         - Identify if there are any links or repos mentioned on the papers that are worth sharing on the report. If not, we will skip the "Related Websites, Libraries and Repos" section.
-#     </scratchpad>
-#
-#     <new_developments>
-#         - First paragraph: Start with a very brief comment on the total number of articles published and volume trends. Mention the most interesting common themes that you would like to discuss, along with any contradiction or unorthodox theory you identified (if there are none just skip and do not mention it).
-#         - Following paragraphs: Discuss in more detail the items you mentioned above and identified as interesting (one per paragraph). State very clearly **with bold font** which theme / contradiction / unorthodox theory you are discussing on each paragraph. You do not need to discuss all papers, just the most interesting ones. Be sure to always include the contradiction, if any, in your discussion.
-#     </new_developments>
-#
-#     <highlight_of_the_week>
-#         - One paper with findings that you find particularly interesting, unexpected or useful. Explain why, and provide practical examples from the paper if possible.
-#     </highlight_of_the_week>
-#
-#     <related_websites_libraries_repos>
-#         - Include a bullet list of real links and a brief description of the main repos and project sites mentioned on the paper (up to 15).
-#         - If none are mentioned just leave this section empty.
-#     </related_websites_libraries_repos>
-# <report_format>
-#
-# <guidelines>
-# - Write in a concise and clear manner, with no more than one or two paragraphs per section. If you reference new technical terms always explain them.
-# - Use plain, simple layman and direct language, without many adjectives. Be clear and precise.
-# - Do not exaggerate or use bombastic language. Be moderate, truthful and objective.
-# - Focus on practical applications and benefits.
-# - Maintain the narrative flow and coherence across sections. Keep the reader engaged.
-# - Avoid filler and repetitive content.
-# - Do not repeat the themes from last week (from 'Last Week's Submissions...' section). Try to make it so that each theme maps to multiple papers (ideally not so loosely tied).
-# - Do not include markdown titles in each of the sections (I will take care of those).
-# - Always add citations to support your statements. Use the format `*reference content* (arxiv:1234.5678)`. You can also mention the *article's title* on the text.
-# </guidelines>
-#
-# <content>
-# {weekly_content}
-# </content>
-#
-# Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678).
-#
-# <scratchpad>"""
 
 WEEKLY_USER_PROMPT = """
 <report_format>
@@ -1445,33 +1156,10 @@ WEEKLY_REPOS_USER_PROMPT = """Read over the following LLM-related papers publish
 {weekly_content}
 </content> """
 
-# """<output_format>
-# #### Theme 1
-#   - [Title of the link](https://www.example.com): Description of the link.
-#
-# #### Theme 2
-#   - [Title of the link](https://www.example.com): Description of the link.
-# </output_format>"""
-
 
 ###############
 ## Q&A MODEL ##
 ###############
-
-
-class QnaPair(BaseModel):
-    question: str = Field(
-        ...,
-        description="Very specific question that does not make reference to the text.",
-    )
-    answer: str = Field(
-        ..., description="Detailed answer to the question with citation."
-    )
-
-
-class QnaSet(BaseModel):
-    qna_pairs: list[QnaPair] = Field(..., description="List of Q&A pairs.")
-
 
 QNA_SYSTEM_PROMPT = """GUIDELINES
 ============
@@ -1604,9 +1292,9 @@ The following JSON is not valid. Please fix it and resubmit.
 naive_json_fix_prompt = PromptTemplate.from_template(NAIVE_JSON_FIX)
 
 
-##############
-## ARTIFACTS  ##
-##############
+###############
+## ARTIFACTS ##
+###############
 
 artifacts_system_prompt = "Your task is to read over a Large Language Model related whitepaper and create a dashboard visualization app capturing its main and most interesting findings."
 

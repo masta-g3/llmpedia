@@ -44,13 +44,12 @@
 - [x]  Factor main sector two.
 
 ## v.1.3.2
+- [x] Workflow cron 4hr.
 - [x] Add repos to tweet insights.
-- [ ] LLM version config.
 - [x] Remove langchain pgvector.
 - [x] Add LLM research.
 - [x] Track card views.
 - [x] Log cost per run (cost, items processed, per item?).
-- [ ] Automate weekly report run.
 - [x] Add token usage logging.
-- [ ] Extract pydantic objects to repo.
-- [ ] Reorg images.
+- [x] Extract pydantic objects to repo.
+- [x] Reorg images.
