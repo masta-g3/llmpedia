@@ -1,6 +1,8 @@
 import smtplib
 from email import message
 import os
+
+
 def send_email_alert(tweet_content, arxiv_code):
     sender_email = os.getenv("SENDER_EMAIL")
     sender_password = os.getenv("SENDER_EMAIL_PASSWORD")
@@ -29,6 +31,3 @@ def send_email_alert(tweet_content, arxiv_code):
             server.send_message(msg)
     except Exception as e:
         print(f"Error sending email alert: {str(e)}")
-
-if __name__ == "__main__":
-    send_email_alert("This is a test tweet", "2452345")

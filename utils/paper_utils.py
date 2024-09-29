@@ -187,10 +187,10 @@ def load_local(arxiv_code, data_path, relative=True, format="json", s3_bucket=No
     if relative:
         data_path = os.path.join(PROJECT_PATH, "data", data_path)
     file_path = os.path.join(data_path, f"{arxiv_code}.{format}")
-    
+
     if not os.path.exists(file_path) and s3_bucket:
         download_s3_file(arxiv_code, s3_bucket, prefix="data", format=format)
-    
+
     if format == "json":
         with open(file_path, "r") as f:
             return json.load(f)
@@ -240,17 +240,27 @@ def list_s3_files(bucket_name: str, strip_extension: bool = True) -> list[str]:
 
 
 def download_s3_file(
-    arxiv_code: str, bucket_name: str, prefix: Optional[str] = "data", format: str = "json"
+    arxiv_code: str,
+    bucket_name: str,
+    prefix: Optional[str] = "data",
+    format: str = "json",
 ) -> bool:
     """Load data from S3."""
     s3 = boto3.client("s3")
-    local_path = os.path.join(PROJECT_PATH, prefix, bucket_name.replace("-", "_"), f"{arxiv_code}.{format}")
+    local_path = os.path.join(
+        PROJECT_PATH,
+        *([prefix] if prefix else []),
+        bucket_name.replace("-", "_"),
+        f"{arxiv_code}.{format}",
+    )
     try:
         s3.download_file(bucket_name, f"{arxiv_code}.{format}", local_path)
         return True
     except botocore.exceptions.ClientError as e:
-        if e.response['Error']['Code'] == "404":
-            print(f"The object {arxiv_code}.{format} does not exist in the bucket {bucket_name}.")
+        if e.response["Error"]["Code"] == "404":
+            print(
+                f"The object {arxiv_code}.{format} does not exist in the bucket {bucket_name}."
+            )
         else:
             print(f"An error occurred while downloading the file: {e}")
         return False
@@ -264,7 +274,12 @@ def upload_s3_file(
 ) -> bool:
     """Upload data to S3."""
     s3 = boto3.client("s3")
-    local_path = os.path.join(PROJECT_PATH, prefix, bucket_name.replace("-", "_"), f"{arxiv_code}.{format}")
+    local_path = os.path.join(
+        PROJECT_PATH,
+        *([prefix] if prefix else []),
+        bucket_name.replace("-", "_"),
+        f"{arxiv_code}.{format}",
+    )
     s3.upload_file(local_path, bucket_name, f"{arxiv_code}.{format}")
     return True
 
