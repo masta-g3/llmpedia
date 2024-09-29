@@ -240,7 +240,7 @@ def list_s3_files(bucket_name: str, strip_extension: bool = True) -> list[str]:
 
 
 def download_s3_file(
-    arxiv_code: str, bucket_name: str, prefix: str = "data", format: str = "json"
+    arxiv_code: str, bucket_name: str, prefix: Optional[str] = "data", format: str = "json"
 ) -> bool:
     """Load data from S3."""
     s3 = boto3.client("s3")
@@ -259,7 +259,7 @@ def download_s3_file(
 def upload_s3_file(
     arxiv_code: str,
     bucket_name: str,
-    prefix: str = "data",
+    prefix: Optional[str] = "data",
     format: str = "json",
 ) -> bool:
     """Upload data to S3."""

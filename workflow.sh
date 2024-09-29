@@ -8,6 +8,8 @@ set +a
 PROJECT_PATH=${PROJECT_PATH:-/app}
 LOG_FILE="${PROJECT_PATH}/workflow.log"
 
+echo "Workflow started at $(date)" | tee -a "$LOG_FILE"
+
 function run_step() {
     local step_name="$1"
     local script="$2"

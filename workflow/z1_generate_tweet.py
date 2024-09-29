@@ -283,6 +283,7 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
         f"Sleeping for {sleep_duration // 60} minutes before sending the tweet..."
     )
     time.sleep(sleep_duration)
+
     try:
         wait = WebDriverWait(browser, 10)
         button = wait.until(
@@ -414,7 +415,7 @@ def main():
 
     if not os.path.exists(tweet_image_path):
         pu.download_s3_file(
-            arxiv_code, bucket_name="llmpedia", prefix=".", format="png"
+            arxiv_code, bucket_name="llmpedia", prefix=None, format="png"
         )
     if not os.path.exists(tweet_page_path):
         pu.download_s3_file(
@@ -432,3 +433,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
