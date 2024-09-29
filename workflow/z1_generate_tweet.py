@@ -1,6 +1,7 @@
 import datetime
 import os, sys, re
 import time
+import random
 import numpy as np
 from dotenv import load_dotenv
 from selenium import webdriver
@@ -31,33 +32,47 @@ import utils.paper_utils as pu
 import utils.email as em
 import utils.db as db
 
+
 def verify_tweet_elements(browser, expected_image_count=2):
     try:
         # Check for images
         def correct_image_count(driver):
-            remove_buttons = driver.find_elements(By.XPATH, "//button[@aria-label='Remove media']")
+            remove_buttons = driver.find_elements(
+                By.XPATH, "//button[@aria-label='Remove media']"
+            )
             return len(remove_buttons) == expected_image_count
 
         WebDriverWait(browser, 10).until(correct_image_count)
 
         # Check for main tweet text
-        main_tweet_text = WebDriverWait(browser, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//div[@data-testid='tweetTextarea_0']"))
-        ).text
+        main_tweet_text = (
+            WebDriverWait(browser, 10)
+            .until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//div[@data-testid='tweetTextarea_0']")
+                )
+            )
+            .text
+        )
         if not main_tweet_text.strip():
             return False, "Main tweet text is empty"
 
         # Check for post-tweet text
-        post_tweet_text = WebDriverWait(browser, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//div[@data-testid='tweetTextarea_1']"))
-        ).text
+        post_tweet_text = (
+            WebDriverWait(browser, 10)
+            .until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//div[@data-testid='tweetTextarea_1']")
+                )
+            )
+            .text
+        )
         if not post_tweet_text.strip():
             return False, "Post-tweet text is empty"
 
         return True, "All elements are present"
     except Exception as e:
         return False, f"Error verifying tweet elements: {str(e)}"
-
 
 
 def bold(input_text, extra_str):
@@ -101,7 +116,9 @@ def bold(input_text, extra_str):
 def login_twitter(browser: webdriver.Firefox):
     """Login to Twitter within any page of its domain."""
     login = WebDriverWait(browser, 30).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, 'a[data-testid="loginButton"]'))
+        EC.presence_of_element_located(
+            (By.CSS_SELECTOR, 'a[data-testid="loginButton"]')
+        )
     )
     login.send_keys(Keys.ENTER)
 
@@ -153,19 +170,19 @@ def login_twitter(browser: webdriver.Firefox):
 
 
 def setup_browser():
-    if os.path.exists('/.dockerenv'):
+    if os.path.exists("/.dockerenv"):
         chrome_options = ChromeOptions()
         chrome_options.add_argument("--headless")
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--remote-debugging-port=9222')
-        
-        chrome_options.binary_location = '/usr/bin/chromium'
-        service = ChromeService('/usr/bin/chromedriver')
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--remote-debugging-port=9222")
+
+        chrome_options.binary_location = "/usr/bin/chromium"
+        service = ChromeService("/usr/bin/chromedriver")
         driver = webdriver.Chrome(service=service, options=chrome_options)
     else:
-        if platform.system() == 'Darwin':
+        if platform.system() == "Darwin":
             firefox_options = FirefoxOptions()
             firefox_options.add_argument("--headless")
             driver = webdriver.Firefox(options=firefox_options)
@@ -174,6 +191,7 @@ def setup_browser():
 
     return driver
 
+
 def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
     browser = setup_browser()
     browser.get(url)
@@ -181,7 +199,9 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
 
     ## Compose tweet.
     WebDriverWait(browser, 30).until(
-        EC.visibility_of_element_located((By.XPATH, "//div[@data-testid='tweetTextarea_0']"))
+        EC.visibility_of_element_located(
+            (By.XPATH, "//div[@data-testid='tweetTextarea_0']")
+        )
     )
 
     ## Upload first image.
@@ -192,7 +212,9 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
 
     ## Wait for the first image to be loaded.
     WebDriverWait(browser, 30).until(
-        EC.presence_of_element_located((By.XPATH, "//button[@aria-label='Remove media']"))
+        EC.presence_of_element_located(
+            (By.XPATH, "//button[@aria-label='Remove media']")
+        )
     )
 
     ## Upload second image.
@@ -203,11 +225,12 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
 
     ## Wait for both images to be loaded.
     def two_remove_buttons_present(driver):
-        remove_buttons = driver.find_elements(By.XPATH, "//button[@aria-label='Remove media']")
+        remove_buttons = driver.find_elements(
+            By.XPATH, "//button[@aria-label='Remove media']"
+        )
         return len(remove_buttons) == 2
 
     WebDriverWait(browser, 30).until(two_remove_buttons_present)
-
 
     ## Add follow-up tweet section.
     tweet_reply_btn = WebDriverWait(browser, 30).until(
@@ -215,10 +238,12 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
     )
     # Use JavaScript to click the button
     browser.execute_script("arguments[0].click();", tweet_reply_btn)
-    
+
     # Wait for the new tweet box to appear
     WebDriverWait(browser, 10).until(
-        EC.presence_of_element_located((By.XPATH, "//div[@data-testid='tweetTextarea_1']"))
+        EC.presence_of_element_located(
+            (By.XPATH, "//div[@data-testid='tweetTextarea_1']")
+        )
     )
 
     ## Add post-tweet.
@@ -231,7 +256,7 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
         )
     )
     tweet_box.send_keys(post_tweet.replace("\n", Keys.RETURN))
-    
+
     ## Add tweet.
     tweet_box = WebDriverWait(browser, 30).until(
         EC.presence_of_element_located(
@@ -242,7 +267,7 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
         )
     )
     tweet_box.send_keys(tweet_content.replace("\n", Keys.RETURN))
-    
+
     ## Verify tweet elements.
     elements_verified, verification_message = verify_tweet_elements(browser)
     if not elements_verified:
@@ -251,9 +276,14 @@ def send_tweet(tweet_content, tweet_image_path, tweet_page_path, post_tweet):
         return False
 
     ## Send tweet.
-    # time.sleep(60*60*4)
+    sleep_duration = random.randint(
+        1, 45 * 60
+    )
+    print(
+        f"Sleeping for {sleep_duration // 60} minutes before sending the tweet..."
+    )
+    time.sleep(sleep_duration)
     try:
-        # Wait for the button to be clickable
         wait = WebDriverWait(browser, 10)
         button = wait.until(
             EC.element_to_be_clickable(
@@ -357,7 +387,7 @@ def main():
         previous_tweets=previous_tweets_str,
         tweet_facts=tweet_facts,
         tweet_type=tweet_type,
-        model="claude-3-5-sonnet-20240620", # "gpt-4o-2024-08-06",
+        model="claude-3-5-sonnet-20240620",  # "gpt-4o-2024-08-06",
         temperature=0.8,
     )
     print("Generated tweet: ")
@@ -368,7 +398,7 @@ def main():
             tweet,
             tweet_facts=tweet_facts,
             tweet_type=tweet_type,
-            model="claude-3-5-sonnet-20240620", # "gpt-4o-2024-08-06",
+            model="claude-3-5-sonnet-20240620",  # "gpt-4o-2024-08-06",
             temperature=0.5,
         )
     else:
@@ -383,9 +413,13 @@ def main():
     tweet_page_path = f"{PAGE_PATH}/{arxiv_code}.png"
 
     if not os.path.exists(tweet_image_path):
-        pu.download_s3_file(arxiv_code, bucket_name="llmpedia", prefix=".", format="png")
+        pu.download_s3_file(
+            arxiv_code, bucket_name="llmpedia", prefix=".", format="png"
+        )
     if not os.path.exists(tweet_page_path):
-        pu.download_s3_file(arxiv_code, bucket_name="arxiv-first-page", prefix="data", format="png")
+        pu.download_s3_file(
+            arxiv_code, bucket_name="arxiv-first-page", prefix="data", format="png"
+        )
 
     send_tweet(edited_tweet, tweet_image_path, tweet_page_path, post_tweet)
 
@@ -394,6 +428,7 @@ def main():
         arxiv_code, edited_tweet, datetime.datetime.now(), tweet_type, rejected=False
     )
     em.send_email_alert(edited_tweet, arxiv_code)
+
 
 if __name__ == "__main__":
     main()
