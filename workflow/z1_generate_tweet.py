@@ -171,16 +171,14 @@ def login_twitter(browser: webdriver.Firefox):
 
 def setup_browser():
     if os.path.exists("/.dockerenv"):
-        chrome_options = ChromeOptions()
-        chrome_options.add_argument("--headless")
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--remote-debugging-port=9222")
-
-        chrome_options.binary_location = "/usr/bin/chromium"
-        service = ChromeService("/usr/bin/chromedriver")
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        firefox_options = FirefoxOptions()
+        firefox_options.add_argument("--headless")
+        firefox_options.add_argument("--no-sandbox")
+        firefox_options.add_argument("--disable-dev-shm-usage")
+        firefox_options.add_argument("--disable-gpu")
+        
+        service = webdriver.firefox.service.Service("/usr/bin/geckodriver")
+        driver = webdriver.Firefox(service=service, options=firefox_options)
     else:
         if platform.system() == "Darwin":
             firefox_options = FirefoxOptions()
