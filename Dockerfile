@@ -49,14 +49,14 @@ ENV CHROME_PATH=/usr/lib/chromium/
 RUN apt-get update && apt-get install -y \
     firefox-esr \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*4
+    && rm -rf /var/lib/apt/lists/*
 
 # Install GeckoDriver
-RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.30.0/geckodriver-v0.30.0-linux64.tar.gz \
-    && tar -xvzf geckodriver-v0.30.0-linux64.tar.gz \
+RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz \
+    && tar -xvzf geckodriver-v0.33.0-linux64.tar.gz \
     && chmod +x geckodriver \
-    && mv geckodriver /usr/local/bin/ \
-    && rm geckodriver-v0.30.0-linux64.tar.gz
+    && mv geckodriver /usr/bin/ \
+    && rm geckodriver-v0.33.0-linux64.tar.gz
 
 # Copy the rest of your application
 COPY . .
