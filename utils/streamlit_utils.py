@@ -330,7 +330,6 @@ def generate_grid_gallery(df, n_cols=5, extra_key=""):
             if i * n_cols + j < len(df):
                 with cols[j]:
                     try:
-                        # st.image(f"imgs/{df.iloc[i*n_cols+j]['arxiv_code']}.png")
                         st.image(
                             f"https://llmpedia.s3.amazonaws.com/{df.iloc[i*n_cols+j]['arxiv_code']}.png"
                         )

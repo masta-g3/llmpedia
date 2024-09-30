@@ -106,7 +106,7 @@ def delete_paper(arxiv_code: str):
         print(f"Deleted {qna_file}.")
 
     ## Images.
-    img_file = f"img/{arxiv_code}.png"
+    img_file = f"data/arxiv_art/{arxiv_code}.png"
     if os.path.exists(img_file):
         os.remove(img_file)
         print(f"Deleted {img_file}.")

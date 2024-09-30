@@ -160,9 +160,9 @@ def main():
     vs.validate_openai_env()
     arxiv_codes = db.get_arxiv_id_list(pu.db_params, "summaries")
     title_dict = db.get_arxiv_title_dict(pu.db_params)
-    img_dir = os.path.join(PROJECT_PATH, "imgs/")
+    img_dir = os.path.join(PROJECT_PATH, "data", "arxiv_art/")
 
-    done_imgs = pu.list_s3_files("llmpedia", strip_extension=True)
+    done_imgs = pu.list_s3_files("arxiv-art", strip_extension=True)
     arxiv_codes = list(set(arxiv_codes) - set(done_imgs))
     arxiv_codes = sorted(arxiv_codes)[::-1]
 
@@ -179,7 +179,7 @@ def main():
         generate_image(clean_name, img_file)
 
         ## Upload to s3.
-        s3.upload_file(img_file, "llmpedia", arxiv_code + ".png")
+        s3.upload_file(img_file, "arxiv-art", arxiv_code + ".png")
         print(f"Saved {img_file} ({idx+1}/{len(arxiv_codes)})")
 
 

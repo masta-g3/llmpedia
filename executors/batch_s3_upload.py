@@ -33,8 +33,8 @@ def upload_files_to_s3(local_dir, bucket_name, file_extension, override=False):
 
 def upload_arxiv_images():
     print("Uploading arxiv images...")
-    img_dir = os.path.join(PROJECT_PATH, "imgs")
-    upload_files_to_s3(img_dir, "llmpedia", ".png")
+    img_dir = os.path.join(PROJECT_PATH, "data", "arxiv_art")
+    upload_files_to_s3(img_dir, "arxiv-art", ".png")
 
 def upload_arxiv_text():
     print("Uploading arxiv text...")

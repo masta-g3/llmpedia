@@ -18,7 +18,7 @@ load_dotenv()
 
 PROJECT_PATH = os.environ.get("PROJECT_PATH")
 DATA_PATH = os.path.join(PROJECT_PATH, "data")
-IMG_PATH = os.path.join(PROJECT_PATH, "imgs")
+IMG_PATH = os.path.join(DATA_PATH, "arxiv_art")
 PAGE_PATH = os.path.join(DATA_PATH, "arxiv_first_page")
 sys.path.append(PROJECT_PATH)
 
@@ -415,7 +415,7 @@ def main():
 
     if not os.path.exists(tweet_image_path):
         pu.download_s3_file(
-            arxiv_code, bucket_name="llmpedia", prefix=None, format="png"
+            arxiv_code, bucket_name="arxiv-art", prefix="data", format="png"
         )
     if not os.path.exists(tweet_page_path):
         pu.download_s3_file(
