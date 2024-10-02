@@ -15,7 +15,7 @@ sys.path.append(PROJECT_PATH)
 
 import utils.vector_store as vs
 import utils.paper_utils as pu
-import utils.email as em
+import utils.notifications as em
 import utils.db as db
 import utils.tweet as tweet
 
