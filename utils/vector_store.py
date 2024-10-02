@@ -6,6 +6,7 @@ import tiktoken
 
 import utils.db as db
 import utils.prompts as ps
+import utils.pydantic_objects as po
 import utils.app_utils as au
 from utils.instruct import run_instructor_query
 
@@ -159,7 +160,7 @@ def verify_llm_paper(paper_content: str, model="gpt-4o"):
     is_llm_paper = run_instructor_query(
         ps.LLM_VERIFIER_SYSTEM_PROMPT,
         ps.LLM_VERIFIER_USER_PROMPT.format(paper_content=paper_content),
-        model=ps.LLMVerifier,
+        model=po.LLMVerifier,
         llm_model=model,
         process_id="verify_llm_paper",
     )
@@ -172,7 +173,7 @@ def review_llm_paper(paper_content: str, model="gpt-4o"):
     review = run_instructor_query(
         ps.SUMMARIZER_SYSTEM_PROMPT,
         ps.SUMMARIZER_USER_PROMPT.format(paper_content=paper_content),
-        model=ps.PaperReview,
+        model=po.PaperReview,
         llm_model=model,
         process_id="review_llm_paper",
     )
@@ -271,7 +272,7 @@ def generate_weekly_report(weekly_content_md: str, model="gpt-4o"):
     weekly_report = run_instructor_query(
         ps.WEEKLY_SYSTEM_PROMPT,
         ps.WEEKLY_USER_PROMPT.format(weekly_content=weekly_content_md),
-        model=ps.WeeklyReview,
+        model=po.WeeklyReview,
         llm_model=model,
         temperature=0.8,
         process_id="generate_weekly_report",
@@ -297,7 +298,7 @@ def extract_document_repo(paper_content: str, model="gpt-4o"):
         ps.WEEKLY_SYSTEM_PROMPT,
         ps.WEEKLY_REPO_USER_PROMPT.format(content=paper_content),
         llm_model=model,
-        model=ps.ExternalResources,
+        model=po.ExternalResources,
         temperature=0.0,
         process_id="extract_document_repo",
     )
