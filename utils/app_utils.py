@@ -136,7 +136,7 @@ def get_img_link_for_blob(text_blob: str):
     if len(arxiv_code) == 0:
         return None
     arxiv_code = arxiv_code[0]
-    return f"https://llmpedia.s3.amazonaws.com/{arxiv_code}.png"
+    return f"https://arxiv-art.s3.amazonaws.com/{arxiv_code}.png"
 
 
 def numbered_to_bullet_list(list_str: str):

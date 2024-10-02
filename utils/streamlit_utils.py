@@ -117,7 +117,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
     paper_code = paper["arxiv_code"]
     try:
         img_cols[0].image(
-            f"https://llmpedia.s3.amazonaws.com/{paper_code}.png", use_column_width=True
+            f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png", use_column_width=True
         )
     except:
         pass
@@ -331,7 +331,7 @@ def generate_grid_gallery(df, n_cols=5, extra_key=""):
                 with cols[j]:
                     try:
                         st.image(
-                            f"https://llmpedia.s3.amazonaws.com/{df.iloc[i*n_cols+j]['arxiv_code']}.png"
+                            f"https://arxiv-art.s3.us-west-2.amazonaws.com/{df.iloc[i*n_cols+j]['arxiv_code']}.png"
                         )
                     except:
                         pass
