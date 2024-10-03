@@ -4,6 +4,8 @@ import time
 import random
 import numpy as np
 from dotenv import load_dotenv
+import logging
+from logging.handlers import TimedRotatingFileHandler
 
 load_dotenv()
 
@@ -19,12 +21,31 @@ import utils.notifications as em
 import utils.db as db
 import utils.tweet as tweet
 
+LOG_DIR = os.path.join(PROJECT_PATH, "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_FILE = os.path.join(LOG_DIR, "z1_generate_tweet.log")
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Create a timed rotating file handler
+file_handler = TimedRotatingFileHandler(
+    LOG_FILE, when="midnight", interval=1, backupCount=30
+)
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(file_handler)
+
+# Add a stream handler for console output
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(stream_handler)
+
 def bold(input_text, extra_str):
     chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     bold_chars = "𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵"
     bold_italic_chars = "𝘼𝘽𝘾𝘿𝙀𝙁𝙂𝙃𝙄𝙅𝙆𝙇𝙈𝙉𝙊𝙋𝙌𝙍𝙎𝙏𝙐𝙑𝙒𝙓𝙔𝙕𝙖𝙗𝙘𝙙𝙚𝙛𝙜𝙝𝙞𝙟𝙠𝙡𝙢𝙣𝙤𝙥𝙦𝙧𝙨𝙩𝙪𝙫𝙬𝙭𝙮𝙯𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵"
 
-    # Helper function to bold the characters within quotes
+    ## Helper function to bold the characters within quotes
     def boldify(text):
         bolded_text = ""
         for character in text:
@@ -34,7 +55,7 @@ def bold(input_text, extra_str):
                 bolded_text += character
         return bolded_text
 
-    # Helper function to bold and italicize the characters within asterisks
+    ## Helper function to bold and italicize the characters within asterisks
     def bold_italicize(text):
         bold_italic_text = ""
         for character in text:
@@ -51,13 +72,14 @@ def bold(input_text, extra_str):
         input_text,
     )
     output = output.replace("[[", "").replace("]]", "")
-    # Regex to find text in double asterisks and apply the bold_italicize function to them
+    ## Regex to find text in double asterisks and apply the bold_italicize function to them
     output = re.sub(r"\*\*([^*]*)\*\*", lambda m: bold_italicize(m.group(1)), output)
 
     return output.strip()
 
 def main():
     """Generate a weekly review of highlights and takeaways from papers."""
+    logger.info("Starting tweet generation process")
     vs.validate_openai_env()
     tweet_type = "review_v2"
     tweet_type = "fable_v1"
@@ -141,8 +163,8 @@ def main():
         model="claude-3-5-sonnet-20240620",  # "gpt-4o-2024-08-06",
         temperature=0.8,
     )
-    print("Generated tweet: ")
-    print(tweet_content)
+    logger.info(f"Generated tweet for arxiv code: {arxiv_code}")
+    logger.debug(f"Generated tweet content: {tweet_content}")
 
     if tweet_type != "review_v2":
         edited_tweet = vs.edit_tweet(
@@ -156,8 +178,8 @@ def main():
         edited_tweet = f'💭Review of "{paper_title}"\n\n{tweet_content}'
     edited_tweet = bold(edited_tweet, publish_date_full)
 
-    print("Edited tweet: ")
-    print(edited_tweet)
+    logger.info("Tweet edited successfully")
+    logger.debug(f"Edited tweet content: {edited_tweet}")
 
     ## Send tweet to API.
     tweet_image_path = f"{IMG_PATH}/{arxiv_code}.png"
@@ -172,13 +194,17 @@ def main():
             arxiv_code, bucket_name="arxiv-first-page", prefix="data", format="png"
         )
 
-    tweet.send_tweet(edited_tweet, tweet_image_path, tweet_page_path, post_tweet)
+    tweet_success = tweet.send_tweet(edited_tweet, tweet_image_path, tweet_page_path, post_tweet)
 
-    ## Store.
-    db.insert_tweet_review(
-        arxiv_code, edited_tweet, datetime.datetime.now(), tweet_type, rejected=False
-    )
-    em.send_email_alert(edited_tweet, arxiv_code)
+    if tweet_success:
+        logger.info("Tweet sent successfully")
+        db.insert_tweet_review(
+            arxiv_code, edited_tweet, datetime.datetime.now(), tweet_type, rejected=False
+        )
+        em.send_email_alert(edited_tweet, arxiv_code)
+        logger.info("Tweet stored in database and email alert sent")
+    else:
+        logger.error("Failed to send tweet")
 
 if __name__ == "__main__":
     main()

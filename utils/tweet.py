@@ -1,7 +1,9 @@
 import os
+import sys
 import time
 import random
 from typing import Tuple
+import logging
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -15,6 +17,22 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Set up logging
+PROJECT_PATH = os.environ.get("PROJECT_PATH")
+LOG_DIR = os.path.join(PROJECT_PATH, "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_FILE = os.path.join(LOG_DIR, "tweet_generation.log")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
+
 url = "https://x.com/"
 username = os.getenv("TWITTER_EMAIL")
 userpass = os.getenv("TWITTER_PASSWORD")
@@ -22,16 +40,19 @@ phone = os.getenv("TWITTER_PHONE")
 
 
 def setup_browser():
+    logger.info("Setting up browser")
     firefox_options = FirefoxOptions()
     firefox_options.add_argument("--headless")
 
     service = webdriver.firefox.service.Service("/usr/bin/geckodriver")
     driver = webdriver.Firefox(options=firefox_options)
+    logger.info("Browser setup complete")
     return driver
 
 
 def login_twitter(browser: webdriver.Firefox):
     """Login to Twitter within any page of its domain."""
+    logger.info("Attempting to log in to Twitter")
     login = WebDriverWait(browser, 30).until(
         EC.presence_of_element_located(
             (By.CSS_SELECTOR, 'a[data-testid="loginButton"]')
@@ -84,10 +105,13 @@ def login_twitter(browser: webdriver.Firefox):
     WebDriverWait(browser, 30).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="tweet"]'))
     )
+    logger.info("Successfully logged in to Twitter")
 
 
 def verify_tweet_elements(browser: webdriver.Chrome, expected_image_count: int = 2) -> Tuple[bool, str]:
     """Verify the presence of expected elements in a tweet composition."""
+    logger.info("Verifying tweet elements")
+    verification_message = ""
     try:
         # Check for images
         def correct_image_count(driver):
@@ -124,19 +148,25 @@ def verify_tweet_elements(browser: webdriver.Chrome, expected_image_count: int =
         if not post_tweet_text.strip():
             return False, "Post-tweet text is empty"
 
-        return True, "All elements are present"
+        verification_message = "All elements are present"
+        return True, verification_message
     except Exception as e:
-        return False, f"Error verifying tweet elements: {str(e)}"
+        verification_message = f"Error verifying tweet elements: {str(e)}"
+        return False, verification_message
+    finally:
+        logger.info(f"Tweet element verification result: {verification_message}")
 
 
 def send_tweet(
     tweet_content: str, tweet_image_path: str, tweet_page_path: str, post_tweet: str
-) -> None:
+) -> bool:
     """Send a tweet with content and images using Selenium."""
+    logger.info("Starting tweet sending process")
     browser = setup_browser()
     browser.get(url)
     login_twitter(browser)
 
+    logger.info("Composing tweet")
     # Compose tweet
     WebDriverWait(browser, 30).until(
         EC.visibility_of_element_located(
@@ -144,6 +174,7 @@ def send_tweet(
         )
     )
 
+    logger.info("Uploading images")
     # Upload first image
     input_box = WebDriverWait(browser, 30).until(
         EC.presence_of_element_located((By.XPATH, "//input[@accept]"))
@@ -172,6 +203,7 @@ def send_tweet(
 
     WebDriverWait(browser, 30).until(two_remove_buttons_present)
 
+    logger.info("Adding follow-up tweet section")
     # Add follow-up tweet section
     tweet_reply_btn = WebDriverWait(browser, 30).until(
         EC.element_to_be_clickable((By.XPATH, "//a[@data-testid='addButton']"))
@@ -185,6 +217,7 @@ def send_tweet(
         )
     )
 
+    logger.info("Adding tweet content")
     # Add post-tweet
     tweet_box = WebDriverWait(browser, 30).until(
         EC.presence_of_element_located(
@@ -210,16 +243,17 @@ def send_tweet(
     # Verify tweet elements
     elements_verified, verification_message = verify_tweet_elements(browser)
     if not elements_verified:
-        print(f"Tweet verification failed: {verification_message}")
+        logger.error(f"Tweet verification failed: {verification_message}")
         browser.quit()
         return False
 
     # Send tweet
     sleep_duration = random.randint(1, 45 * 60)
-    print(f"Sleeping for {sleep_duration // 60} minutes before sending the tweet...")
+    logger.info(f"Sleeping for {sleep_duration // 60} minutes before sending the tweet...")
     # time.sleep(sleep_duration)
 
     try:
+        logger.info("Attempting to send tweet")
         wait = WebDriverWait(browser, 10)
         button = wait.until(
             EC.element_to_be_clickable(
@@ -228,6 +262,7 @@ def send_tweet(
         )
         browser.execute_script("arguments[0].click();", button)
     except:
+        logger.warning("First attempt to send tweet failed, trying alternative method")
         button = WebDriverWait(browser, 30).until(
             EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, "div[data-testid='tweetButton']")
@@ -235,7 +270,7 @@ def send_tweet(
         )
         browser.execute_script("arguments[0].click();", button)
 
-    print("Tweet sent successfully.")
+    logger.info("Tweet sent successfully")
     time.sleep(10)
     browser.quit()
     return True
@@ -244,3 +279,5 @@ if __name__ == "__main__":
     print("Starting browser...")
     browser = setup_browser()
     print("Browser started.")
+
+

@@ -13,8 +13,9 @@ echo "Workflow started at $(date)" | tee -a "$LOG_FILE"
 function run_step() {
     local step_name="$1"
     local script="$2"
-    echo ">> [$step_name]" | tee -a "$LOG_FILE"
+    echo ">> [$step_name] Started at $(date)" >> "$LOG_FILE"
     python "${PROJECT_PATH}/${script}" 2>&1 | tee -a "$LOG_FILE"
+    echo ">> [$step_name] Completed at $(date)" >> "$LOG_FILE"
 }
 
 run_step "0: Web Scraper" "workflow/a0_scrape_lists.py"
@@ -39,3 +40,4 @@ run_step "14: GIST Updater" "workflow/z0_update_gist.py"
 #run_step "15: Generate tweet" "workflow/z1_generate_tweet.py" # REVIEW
 
 echo "Done! Please enjoy the rest of your day and spread love around your neighbourhood."
+echo "Workflow completed at $(date)" >> "$LOG_FILE"
