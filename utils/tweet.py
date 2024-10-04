@@ -3,14 +3,13 @@ import sys
 import time
 import random
 from typing import Tuple
-import logging
-
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from utils.logging_utils import setup_logger
 
 # Import environment variables
 from dotenv import load_dotenv
@@ -18,20 +17,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Set up logging
-PROJECT_PATH = os.environ.get("PROJECT_PATH")
-LOG_DIR = os.path.join(PROJECT_PATH, "logs")
-os.makedirs(LOG_DIR, exist_ok=True)
-LOG_FILE = os.path.join(LOG_DIR, "tweet_generation.log")
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(LOG_FILE),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__, "tweet_generation.log")
 
 url = "https://x.com/"
 username = os.getenv("TWITTER_EMAIL")

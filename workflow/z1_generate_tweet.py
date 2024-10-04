@@ -4,8 +4,6 @@ import time
 import random
 import numpy as np
 from dotenv import load_dotenv
-import logging
-from logging.handlers import TimedRotatingFileHandler
 
 load_dotenv()
 
@@ -15,30 +13,14 @@ IMG_PATH = os.path.join(DATA_PATH, "arxiv_art")
 PAGE_PATH = os.path.join(DATA_PATH, "arxiv_first_page")
 sys.path.append(PROJECT_PATH)
 
+from utils.logging_utils import setup_logger
 import utils.vector_store as vs
 import utils.paper_utils as pu
 import utils.notifications as em
 import utils.db as db
 import utils.tweet as tweet
 
-LOG_DIR = os.path.join(PROJECT_PATH, "logs")
-os.makedirs(LOG_DIR, exist_ok=True)
-LOG_FILE = os.path.join(LOG_DIR, "z1_generate_tweet.log")
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-# Create a timed rotating file handler
-file_handler = TimedRotatingFileHandler(
-    LOG_FILE, when="midnight", interval=1, backupCount=30
-)
-file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-logger.addHandler(file_handler)
-
-# Add a stream handler for console output
-stream_handler = logging.StreamHandler(sys.stdout)
-stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-logger.addHandler(stream_handler)
+logger = setup_logger(__name__, "z1_generate_tweet.log")
 
 def bold(input_text, extra_str):
     chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"

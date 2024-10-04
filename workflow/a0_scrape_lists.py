@@ -12,12 +12,17 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from dotenv import load_dotenv
 import feedparser
 import time
+from logging.handlers import TimedRotatingFileHandler
+
+from utils.logging_utils import setup_logger
 
 load_dotenv()
 PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
 sys.path.append(PROJECT_PATH)
 
 import utils.paper_utils as pu
+
+logger = setup_logger(__name__, "a0_scrape_lists.log")
 
 def scrape_ml_papers_of_the_week(start_date, end_date=None):
     if end_date is None:
@@ -242,7 +247,9 @@ def scrape_emergentmind_papers():
 
 
 def main():
-    """Scrape arxiv codes and titles from huggingface.co/papers."""
+    """Scrape arxiv codes and titles from various sources."""
+    logger.info("Starting paper scraping process")
+    
     if len(sys.argv) < 2 or len(sys.argv) > 3:
         start_date = (datetime.now() - timedelta(days=14)).strftime("%Y-%m-%d")
         end_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
@@ -251,24 +258,29 @@ def main():
         end_date = sys.argv[2] if len(sys.argv) == 3 else None
 
     # Perform scraping.
-    print("Scraping HuggingFace...")
+    logger.info("Scraping HuggingFace...")
     hf_df = scrape_huggingface_papers(start_date, end_date)
-    print(f"Collected {hf_df.shape[0]} papers.")
-    print("Scraping Research Space...")
+    logger.info(f"Collected {hf_df.shape[0]} papers from HuggingFace.")
+
+    logger.info("Scraping Research Space...")
     rsrch_df = scrape_rsrch_space_papers(start_date, end_date)
-    print(f"Collected {rsrch_df.shape[0]} papers.")
-    print("Scraping ML Papers of the Week...")
+    logger.info(f"Collected {rsrch_df.shape[0]} papers from Research Space.")
+
+    logger.info("Scraping ML Papers of the Week...")
     dair_df = scrape_ml_papers_of_the_week(start_date, end_date)
-    print(f"Collected {dair_df.shape[0]} papers.")
-    print("Scraping AI News...")
+    logger.info(f"Collected {dair_df.shape[0]} papers from ML Papers of the Week.")
+
+    logger.info("Scraping AI News...")
     ai_news_df = scrape_ai_news_papers(start_date, end_date)
-    print(f"Collected {ai_news_df.shape[0]} papers.")
-    print("Scraping Emergent Mind...")
+    logger.info(f"Collected {ai_news_df.shape[0]} papers from AI News.")
+
+    logger.info("Scraping Emergent Mind...")
     em_df = scrape_emergentmind_papers()
-    print(f"Collected {em_df.shape[0]} papers.")
-    print("Scraping LLM Research ...")
+    logger.info(f"Collected {em_df.shape[0]} papers from Emergent Mind.")
+
+    logger.info("Scraping LLM Research...")
     llmr_df = scrape_llm_research_papers()
-    print(f"Collected {llmr_df.shape[0]} papers.")
+    logger.info(f"Collected {llmr_df.shape[0]} papers from LLM Research.")
 
     ## Combine and extract new codes.
     df = pd.concat([hf_df, rsrch_df, dair_df, ai_news_df, em_df, llmr_df], ignore_index=True)
@@ -287,13 +299,14 @@ def main():
 
     ## Update and upload arxiv codes.
     paper_list = list(set(paper_list + new_codes))
-    print(f"Total papers: {len(paper_list)}")
+    logger.info(f"Total papers: {len(paper_list)}")
     paper_list = list(set(paper_list) - set(done_codes) - set(nonllm_codes))
-    print(f"New papers: {len(paper_list)}")
+    logger.info(f"New papers: {len(paper_list)}")
 
     if len(paper_list) == 0:
-        print("No new papers found. Exiting...")
+        logger.info("No new papers found. Exiting...")
         sys.exit(0)
+    
     gist_url = pu.update_gist(
         os.environ["GITHUB_TOKEN"],
         gist_id,
@@ -301,8 +314,8 @@ def main():
         "Updated LLM queue.",
         "\n".join(paper_list),
     )
+    logger.info(f"Updated gist with new papers: {gist_url}")
     time.sleep(20)
-
 
 if __name__ == "__main__":
     main()
