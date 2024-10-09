@@ -34,8 +34,8 @@ def setup_browser():
     firefox_options = FirefoxOptions()
     firefox_options.add_argument("--headless")
 
-    service = webdriver.firefox.service.Service(GECKODRIVER_PATH)
-    driver = webdriver.Firefox(options=firefox_options, service=service)
+    # service = webdriver.firefox.service.Service(GECKODRIVER_PATH)
+    driver = webdriver.Firefox(options=firefox_options)#, service=service)
     logger.info("Browser setup complete")
     return driver
 
