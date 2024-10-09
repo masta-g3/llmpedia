@@ -1,5 +1,4 @@
-import os
-import sys
+import os, sys
 import time
 import random
 from typing import Tuple
@@ -9,12 +8,17 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
-from utils.logging_utils import setup_logger
-
-# Import environment variables
 from dotenv import load_dotenv
 
 load_dotenv()
+
+PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
+GECKODRIVER_PATH = os.getenv('GECKODRIVER_PATH', '/usr/bin/geckodriver')
+sys.path.append(PROJECT_PATH)
+print(PROJECT_PATH)
+
+from utils.logging_utils import setup_logger
+
 
 # Set up logging
 logger = setup_logger(__name__, "tweet_generation.log")
@@ -30,8 +34,8 @@ def setup_browser():
     firefox_options = FirefoxOptions()
     firefox_options.add_argument("--headless")
 
-    service = webdriver.firefox.service.Service("/usr/bin/geckodriver")
-    driver = webdriver.Firefox(options=firefox_options)
+    service = webdriver.firefox.service.Service(GECKODRIVER_PATH)
+    driver = webdriver.Firefox(options=firefox_options, service=service)
     logger.info("Browser setup complete")
     return driver
 
@@ -39,6 +43,7 @@ def setup_browser():
 def login_twitter(browser: webdriver.Firefox):
     """Login to Twitter within any page of its domain."""
     logger.info("Attempting to log in to Twitter")
+    browser.get(url)
     login = WebDriverWait(browser, 30).until(
         EC.presence_of_element_located(
             (By.CSS_SELECTOR, 'a[data-testid="loginButton"]')
@@ -92,6 +97,12 @@ def login_twitter(browser: webdriver.Firefox):
         EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="tweet"]'))
     )
     logger.info("Successfully logged in to Twitter")
+
+
+def navigate_to_profile(
+    browser: webdriver.Firefox, profile_url: str):
+    """Login to Twitter and navigate to a profile."""
+    browser.get(profile_url)
 
 
 def verify_tweet_elements(browser: webdriver.Chrome, expected_image_count: int = 2) -> Tuple[bool, str]:
@@ -149,7 +160,6 @@ def send_tweet(
     """Send a tweet with content and images using Selenium."""
     logger.info("Starting tweet sending process")
     browser = setup_browser()
-    browser.get(url)
     login_twitter(browser)
 
     logger.info("Composing tweet")

@@ -27,7 +27,7 @@ import csv
 import os
 
 import utils.paper_utils as pu
-
+import utils.tweet as tweet
 
 username = os.getenv("TWITTER_EMAIL")
 userpass = os.getenv("TWITTER_PASSWORD")
@@ -45,69 +45,6 @@ tweet_accounts = [
     "cwolferesearch",
     "HEI"
 ]
-
-
-def login_twitter(browser: webdriver.Firefox):
-    """Login to Twitter within any page of its domain."""
-    login = WebDriverWait(browser, 30).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, 'a[data-testid="login"]'))
-    )
-    login.send_keys(Keys.ENTER)
-
-    user = WebDriverWait(browser, 30).until(
-        EC.presence_of_element_located(
-            (By.XPATH, '//input[@name="text" and @autocomplete="username"]')
-        )
-    )
-    user.send_keys(username)
-    user.send_keys(Keys.ENTER)
-
-    try:
-        number = WebDriverWait(browser, 10).until(
-            EC.presence_of_element_located(
-                (By.CSS_SELECTOR, 'input[data-testid="ocfEnterTextTextInput"]')
-            )
-        )
-        number.send_keys(phone)
-        number.send_keys(Keys.ENTER)
-    except:
-        user = WebDriverWait(browser, 30).until(
-            EC.presence_of_element_located(
-                (By.XPATH, '//input[@name="text" and @autocomplete="username"]')
-            )
-        )
-        user.send_keys(username)
-        user.send_keys(Keys.ENTER)
-
-        try:
-            number = WebDriverWait(browser, 30).until(
-                EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, 'input[data-testid="ocfEnterTextTextInput"]')
-                )
-            )
-            number.send_keys(phone)
-            number.send_keys(Keys.ENTER)
-        except:
-            raise Exception("Failed to login.")
-
-    password = WebDriverWait(browser, 30).until(
-        EC.presence_of_element_located((By.NAME, "password"))
-    )
-    password.send_keys(userpass)
-    password.send_keys(Keys.ENTER)
-
-    WebDriverWait(browser, 30).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="tweet"]'))
-    )
-
-
-def navigate_to_profile(
-    browser: webdriver.Firefox, profile_url: str, login: bool = True
-):
-    """Login to Twitter and navigate to a profile."""
-    browser.get(profile_url)
-    if login:
-        login_twitter(browser)
 
 
 def scroll_page(browser: webdriver.Firefox):
@@ -169,41 +106,16 @@ def save_tweets_to_csv(tweets: List[dict], filename: str):
             writer.writerow(tweet)
 
 
-def setup_browser():
-    if os.path.exists('/.dockerenv'):
-        chrome_options = ChromeOptions()
-        chrome_options.add_argument("--headless")
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--remote-debugging-port=9222')
-        
-        chrome_options.binary_location = '/usr/bin/chromium'
-        service = ChromeService('/usr/bin/chromedriver')
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-    else:
-        if platform.system() == 'Darwin':
-            firefox_options = FirefoxOptions()
-            firefox_options.add_argument("--headless")
-            driver = webdriver.Firefox(options=firefox_options)
-        else:
-            raise Exception("Unsupported OS")
-
-    return driver
-
-
 def main():
     all_tweets = []
 
-    browser = setup_browser()
-    
-    login = True
+    browser = tweet.setup_browser()
+    tweet.login_twitter(browser)
 
     try:
         for account in tweet_accounts:
             profile_url = f"https://twitter.com/{account}"
-            navigate_to_profile(browser, profile_url, login=login)
-            login = False
+            tweet.navigate_to_profile(browser, profile_url)
             tweets = scrape_tweets(browser, max_tweets=30)
             all_tweets.extend(tweets)
             print(

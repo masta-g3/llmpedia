@@ -12,15 +12,13 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from dotenv import load_dotenv
 import feedparser
 import time
-from logging.handlers import TimedRotatingFileHandler
-
-from utils.logging_utils import setup_logger
 
 load_dotenv()
 PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
 sys.path.append(PROJECT_PATH)
 
 import utils.paper_utils as pu
+from utils.logging_utils import setup_logger
 
 logger = setup_logger(__name__, "a0_scrape_lists.log")
 
