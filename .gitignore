@@ -4,6 +4,7 @@
 */__pycache__/
 data/
 imgs/
+logs/
 workflow_old/
 notebooks/
 */.DS_Store

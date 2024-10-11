@@ -114,7 +114,7 @@ def main():
 
     try:
         for account in tweet_accounts:
-            profile_url = f"https://twitter.com/{account}"
+            profile_url = f"https://x.com/{account}"
             tweet.navigate_to_profile(browser, profile_url)
             tweets = scrape_tweets(browser, max_tweets=30)
             all_tweets.extend(tweets)

@@ -32,31 +32,34 @@ RUN chmod 0644 /etc/cron.d/my-crontab && \
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
-    vim \
-    curl \
-    unzip \
-    chromium \
-    chromium-driver \
-    poppler-utils \
-    && apt-get clean \
+    libnss3 \
+    libxss1 \
+    libasound2 \
+    libxtst6 \
+    libgtk-3-0 \
+    libgconf-2-4 \
+    libgbm-dev \
+    libdbus-glib-1-2 \
+    libdbus-1-3 \
+    xvfb \
     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables for Chrome
 ENV CHROME_BIN=/usr/bin/chromium
 ENV CHROME_PATH=/usr/lib/chromium/
 
-# Install Firefox and GeckoDriver
-RUN apt-get update && apt-get install -y \
-    firefox-esr \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Install Firefox
+RUN wget -O firefox.tar.bz2 "https://download.mozilla.org/?product=firefox-latest&os=linux64&lang=en-US" \
+    && tar -xjf firefox.tar.bz2 \
+    && mv firefox /opt/firefox \
+    && ln -s /opt/firefox/firefox /usr/bin/firefox
 
-# Install GeckoDriver
-RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz \
-    && tar -xvzf geckodriver-v0.33.0-linux64.tar.gz \
+# Install Geckodriver
+RUN GECKODRIVER_VERSION="v0.35.0" && \
+    wget -O geckodriver.tar.gz "https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz" \
+    && tar -xzf geckodriver.tar.gz \
     && chmod +x geckodriver \
-    && mv geckodriver /usr/bin/ \
-    && rm geckodriver-v0.33.0-linux64.tar.gz
+    && mv geckodriver /usr/bin/
 
 # Copy the rest of your application
 COPY . .
@@ -73,6 +76,5 @@ RUN mkdir -p /app/imgs && \
 ENV PROJECT_PATH=/app
 ENV MODELS_PATH=/app/ComfyUI/models
 ENV COMFY_PATH=/app/ComfyUI
-
 # Start cron in the foreground
 CMD ["cron", "-f"]
