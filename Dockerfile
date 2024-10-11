@@ -49,17 +49,26 @@ ENV CHROME_BIN=/usr/bin/chromium
 ENV CHROME_PATH=/usr/lib/chromium/
 
 # Install Firefox
-RUN wget -O firefox.tar.bz2 "https://download.mozilla.org/?product=firefox-latest&os=linux64&lang=en-US" \
+RUN apt-get update && apt-get install -y \
+    wget \
+    bzip2 \
+    libgtk-3-0 \
+    libdbus-glib-1-2 \
+    libx11-xcb1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && wget -O firefox.tar.bz2 "https://download.mozilla.org/?product=firefox-latest&os=linux64&lang=en-US" \
     && tar -xjf firefox.tar.bz2 \
     && mv firefox /opt/firefox \
-    && ln -s /opt/firefox/firefox /usr/bin/firefox
+    && ln -s /opt/firefox/firefox /usr/bin/firefox \
+    && rm firefox.tar.bz2
 
 # Install Geckodriver
-RUN GECKODRIVER_VERSION="v0.35.0" && \
-    wget -O geckodriver.tar.gz "https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz" \
+RUN GECKODRIVER_VERSION="v0.35.0" \
+    && wget -O geckodriver.tar.gz "https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz" \
     && tar -xzf geckodriver.tar.gz \
     && chmod +x geckodriver \
-    && mv geckodriver /usr/bin/
+    && mv geckodriver /usr/bin/ \
+    && rm geckodriver.tar.gz
 
 # Copy the rest of your application
 COPY . .
