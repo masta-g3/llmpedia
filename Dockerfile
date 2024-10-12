@@ -55,11 +55,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install GeckoDriver
-RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz \
-    && tar -xvzf geckodriver-v0.33.0-linux64.tar.gz \
+RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.35.0/geckodriver-v0.35.0-linux64.tar.gz \
+    && tar -xvzf geckodriver-v0.35.0-linux64.tar.gz \
     && chmod +x geckodriver \
     && mv geckodriver /usr/bin/ \
-    && rm geckodriver-v0.33.0-linux64.tar.gz
+    && rm geckodriver-v0.35.0-linux64.tar.gz
 
 # Copy the rest of your application
 COPY . .
