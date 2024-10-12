@@ -78,3 +78,7 @@ ENV MODELS_PATH=/app/ComfyUI/models
 ENV COMFY_PATH=/app/ComfyUI
 # Start cron in the foreground
 CMD ["cron", "-f"]
+
+# Copy the update script
+COPY update_and_restart.sh .
+RUN chmod +x update_and_restart.sh
