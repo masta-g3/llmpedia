@@ -8,6 +8,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.firefox.service import Service as FirefoxService
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -33,9 +34,27 @@ def setup_browser():
     logger.info("Setting up browser")
     firefox_options = FirefoxOptions()
     firefox_options.add_argument("--headless")
+    firefox_options.add_argument("--no-sandbox")
+    firefox_options.add_argument("--disable-dev-shm-usage")
 
-    # service = webdriver.firefox.service.Service(GECKODRIVER_PATH)
-    driver = webdriver.Firefox(options=firefox_options)#, service=service)
+    # Set the MOZ_HEADLESS environment variable
+    os.environ['MOZ_HEADLESS'] = '1'
+
+    try:
+        # Try to find geckodriver in PATH
+        service = FirefoxService()
+        driver = webdriver.Firefox(options=firefox_options, service=service)
+    except Exception as e:
+        logger.error(f"Failed to create driver with default service: {str(e)}")
+        try:
+            # If that fails, try with explicit geckodriver path
+            geckodriver_path = os.getenv('GECKODRIVER_PATH', '/usr/local/bin/geckodriver')
+            service = FirefoxService(executable_path=geckodriver_path)
+            driver = webdriver.Firefox(options=firefox_options, service=service)
+        except Exception as e:
+            logger.error(f"Failed to create driver with explicit geckodriver path: {str(e)}")
+            raise
+
     logger.info("Browser setup complete")
     return driver
 
@@ -244,7 +263,7 @@ def send_tweet(
         return False
 
     # Send tweet
-    sleep_duration = random.randint(1, 45 * 60)
+    sleep_duration = random.randint(1, 45 * 60) * 10
     logger.info(f"Sleeping for {sleep_duration // 60} minutes before sending the tweet...")
     # time.sleep(sleep_duration)
 

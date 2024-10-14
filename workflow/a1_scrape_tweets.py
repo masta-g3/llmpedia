@@ -43,7 +43,8 @@ tweet_accounts = [
     "fly51fly",
     "gm8xx8",
     "cwolferesearch",
-    "HEI"
+    "HEI",
+    "arXivGPT",
 ]
 
 

@@ -6,6 +6,7 @@ data/
 imgs/
 logs/
 workflow_old/
+repo_structure.yaml
 notebooks/
 */.DS_Store
 .idea/
