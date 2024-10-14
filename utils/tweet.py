@@ -13,8 +13,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
-GECKODRIVER_PATH = os.getenv('GECKODRIVER_PATH', '/usr/bin/geckodriver')
+PROJECT_PATH = os.getenv("PROJECT_PATH", "/app")
+GECKODRIVER_PATH = os.getenv("GECKODRIVER_PATH", "/usr/bin/geckodriver")
 sys.path.append(PROJECT_PATH)
 print(PROJECT_PATH)
 
@@ -38,7 +38,7 @@ def setup_browser():
     firefox_options.add_argument("--disable-dev-shm-usage")
 
     # Set the MOZ_HEADLESS environment variable
-    os.environ['MOZ_HEADLESS'] = '1'
+    os.environ["MOZ_HEADLESS"] = "1"
 
     try:
         # Try to find geckodriver in PATH
@@ -48,11 +48,15 @@ def setup_browser():
         logger.error(f"Failed to create driver with default service: {str(e)}")
         try:
             # If that fails, try with explicit geckodriver path
-            geckodriver_path = os.getenv('GECKODRIVER_PATH', '/usr/local/bin/geckodriver')
+            geckodriver_path = os.getenv(
+                "GECKODRIVER_PATH", "/usr/local/bin/geckodriver"
+            )
             service = FirefoxService(executable_path=geckodriver_path)
             driver = webdriver.Firefox(options=firefox_options, service=service)
         except Exception as e:
-            logger.error(f"Failed to create driver with explicit geckodriver path: {str(e)}")
+            logger.error(
+                f"Failed to create driver with explicit geckodriver path: {str(e)}"
+            )
             raise
 
     logger.info("Browser setup complete")
@@ -118,13 +122,14 @@ def login_twitter(browser: webdriver.Firefox):
     logger.info("Successfully logged in to Twitter")
 
 
-def navigate_to_profile(
-    browser: webdriver.Firefox, profile_url: str):
+def navigate_to_profile(browser: webdriver.Firefox, profile_url: str):
     """Login to Twitter and navigate to a profile."""
     browser.get(profile_url)
 
 
-def verify_tweet_elements(browser: webdriver.Chrome, expected_image_count: int = 2) -> Tuple[bool, str]:
+def verify_tweet_elements(
+    browser: webdriver.Chrome, expected_content: str, expected_image_count: int = 2
+) -> Tuple[bool, str]:
     """Verify the presence of expected elements in a tweet composition."""
     logger.info("Verifying tweet elements")
     verification_message = ""
@@ -150,6 +155,8 @@ def verify_tweet_elements(browser: webdriver.Chrome, expected_image_count: int =
         )
         if not main_tweet_text.strip():
             return False, "Main tweet text is empty"
+        elif main_tweet_text.strip() != expected_content:
+            return False, "Main tweet text does not match expected content"
 
         # Check for post-tweet text
         post_tweet_text = (
@@ -182,7 +189,6 @@ def send_tweet(
     login_twitter(browser)
 
     logger.info("Composing tweet")
-    # Compose tweet
     WebDriverWait(browser, 30).until(
         EC.visibility_of_element_located(
             (By.XPATH, "//div[@data-testid='tweetTextarea_0']")
@@ -190,26 +196,25 @@ def send_tweet(
     )
 
     logger.info("Uploading images")
-    # Upload first image
     input_box = WebDriverWait(browser, 30).until(
         EC.presence_of_element_located((By.XPATH, "//input[@accept]"))
     )
     input_box.send_keys(tweet_image_path)
 
-    # Wait for the first image to be loaded
+    # Wait for the first image to be loaded.
     WebDriverWait(browser, 30).until(
         EC.presence_of_element_located(
             (By.XPATH, "//button[@aria-label='Remove media']")
         )
     )
 
-    # Upload second image
+    # Upload second image.
     input_box = WebDriverWait(browser, 30).until(
         EC.presence_of_element_located((By.XPATH, "//input[@accept]"))
     )
-    input_box.send_keys(tweet_page_path)
+    g
 
-    # Wait for both images to be loaded
+    # Wait for both images to be loaded.
     def two_remove_buttons_present(driver):
         remove_buttons = driver.find_elements(
             By.XPATH, "//button[@aria-label='Remove media']"
@@ -219,13 +224,12 @@ def send_tweet(
     WebDriverWait(browser, 30).until(two_remove_buttons_present)
 
     logger.info("Adding follow-up tweet section")
-    # Add follow-up tweet section
     tweet_reply_btn = WebDriverWait(browser, 30).until(
         EC.element_to_be_clickable((By.XPATH, "//a[@data-testid='addButton']"))
     )
     browser.execute_script("arguments[0].click();", tweet_reply_btn)
 
-    # Wait for the new tweet box to appear
+    # Wait for the new tweet box to appear.
     WebDriverWait(browser, 10).until(
         EC.presence_of_element_located(
             (By.XPATH, "//div[@data-testid='tweetTextarea_1']")
@@ -233,7 +237,6 @@ def send_tweet(
     )
 
     logger.info("Adding tweet content")
-    # Add post-tweet
     tweet_box = WebDriverWait(browser, 30).until(
         EC.presence_of_element_located(
             (
@@ -264,7 +267,9 @@ def send_tweet(
 
     # Send tweet
     sleep_duration = random.randint(1, 45 * 60) * 10
-    logger.info(f"Sleeping for {sleep_duration // 60} minutes before sending the tweet...")
+    logger.info(
+        f"Sleeping for {sleep_duration // 60} minutes before sending the tweet..."
+    )
     # time.sleep(sleep_duration)
 
     try:
@@ -290,9 +295,8 @@ def send_tweet(
     browser.quit()
     return True
 
+
 if __name__ == "__main__":
     print("Starting browser...")
     browser = setup_browser()
     print("Browser started.")
-
-
