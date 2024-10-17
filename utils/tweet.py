@@ -10,11 +10,12 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.firefox.service import Service as FirefoxService
 from dotenv import load_dotenv
+from selenium.common.exceptions import TimeoutException
 
 load_dotenv()
 
 PROJECT_PATH = os.getenv("PROJECT_PATH", "/app")
-GECKODRIVER_PATH = os.getenv("GECKODRIVER_PATH", "/usr/bin/geckodriver")
+# GECKODRIVER_PATH = os.getenv("GECKODRIVER_PATH", "/usr/bin/geckodriver")
 sys.path.append(PROJECT_PATH)
 print(PROJECT_PATH)
 
@@ -25,9 +26,9 @@ from utils.logging_utils import setup_logger
 logger = setup_logger(__name__, "tweet_generation.log")
 
 url = "https://x.com/"
-username = os.getenv("TWITTER_EMAIL")
-userpass = os.getenv("TWITTER_PASSWORD")
-phone = os.getenv("TWITTER_PHONE")
+USERNAME = os.getenv("TWITTER_EMAIL")
+PASSWORD = os.getenv("TWITTER_PASSWORD")
+PHONE = os.getenv("TWITTER_PHONE")
 
 
 def setup_browser():
@@ -63,63 +64,56 @@ def setup_browser():
     return driver
 
 
-def login_twitter(browser: webdriver.Firefox):
+def login_twitter(driver: webdriver.Firefox):
     """Login to Twitter within any page of its domain."""
     logger.info("Attempting to log in to Twitter")
-    browser.get(url)
-    login = WebDriverWait(browser, 30).until(
-        EC.presence_of_element_located(
-            (By.CSS_SELECTOR, 'a[data-testid="loginButton"]')
-        )
-    )
-    login.send_keys(Keys.ENTER)
 
-    user = WebDriverWait(browser, 30).until(
-        EC.presence_of_element_located(
-            (By.XPATH, '//input[@name="text" and @autocomplete="username"]')
-        )
-    )
-    user.send_keys(username)
-    user.send_keys(Keys.ENTER)
+    driver.get("https://twitter.com/login")
 
+    # Wait for the username field and enter the username
     try:
-        number = WebDriverWait(browser, 10).until(
-            EC.presence_of_element_located(
-                (By.CSS_SELECTOR, 'input[data-testid="ocfEnterTextTextInput"]')
-            )
+        username_field = WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.NAME, "text"))
         )
-        number.send_keys(phone)
-        number.send_keys(Keys.ENTER)
-    except:
-        user = WebDriverWait(browser, 30).until(
-            EC.presence_of_element_located(
-                (By.XPATH, '//input[@name="text" and @autocomplete="username"]')
-            )
+        username_field.send_keys(USERNAME)
+        username_field.send_keys(Keys.RETURN)
+    except TimeoutException:
+        logger.error("Username field not found.")
+        driver.quit()
+        return
+
+    # Check if additional identification is required (e.g., phone)
+    try:
+        identifier_field = WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.NAME, "text"))
         )
-        user.send_keys(username)
-        user.send_keys(Keys.ENTER)
+        identifier_field.send_keys(PHONE)
+        identifier_field.send_keys(Keys.RETURN)
+    except TimeoutException:
+        logger.info("No additional identifier required.")
 
-        try:
-            number = WebDriverWait(browser, 30).until(
-                EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, 'input[data-testid="ocfEnterTextTextInput"]')
-                )
-            )
-            number.send_keys(phone)
-            number.send_keys(Keys.ENTER)
-        except:
-            raise Exception("Failed to login.")
+    # Wait for the password field and enter the password
+    try:
+        password_field = WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.NAME, "password"))
+        )
+        password_field.send_keys(PASSWORD)
+        password_field.send_keys(Keys.RETURN)
+    except TimeoutException:
+        logger.error("Password field not found.")
+        driver.quit()
+        return
 
-    password = WebDriverWait(browser, 30).until(
-        EC.presence_of_element_located((By.NAME, "password"))
-    )
-    password.send_keys(userpass)
-    password.send_keys(Keys.ENTER)
-
-    WebDriverWait(browser, 30).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="tweet"]'))
-    )
-    logger.info("Successfully logged in to Twitter")
+    # Wait until the "Post" button is clickable to ensure login is complete
+    try:
+        WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable((By.XPATH, '//a[@aria-label="Post"]'))
+        )
+        logger.info("Successfully logged in to Twitter")
+    except TimeoutException:
+        logger.error("Login failed or 'Post' button not found.")
+        driver.quit()
+        return
 
 
 def navigate_to_profile(browser: webdriver.Firefox, profile_url: str):
@@ -128,56 +122,51 @@ def navigate_to_profile(browser: webdriver.Firefox, profile_url: str):
 
 
 def verify_tweet_elements(
-    browser: webdriver.Chrome, expected_content: str, expected_image_count: int = 2
+    driver: webdriver.Firefox, expected_content: str, expected_image_count: int = 2
 ) -> Tuple[bool, str]:
     """Verify the presence of expected elements in a tweet composition."""
     logger.info("Verifying tweet elements")
-    verification_message = ""
-    try:
-        # Check for images
-        def correct_image_count(driver):
-            remove_buttons = driver.find_elements(
-                By.XPATH, "//button[@aria-label='Remove media']"
-            )
-            return len(remove_buttons) == expected_image_count
 
-        WebDriverWait(browser, 10).until(correct_image_count)
+    # Click on main post
+    main_post_btn = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, '//div[@aria-label="Post text"]'))
+    )
+    main_post_btn.click()
 
-        # Check for main tweet text
-        main_tweet_text = (
-            WebDriverWait(browser, 10)
-            .until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//div[@data-testid='tweetTextarea_0']")
-                )
-            )
-            .text
+    # Check for the correct number of uploaded images
+    def correct_image_count(driver):
+        remove_buttons = driver.find_elements(
+            By.XPATH, "//button[@aria-label='Remove media']"
         )
-        if not main_tweet_text.strip():
-            return False, "Main tweet text is empty"
-        elif main_tweet_text.strip() != expected_content:
-            return False, "Main tweet text does not match expected content"
+        return len(remove_buttons) == expected_image_count
 
-        # Check for post-tweet text
-        post_tweet_text = (
-            WebDriverWait(browser, 10)
-            .until(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//div[@data-testid='tweetTextarea_1']")
-                )
-            )
-            .text
+    WebDriverWait(driver, 10).until(correct_image_count)
+
+    # Check for main tweet text
+    main_tweet_elem = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located(
+            (By.XPATH, "//div[@data-testid='tweetTextarea_0']")
         )
-        if not post_tweet_text.strip():
-            return False, "Post-tweet text is empty"
+    )
+    main_tweet_text = main_tweet_elem.text.strip()
+    if not main_tweet_text:
+        return False, "Main tweet text is empty"
+    elif main_tweet_text != expected_content.strip():
+        return False, "Main tweet text does not match expected content"
 
-        verification_message = "All elements are present"
-        return True, verification_message
-    except Exception as e:
-        verification_message = f"Error verifying tweet elements: {str(e)}"
-        return False, verification_message
-    finally:
-        logger.info(f"Tweet element verification result: {verification_message}")
+    # Check for post-tweet text
+    post_tweet_elem = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located(
+            (By.XPATH, "//div[@data-testid='tweetTextarea_1']")
+        )
+    )
+    post_tweet_text = post_tweet_elem.text.strip()
+    if not post_tweet_text:
+        return False, "Post-tweet text is empty"
+
+    verification_message = "All elements are present and correct"
+    logger.info(f"Tweet element verification result: {verification_message}")
+    return True, verification_message
 
 
 def send_tweet(
@@ -185,118 +174,102 @@ def send_tweet(
 ) -> bool:
     """Send a tweet with content and images using Selenium."""
     logger.info("Starting tweet sending process")
-    browser = setup_browser()
-    login_twitter(browser)
+    driver = webdriver.Firefox()
+    login_twitter(driver)
 
     logger.info("Composing tweet")
-    WebDriverWait(browser, 30).until(
-        EC.visibility_of_element_located(
-            (By.XPATH, "//div[@data-testid='tweetTextarea_0']")
-        )
+    # Click the "Post" button to start a new tweet
+    tweet_button = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, '//a[@aria-label="Post"]'))
     )
+    tweet_button.click()
 
-    logger.info("Uploading images")
-    input_box = WebDriverWait(browser, 30).until(
-        EC.presence_of_element_located((By.XPATH, "//input[@accept]"))
-    )
-    input_box.send_keys(tweet_image_path)
-
-    # Wait for the first image to be loaded.
-    WebDriverWait(browser, 30).until(
+    # Enter tweet content
+    tweet_textarea = WebDriverWait(driver, 10).until(
         EC.presence_of_element_located(
-            (By.XPATH, "//button[@aria-label='Remove media']")
+            (By.XPATH, '//div[@aria-label="Post text"]')
+        )
+    )
+    tweet_textarea.send_keys(tweet_content)
+
+    # Upload first image
+    logger.info("Uploading first image")
+    upload_input = driver.find_element(
+        By.XPATH,
+        '//input[@accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime"]',
+    )
+    upload_input.send_keys(tweet_image_path)
+
+    # Verify first image is uploaded
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located(
+            (By.XPATH, "(//button[@aria-label='Remove media'])[1]")
         )
     )
 
-    # Upload second image.
-    input_box = WebDriverWait(browser, 30).until(
-        EC.presence_of_element_located((By.XPATH, "//input[@accept]"))
-    )
-    g
+    # Upload second image
+    logger.info("Uploading second image")
+    upload_input.send_keys(tweet_page_path)
 
-    # Wait for both images to be loaded.
-    def two_remove_buttons_present(driver):
+    # Verify both images are uploaded
+    def correct_image_count(driver):
         remove_buttons = driver.find_elements(
             By.XPATH, "//button[@aria-label='Remove media']"
         )
         return len(remove_buttons) == 2
 
-    WebDriverWait(browser, 30).until(two_remove_buttons_present)
+    WebDriverWait(driver, 10).until(correct_image_count)
 
+    # Add follow-up tweet
     logger.info("Adding follow-up tweet section")
-    tweet_reply_btn = WebDriverWait(browser, 30).until(
-        EC.element_to_be_clickable((By.XPATH, "//a[@data-testid='addButton']"))
+    tweet_reply_btn = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, "//button[@data-testid='addButton']"))
     )
-    browser.execute_script("arguments[0].click();", tweet_reply_btn)
+    tweet_reply_btn.click()
 
-    # Wait for the new tweet box to appear.
-    WebDriverWait(browser, 10).until(
-        EC.presence_of_element_located(
-            (By.XPATH, "//div[@data-testid='tweetTextarea_1']")
-        )
-    )
-
-    logger.info("Adding tweet content")
-    tweet_box = WebDriverWait(browser, 30).until(
-        EC.presence_of_element_located(
+    # Enter follow-up tweet content
+    tweet_box = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable(
             (
                 By.XPATH,
                 "//div[@contenteditable='true' and @data-testid='tweetTextarea_1']",
             )
         )
     )
-    tweet_box.send_keys(post_tweet.replace("\n", Keys.RETURN))
-
-    # Add tweet
-    tweet_box = WebDriverWait(browser, 30).until(
-        EC.presence_of_element_located(
-            (
-                By.XPATH,
-                "//div[@contenteditable='true' and @data-testid='tweetTextarea_0']",
-            )
-        )
-    )
-    tweet_box.send_keys(tweet_content.replace("\n", Keys.RETURN))
+    tweet_box.send_keys(post_tweet)
 
     # Verify tweet elements
-    elements_verified, verification_message = verify_tweet_elements(browser)
+    elements_verified, verification_message = verify_tweet_elements(
+        driver, tweet_content, expected_image_count=2
+    )
     if not elements_verified:
         logger.error(f"Tweet verification failed: {verification_message}")
-        browser.quit()
         return False
 
-    # Send tweet
-    sleep_duration = random.randint(1, 45 * 60) * 10
-    logger.info(
-        f"Sleeping for {sleep_duration // 60} minutes before sending the tweet..."
-    )
+    # Optionally sleep before sending the tweet
+    sleep_duration = random.randint(10, 2700)  # Sleep between 10 seconds and 45 minutes
+    logger.info(f"Sleeping for {sleep_duration} seconds before sending the tweet...")
     # time.sleep(sleep_duration)
 
-    try:
-        logger.info("Attempting to send tweet")
-        wait = WebDriverWait(browser, 10)
-        button = wait.until(
-            EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, 'button[data-testid="tweetButton"]')
-            )
+    # Send tweet
+    logger.info("Attempting to send tweet")
+    tweet_send_button = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable(
+            (By.XPATH, "//button[@data-testid='tweetButton']")
         )
-        browser.execute_script("arguments[0].click();", button)
-    except:
-        logger.warning("First attempt to send tweet failed, trying alternative method")
-        button = WebDriverWait(browser, 30).until(
-            EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, "div[data-testid='tweetButton']")
-            )
-        )
-        browser.execute_script("arguments[0].click();", button)
+    )
+    tweet_send_button.click()
 
     logger.info("Tweet sent successfully")
-    time.sleep(10)
-    browser.quit()
     return True
 
 
 if __name__ == "__main__":
     print("Starting browser...")
-    browser = setup_browser()
+    send_tweet(
+        "𝗠𝗲𝗻𝘁𝗮𝗹𝗔𝗿𝗲𝗻𝗮: 𝗦𝗲𝗹𝗳-𝗽𝗹𝗮𝘆 𝗧𝗿𝗮𝗶𝗻𝗶𝗻𝗴 𝗼𝗳 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗠𝗼𝗱𝗲𝗹𝘀 𝗳𝗼𝗿 𝗗𝗶𝗮𝗴𝗻𝗼𝘀𝗶𝘀 𝗮𝗻𝗱 𝗧𝗿𝗲𝗮𝘁𝗺𝗲𝗻𝘁 𝗼𝗳 𝗠𝗲𝗻𝘁𝗮𝗹 𝗛𝗲𝗮𝗹𝘁𝗵 𝗗𝗶𝘀𝗼𝗿𝗱𝗲𝗿𝘀 (Oct 09, 2024): MentalArena is a self-play framework that trains language models to simulate both patient and therapist roles in mental health scenarios. Using GPT-3.5-turbo as a base, it outperformed the more advanced GPT-4o by 7.7% on mental health tasks. The framework generated 18,000 high-quality training samples, addressing data scarcity due to privacy concerns in mental health AI. MentalArena showed resilience against catastrophic forgetting, maintaining or improving performance on general benchmarks like BIG-Bench-Hard while excelling in specialized mental health applications. This demonstrates the potential of self-play training in generating domain-specific data and enhancing model performance in sensitive areas.",
+        "/Users/manuelrueda/Documents/python/llmpedia/data/arxiv_art/1902.03545.png",
+        "/Users/manuelrueda/Documents/python/llmpedia/data/arxiv_art/1902.03545.png",
+        "XXX",
+    )
     print("Browser started.")

@@ -110,7 +110,7 @@ def save_tweets_to_csv(tweets: List[dict], filename: str):
 def main():
     all_tweets = []
 
-    browser = tweet.setup_browser()
+    browser = webdriver.Firefox()
     tweet.login_twitter(browser)
 
     try:
