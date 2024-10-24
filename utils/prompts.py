@@ -330,7 +330,7 @@ Output:"""
 TITLE_REPHRASER_SYSTEM_PROMPT = """
 We are currently working on creating an artistic illustration for an academic paper. You will be presented with the title of this paper, and you will be asked to rephrase it in an engaging and visual way, as if you were describing an image. Your rephrased title should be a single sentence. Replace niche or technical terms with more common words, using objects or concepts that can be easily depicted in an illustration. Try to avoid abstract concepts, do not over-saturate the scene, and be creative in order to come up with highly visual and interesting descriptions. 
 
-Avoid: superheros, copyrighted characters, maze, treasure, compass, mosaic, language models, magnifying glass"""
+Avoid: superheros, copyrighted characters, maze, treasure, compass, mosaic, language models, magnifying glass, owl, clock"""
 
 TITLE_REPHRASER_USER_PROMPT = """EXAMPLES
 ===========

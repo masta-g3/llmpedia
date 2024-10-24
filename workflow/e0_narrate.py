@@ -30,10 +30,10 @@ def main():
         paper_title = title_map[arxiv_code]
 
         narrative = vs.convert_notes_to_narrative(
-            paper_title, paper_notes, model="claude-3-5-sonnet-20240620"
+            paper_title, paper_notes, model="claude-3-5-sonnet-20241022"
         )
         copywritten = vs.copywrite_summary(
-            paper_title, paper_notes, narrative, model="claude-3-5-sonnet-20240620"
+            paper_title, paper_notes, narrative, model="claude-3-5-sonnet-20241022"
         )
         db.insert_recursive_summary(arxiv_code, copywritten)
     print("Done!")

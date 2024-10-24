@@ -29,7 +29,7 @@ def main():
         res_str = run_instructor_query(
             p.DATA_CARD_SYSTEM_PROMPT,
             p.PDATA_CARD_USER_PROMPT.format(title=title, content=content),
-            llm_model="claude-3-5-sonnet-20240620",
+            llm_model="claude-3-5-sonnet-20241022",
             temperature=0.5,
             process_id="data_card"
         )

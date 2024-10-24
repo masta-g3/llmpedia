@@ -30,7 +30,7 @@ def main():
         paper_title = title_map[arxiv_code]
 
         bullet_list = vs.convert_notes_to_bullets(
-            paper_title, paper_notes, model="claude-3-5-sonnet-20240620"
+            paper_title, paper_notes, model="claude-3-5-sonnet-20241022"
         )
         bullet_list = bullet_list.replace("\n\n", "\n")
         db.insert_bullet_list_summary(arxiv_code, bullet_list)

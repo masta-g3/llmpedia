@@ -28,6 +28,27 @@ ENV CHROME_PATH=/usr/lib/chromium/
 # Install Firefox and GeckoDriver
 RUN apt-get update && apt-get install -y \
     firefox-esr \
+    libgtk-3-0 \
+    libdbus-glib-1-2 \
+    libxt6 \
+    libxrender1 \
+    libxcomposite1 \
+    libasound2 \
+    libxi6 \
+    libxtst6 \
+    libnss3 \
+    libxrandr2 \
+    libxdamage1 \
+    libxfixes3 \
+    libx11-xcb1 \
+    libxcb1 \
+    libx11-6 \
+    libxext6 \
+    libxinerama1 \
+    libxkbcommon0 \
+    libxshmfence1 \
+    libgl1-mesa-glx \
+    libgl1-mesa-dri \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

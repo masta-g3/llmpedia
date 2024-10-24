@@ -36,7 +36,7 @@ def main():
         success = False
         for i in range(RETRIES):
             try:
-                summary = vs.review_llm_paper(new_content, model="claude-3-5-sonnet-20240620")
+                summary = vs.review_llm_paper(new_content, model="claude-3-5-sonnet-20241022")
                 success = True
                 break
             except Exception as e:

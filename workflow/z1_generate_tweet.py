@@ -142,7 +142,7 @@ def main():
         previous_tweets=previous_tweets_str,
         tweet_facts=tweet_facts,
         tweet_type=tweet_type,
-        model="claude-3-5-sonnet-20240620",  # "gpt-4o-2024-08-06",
+        model="claude-3-5-sonnet-20241022",  # "gpt-4o-2024-08-06",
         temperature=0.8,
     )
     logger.info(f"Generated tweet for arxiv code: {arxiv_code}")
@@ -153,7 +153,7 @@ def main():
             tweet_content,
             tweet_facts=tweet_facts,
             tweet_type=tweet_type,
-            model="claude-3-5-sonnet-20240620",  # "gpt-4o-2024-08-06",
+            model="claude-3-5-sonnet-20241022",  # "gpt-4o-2024-08-06",
             temperature=0.5,
         )
     else:

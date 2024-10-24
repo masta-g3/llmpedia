@@ -261,6 +261,8 @@ def send_tweet(
     tweet_send_button.click()
 
     logger.info("Tweet sent successfully")
+    driver.quit()
+    
     return True
 
 
