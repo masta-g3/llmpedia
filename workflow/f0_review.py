@@ -14,12 +14,17 @@ from tqdm import tqdm
 import utils.paper_utils as pu
 import utils.vector_store as vs
 import utils.db as db
+from utils.logging_utils import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__, "f0_review.log")
 
 LOCAL_PAPER_PATH = os.path.join(os.environ.get("PROJECT_PATH"), "data", "summaries")
 RETRIES = 1
 
 
 def main():
+    logger.info("Starting paper review process")
     ## Health check.
     vs.validate_openai_env()
 
@@ -29,7 +34,9 @@ def main():
     arxiv_codes = list(set(arxiv_codes) - set(existing_papers))
 
     arxiv_codes = sorted(arxiv_codes)[::-1]
-    for arxiv_code in tqdm(arxiv_codes):
+    logger.info(f"Found {len(arxiv_codes)} papers to review")
+
+    for arxiv_code in arxiv_codes:
         new_content = db.get_extended_notes(arxiv_code, expected_tokens=1200)
 
         ## Try to run LLM process up to 3 times.
@@ -40,11 +47,11 @@ def main():
                 success = True
                 break
             except Exception as e:
-                print(f"\nFailed to run LLM for '{arxiv_code}'. Attempt {i+1}/3.")
-                print(e)
+                logger.error(f"Failed to run LLM for '{arxiv_code}'. Attempt {i+1}/{RETRIES}.")
+                logger.error(str(e))
                 continue
         if not success:
-            print(f"Failed to run LLM for '{arxiv_code}'. Skipping...")
+            logger.warning(f"Failed to run LLM for '{arxiv_code}' after {RETRIES} attempts. Skipping...")
             continue
 
         ## Extract and combine results.
@@ -62,9 +69,11 @@ def main():
         )
         flat_entries["arxiv_code"] = arxiv_code
         flat_entries["tstp"] = pd.Timestamp.now()
+        logger.info(f"Uploading review for {arxiv_code} to database")
         db.upload_to_db(flat_entries, pu.db_params, "summaries")
+        logger.info(f"Successfully reviewed and uploaded {arxiv_code}")
 
-    print("Done!")
+    logger.info("Paper review process completed")
 
 
 if __name__ == "__main__":

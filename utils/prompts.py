@@ -1068,22 +1068,17 @@ WEEKLY_USER_PROMPT = """
 <report_format>
     <scratchpad_papers> 
         - This section will not be published on the magazine, use it to organize your thoughts.
-        - Pick the ~20 most interesting papers and make a numbered list of them. Briefly identify its main theme, contribution and impact.
+        - Pick the ~30 most interesting papers and make a numbered list of them. Briefly identify its main theme, contribution and impact.
         - When selecting articles prioritize the articles with most citations and those with the most unusual or interesting findings. 
     </scratchpad_papers>
     
     <scratchpad_themes>
         - This section will not be published on the magazine, use it to organize your thoughts.
-        - Identify 3 new common themes among the papers. There should more than 3 papers per theme, and the themes should not be generic. For example, 'improvements in LLMs' is not a generic theme.
+        - Identify 3 new common themes among the papers. There should more than 3-4 papers per theme, and the themes should not be generic. For example, 'improvements in LLMs' is not a generic theme.
         - Note that the papers already have a 'Category', which is a broad classification scheme. your definition of themes must be more specific than the categories.
         - Identify any possible contradictions, unorthodox theories or opposing views among the papers worth discussing (these tend to be very interesting). Give these contradiction a title and mention the papers that support each view. There might not be any contradictions, and that is fine.
     </scratchpad_themes>
-    
-    <themes_mapping>
-        - This section will not be published on the magazine.
-        - A dictionary mapping themes as keys to the list of corresponding arxiv articles.
-    </themes_mapping>
-    
+        
     <new_developments_findings> 
         - This is the section that will be published on the magazine. Be sure to make it structured and with an easy to follow flow.
         - Do not use too any adjectives or sensasionalist phrases.
@@ -1097,7 +1092,7 @@ WEEKLY_USER_PROMPT = """
 </content>
 
 <guidelines>
-- Remember to include all requested sections ('scratchpad_papers', 'scratchpad_themes', 'themes_mapping', 'new_developments_findings') in your response.
+- Remember to include all requested sections ('scratchpad_papers', 'scratchpad_themes', 'new_developments_findings') in your response.
 - Follow these guidelines for the new_developments_findings section.
     - Write in a concise, clear and engaging manner. 
     - Use casual layman and direct language, without many pompous adjectives (e.g.: innovative, breakthrough, streamlining, versatile, exceptional, etc.)

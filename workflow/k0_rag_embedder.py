@@ -65,7 +65,7 @@ def main():
         local_codes = [code.replace(".json", "") for code in local_codes]
         processing_codes = list(set(local_codes) - set(arxiv_codes))
 
-        for arxiv_code in tqdm(processing_codes):
+        for arxiv_code in processing_codes:
             chunks_fname = os.path.join(chunk_path, f"{arxiv_code}.json")
             chunks_json = json.load(open(chunks_fname, "r"))
             chunks_df = pd.DataFrame(chunks_json)

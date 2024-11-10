@@ -16,6 +16,10 @@ warnings.filterwarnings("ignore")
 import utils.paper_utils as pu
 import utils.vector_store as vs
 import utils.db as db
+from utils.logging_utils import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__, "g0_create_thumbnail.log")
 
 COMFY_PATH = os.getenv('COMFY_PATH', '/app/ComfyUI')
 sys.path.append(COMFY_PATH)
@@ -41,39 +45,20 @@ from nodes import (
     SaveImage,
 )
 
-
 def get_value_at_index(obj: Union[Sequence, Mapping], index: int) -> Any:
-    """Returns the value at the given index of a sequence or mapping.
-
-    If the object is a sequence (like list or string), returns the value at the given index.
-    If the object is a mapping (like a dictionary), returns the value at the index-th key.
-
-    Some return a dictionary, in these cases, we look for the "results" key
-
-    Args:
-        obj (Union[Sequence, Mapping]): The object to retrieve the value from.
-        index (int): The index of the value to retrieve.
-
-    Returns:
-        Any: The value at the given index.
-
-    Raises:
-        IndexError: If the index is out of bounds for the object and the object is not a mapping.
-    """
+    """Returns the value at the given index of a sequence or mapping."""
     try:
         return obj[index]
     except KeyError:
         return obj["result"][index]
 
-
 def generate_image(name, img_file):
-    # keyword = vs.summarize_title_in_word(name)
-    print(f"* Title: {name}")
+    logger.info(f"Generating image for: {name}")
     name = vs.rephrase_title(name, model="claude-3-5-sonnet-20241022")
     caption = (
         f'"{name}", "tarot and computers collection", stunning award-winning pixel art'
     )
-    print("--> " + caption)
+    logger.info(f"--> Generated caption: {caption}")
 
     with torch.inference_mode():
         checkpointloadersimple = CheckpointLoaderSimple()
@@ -154,8 +139,8 @@ def generate_image(name, img_file):
 
             return True
 
-
 def main():
+    logger.info("Starting thumbnail creation process")
     ## Load the mapping files.
     vs.validate_openai_env()
     arxiv_codes = db.get_arxiv_id_list(pu.db_params, "summaries")
@@ -166,22 +151,24 @@ def main():
     arxiv_codes = list(set(arxiv_codes) - set(done_imgs))
     arxiv_codes = sorted(arxiv_codes)[::-1]
 
+    logger.info(f"Found {len(arxiv_codes)} papers to process for thumbnails")
+
     for idx, arxiv_code in enumerate(arxiv_codes):
+        logger.info(f"Processing paper {idx+1}/{len(arxiv_codes)}: {arxiv_code}")
         name = title_dict[arxiv_code]
         img_file = img_dir + arxiv_code + ".png"
         clean_name = (
             name
-            # .replace("transformer", "processor")
             .replace("Transformer", "Machine")
-            # .replace("Matrix", "Linear Algebra")
             .replace("Large Language Model", "LLM").replace("LLM", "Model")
         )
         generate_image(clean_name, img_file)
 
         ## Upload to s3.
         s3.upload_file(img_file, "arxiv-art", arxiv_code + ".png")
-        print(f"Saved {img_file} ({idx+1}/{len(arxiv_codes)})")
+        logger.info(f"Saved {img_file} ({idx+1}/{len(arxiv_codes)})")
 
+    logger.info("Thumbnail creation process completed")
 
 if __name__ == "__main__":
     main()

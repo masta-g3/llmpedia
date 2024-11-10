@@ -25,6 +25,10 @@ import nltk
 
 import utils.paper_utils as pu
 import utils.db as db
+from utils.logging_utils import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__, "i0_topic_model.log")
 
 db_params = pu.db_params
 
@@ -46,7 +50,6 @@ Based on this information, extract a short but highly descriptive and specific c
 topic: <topic label>
 """
 
-
 def process_text(text: str) -> str:
     """Preprocess text."""
     text = text.lower()
@@ -56,10 +59,10 @@ def process_text(text: str) -> str:
     )
     return text
 
-
 def load_and_process_data(title_map: dict) -> pd.DataFrame:
     """Load and process data from json files, return DataFrame."""
-    df = pd.DataFrame(columns=["title", "summary"]) #, "main_contribution", "takeaways"])
+    logger.info("Loading and processing data")
+    df = pd.DataFrame(columns=["title", "summary"])
     for arxiv_code, title in title_map.items():
         fpath = os.path.join(PROJECT_PATH, "data", "summaries", f"{arxiv_code}.json")
         fpath_meta = os.path.join(PROJECT_PATH, "data", "arxiv_meta", f"{arxiv_code}.json")
@@ -73,26 +76,26 @@ def load_and_process_data(title_map: dict) -> pd.DataFrame:
         df.loc[str(arxiv_code)] = [
             title,
             summary["Summary"],
-            # summary["main_contribution"],
-            # summary["takeaways"],
         ]
+    logger.info(f"Loaded and processed data for {len(df)} papers")
     return df
-
 
 def create_embeddings(df: pd.DataFrame) -> tuple:
     """Create embeddings."""
-    content_cols = ["summary"] #, "main_contribution", "takeaways"]
+    logger.info("Creating embeddings")
+    content_cols = ["summary"]
     df_dict = (
         df[content_cols].apply(lambda x: "\n".join(x.astype(str)), axis=1).to_dict()
     )
     all_content = list(df_dict.values())
     embedding_model = SentenceTransformer("barisaydin/gte-large")
     embeddings = embedding_model.encode(all_content, show_progress_bar=True)
+    logger.info("Embeddings created successfully")
     return all_content, embedding_model, embeddings
-
 
 def create_topic_model(embedding_model: list, prompt: str) -> BERTopic:
     """Create topic model."""
+    logger.info("Creating topic model")
     load_dotenv()
     umap_model = UMAP(
         n_neighbors=15, n_components=10, min_dist=0.0, metric="cosine", random_state=42

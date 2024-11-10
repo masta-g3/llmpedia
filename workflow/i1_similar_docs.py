@@ -10,9 +10,12 @@ os.chdir(PROJECT_PATH)
 
 import utils.paper_utils as pu
 import utils.db as db
+from utils.logging_utils import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__, "i1_similar_docs.log")
 
 db_params = pu.db_params
-
 
 def find_most_similar_documents(arxiv_code: str, df: pd.DataFrame, n: int = 5) -> list:
     """ Get most similar documents based on cosine similarity. """
@@ -28,21 +31,24 @@ def find_most_similar_documents(arxiv_code: str, df: pd.DataFrame, n: int = 5) -
     most_similar_docs = other_df.iloc[most_similar_indices].index.tolist()
     return most_similar_docs
 
-
 def main():
     """ Main function. """
+    logger.info("Starting similar document finding process")
     df = db.load_topics()
+    logger.info(f"Loaded {len(df)} topics")
+
     df["similar_docs"] = df.index.map(lambda x: find_most_similar_documents(x, df, 10))
     df.reset_index(inplace=True)
-    df['similar_docs'].apply(db.list_to_pg_array)
+    df['similar_docs'] = df['similar_docs'].apply(db.list_to_pg_array)
+    
+    logger.info("Uploading similar documents to database")
     db.upload_df_to_db(
         df[["arxiv_code", "similar_docs"]],
         "similar_documents",
         pu.db_params,
         if_exists="replace",
     )
-    print("Done!")
-
+    logger.info("Similar document finding process completed")
 
 if __name__ == "__main__":
     main()

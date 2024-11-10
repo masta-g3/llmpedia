@@ -8,7 +8,6 @@ load_dotenv()
 PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
 sys.path.append(PROJECT_PATH)
 
-
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.firefox.service import Service as FirefoxService
@@ -28,6 +27,10 @@ import os
 
 import utils.paper_utils as pu
 import utils.tweet as tweet
+from utils.logging_utils import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__, "a1_scrape_tweets.log")
 
 username = os.getenv("TWITTER_EMAIL")
 userpass = os.getenv("TWITTER_PASSWORD")
@@ -88,7 +91,7 @@ def scrape_tweets(browser: webdriver.Firefox, max_tweets: int = 100) -> List[dic
         if new_height == last_height:
             break
         last_height = new_height
-        # print(f"Scraped {len(all_tweets)} tweets so far...")
+        logger.info(f"Scraped {len(all_tweets)} tweets so far...")
     return all_tweets
 
 
@@ -108,20 +111,19 @@ def save_tweets_to_csv(tweets: List[dict], filename: str):
 
 
 def main():
+    logger.info("Starting tweet scraping process")
     all_tweets = []
 
-    browser = tweet.setup_browser()
-    tweet.login_twitter(browser)
+    browser = tweet.setup_browser(logger)
+    tweet.login_twitter(browser, logger)
 
     try:
         for account in tweet_accounts:
             profile_url = f"https://x.com/{account}"
-            tweet.navigate_to_profile(browser, profile_url)
+            tweet.navigate_to_profile(browser, profile_url, logger)
             tweets = scrape_tweets(browser, max_tweets=30)
             all_tweets.extend(tweets)
-            print(
-                f"Successfully scraped and saved {len(tweets)} tweets from {account}."
-            )
+            logger.info(f"Successfully scraped and saved {len(tweets)} tweets from {account}.")
 
         new_codes = extract_codes_from_tweets([tweet["text"] for tweet in all_tweets])
 
@@ -132,17 +134,15 @@ def main():
 
         ## Update and upload arxiv codes.
         paper_list = list(set(paper_list + new_codes))
-        # done_codes = pu.get_local_arxiv_codes()
-        # nonllm_codes = pu.get_local_arxiv_codes("nonllm_arxiv_text")
         done_codes = pu.list_s3_files("arxiv-text")
         nonllm_codes = pu.list_s3_files("nonllm-arxiv-text")
 
-        print(f"Total papers: {len(paper_list)}")
+        logger.info(f"Total papers: {len(paper_list)}")
         paper_list = list(set(paper_list) - set(done_codes) - set(nonllm_codes))
-        print(f"New papers: {len(paper_list)}")
+        logger.info(f"New papers: {len(paper_list)}")
 
         if len(paper_list) == 0:
-            print("No new papers found. Exiting...")
+            logger.info("No new papers found. Exiting...")
             sys.exit(0)
         gist_url = pu.update_gist(
             os.environ["GITHUB_TOKEN"],
@@ -151,10 +151,11 @@ def main():
             "Updated LLM queue.",
             "\n".join(paper_list),
         )
+        logger.info(f"Updated gist with new papers: {gist_url}")
         time.sleep(20)
 
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
+        logger.error(f"An error occurred: {str(e)}")
 
     finally:
         browser.quit()

@@ -261,7 +261,7 @@ def rephrase_title(title, model="gpt-4o"):
         ps.TITLE_REPHRASER_SYSTEM_PROMPT,
         ps.TITLE_REPHRASER_USER_PROMPT.format(title=title),
         llm_model=model,
-        temperature=0.6,
+        temperature=1.0,
         process_id="rephrase_title",
     ).strip()
     return phrase

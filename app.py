@@ -374,9 +374,9 @@ def main():
                     response, referenced_codes, relevant_codes = au.query_llmpedia_new(
                         user_question=user_question,
                         response_length=response_length,
-                        query_llm_model="gpt-4o",
+                        query_llm_model="claude-3-5-sonnet-20241022",
                         rerank_llm_model="gpt-4o-mini",
-                        response_llm_model="gpt-4o",
+                        response_llm_model="claude-3-5-sonnet-20241022",
                     )
                     db.log_qna_db(user_question, response)
                     st.divider()

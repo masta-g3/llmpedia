@@ -15,8 +15,12 @@ from tqdm import tqdm
 import utils.paper_utils as pu
 import utils.vector_store as vs
 import utils.db as db
+from utils.logging_utils import setup_logger
 
-def update_gist(gist_id, gist_filename, paper_list):
+# Set up logging
+logger = setup_logger(__name__, "b0_download_paper.log")
+
+def update_gist(gist_id, gist_filename, paper_list, logger):
     """Update the gist with the current queue."""
     gist_url = pu.update_gist(
         os.environ["GITHUB_TOKEN"],
@@ -27,8 +31,8 @@ def update_gist(gist_id, gist_filename, paper_list):
     )
     return gist_url
 
-
 def main():
+    logger.info("Starting paper download process")
     vs.validate_openai_env()
     parsed_list = []
 
@@ -36,14 +40,17 @@ def main():
     gist_id = "1dd189493c1890df6e04aaea6d049643"
     gist_filename = "llm_queue.txt"
     paper_list = pu.fetch_queue_gist(gist_id, gist_filename)
+    logger.info(f"Fetched {len(paper_list)} papers from gist")
 
     ## Check local files.
     done_codes = pu.list_s3_files("arxiv-text")
     nonllm_codes = pu.list_s3_files("nonllm-arxiv-text") + ["..."]
+    logger.info(f"Found {len(done_codes)} done papers and {len(nonllm_codes)} non-LLM papers")
 
     ## Remove duplicates.
     paper_list = list(set(paper_list) - set(done_codes) - set(nonllm_codes))
     paper_list_iter = paper_list[:]
+    logger.info(f"{len(paper_list)} papers to process after removing duplicates")
 
     arxiv_map = db.get_arxiv_title_dict()
     existing_paper_names = list(arxiv_map.values())
@@ -51,7 +58,7 @@ def main():
 
     ## Iterate.
     gist_url = None
-    for paper_name in tqdm(paper_list_iter):
+    for paper_name in paper_list_iter:
         time.sleep(3)
         existing = pu.check_if_exists(
             paper_name, existing_paper_names, existing_paper_ids
@@ -59,23 +66,23 @@ def main():
 
         ## Check if we already have the document.
         if existing:
-            print(f"\nSkipping '{paper_name}' as it is already in the database.")
+            logger.info(f"Skipping '{paper_name}' as it is already in the database.")
             ## Update gist.
             parsed_list.append(paper_name)
             paper_list = list(set(paper_list) - set(parsed_list))
-            gist_url = update_gist(gist_id, gist_filename, paper_list)
+            gist_url = update_gist(gist_id, gist_filename, paper_list, logger)
             continue
 
         ## Search content.
         try:
             new_doc = pu.search_arxiv_doc(paper_name)
         except Exception as e:
-            print(f"\nFailed to search for '{paper_name}'. Skipping...")
-            print(e)
+            logger.error(f"Failed to search for '{paper_name}'. Skipping...")
+            logger.error(str(e))
             continue
 
         if new_doc is None:
-            print(f"\nCould not find '{paper_name}' in Arxiv. Skipping...")
+            logger.warning(f"Could not find '{paper_name}' in Arxiv. Skipping...")
             continue
 
         new_meta = new_doc.metadata
@@ -85,12 +92,12 @@ def main():
         arxiv_code = re.sub(r"v\d+$", "", arxiv_code)
 
         ## Verify it's an LLM paper.
-        is_llm_paper = vs.verify_llm_paper(new_content[:1500] + " ...[continued]...", model="gpt-4o")
+        is_llm_paper = vs.verify_llm_paper(new_content[:1500] + " ...[continued]...", model="claude-3-5-sonnet-20241022")
         if not is_llm_paper["is_related"]:
-            print(f"\n'{paper_name}' - '{title}' is not a LLM paper. Skipping...")
+            logger.info(f"'{paper_name}' - '{title}' is not a LLM paper. Skipping...")
             parsed_list.append(paper_name)
             paper_list = list(set(paper_list) - set(parsed_list))
-            gist_url = update_gist(gist_id, gist_filename, paper_list)
+            gist_url = update_gist(gist_id, gist_filename, paper_list, logger)
             ## Store in nonllm_arxiv_text.
             pu.store_local(new_content, arxiv_code, "nonllm_arxiv_text", format="txt")
             pu.upload_s3_file(arxiv_code, "nonllm-arxiv-text", prefix="data", format="txt")
@@ -105,25 +112,24 @@ def main():
         ]
         if arxiv_code in local_paper_codes:
             ## Update gist.
-            print(f"\nFound '{paper_name}' - '{title}' locally. Skipping...")
+            logger.info(f"Found '{paper_name}' - '{title}' locally. Skipping...")
             parsed_list.append(paper_name)
             paper_list = list(set(paper_list) - set(parsed_list))
-            gist_url = update_gist(gist_id, gist_filename, paper_list)
+            gist_url = update_gist(gist_id, gist_filename, paper_list, logger)
             continue
 
         ## Store.
         pu.store_local(new_content, arxiv_code, "arxiv_text", format="txt")
         pu.upload_s3_file(arxiv_code, "arxiv-text", prefix="data", format="txt")
-        print(f"\nText for '{paper_name}' - '{title}' stored locally.")
+        logger.info(f"'{paper_name}' - '{title}' stored locally.")
 
         ## Update gist.
         parsed_list.append(paper_name)
         paper_list = list(set(paper_list) - set(parsed_list))
-        gist_url = update_gist(gist_id, gist_filename, paper_list)
+        gist_url = update_gist(gist_id, gist_filename, paper_list, logger)
 
     if gist_url:
-        print(f"Done! Updated queue gist URL: {gist_url}")
-
+        logger.info(f"Done! Updated queue gist URL: {gist_url}")
 
 if __name__ == "__main__":
     main()

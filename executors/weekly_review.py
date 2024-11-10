@@ -1,10 +1,7 @@
 import sys, os
 import pandas as pd
-from tqdm import tqdm
 from dotenv import load_dotenv
-import datetime
 import time
-import re
 
 load_dotenv()
 
@@ -16,22 +13,35 @@ os.chdir(PROJECT_PATH)
 import utils.paper_utils as pu
 import utils.vector_store as vs
 import utils.db as db
+from utils.logging_utils import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__, "weekly_review.log")
 
 summaries_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "summaries")
 meta_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_meta")
 review_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "weekly_reviews")
 
-
 def main(date_str: str):
     """Generate a weekly review of highlights and takeaways from papers."""
+    ## Convert date_str to datetime and shift to previous Monday if needed.
+    date_str_dt = pd.to_datetime(date_str)
+    days_since_monday = date_str_dt.weekday()
+    if days_since_monday > 0:
+        date_str_dt = date_str_dt - pd.Timedelta(days=days_since_monday)
+        date_str = date_str_dt.strftime("%Y-%m-%d")
+    logger.info(f"Starting weekly review generation for week of {date_str}")
+
     ## Check if we have the summary.
     vs.validate_openai_env()
     if db.check_weekly_summary_exists(date_str):
+        logger.info(f"Weekly summary already exists. Skipping...")
         return
 
     ## Get data to generate summary.
     date_st = pd.to_datetime(date_str)
     weekly_content_df = db.get_weekly_summary_inputs(date_str)
+    logger.info(f"Found {len(weekly_content_df)} papers")
 
     ## Get weekly total counts for the last 8 weeks.
     prev_mondays = pd.date_range(
@@ -42,26 +52,30 @@ def main(date_str: str):
         date_str: len(db.get_weekly_summary_inputs(date_str))
         for date_str in prev_mondays
     }
+    logger.info("Retrieved weekly counts for the past 8 weeks")
 
-    ## ToDo: Remove this block.
-    ## -------------------------
+    ## Get previous summary
     try:
         previous_summary = db.get_weekly_content(prev_mondays[-2], content_type="content")
         previous_themes = previous_summary.split("\n")[0]
+        logger.info("Retrieved previous week's summary")
     except:
         previous_summary = db.get_weekly_summary_old(prev_mondays[-2])
         if previous_summary is None:
             previous_themes = "N/A"
+            logger.warning("Could not find previous week's summary")
         else:
             previous_themes = previous_summary.split("\n##")[2]
+            logger.info("Retrieved previous week's summary from old format")
 
-    ## -------------------------
+    ## Format content
     date_end = date_st + pd.Timedelta(days=6)
     date_st_long = date_st.strftime("%B %d, %Y")
     date_end_long = date_end.strftime("%B %d, %Y")
     weekly_content_md = f"# Weekly Review ({date_st_long} to {date_end_long})\n\n"
 
     ## Add table of weekly paper counts.
+    logger.info("Generating weekly content markdown")
     weekly_content_md += f"## Weekly Publication Trends\n"
     weekly_content_md += "| Week | Total Papers |\n"
     weekly_content_md += "| --- | --- |\n"
@@ -77,7 +91,6 @@ def main(date_str: str):
         else:
             weekly_content_md += f"| {date_st_long} to {date_end_long} | {count} |\n"
 
-    # weekly_content_md += f"*Total papers published this week: {len(weekly_content_df)}*\n"
     weekly_content_md += f"## Papers Published This Week\n"
 
     html_markdowns = []
@@ -91,27 +104,29 @@ def main(date_str: str):
     weekly_content_md += f"```{previous_themes}```"
 
     ## Generate summary.
-    weekly_summary_obj = vs.generate_weekly_report(weekly_content_md, model="gpt-4o-2024-08-06")
-    weekly_highlight = vs.generate_weekly_highlight(weekly_content_md, model="gpt-4o-2024-08-06")
+    logger.info("Generating weekly report and highlight")
+    weekly_summary_obj = vs.generate_weekly_report(weekly_content_md, model="claude-3-5-sonnet-20241022")
+    weekly_highlight = vs.generate_weekly_highlight(weekly_content_md, model="claude-3-5-sonnet-20241022")
 
     ## Format content.
+    logger.info("Formatting and preparing data for storage")
     date = pd.to_datetime(date_str)
     tstp_now = pd.Timestamp.now()
 
-    weekly_topics_df = pd.DataFrame(
-        [
-            {"topic": topic, "arxiv_codes": db.list_to_pg_array(arxiv_codes)}
-            for topic, arxiv_codes in weekly_summary_obj.themes_mapping.items()
-        ]
-    )
-    weekly_topics_df["date"] = date
-    weekly_topics_df["tstp"] = tstp_now
+    # weekly_topics_df = pd.DataFrame(
+    #     [
+    #         {"topic": topic, "arxiv_codes": db.list_to_pg_array(arxiv_codes)}
+    #         for topic, arxiv_codes in weekly_summary_obj.themes_mapping.items()
+    #     ]
+    # )
+    # weekly_topics_df["date"] = date
+    # weekly_topics_df["tstp"] = tstp_now
 
     weekly_content_df = pd.DataFrame.from_dict(
         weekly_summary_obj.dict(), orient="index"
     ).T
     weekly_content_df["highlight"] = weekly_highlight
-    weekly_content_df.drop(columns=["themes_mapping"], inplace=True)
+    # weekly_content_df.drop(columns=["themes_mapping"], inplace=True)
     weekly_content_df.rename(
         columns={"new_developments_findings": "content"}, inplace=True
     )
@@ -119,17 +134,16 @@ def main(date_str: str):
     weekly_content_df["tstp"] = tstp_now
 
     ## Store.
+    logger.info("Uploading weekly content and topics to database")
     db.upload_df_to_db(weekly_content_df, "weekly_content", pu.db_params)
-    db.upload_df_to_db(weekly_topics_df, "weekly_topics", pu.db_params)
-
+    # db.upload_df_to_db(weekly_topics_df, "weekly_topics", pu.db_params)
+    logger.info(f"Successfully completed weekly review for {date_str}")
 
 if __name__ == "__main__":
-    ## Read dates from arguments.
-    start_dt = sys.argv[1]
-    end_dt = sys.argv[2]
-
-    date_range = pd.date_range(start_dt, end_dt, freq="W-MON")
-    date_range = [date.strftime("%Y-%m-%d") for date in date_range]
-    for date_str in tqdm(date_range):
-        main(date_str)
-        time.sleep(5)
+    ## Read single date from arguments
+    if len(sys.argv) != 2:
+        print("Usage: python weekly_review.py YYYY-MM-DD")
+        sys.exit(1)
+        
+    date_str = sys.argv[1]    
+    main(date_str)

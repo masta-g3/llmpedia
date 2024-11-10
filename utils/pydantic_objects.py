@@ -150,9 +150,9 @@ class WeeklyReview(BaseModel):
     scratchpad_themes: str = Field(
         ..., description="At least 3 common themes identified among the papers."
     )
-    themes_mapping: Dict[str, List[str]] = Field(
-        ..., description="Mapping of themes to papers."
-    )
+    # themes_mapping: Dict[str, List[str]] = Field(
+    #     ..., description="Mapping of themes to papers."
+    # )
     new_developments_findings: str = Field(
         ..., description="New developments and findings."
     )

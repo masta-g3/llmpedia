@@ -24,14 +24,14 @@ def main():
     pending_arxiv_codes = sorted(pending_arxiv_codes)[::-1]
 
     external_resources = []
-    for arxiv_code in tqdm(pending_arxiv_codes):
+    for arxiv_code in pending_arxiv_codes:
         content_df = db.get_extended_content(arxiv_code)
         if len(content_df) == 0:
             continue
         row = content_df.iloc[0]
         paper_markdown = pu.format_paper_summary(row)
         if "http" in paper_markdown:
-            tmp_resources = vs.extract_document_repo(paper_markdown, model="gpt-4o")
+            tmp_resources = vs.extract_document_repo(paper_markdown, model="claude-3-5-sonnet-20241022")
             for r in tmp_resources.resources:
                 r.arxiv_code = arxiv_code
             if tmp_resources.resources:

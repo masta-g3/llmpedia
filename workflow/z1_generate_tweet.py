@@ -118,7 +118,7 @@ def main():
     previous_tweets = previous_tweets_df["tweet_insight"].values
     previous_tweets_str = "\n".join(previous_tweets)
 
-    paper_summary = db.get_extended_notes(arxiv_code, expected_tokens=3000)
+    paper_summary = db.get_extended_notes(arxiv_code, expected_tokens=4000)
     paper_details = db.load_arxiv(arxiv_code)
     publish_date = paper_details["published"][0].strftime("%B %Y")
     publish_date_full = paper_details["published"][0].strftime("%b %d, %Y")
@@ -176,10 +176,9 @@ def main():
             arxiv_code, bucket_name="arxiv-first-page", prefix="data", format="png"
         )
 
-    tweet_success = tweet.send_tweet(edited_tweet, tweet_image_path, tweet_page_path, post_tweet)
+    tweet_success = tweet.send_tweet(edited_tweet, tweet_image_path, tweet_page_path, post_tweet, logger)
 
     if tweet_success:
-        logger.info("Tweet sent successfully")
         db.insert_tweet_review(
             arxiv_code, edited_tweet, datetime.datetime.now(), tweet_type, rejected=False
         )
