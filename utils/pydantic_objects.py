@@ -143,13 +143,13 @@ class RerankedDocuments(BaseModel):
 ###################
 
 class WeeklyReview(BaseModel):
-    scratchpad_papers: str = Field(
-        ...,
-        description="List of ~20 interesting papers, their main themes and contributions.",
-    )
-    scratchpad_themes: str = Field(
-        ..., description="At least 3 common themes identified among the papers."
-    )
+    # scratchpad_papers: str = Field(
+    #     ...,
+    #     description="List of ~30 interesting papers, their main themes and contributions.",
+    # )
+    # scratchpad_themes: str = Field(
+    #     ..., description="At least 3 common themes identified among the papers."
+    # )
     # themes_mapping: Dict[str, List[str]] = Field(
     #     ..., description="Mapping of themes to papers."
     # )

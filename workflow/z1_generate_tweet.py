@@ -22,6 +22,7 @@ import utils.tweet as tweet
 
 logger = setup_logger(__name__, "z1_generate_tweet.log")
 
+
 def bold(input_text, extra_str):
     chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     bold_chars = "𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵"
@@ -58,6 +59,7 @@ def bold(input_text, extra_str):
     output = re.sub(r"\*\*([^*]*)\*\*", lambda m: bold_italicize(m.group(1)), output)
 
     return output.strip()
+
 
 def main():
     """Generate a weekly review of highlights and takeaways from papers."""
@@ -101,7 +103,7 @@ def main():
     )
 
     arxiv_code_idx = vs.select_most_interesting_paper(
-        abstracts_str, model="gpt-4o-mini"
+        abstracts_str, model="claude-3-5-sonnet-20241022"
     )
     arxiv_code = candidate_arxiv_codes[arxiv_code_idx - 1]
 
@@ -163,6 +165,11 @@ def main():
     logger.info("Tweet edited successfully")
     logger.debug(f"Edited tweet content: {edited_tweet}")
 
+    ## Find related tweets from author.
+    author_tweet = tweet.find_paper_author_tweet(arxiv_code, logger)
+    if author_tweet:
+        logger.info(f"Found author tweet: {author_tweet['text']}")
+
     ## Send tweet to API.
     tweet_image_path = f"{IMG_PATH}/{arxiv_code}.png"
     tweet_page_path = f"{PAGE_PATH}/{arxiv_code}.png"
@@ -175,17 +182,30 @@ def main():
         pu.download_s3_file(
             arxiv_code, bucket_name="arxiv-first-page", prefix="data", format="png"
         )
+    logger.info(f"Tweet preview: {edited_tweet}")
 
-    tweet_success = tweet.send_tweet(edited_tweet, tweet_image_path, tweet_page_path, post_tweet, logger)
+    tweet_success = tweet.send_tweet(
+        edited_tweet,
+        tweet_image_path,
+        tweet_page_path,
+        post_tweet,
+        author_tweet,
+        logger,
+    )
 
     if tweet_success:
         db.insert_tweet_review(
-            arxiv_code, edited_tweet, datetime.datetime.now(), tweet_type, rejected=False
+            arxiv_code,
+            edited_tweet,
+            datetime.datetime.now(),
+            tweet_type,
+            rejected=False,
         )
         em.send_email_alert(edited_tweet, arxiv_code)
         logger.info("Tweet stored in database and email alert sent")
     else:
         logger.error("Failed to send tweet")
+
 
 if __name__ == "__main__":
     main()

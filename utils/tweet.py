@@ -12,6 +12,9 @@ from selenium.webdriver.firefox.service import Service as FirefoxService
 from dotenv import load_dotenv
 from selenium.common.exceptions import TimeoutException
 import logging
+from urllib.parse import quote
+import utils.vector_store as vs
+import utils.db as db
 
 load_dotenv()
 
@@ -162,7 +165,7 @@ def verify_tweet_elements(
     return True, verification_message
 
 def send_tweet(
-    tweet_content: str, tweet_image_path: str, tweet_page_path: str, post_tweet: str, logger: logging.Logger
+    tweet_content: str, tweet_image_path: str, tweet_page_path: str, post_tweet: str, author_tweet: dict, logger: logging.Logger
 ) -> bool:
     """Send a tweet with content and images using Selenium."""
     logger.info("Starting tweet sending process")
@@ -231,6 +234,23 @@ def send_tweet(
     )
     tweet_box.send_keys(post_tweet)
 
+    if author_tweet:
+        # Add author tweet link as third tweet in thread
+        tweet_reply_btn = WebDriverWait(driver, 60).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[@data-testid='addButton']"))
+        )
+        tweet_reply_btn.click()
+
+        tweet_box = WebDriverWait(driver, 60).until(
+            EC.element_to_be_clickable(
+                (
+                    By.XPATH,
+                    "//div[@contenteditable='true' and @data-testid='tweetTextarea_2']",
+                )
+            )
+        )
+        tweet_box.send_keys(f"Related discussion: {author_tweet['url']}")
+
     # Verify tweet elements
     elements_verified, verification_message = verify_tweet_elements(
         driver, tweet_content, expected_image_count=2, logger=logger
@@ -268,6 +288,120 @@ def send_tweet(
     driver.quit()
     
     return True
+
+def extract_author_tweet_data(tweet_elem, paper_title: str, paper_authors: str) -> dict:
+    """Extract data from a single tweet element and assess if it's from an author."""
+    try:
+        user_name_elem = tweet_elem.find_element(
+            By.CSS_SELECTOR, 'div[data-testid="User-Name"]'
+        )
+        user_name_parts = user_name_elem.text.split("\n")
+
+        tweet_data = {
+            "text": tweet_elem.find_element(
+                By.CSS_SELECTOR, 'div[data-testid="tweetText"]'
+            ).text,
+            "timestamp": tweet_elem.find_element(By.TAG_NAME, "time").get_attribute(
+                "datetime"
+            ),
+            "author": user_name_parts[0],
+            "username": user_name_parts[1],
+            "link": tweet_elem.find_element(
+                By.CSS_SELECTOR, 'a[href*="/status/"]'
+            ).get_attribute("href"),
+        }
+
+        if int(
+            vs.assess_tweet_ownership(
+                paper_title=paper_title,
+                paper_authors=paper_authors,
+                tweet_text=tweet_data["text"],
+                tweet_username=tweet_data["username"],
+                model="gpt-4o-mini",
+            )
+        ):
+            return tweet_data
+        return None
+
+    except Exception as e:
+        logger.warning(f"Error extracting tweet details: {str(e)}")
+        return None
+
+def find_paper_author_tweet(arxiv_code: str, logger: logging.Logger) -> dict:
+    """
+    Find a tweet from a paper's author discussing their paper.
+    
+    Args:
+        arxiv_code (str): The arXiv code of the paper
+        logger (logging.Logger): Logger instance
+        
+    Returns:
+        dict: Tweet data if found, None if not found
+    """
+    logger.info(f"Searching for author tweet for paper {arxiv_code}")
+    
+    # Get paper details
+    paper_details = db.load_arxiv(arxiv_code)
+    paper_title = paper_details.loc[arxiv_code, "title"]
+    paper_authors = paper_details.loc[arxiv_code, "authors"]
+
+    browser = setup_browser(logger)
+    try:
+        login_twitter(browser, logger)
+        
+        # Setup search
+        search_url = f"https://twitter.com/search?q={quote(paper_title)}&src=typed_query"
+        browser.get(search_url)
+        time.sleep(5)
+
+        tweets_checked = 0
+        max_tweets_to_check = 20
+
+        while tweets_checked < max_tweets_to_check:
+            try:
+                # Wait for and get tweets
+                WebDriverWait(browser, 30).until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, 'article[data-testid="tweet"]')
+                    )
+                )
+                tweet_elements = browser.find_elements(
+                    By.CSS_SELECTOR, 'article[data-testid="tweet"]'
+                )
+
+                # Process tweets
+                for tweet_elem in tweet_elements:
+                    tweets_checked += 1
+                    if tweets_checked > max_tweets_to_check:
+                        break
+                        
+                    tweet_data = extract_author_tweet_data(
+                        tweet_elem, paper_title, paper_authors
+                    )
+                    if tweet_data:
+                        logger.info(f"Found author tweet from: {tweet_data['username']}")
+                        return tweet_data
+
+                # Scroll and check progress
+                last_height = browser.execute_script("return document.body.scrollHeight")
+                browser.execute_script("window.scrollBy(0, window.innerHeight);")
+                time.sleep(random.uniform(2, 4))
+
+                if browser.execute_script("return document.body.scrollHeight") == last_height:
+                    break
+
+            except Exception as e:
+                logger.error(f"Error during tweet collection: {str(e)}")
+                break
+
+        logger.info(f"Checked {tweets_checked} tweets, no author tweet found")
+        return None
+            
+    except Exception as e:
+        logger.error(f"An error occurred while searching for author tweet: {str(e)}")
+        return None
+    finally:
+        browser.quit()
 
 if __name__ == "__main__":
     from utils.logging_utils import setup_logger

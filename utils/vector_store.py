@@ -133,7 +133,7 @@ def summarize_doc_chunk(paper_title: str, document: str, model="local"):
 def summarize_doc_chunk_mlx(paper_title: str, document: str, mlx_model, mlx_tokenizer):
     """Summarize a paper by segments with MLX models."""
     from mlx_lm import generate
-    
+
     messages = [
         ("system", ps.SUMMARIZE_BY_PARTS_SYSTEM_PROMPT.format(paper_title=paper_title)),
         ("user", ps.SUMMARIZE_BY_PARTS_USER_PROMPT.format(content=document)),
@@ -376,3 +376,24 @@ def edit_tweet(
     )
     edited_tweet = edited_tweet.split("<final_tweet>")[1].split("</final_tweet>")[0]
     return edited_tweet
+
+
+def assess_tweet_ownership(
+    paper_title: str,
+    paper_authors: str,
+    tweet_text: str,
+    tweet_username: str,
+    model: str = "gpt-4o",
+):
+    """Assess if a tweet is owned by LLMpedia."""
+    system_prompt = ps.TWEET_OWNERSHIP_SYSTEM_PROMPT
+    user_prompt = ps.TWEET_OWNERSHIP_USER_PROMPT.format(
+        paper_title=paper_title,
+        paper_authors=paper_authors,
+        tweet_text=tweet_text,
+        tweet_username=tweet_username,
+    )
+    tweet_ownership = run_instructor_query(
+        system_prompt, user_prompt, llm_model=model, process_id="assess_tweet_ownership"
+    )
+    return tweet_ownership

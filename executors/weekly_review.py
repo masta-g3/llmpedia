@@ -5,7 +5,7 @@ import time
 
 load_dotenv()
 
-PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
+PROJECT_PATH = os.getenv("PROJECT_PATH", "/app")
 sys.path.append(PROJECT_PATH)
 
 os.chdir(PROJECT_PATH)
@@ -21,6 +21,7 @@ logger = setup_logger(__name__, "weekly_review.log")
 summaries_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "summaries")
 meta_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_meta")
 review_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "weekly_reviews")
+
 
 def main(date_str: str):
     """Generate a weekly review of highlights and takeaways from papers."""
@@ -56,9 +57,16 @@ def main(date_str: str):
 
     ## Get previous summary
     try:
-        previous_summary = db.get_weekly_content(prev_mondays[-2], content_type="content")
-        previous_themes = previous_summary.split("\n")[0]
-        logger.info("Retrieved previous week's summary")
+        previous_summaries = []
+        for i in range(2, 6):
+            summary = db.get_weekly_content(
+                prev_mondays[-i], content_type="content"
+            )
+            if summary:
+                previous_summaries.append(summary)
+        
+        previous_themes = "\n".join([s.split("\n")[0] for s in previous_summaries])
+        logger.info("Retrieved previous 3 weeks' summaries")
     except:
         previous_summary = db.get_weekly_summary_old(prev_mondays[-2])
         if previous_summary is None:
@@ -100,13 +108,22 @@ def main(date_str: str):
         if "http" in paper_markdown:
             html_markdowns.append(paper_markdown)
 
-    weekly_content_md += f"## Last Week's Submissions for New Developments and Themes\nBelow is the introduction you published last week.\n"
+    weekly_content_md += f"## Previous Week's Submissions for New Developments and Themes\nBelow is the introduction you published last week. Play close attention to the themes mentioned so you don't repeat them.\n"
     weekly_content_md += f"```{previous_themes}```"
 
     ## Generate summary.
     logger.info("Generating weekly report and highlight")
-    weekly_summary_obj = vs.generate_weekly_report(weekly_content_md, model="claude-3-5-sonnet-20241022")
-    weekly_highlight = vs.generate_weekly_highlight(weekly_content_md, model="claude-3-5-sonnet-20241022")
+    weekly_summary_obj = vs.generate_weekly_report(
+        weekly_content_md, model="o1-preview"
+    )
+    weekly_summary_obj = (
+        weekly_summary_obj.replace("<new_developments_findings>", "")
+        .replace("</new_developments_findings>", "")
+        .strip()
+    )
+    weekly_highlight = vs.generate_weekly_highlight(
+        weekly_content_md, model="claude-3-5-sonnet-20241022"
+    )
 
     ## Format content.
     logger.info("Formatting and preparing data for storage")
@@ -122,28 +139,28 @@ def main(date_str: str):
     # weekly_topics_df["date"] = date
     # weekly_topics_df["tstp"] = tstp_now
 
-    weekly_content_df = pd.DataFrame.from_dict(
-        weekly_summary_obj.dict(), orient="index"
-    ).T
-    weekly_content_df["highlight"] = weekly_highlight
-    # weekly_content_df.drop(columns=["themes_mapping"], inplace=True)
-    weekly_content_df.rename(
-        columns={"new_developments_findings": "content"}, inplace=True
+    # weekly_content_df = pd.DataFrame.from_dict(
+    #     weekly_summary_obj.dict(), orient="index"
+    # ).T
+    weekly_content_df = pd.DataFrame(
+        {
+            "content": [weekly_summary_obj],
+            "highlight": [weekly_highlight],
+            "scratchpad_papers": [None],
+            "scratchpad_themes": [None],
+            "date": [date],
+            "tstp": [tstp_now],
+        }
     )
-    weekly_content_df["date"] = date
-    weekly_content_df["tstp"] = tstp_now
 
     ## Store.
-    logger.info("Uploading weekly content and topics to database")
+    logger.info("Uploading weekly content to database")
     db.upload_df_to_db(weekly_content_df, "weekly_content", pu.db_params)
     # db.upload_df_to_db(weekly_topics_df, "weekly_topics", pu.db_params)
     logger.info(f"Successfully completed weekly review for {date_str}")
 
+
 if __name__ == "__main__":
-    ## Read single date from arguments
-    if len(sys.argv) != 2:
-        print("Usage: python weekly_review.py YYYY-MM-DD")
-        sys.exit(1)
-        
-    date_str = sys.argv[1]    
+    ## Use provided date or default to 2024-10-07
+    date_str = sys.argv[1] if len(sys.argv) == 2 else "2024-11-04"
     main(date_str)

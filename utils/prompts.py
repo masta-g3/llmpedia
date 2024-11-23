@@ -370,6 +370,7 @@ The following are attributes of MORE interesting papers:
 + Papers with surprising or thought-provoking findings.
 + Papers that discuss the psychology and internal world of LLMs.
 + Papers with a unique take on a problem or au unusual application of LLMs.
++ Papers with unorthodox view points or subject matter.
 </more_interesting_papers_attributes>
 
 <less_interesting_paper_attributes>
@@ -594,6 +595,17 @@ Remember, your goal is to inform and engage the readers of LLMpedia. Good luck!
 </instructions>
 """
 
+TWEET_OWNERSHIP_SYSTEM_PROMPT = "You are an Large Language Model academic who has recently read a paper. You are looking for tweets on X.com written by the authors of the paper."
+
+TWEET_OWNERSHIP_USER_PROMPT = """
+Paper title: {paper_title}
+Paper authors: {paper_authors}
+
+Is this tweet written by one of the authors of the paper? Reply only with 0 or 1 (0 for no, 1 for yes).
+
+Tweet text: {tweet_text}
+Tweet username: {tweet_username}
+"""
 
 ##################
 ## VECTOR STORE ##
@@ -1062,28 +1074,34 @@ def generate_weekly_review_markdown(
     return markdown_template
 
 
-WEEKLY_SYSTEM_PROMPT = """You are an expert Large Language Model (LLM) writer and previous researcher at a prestigious media organization. You are currently conducting a survey of the literature published throughout last week to write an insightful report for the LLM popular science magazine."""
+WEEKLY_SYSTEM_PROMPT = """You are an expert Large Language Model (LLM) writer and researcher at a prestigious organization. Your task is to write an insightful weekly report for an LLM popular science magazine by analyzing recent research publications. Your goal is to identify emerging trends and noteworthy findings while maintaining scientific accuracy and engaging presentation."""
+
+# """
+#     <scratchpad_papers> 
+#         - This section will not be published on the magazine, use it to organize your thoughts.
+#         - Pick the ~30 most interesting papers and make a numbered list of them. Briefly identify its main theme, contribution and impact.
+#         - When selecting articles prioritize the articles with most citations and those with the most unusual or interesting findings. 
+#     </scratchpad_papers>
+
+#     <scratchpad_themes>
+#         - This section will not be published on the magazine, use it to organize your thoughts.
+#         - Identify 3 new common themes among the papers. There should more than 3 or 4 papers per theme, and the themes should not be generic. For example, 'improvements in LLMs' is not a generic theme.
+#         - Note that the papers already have a 'Category', which is a broad classification scheme. your definition of themes must be more specific than the categories.
+#         - Identify any possible contradictions, unorthodox theories or opposing views among the papers worth discussing (these tend to be very interesting). Give these contradiction a title and mention the papers that support each view. There might not be any contradictions, and that is fine.
+#     </scratchpad_themes>    
+#
+# - Remember to include all requested sections ('scratchpad_papers', 'scratchpad_themes', 'new_developments_findings') in your response.
+# - Follow these guidelines for the new_developments_findings section.
+# """
 
 WEEKLY_USER_PROMPT = """
 <report_format>
-    <scratchpad_papers> 
-        - This section will not be published on the magazine, use it to organize your thoughts.
-        - Pick the ~30 most interesting papers and make a numbered list of them. Briefly identify its main theme, contribution and impact.
-        - When selecting articles prioritize the articles with most citations and those with the most unusual or interesting findings. 
-    </scratchpad_papers>
-    
-    <scratchpad_themes>
-        - This section will not be published on the magazine, use it to organize your thoughts.
-        - Identify 3 new common themes among the papers. There should more than 3-4 papers per theme, and the themes should not be generic. For example, 'improvements in LLMs' is not a generic theme.
-        - Note that the papers already have a 'Category', which is a broad classification scheme. your definition of themes must be more specific than the categories.
-        - Identify any possible contradictions, unorthodox theories or opposing views among the papers worth discussing (these tend to be very interesting). Give these contradiction a title and mention the papers that support each view. There might not be any contradictions, and that is fine.
-    </scratchpad_themes>
-        
     <new_developments_findings> 
-        - This is the section that will be published on the magazine. Be sure to make it structured and with an easy to follow flow.
-        - Do not use too any adjectives or sensasionalist phrases.
-        - First (1) paragraph: Start with a very brief commentary on themes and the total number of articles published. Compare this week's volume not only to the previous one; instead identify and comment on general trends. Use simple and direct language without being too sensasionalist.
-        - Three (3-4) following paragraphs: Discuss in more detail the main themes you identified as interesting (one per paragraph) an mention at least three papers associated to each of them. State very clearly **with bold font** which theme / contradiction / unorthodox theory you are discussing on each paragraph. Be sure to always include the contradiction at the end of your discussion, if you identified one. Omit any kind of final conclusion at the end of your report.
+        - First (1) paragraph: Start with a very brief commentary mentioning the main themes you identified, as well as trends on publication volume. Do not just compare this week's volume to the previous one; instead identify and comment on general long-term trends. Use simple and direct language without being too sensasionalist.
+        - Three (3) following paragraphs: Discuss in more detail the three main themes you identified as interesting (one paragraph per theme) an mention at least three papers associated to each of them. Additionally list a couple more related papers. State very clearly with a (#### markdown subheader) which theme each paragraph is about.
+        - Last (1) paragraph: Identify one contradticion or controvertial finding worth discussing. 
+        - Omit any kind of final conclusion at the end of your report, as well as any greetings.
+        - The report should be between 5 paragraphs long: 1 for the introductory comments, 3 for the themes and 1 for contradictions/controversial findings.
     </new_developments_findings>
 <report_format>
 
@@ -1091,22 +1109,19 @@ WEEKLY_USER_PROMPT = """
 {weekly_content}
 </content>
 
-<guidelines>
-- Remember to include all requested sections ('scratchpad_papers', 'scratchpad_themes', 'new_developments_findings') in your response.
-- Follow these guidelines for the new_developments_findings section.
-    - Write in a concise, clear and engaging manner. 
+<style_guidelines>
+    - Use a personal, casual narrative writing style to make your report more engaging, but be precise and consider your target audience (LLM researchers).
+    - Do not make your language too boring or robotic. Your writing should read as part of a magazine article.
     - Use casual layman and direct language, without many pompous adjectives (e.g.: innovative, breakthrough, streamlining, versatile, exceptional, etc.)
-    - If you reference new technical terms always explain them. 
+    - Always explain any technical term you reference.
     - Focus on unusual and insightful findings, as well as practical applications.
     - Be sure the themes you identify are different from that of previous weeks.
-    - Avoid repetitive and filler conclusions.
-    - Remember to include a final section highlighting contradictions or very unorthodox findings.
     - Maintain the narrative flow and coherence across sections. Keep the reader engaged.
     - Do not exaggerate or use bombastic language. Be moderate, truthful and objective. Avoid filler and repetitive content.
-    - Do not make your language too boring or robotic. Your writing should read as part of a magazine article.
-    - Do not include markdown titles in each of the sections (I will take care of those).
+    - DO NOT use cliche words such as "for instance", "furthermore", "delve", "tackling", "thrive", "versatile", etc.
+    - Avoid repetitive statements and filler conclusions.
     - Always add citations to support your statements. Use the format `*reference content* (arxiv:1234.5678)`. You can also mention the *article's title* on the text.
-</guidelines>
+</style_guidelines>
 
 Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678)."""
 

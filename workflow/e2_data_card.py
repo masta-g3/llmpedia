@@ -23,7 +23,7 @@ def main():
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1][:20]
 
-    for arxiv_code in tqdm(arxiv_codes):
+    for arxiv_code in arxiv_codes:
         title = db.get_arxiv_title_dict()[arxiv_code]
         content = db.get_extended_notes(arxiv_code, expected_tokens=3000)
         res_str = run_instructor_query(

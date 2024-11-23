@@ -313,9 +313,9 @@ def format_paper_summary(summary_row):
     main_contribution = summary_row["contribution_content"]
     takeaways = summary_row["takeaway_content"]
     arxiv_comments = summary_row["arxiv_comment"]
-    arxiv_comments = "\n\n*" + arxiv_comments + "*" if arxiv_comments else ""
+    # arxiv_comments = "\n\n*" + arxiv_comments + "*" if arxiv_comments else ""
     # return f"### {title}\n*({date} / arxiv_code:{arxiv_code} / {citations} citations)*{arxiv_comments}\n\n**Summary:**\n{summary}\n\n**Main Contribution:**\n{main_contribution}\n\n**Takeaways:**\n{takeaways}\n\n-------------\n\n"
-    return f"### {title}\n*({date} / arxiv_code:{arxiv_code} / {citations} citations / Category: {topic})\n*{arxiv_comments}*\n\n**Summary:**\n{summary}\n\n-------------\n\n"
+    return f"### {title}\n*({date} / arxiv_code:{arxiv_code} / {citations} citations / Category: {topic})*\n*{arxiv_comments}*\n\n**Summary:**\n{summary}\n\n-------------\n\n"
 
 
 def numbered_to_bullet_list(list_str: str):
