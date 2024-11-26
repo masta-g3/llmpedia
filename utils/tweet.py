@@ -29,12 +29,16 @@ PHONE = os.getenv("TWITTER_PHONE")
 def setup_browser(logger: logging.Logger):
     logger.info("Setting up browser")
     firefox_options = FirefoxOptions()
-    # firefox_options.add_argument("--headless")
-    # firefox_options.add_argument("--no-sandbox")
-    # firefox_options.add_argument("--disable-dev-shm-usage")
-
-    # Set the MOZ_HEADLESS environment variable
-    # os.environ["MOZ_HEADLESS"] = "1"
+    
+    # Enable headless mode
+    firefox_options.add_argument("--headless")
+    
+    # Additional options to prevent potential issues
+    firefox_options.add_argument("--no-sandbox")
+    firefox_options.add_argument("--disable-dev-shm-usage")
+    
+    # Set the MOZ_HEADLESS environment variable (optional)
+    os.environ["MOZ_HEADLESS"] = "1"
 
     try:
         # Try to find geckodriver in PATH
@@ -44,19 +48,16 @@ def setup_browser(logger: logging.Logger):
         logger.error(f"Failed to create driver with default service: {str(e)}")
         try:
             # If that fails, try with explicit geckodriver path
-            geckodriver_path = os.getenv(
-                "GECKODRIVER_PATH", "/usr/local/bin/geckodriver"
-            )
+            geckodriver_path = os.getenv("GECKODRIVER_PATH", "/usr/local/bin/geckodriver")
             service = FirefoxService(executable_path=geckodriver_path)
             driver = webdriver.Firefox(options=firefox_options, service=service)
         except Exception as e:
-            logger.error(
-                f"Failed to create driver with explicit geckodriver path: {str(e)}"
-            )
+            logger.error(f"Failed to create driver with explicit geckodriver path: {str(e)}")
             raise
 
     logger.info("Browser setup complete")
     return driver
+
 
 def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
     """Login to Twitter within any page of its domain."""
@@ -249,7 +250,7 @@ def send_tweet(
                 )
             )
         )
-        tweet_box.send_keys(f"Related discussion: {author_tweet['url']}")
+        tweet_box.send_keys(f"related discussion: {author_tweet['link']}")
 
     # Verify tweet elements
     elements_verified, verification_message = verify_tweet_elements(
@@ -346,62 +347,64 @@ def find_paper_author_tweet(arxiv_code: str, logger: logging.Logger) -> dict:
     paper_authors = paper_details.loc[arxiv_code, "authors"]
 
     browser = setup_browser(logger)
-    try:
-        login_twitter(browser, logger)
-        
-        # Setup search
-        search_url = f"https://twitter.com/search?q={quote(paper_title)}&src=typed_query"
-        browser.get(search_url)
-        time.sleep(5)
+    # try:
+    login_twitter(browser, logger)
+    
+    # Setup search
+    search_url = f"https://twitter.com/search?q='{paper_title}'&src=typed_query"
+    browser.get(search_url)
+    time.sleep(5)
 
-        tweets_checked = 0
-        max_tweets_to_check = 20
+    tweets_checked = 0
+    max_tweets_to_check = 20
 
-        while tweets_checked < max_tweets_to_check:
-            try:
-                # Wait for and get tweets
-                WebDriverWait(browser, 30).until(
-                    EC.presence_of_element_located(
-                        (By.CSS_SELECTOR, 'article[data-testid="tweet"]')
-                    )
+    while tweets_checked < max_tweets_to_check:
+        try:
+            # Wait for and get tweets
+            WebDriverWait(browser, 30).until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, 'article[data-testid="tweet"]')
                 )
-                tweet_elements = browser.find_elements(
-                    By.CSS_SELECTOR, 'article[data-testid="tweet"]'
-                )
+            )
+            tweet_elements = browser.find_elements(
+                By.CSS_SELECTOR, 'article[data-testid="tweet"]'
+            )
 
-                # Process tweets
-                for tweet_elem in tweet_elements:
-                    tweets_checked += 1
-                    if tweets_checked > max_tweets_to_check:
-                        break
-                        
-                    tweet_data = extract_author_tweet_data(
-                        tweet_elem, paper_title, paper_authors
-                    )
-                    if tweet_data:
-                        logger.info(f"Found author tweet from: {tweet_data['username']}")
-                        return tweet_data
-
-                # Scroll and check progress
-                last_height = browser.execute_script("return document.body.scrollHeight")
-                browser.execute_script("window.scrollBy(0, window.innerHeight);")
-                time.sleep(random.uniform(2, 4))
-
-                if browser.execute_script("return document.body.scrollHeight") == last_height:
+            # Process tweets
+            for tweet_elem in tweet_elements:
+                tweets_checked += 1
+                if tweets_checked > max_tweets_to_check:
                     break
+                    
+                tweet_data = extract_author_tweet_data(
+                    tweet_elem, paper_title, paper_authors
+                )
+                if tweet_data:
+                    logger.info(f"Found author tweet from: {tweet_data['username']}")
+                    browser.quit()
+                    return tweet_data
 
-            except Exception as e:
-                logger.error(f"Error during tweet collection: {str(e)}")
+            # Scroll and check progress
+            last_height = browser.execute_script("return document.body.scrollHeight")
+            browser.execute_script("window.scrollBy(0, window.innerHeight);")
+            time.sleep(random.uniform(2, 4))
+
+            if browser.execute_script("return document.body.scrollHeight") == last_height:
                 break
 
-        logger.info(f"Checked {tweets_checked} tweets, no author tweet found")
-        return None
-            
-    except Exception as e:
-        logger.error(f"An error occurred while searching for author tweet: {str(e)}")
-        return None
-    finally:
-        browser.quit()
+        except Exception as e:
+            logger.error(f"Error during tweet collection: {str(e)}")
+            break
+
+    logger.info(f"Checked {tweets_checked} tweets, no author tweet found")
+    browser.quit()
+    return None
+        
+    # except Exception as e:
+    #     logger.error(f"An error occurred while searching for author tweet: {str(e)}")
+    #     return None
+    # finally:
+        # browser.quit()
 
 if __name__ == "__main__":
     from utils.logging_utils import setup_logger
