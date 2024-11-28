@@ -32,11 +32,12 @@ def setup_browser(logger: logging.Logger):
     
     # Enable headless mode
     firefox_options.add_argument("--headless")
-    
-    # Additional options to prevent potential issues
     firefox_options.add_argument("--no-sandbox")
     firefox_options.add_argument("--disable-dev-shm-usage")
-    
+    firefox_options.add_argument("--disable-gpu")
+    firefox_options.add_argument("--window-size=1920,1080")
+    firefox_options.add_argument("--remote-debugging-port=9222")
+        
     # Set the MOZ_HEADLESS environment variable (optional)
     os.environ["MOZ_HEADLESS"] = "1"
 
@@ -63,8 +64,7 @@ def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
     """Login to Twitter within any page of its domain."""
     logger.info("Attempting to log in to Twitter")
 
-    # Use the more reliable login URL from the alternative implementation
-    driver.get("https://twitter.com/i/flow/login")
+    driver.get("https://x.com/i/flow/login")
 
     # Wait for the username field and enter the username
     try:
