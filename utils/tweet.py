@@ -28,6 +28,21 @@ PHONE = os.getenv("TWITTER_PHONE")
 
 def setup_browser(logger: logging.Logger):
     logger.info("Setting up browser")
+    
+    # Add Firefox version logging
+    try:
+        firefox_version = os.popen('firefox --version').read()
+        logger.info(f"Firefox version: {firefox_version}")
+    except Exception as e:
+        logger.error(f"Could not get Firefox version: {e}")
+    
+    # Add geckodriver version logging
+    try:
+        geckodriver_version = os.popen('geckodriver --version').read()
+        logger.info(f"Geckodriver version: {geckodriver_version}")
+    except Exception as e:
+        logger.error(f"Could not get geckodriver version: {e}")
+    
     firefox_options = FirefoxOptions()
     
     # Modified Firefox options
@@ -71,58 +86,67 @@ def setup_browser(logger: logging.Logger):
     logger.info("Browser setup complete")
     return driver
 
-
 def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
     """Login to Twitter within any page of its domain."""
     logger.info("Attempting to log in to Twitter")
-
+    
+    # Add page load debugging
+    logger.info("Current URL before navigation: " + driver.current_url)
+    
     driver.get("https://x.com/i/flow/login")
-
-    # Wait for the username field and enter the username
+    logger.info("Navigation completed")
+    logger.info("Current URL after navigation: " + driver.current_url)
+    logger.info("Page title: " + driver.title)
+    
+    # Log page source to see what we're actually getting
+    logger.info("Page source snippet: " + driver.page_source[:500])
+    
+    # Add a small delay to ensure page is loaded
+    time.sleep(5)
+    
+    logger.info("Attempting to locate username field")
+    # Try different selectors to see which ones are present
+    selectors_present = {
+        'username_autocomplete': len(driver.find_elements(By.CSS_SELECTOR, 'input[autocomplete="username"]')),
+        'any_input': len(driver.find_elements(By.TAG_NAME, 'input')),
+        'any_div': len(driver.find_elements(By.TAG_NAME, 'div'))
+    }
+    logger.info(f"Elements found on page: {selectors_present}")
+    
+    # Login attempt
     username_field = WebDriverWait(driver, 15).until(
         EC.visibility_of_element_located((By.CSS_SELECTOR, 'input[autocomplete="username"]'))
     )
+    logger.info("Username field found successfully")
     username_field.send_keys(USERNAME)
     username_field.send_keys(Keys.RETURN)
 
     # Check if additional identification is required (e.g., phone)
-    try:
-        identifier_field = WebDriverWait(driver, 5).until(
-            EC.presence_of_element_located((By.NAME, "text"))
-        )
-        identifier_field.send_keys(PHONE)
-        identifier_field.send_keys(Keys.RETURN)
-    except TimeoutException:
-        logger.info("No additional identifier required.")
+    identifier_field = WebDriverWait(driver, 5).until(
+        EC.presence_of_element_located((By.NAME, "text"))
+    )
+    identifier_field.send_keys(PHONE)
+    identifier_field.send_keys(Keys.RETURN)
 
-    # Wait for the password field and enter the password
-    try:
-        password_field = WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.NAME, "password"))
-        )
-        password_field.send_keys(PASSWORD)
-        password_field.send_keys(Keys.RETURN)
-    except TimeoutException:
-        logger.error("Password field not found.")
-        driver.quit()
-        return
+    # Enter password
+    password_field = WebDriverWait(driver, 15).until(
+        EC.presence_of_element_located((By.NAME, "password"))
+    )
+    password_field.send_keys(PASSWORD)
+    password_field.send_keys(Keys.RETURN)
 
     # Wait until the "Post" button is clickable to ensure login is complete
-    try:
-        WebDriverWait(driver, 15).until(
-            EC.element_to_be_clickable((By.XPATH, '//a[@aria-label="Post"]'))
-        )
-        logger.info("Successfully logged in to Twitter")
-    except TimeoutException:
-        logger.error("Login failed or 'Post' button not found.")
-        driver.quit()
-        return
+    WebDriverWait(driver, 15).until(
+        EC.element_to_be_clickable((By.XPATH, '//a[@aria-label="Post"]'))
+    )
+    logger.info("Successfully logged in to Twitter")
 
 
 def navigate_to_profile(browser: webdriver.Firefox, profile_url: str, logger: logging.Logger):
     """Login to Twitter and navigate to a profile."""
     logger.info(f"Navigating to profile: {profile_url}")
     browser.get(profile_url)
+
 
 def verify_tweet_elements(
   driver: webdriver.Firefox, expected_content: str, expected_image_count, logger: logging.Logger
