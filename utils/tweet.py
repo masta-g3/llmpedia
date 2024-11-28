@@ -29,49 +29,44 @@ PHONE = os.getenv("TWITTER_PHONE")
 def setup_browser(logger: logging.Logger):
     logger.info("Setting up browser")
     
-    # Add Firefox version logging
-    try:
-        firefox_version = os.popen('firefox --version').read()
-        logger.info(f"Firefox version: {firefox_version}")
-    except Exception as e:
-        logger.error(f"Could not get Firefox version: {e}")
-    
-    # Add geckodriver version logging
-    try:
-        geckodriver_version = os.popen('geckodriver --version').read()
-        logger.info(f"Geckodriver version: {geckodriver_version}")
-    except Exception as e:
-        logger.error(f"Could not get geckodriver version: {e}")
-    
     firefox_options = FirefoxOptions()
     
-    # Modified Firefox options
-    firefox_options.add_argument("--headless")
-    firefox_options.add_argument("--no-sandbox")
-    firefox_options.add_argument("--disable-dev-shm-usage")
-    firefox_options.add_argument("--width=1920")
-    firefox_options.add_argument("--height=1080")
+    # Set a proper user agent
+    firefox_options.set_preference("general.useragent.override", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
     
-    # Enable JavaScript explicitly
-    firefox_options.set_preference("javascript.enabled", True)
-    
-    # Additional preferences to help with stability
+    # Additional preferences to make the browser appear more like a regular user
     firefox_options.set_preference("dom.webdriver.enabled", False)
+    firefox_options.set_preference("useAutomationExtension", False)
+    firefox_options.set_preference("privacy.trackingprotection.enabled", False)
+    
+    # Enable JavaScript and other important features
+    firefox_options.set_preference("javascript.enabled", True)
     firefox_options.set_preference("dom.webnotifications.enabled", False)
     firefox_options.set_preference("network.http.connection-timeout", 30)
     
-    # Set up virtual display for Docker
+    # Set proper window size
+    firefox_options.add_argument("--width=1920")
+    firefox_options.add_argument("--height=1080")
+    firefox_options.add_argument("--headless")
+    firefox_options.add_argument("--no-sandbox")
+    firefox_options.add_argument("--disable-dev-shm-usage")
+    
+    # Set up virtual display
     os.system("Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &")
     os.environ["DISPLAY"] = ":99"
-
+    
     try:
         service = FirefoxService()
         driver = webdriver.Firefox(options=firefox_options, service=service)
-        # Set page load timeout
         driver.set_page_load_timeout(30)
-        
-        # Set window size explicitly after browser creation
         driver.set_window_size(1920, 1080)
+        
+        # Execute JavaScript to modify navigator properties
+        driver.execute_script("""
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => undefined
+            });
+        """)
         
     except Exception as e:
         logger.error(f"Failed to create driver with default service: {str(e)}")
@@ -104,6 +99,10 @@ def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
     # Add a small delay to ensure page is loaded
     time.sleep(5)
     
+    # Try to force JavaScript execution
+    driver.execute_script("window.dispatchEvent(new Event('load'))")
+    driver.execute_script("document.dispatchEvent(new Event('DOMContentLoaded'))")
+    
     logger.info("Attempting to locate username field")
     # Try different selectors to see which ones are present
     selectors_present = {
@@ -112,6 +111,14 @@ def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
         'any_div': len(driver.find_elements(By.TAG_NAME, 'div'))
     }
     logger.info(f"Elements found on page: {selectors_present}")
+
+    try:
+        input_field = WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.TAG_NAME, 'input'))
+        )
+        logger.info("Found an input field with attributes: " + str(input_field.get_attribute('outerHTML')))
+    except Exception as e:
+        logger.error(f"Could not find any input field: {str(e)}")
     
     # Login attempt
     username_field = WebDriverWait(driver, 15).until(

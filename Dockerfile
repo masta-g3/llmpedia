@@ -31,6 +31,11 @@ RUN apt-get update && apt-get install -y \
     libgtk-3-0 \
     libdbus-glib-1-2 \
     libxt6 \
+    libpci3 \
+    libegl1 \
+    libegl1-mesa \
+    libgl1-mesa-dri \
+    xvfb \
     libxrender1 \
     libxcomposite1 \
     libasound2 \
