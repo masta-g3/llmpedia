@@ -63,12 +63,13 @@ def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
     """Login to Twitter within any page of its domain."""
     logger.info("Attempting to log in to Twitter")
 
-    driver.get("https://twitter.com/login")
+    # Use the more reliable login URL from the alternative implementation
+    driver.get("https://twitter.com/i/flow/login")
 
     # Wait for the username field and enter the username
     try:
         username_field = WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.NAME, "text"))
+            EC.visibility_of_element_located((By.CSS_SELECTOR, 'input[autocomplete="username"]'))
         )
         username_field.send_keys(USERNAME)
         username_field.send_keys(Keys.RETURN)
@@ -110,22 +111,36 @@ def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
         driver.quit()
         return
 
+
 def navigate_to_profile(browser: webdriver.Firefox, profile_url: str, logger: logging.Logger):
     """Login to Twitter and navigate to a profile."""
     logger.info(f"Navigating to profile: {profile_url}")
     browser.get(profile_url)
 
 def verify_tweet_elements(
-    driver: webdriver.Firefox, expected_content: str, expected_image_count, logger: logging.Logger
+  driver: webdriver.Firefox, expected_content: str, expected_image_count, logger: logging.Logger
 ) -> Tuple[bool, str]:
     """Verify the presence of expected elements in a tweet composition."""
     logger.info("Verifying tweet elements")
 
-    # Click on main post
+    # Wait for main post element and scroll it into view
     main_post_btn = WebDriverWait(driver, 30).until(
-        EC.element_to_be_clickable((By.XPATH, '//div[@aria-label="Post text"]'))
+        EC.presence_of_element_located((By.XPATH, '//div[@aria-label="Post text"]'))
     )
-    main_post_btn.click()
+    
+    # Scroll element into view and add a small delay
+    driver.execute_script("arguments[0].scrollIntoView(true);", main_post_btn)
+    time.sleep(1)
+    
+    # Try to click using JavaScript
+    try:
+        driver.execute_script("arguments[0].click();", main_post_btn)
+    except Exception as e:
+        logger.warning(f"JavaScript click failed: {str(e)}")
+        # Fallback to regular click with actions
+        from selenium.webdriver.common.action_chains import ActionChains
+        actions = ActionChains(driver)
+        actions.move_to_element(main_post_btn).click().perform()
 
     # Check for the correct number of uploaded images
     def correct_image_count(driver):
