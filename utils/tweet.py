@@ -30,25 +30,37 @@ def setup_browser(logger: logging.Logger):
     logger.info("Setting up browser")
     firefox_options = FirefoxOptions()
     
-    # Enable headless mode
+    # Modified Firefox options
     firefox_options.add_argument("--headless")
     firefox_options.add_argument("--no-sandbox")
     firefox_options.add_argument("--disable-dev-shm-usage")
-    firefox_options.add_argument("--disable-gpu")
-    firefox_options.add_argument("--window-size=1920,1080")
-    firefox_options.add_argument("--remote-debugging-port=9222")
-        
-    # Set the MOZ_HEADLESS environment variable (optional)
-    os.environ["MOZ_HEADLESS"] = "1"
+    firefox_options.add_argument("--width=1920")
+    firefox_options.add_argument("--height=1080")
+    
+    # Enable JavaScript explicitly
+    firefox_options.set_preference("javascript.enabled", True)
+    
+    # Additional preferences to help with stability
+    firefox_options.set_preference("dom.webdriver.enabled", False)
+    firefox_options.set_preference("dom.webnotifications.enabled", False)
+    firefox_options.set_preference("network.http.connection-timeout", 30)
+    
+    # Set up virtual display for Docker
+    os.system("Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &")
+    os.environ["DISPLAY"] = ":99"
 
     try:
-        # Try to find geckodriver in PATH
         service = FirefoxService()
         driver = webdriver.Firefox(options=firefox_options, service=service)
+        # Set page load timeout
+        driver.set_page_load_timeout(30)
+        
+        # Set window size explicitly after browser creation
+        driver.set_window_size(1920, 1080)
+        
     except Exception as e:
         logger.error(f"Failed to create driver with default service: {str(e)}")
         try:
-            # If that fails, try with explicit geckodriver path
             geckodriver_path = os.getenv("GECKODRIVER_PATH", "/usr/local/bin/geckodriver")
             service = FirefoxService(executable_path=geckodriver_path)
             driver = webdriver.Firefox(options=firefox_options, service=service)
@@ -67,16 +79,11 @@ def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
     driver.get("https://x.com/i/flow/login")
 
     # Wait for the username field and enter the username
-    try:
-        username_field = WebDriverWait(driver, 15).until(
-            EC.visibility_of_element_located((By.CSS_SELECTOR, 'input[autocomplete="username"]'))
-        )
-        username_field.send_keys(USERNAME)
-        username_field.send_keys(Keys.RETURN)
-    except TimeoutException:
-        logger.error("Username field not found.")
-        driver.quit()
-        return
+    username_field = WebDriverWait(driver, 15).until(
+        EC.visibility_of_element_located((By.CSS_SELECTOR, 'input[autocomplete="username"]'))
+    )
+    username_field.send_keys(USERNAME)
+    username_field.send_keys(Keys.RETURN)
 
     # Check if additional identification is required (e.g., phone)
     try:
