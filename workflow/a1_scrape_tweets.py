@@ -78,6 +78,7 @@ def extract_tweets(browser: webdriver.Firefox) -> List[dict]:
 
 def scrape_tweets(browser: webdriver.Firefox, max_tweets: int = 100) -> List[dict]:
     """Scrape tweets from a profile."""
+    logger.info(f"Scraping tweets from {browser.current_url}")
     all_tweets = []
     last_height = browser.execute_script("return document.body.scrollHeight")
 
