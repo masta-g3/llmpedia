@@ -6,9 +6,6 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from dateutil.parser import parse
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options as ChromeOptions
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from dotenv import load_dotenv
 import feedparser
 import time
@@ -19,6 +16,7 @@ sys.path.append(PROJECT_PATH)
 
 import utils.paper_utils as pu
 from utils.logging_utils import setup_logger
+from utils.tweet import setup_browser
 
 logger = setup_logger(__name__, "a0_scrape_lists.log")
 
@@ -113,27 +111,6 @@ def scrape_huggingface_papers(start_date, end_date=None):
     return df
 
 
-def setup_browser():
-    chrome_options = ChromeOptions()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--remote-debugging-port=9222')
-
-    if os.path.exists('/.dockerenv'):
-        chrome_options.binary_location = '/usr/bin/chromium'
-        service = ChromeService('/usr/bin/chromedriver')
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-    else:
-        if platform.system() == 'Darwin':
-            driver = webdriver.Chrome(options=chrome_options)
-        else:
-            raise Exception("Unsupported OS")
-        
-    return driver
-
-
 def scrape_rsrch_space_papers(start_date, end_date=None):
     if end_date is None:
         end_date = start_date
@@ -143,7 +120,7 @@ def scrape_rsrch_space_papers(start_date, end_date=None):
 
     df = pd.DataFrame(columns=["arxiv_code", "title"])
 
-    driver = setup_browser()
+    driver = setup_browser(logger)
     driver.get("http://rsrch.space")
     time.sleep(5)
     soup = BeautifulSoup(driver.page_source, "html.parser")
