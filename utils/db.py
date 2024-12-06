@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, text
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
 import streamlit as st
 import pandas as pd
 import psycopg2
@@ -750,7 +750,7 @@ def get_extended_notes(arxiv_code: str, level=None, expected_tokens=None):
     return summary[2]
 
 
-def get_recursive_summary(arxiv_code: Optional[str] = None) -> dict[str, str] | None:
+def get_recursive_summary(arxiv_code: Optional[str] = None) -> Union[dict[str, str], None]:
     """Get recursive summaries for all papers or a specific arxiv code."""
     query = "SELECT * FROM recursive_summaries"
     if arxiv_code:
