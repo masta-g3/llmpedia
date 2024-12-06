@@ -588,3 +588,60 @@ def update_gist(
     else:
         print(f"Failed to update gist. Status code: {response.status_code}.")
         return None
+
+#######################
+## MARKER PDF TOOLS ##
+#######################
+def convert_pdf_to_markdown(pdf_path):
+    """Convert PDF to markdown using marker library."""
+    from marker.converters.pdf import PdfConverter
+    from marker.models import create_model_dict
+    from marker.output import text_from_rendered
+
+    converter = PdfConverter(
+        artifact_dict=create_model_dict(),
+    )
+    rendered = converter(pdf_path)
+    text, _, images = text_from_rendered(rendered)
+    return text
+
+def ensure_pdf_exists(arxiv_code, pdf_path, logger=None):
+    """Ensure PDF exists locally and in S3, downloading from arXiv if necessary."""
+    # Check if PDF exists in S3
+    s3_pdfs = list_s3_files("arxiv-pdf", strip_extension=True)
+    if arxiv_code in s3_pdfs:
+        if not os.path.exists(pdf_path):
+            try:
+                download_s3_file(arxiv_code, "arxiv-pdf", pdf_path)
+                if logger:
+                    logger.info(f"Downloaded PDF from S3 for {arxiv_code}")
+            except Exception as e:
+                if logger:
+                    logger.error(f"Failed to download PDF from S3 for {arxiv_code}: {str(e)}")
+                return False
+        return True
+
+    # Download from arXiv
+    try:
+        download_pdf(arxiv_code, pdf_path)
+        if logger:
+            logger.info(f"Downloaded PDF from arXiv for {arxiv_code}")
+        # Upload to S3
+        upload_s3_file(arxiv_code, "arxiv-pdf", prefix="data", format="pdf")
+        if logger:
+            logger.info(f"Uploaded PDF to S3 for {arxiv_code}")
+        return True
+    except Exception as e:
+        if logger:
+            logger.error(f"Failed to download PDF from arXiv for {arxiv_code}: {str(e)}")
+        return False
+
+def download_pdf(arxiv_code, pdf_path):
+    """Download PDF from arXiv."""
+    url = f"https://export.arxiv.org/pdf/{arxiv_code}.pdf"
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(pdf_path, 'wb') as f:
+            f.write(response.content)
+    else:
+        raise Exception(f"Failed to download PDF from arXiv: {response.status_code}")

@@ -317,7 +317,7 @@ tweet_edit_user_map = {
 }
 
 
-def select_most_interesting_paper(arxiv_abstracts: str, model: str = "claude-haiku"):
+def select_most_interesting_paper(arxiv_abstracts: str, model: str = "gpt-4o-mini"):
     """Select the most interesting paper from a list of candidates."""
     response = run_instructor_query(
         ps.INTERESTING_SYSTEM_PROMPT,
@@ -334,7 +334,7 @@ def select_most_interesting_paper(arxiv_abstracts: str, model: str = "claude-hai
 
 
 def write_tweet(
-    previous_tweets: str,
+    # recent_tweets: str,
     tweet_facts: str,
     tweet_type="new_review",
     model="gpt-4o",
@@ -343,7 +343,8 @@ def write_tweet(
     """Write a tweet about an LLM paper."""
     system_prompt = ps.TWEET_SYSTEM_PROMPT
     user_prompt = tweet_user_map[tweet_type].format(
-        previous_tweets=previous_tweets, tweet_facts=tweet_facts
+        # recent_tweets=recent_tweets, 
+        tweet_facts=tweet_facts
     )
     tweet = run_instructor_query(
         system_prompt,
@@ -397,3 +398,27 @@ def assess_tweet_ownership(
         system_prompt, user_prompt, llm_model=model, process_id="assess_tweet_ownership"
     )
     return tweet_ownership
+
+
+def assess_llm_relevance(tweet_text: str, model: str = "gpt-4o") -> bool:
+    """
+    Assess if a tweet is related to LLMs or similar topics.
+    
+    Args:
+        tweet_text (str): The text content of the tweet
+        model (str): The model to use for assessment
+        
+    Returns:
+        bool: True if the tweet is related to LLMs, False otherwise
+    """
+    system_prompt = ps.LLM_RELEVANCE_SYSTEM_PROMPT
+    user_prompt = ps.LLM_RELEVANCE_USER_PROMPT.format(tweet_text=tweet_text)
+    
+    is_relevant = run_instructor_query(
+        system_prompt,
+        user_prompt,
+        llm_model=model,
+        process_id="assess_llm_relevance"
+    )
+    
+    return bool(int(is_relevant))

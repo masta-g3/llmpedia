@@ -133,7 +133,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
     upd_date = pd.to_datetime(paper["updated"]).strftime("%B %d, %Y")
     tweet_insight = paper["tweet_insight"]
     if not pd.isna(tweet_insight):
-        tweet_insight = tweet_insight.split("):")[1].strip()
+        # tweet_insight = tweet_insight.split("):")[1].strip()
         img_cols[1].markdown(f"🐦 *{tweet_insight}*")
     img_cols[1].markdown(f"#### Published: {pub_date}")
     if pub_date != upd_date:

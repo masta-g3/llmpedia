@@ -2,7 +2,7 @@
 
 set -e  # Exit immediately if any command fails
 set -a
-source /app/.env
+source .env
 set +a
 
 PROJECT_PATH=${PROJECT_PATH:-/app}
@@ -27,9 +27,9 @@ run_step "4: Narrator" "workflow/e0_narrate.py"
 run_step "4.1: Bullet List" "workflow/e1_narrate_bullet.py"
 # run_step "4.2: Data Card" "workflow/e2_data_card.py" # BY DEMAND
 run_step "5: Reviewer" "workflow/f0_review.py"
-# run_step "6: Visual Artist" "workflow/g0_create_thumbnail.py" # HIGH MEMORY
+run_step "6: Visual Artist" "workflow/g0_create_thumbnail.py" # HIGH MEMORY
 run_step "7: Scholar" "workflow/h0_citations.py"
-# run_step "8: Topic Model" "workflow/i0_topic_model.py" # HIGH MEMORY
+run_step "8: Topic Model" "workflow/i0_topic_model.py" # HIGH MEMORY
 run_step "8.1: Similar Documents" "workflow/i1_similar_docs.py"
 # run_step "9: Document Chunker" "workflow/j0_doc_chunker.py" # DEPRECATED
 # run_step "10: Document Embedder" "workflow/k0_rag_embedder.py" # DEPRECATED

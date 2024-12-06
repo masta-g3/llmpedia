@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine, text
 from datetime import datetime
+from typing import Optional
 import streamlit as st
 import pandas as pd
 import psycopg2
@@ -31,7 +32,14 @@ def pg_array_to_list(array_str):
     return array_str.strip("{}").split(",")
 
 
-def log_instructor_query(model_name: str, process_id: str, prompt_tokens: int, completion_tokens: int, prompt_cost: float, completion_cost: float):
+def log_instructor_query(
+    model_name: str,
+    process_id: str,
+    prompt_tokens: int,
+    completion_tokens: int,
+    prompt_cost: float,
+    completion_cost: float,
+):
     """Log token usage in DB."""
     try:
         engine = create_engine(database_url)
@@ -459,7 +467,7 @@ def upload_df_to_db(
         f"@{params['host']}:{params['port']}/{params['dbname']}"
     )
     engine = create_engine(db_url)
-    df = df.replace('\x00', '', regex=True)
+    df = df.replace("\x00", "", regex=True)
     df.to_sql(
         table_name,
         engine,
@@ -742,22 +750,17 @@ def get_extended_notes(arxiv_code: str, level=None, expected_tokens=None):
     return summary[2]
 
 
-def get_recursive_summary(arxiv_code: str) -> str:
-    """Get recursive summary for a given arxiv code."""
-    engine = create_engine(database_url)
-    with engine.begin() as conn:
-        query = text(
-            f"""
-            SELECT arxiv_code, summary
-            FROM recursive_summaries
-            WHERE arxiv_code = '{arxiv_code}';
-            """
-        )
-        result = conn.execute(query)
-        summary = result.fetchone()
-    engine.dispose()
-    result = summary[1] if summary else None
-    return result
+def get_recursive_summary(arxiv_code: Optional[str] = None) -> dict[str, str] | None:
+    """Get recursive summaries for all papers or a specific arxiv code."""
+    query = "SELECT * FROM recursive_summaries"
+    if arxiv_code:
+        query += f" WHERE arxiv_code = '{arxiv_code}';"
+    conn = create_engine(database_url)
+    summaries_df = pd.read_sql(query, conn)
+    summaries_df.set_index("arxiv_code", inplace=True)
+    if arxiv_code:
+        return summaries_df["summary"].iloc[0] if not summaries_df.empty else None
+    return summaries_df["summary"].to_dict()
 
 
 def insert_tweet_review(arxiv_code, review, tstp, tweet_type, rejected=False):

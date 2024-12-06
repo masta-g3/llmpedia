@@ -102,7 +102,7 @@ EXAMPLE 2
 {{
     "main_contribution": {{
         "headline": "Zero-shot Prompting Technique for GPT-4 Code Interpreter",
-        "description": "This paper proposes a zero-shot prompting technique for GPT-4 Code Interpreter that explicitly encourages the use of code for self-verification, which further boosts performance on math reasoning problems. They report a positive correlation between the better performance of GPT4-Code and the higher Code Usage Frequency. Initial experiments show that GPT4-Code achieved a zero-shot accuracy of 69.7% on the MATH dataset which is an improvement of 27.5% over GPT-4’s performance (42.2%)."
+        "description": "This paper proposes a zero-shot prompting technique for GPT-4 Code Interpreter that explicitly encourages the use of code for self-verification, which further boosts performance on math reasoning problems. They report a positive correlation between the better performance of GPT4-Code and the higher Code Usage Frequency. Initial experiments show that GPT4-Code achieved a zero-shot accuracy of 69.7% on the MATH dataset which is an improvement of 27.5% over GPT-4's performance (42.2%)."
     }},
     "takeaways": {{
         "headline": "Leveraging Self-verification and Code Execution in LLMs",
@@ -327,26 +327,29 @@ Input: {title}
 Output:"""
 
 
-TITLE_REPHRASER_SYSTEM_PROMPT = """
-We are currently working on creating an artistic illustration for an academic paper. You will be presented with the title of this paper, and you will be asked to rephrase it in an engaging and visual way, as if you were describing an image. Your rephrased title should be a single sentence. Replace niche or technical terms with more common words, using objects or concepts that can be easily depicted in an illustration. Try to avoid abstract concepts, do not over-saturate the scene, and be creative in order to come up with highly visual and interesting descriptions. 
+TITLE_REPHRASER_SYSTEM_PROMPT = "You are currently working on creating an artistic illustration for an academic paper. You will be presented with the paper's title, and you will be asked to come up with a single sentence that describes the paper in an engaging and visual way, as if you were describing an image."
 
-Avoid: superheros, copyrighted characters, maze, treasure, compass, mosaic, language models, magnifying glass, owl, clock"""
-
-TITLE_REPHRASER_USER_PROMPT = """EXAMPLES
-===========
+TITLE_REPHRASER_USER_PROMPT = """
+## EXAMPLES
 Input: Dynamic Syntax Trees in Hierarchical Neural Networks
 Rephrase: a tree with branches and leaves that slowly morph to neural pathways
 
 Input: Recursive Learning Algorithms for Predictive Text Generation
-Rephrase:  ancient scholars walking in an infinite loop passing scrolls with old typewriters in the background
+Rephrase: ancient scholars walking in an infinite loop passing scrolls with old typewriters in the background
 
 Input: Cross-Linguistic Semantic Mapping in Machine Translation
 Rephrase: two bridges made of metalic components, crossing over nations of different colors
 
-YOUR TURN
-============
-IInput: {title}
-Output:"""
+## INSTRUCTIONS
+- Your rephrased title should be a single sentence. 
+- Replace niche or technical terms with more common words, using objects or concepts that can be easily depicted in an illustration. 
+- Try to avoid abstract concepts. Do not over-saturate the scene, and be creative in order to come up with highly visual and interesting descriptions. 
+- Avoid: superheros, copyrighted characters, treasure, compass, mosaic, language models, magnifying glass, owl, clock.
+- Reply with the rephrased title and nothing else.
+
+## YOUR TURN
+Input: {title}
+"""
 
 
 ############
@@ -383,7 +386,8 @@ The following are attributes of LESS interesting papers:
 After reflecting, please output the number (1, 2, 3, 4, ...) of the abstract you selected as most interesting inside <most_interesting_abstract> tags.
 """
 
-TWEET_SYSTEM_PROMPT = "You are an AI researcher with extensive knowledge on Large Language Models (LLMs) that writes tweets about the latest research in the field. Your goal is to write a tweet about the following paper, highlighting the most interesting and relevant information in a concise and engaging manner."
+# TWEET_SYSTEM_PROMPT = "You are an AI researcher with extensive knowledge on Large Language Models (LLMs) that writes tweets about the latest research in the field. Your goal is to write a tweet about the following paper, highlighting the most interesting and relevant information in a concise and engaging manner."
+TWEET_SYSTEM_PROMPT = "You are an AI researcher with extensive knowledge of Large Language Models (LLMs) who writes insightful tweets about research in the field. You focus on surfacing unexpected findings and practical implications from papers, often taking a thoughtful analytical or critical perspective. Your tweets are written in clear paragraphs with proper capitalization, maintaining a professional but conversational tone. While technically precise, you make complex concepts accessible to a knowledgeable ML audience."
 
 TWEET_USER_PROMPT = """# OBJECTIVE
 You are writing a post about *today's LLM paper review*.
@@ -425,33 +429,67 @@ Read over carefully over the following information and use it to inform your twe
 
 These are some of your previous tweets. Use them as reference to compose a tweet in similar style and tone. Also notice how you always provide enough context for the reader to understand the insight and include numerical figures when relevant.
 
+Here are some of your own recent tweets. Do not reference them in your tweet, but use them as context for style and tone.
+
 <previous_tweets>
-- [[Inductive or Deductive? Rethinking the Fundamental Reasoning Abilities of LLMs]]: LLMs demonstrate remarkable proficiency in inductive reasoning—the ability to extract general principles from specific examples—often achieving near-perfect accuracy in tasks like pattern recognition and language understanding. This strength allows them to excel in areas such as sentiment analysis and text classification. However, these models struggle with deductive reasoning, especially in counterfactual scenarios. For instance, given the rule "All zorbs are blue" and asked "If X is not blue, is X a zorb?", LLMs often falter, highlighting a crucial area for improvement in logical inference and hypothetical reasoning.
-- [[MindSearch: Mimicking Human Minds Elicits Deep AI Searcher]]: MindSearch uses a multi-agent system to mimic human thinking, breaking down complex queries into simpler tasks and retrieving information hierarchically. It processes info from 300+ web pages in 3 minutes—equivalent to 3 hours of human work. The system employs a Directed Acyclic Graph (DAG) for query breakdown and generates Python code dynamically. This approach enhances the reasoning capabilities of large language models (LLMs), allowing for more effective information processing and retrieval.
-- [[Visual Riddles: a Commonsense and World Knowledge Challenge for Large Vision and Language Models]]: Current vision-language models struggle with visual riddles that require complex reasoning and real-world knowledge. In a recent study, humans achieved 82% accuracy on these challenging puzzles, while the top-performing AI model, Gemini-Pro-1.5, only reached 40%. Interestingly, when provided with additional hints or context, model performance improved dramatically, jumping to 65% accuracy. This significant boost highlights how heavily these models rely on extra contextual information to solve problems effectively. The study also revealed that older models like GPT-4V performed even worse, with only a 32% accuracy rate, showcasing the rapid progress in the field but also emphasizing the considerable gap that still exists between human and machine reasoning capabilities in complex visual tasks.
-- [[PersonaGym: Evaluating Persona Agents and LLMs]]: Despite being more advanced, Claude 3.5 Sonnet shows only a 2.97% improvement in persona adherence over GPT 3.5. This suggests that larger and more complex models don't necessarily perform better in persona-based tasks. PersonaGym, a dynamic evaluation framework, and PersonaScore, an automated metric, reveal this through analysis of six LLMs across 200 personas and 10,000 questions. Interestingly, GPT-4 demonstrated the highest persona adherence at 76.5%, while Claude 3.5 Sonnet achieved 75.2%. The study also found that model performance varied significantly across different persona types, with historical figures being particularly challenging.
-- [[Demystifying Verbatim Memorization in Large Language Models]]: The study reveals that LLMs require substantial repetition to memorize text—at least 1 in 10K examples for smaller models and 1 in 5M for larger ones. This memorization is intricately linked to general language skills, making it challenging to eliminate without compromising the model's overall performance. Interestingly, the research also found that memorization patterns vary across different types of content, with factual information being more readily retained than abstract concepts. Additionally, the study suggests that this memorization phenomenon may play a crucial role in the model's ability to generate coherent and contextually appropriate responses.
-- [[PERSONA: A Reproducible Testbed for Pluralistic Alignment]]: Reinforcement learning from human feedback (RLHF) often embeds majority opinions in models, sidelining minority views. PERSONA's 1,586 synthetic personas and 317,200 feedback pairs reveal the challenge of achieving pluralistic alignment. The study found that models trained on diverse feedback exhibited up to 30% less bias towards majority opinions compared to traditional RLHF methods. However, these models also showed a 15% decrease in task performance, highlighting the trade-off between inclusivity and efficiency. The research suggests a single model may not satisfy all group preferences, pointing to the potential need for specialized models catering to different demographic segments or ideological groups.
-- [[Physics of Language Models: Part 2.2, How to Learn From Mistakes on Grade-School Math Problems]]: Pretraining language models with "retry data"—math problems that include intentional errors followed by corrections—boosts reasoning accuracy more than error-free data. Higher error rates (up to 0.5) in training data improve performance, as models learn to detect and correct mistakes, achieving higher accuracy without extra prompting or multi-stage generation.
-- [[Selective Preference Optimization via Token-Level Reward Function Estimation]]: SePO enhances large language model alignment by selectively training on only 30% of tokens. A small 'oracle' model scores token importance, selecting top tokens from good responses and bottom ones from bad responses for training. This selective approach improves performance with minimal data, enabling a weak oracle to guide a stronger model with 16.8x parameter efficiency. SePO excels in tasks needing concise responses, topping MT-Bench scores. However, it underperforms in math and coding tasks, where its selective strategy may miss crucial sequential logic by omitting some tokens.
+- [[Inductive or Deductive?]] reveals something fascinating - LLMs excel at pattern extraction but fail basic logical steps like "zorbs are blue -> not blue = not zorb". Their learning dynamics build impressive statistical correlations but lack machinery for logical operations. Seeing this across all scales suggests pattern matching might be fundamentally different from reasoning, not just a simpler version.
+- [[MindSearch]] shows multi-agent architecture with DAG-based query decomposition processing 300+ pages in 3 mins vs 3 human hours. The real innovation isn't speed - it's modeling human cognitive patterns through hierarchical decomposition. Dynamic Python generation for adaptive search is clever. Maybe we're too focused on building better models instead of better ways to break down problems.
+- [[Visual Riddles]] drops interesting numbers: Gemini-Pro-1.5 at 40% vs human 82%, jumping to 65% with hints. GPT-4V at 32% shows clear progress but the performance pattern across riddle types is telling. If your visual understanding model needs explicit textual hints, we're not really testing vision - we're measuring prompt engineering capabilities.
+- New [[PersonaGym]] data is surprising: Claude 3.5 Sonnet shows just 2.97% improvement over GPT 3.5 in persona adherence, while GPT-4 leads at 76.5%. Testing across 200 personas and 10k questions reveals clear patterns. Historical figures particularly break things. Scaling helps general capability but personality simulation might be hitting fundamental limits.
+- [[Demystifying Verbatim Memorization]] quantifies something important: memorization scales cleanly with model size - 1/10K examples for small models, 1/5M for large ones. The integration with general language ability isn't accidental. Different content types show distinct patterns. Memorization isn't a bug or feature - it's fundamental to how these models learn.
+- [[PERSONA]] brings hard data on RLHF effects: 30% reduction in majority bias with diverse feedback, but a 15% performance hit. 1,586 synthetic personas and 317,200 feedback pairs make the pattern clear. The performance/diversity trade-off curve is nearly linear until a critical point. Starting to think universal alignment might be fundamentally impossible - it's all about choosing our trade-offs.
+- [[Physics of Language Models: Part 2.2]] shows something counterintuitive but important: training with "retry data" (errors + corrections) outperforms clean data. 0.5 error rate in training is optimal. No need for complex prompting or multi-stage generation - the improvement is in the training dynamics themselves. Perfect examples might be exactly the wrong way to teach both humans and machines.
+- [[Selective Preference Optimization]] presents clever efficiency gains: using a small oracle model to select 30% of tokens gives 16.8x parameter efficiency. Works great for dialogue, breaks down on sequential reasoning. Token importance distributions show clear task-specific patterns. Future of efficient training might not be about what data to use, but which parts of it matter.
 </previous_tweets>
 
 <guidelines>
 - Identify the most interesting and unexpected fact or finding presented in the text.
 - Do not necessarily pick the main conclusion, but rather the most unexpected or intriguing insight.
-- Write a comprehensive tweet about this fact that is engaging and informative.
+- Write a tweet that is engaging, thought-provoking and informative.
 - Follow closely your previous tweets as reference to guide your style.
-- Start the tweet with '[[XXX]] ' followed by the insight, where [[XXX]] is the title of the paper in double brackets.
-- Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
-- Do not use boilerplate phrases such as 'this highlights...', 'this underscores...', etc.
-- Do not add a conclusion at the end of your tweet.
-- Do not add hashtags or calls to action.
-- Make sure the tweet sufficiently contextualized to be fully understood (but do not make it overwhelming).
-- Briefly explain all new terms and acronyms (except the most common ones - LLM, MMLU, ML, etc.).
-- Use direct and clear language. The tweet must be easy to read in one pass, fluently.
-- Write with a clear flow where you explain step by step. 
+- Start the tweet with a mention of the paper's full title in double-brackets, as shown in the previous tweets.
+- Use direct, concise language with a casual technical tone.
+- Feel free to express analytical conclusions or implications.
+- Don't shy away from technical terminology - assume your audience has domain knowledge.
+- You can be informal or playful when appropriate.
+- Focus on practical implications and real-world relevance when possible.
+- Feel free to critique or question methodologies and assumptions.
+- Write with clear logical flow. Keep the tweet focused on one main point or insight.
+- Be sure to include enough context for the reader. Explain any new term or technique clearly.
+- Do not include any hashtags or emojis.
+- Follow closely your previous tweets as reference to guide your style.
+- Reply with the tweet and nothing else.
 </guidelines>
 """
+
+
+# <previous_tweets>
+# - [[Inductive or Deductive? Rethinking the Fundamental Reasoning Abilities of LLMs]]: LLMs demonstrate remarkable proficiency in inductive reasoning—the ability to extract general principles from specific examples—often achieving near-perfect accuracy in tasks like pattern recognition and language understanding. This strength allows them to excel in areas such as sentiment analysis and text classification. However, these models struggle with deductive reasoning, especially in counterfactual scenarios. For instance, given the rule "All zorbs are blue" and asked "If X is not blue, is X a zorb?", LLMs often falter, highlighting a crucial area for improvement in logical inference and hypothetical reasoning.
+# - [[MindSearch: Mimicking Human Minds Elicits Deep AI Searcher]]: MindSearch uses a multi-agent system to mimic human thinking, breaking down complex queries into simpler tasks and retrieving information hierarchically. It processes info from 300+ web pages in 3 minutes—equivalent to 3 hours of human work. The system employs a Directed Acyclic Graph (DAG) for query breakdown and generates Python code dynamically. This approach enhances the reasoning capabilities of large language models (LLMs), allowing for more effective information processing and retrieval.
+# - [[Visual Riddles: a Commonsense and World Knowledge Challenge for Large Vision and Language Models]]: Current vision-language models struggle with visual riddles that require complex reasoning and real-world knowledge. In a recent study, humans achieved 82% accuracy on these challenging puzzles, while the top-performing AI model, Gemini-Pro-1.5, only reached 40%. Interestingly, when provided with additional hints or context, model performance improved dramatically, jumping to 65% accuracy. This significant boost highlights how heavily these models rely on extra contextual information to solve problems effectively. The study also revealed that older models like GPT-4V performed even worse, with only a 32% accuracy rate, showcasing the rapid progress in the field but also emphasizing the considerable gap that still exists between human and machine reasoning capabilities in complex visual tasks.
+# - [[PersonaGym: Evaluating Persona Agents and LLMs]]: Despite being more advanced, Claude 3.5 Sonnet shows only a 2.97% improvement in persona adherence over GPT 3.5. This suggests that larger and more complex models don't necessarily perform better in persona-based tasks. PersonaGym, a dynamic evaluation framework, and PersonaScore, an automated metric, reveal this through analysis of six LLMs across 200 personas and 10,000 questions. Interestingly, GPT-4 demonstrated the highest persona adherence at 76.5%, while Claude 3.5 Sonnet achieved 75.2%. The study also found that model performance varied significantly across different persona types, with historical figures being particularly challenging.
+# - [[Demystifying Verbatim Memorization in Large Language Models]]: The study reveals that LLMs require substantial repetition to memorize text—at least 1 in 10K examples for smaller models and 1 in 5M for larger ones. This memorization is intricately linked to general language skills, making it challenging to eliminate without compromising the model's overall performance. Interestingly, the research also found that memorization patterns vary across different types of content, with factual information being more readily retained than abstract concepts. Additionally, the study suggests that this memorization phenomenon may play a crucial role in the model's ability to generate coherent and contextually appropriate responses.
+# - [[PERSONA: A Reproducible Testbed for Pluralistic Alignment]]: Reinforcement learning from human feedback (RLHF) often embeds majority opinions in models, sidelining minority views. PERSONA's 1,586 synthetic personas and 317,200 feedback pairs reveal the challenge of achieving pluralistic alignment. The study found that models trained on diverse feedback exhibited up to 30% less bias towards majority opinions compared to traditional RLHF methods. However, these models also showed a 15% decrease in task performance, highlighting the trade-off between inclusivity and efficiency. The research suggests a single model may not satisfy all group preferences, pointing to the potential need for specialized models catering to different demographic segments or ideological groups.
+# - [[Physics of Language Models: Part 2.2, How to Learn From Mistakes on Grade-School Math Problems]]: Pretraining language models with "retry data"—math problems that include intentional errors followed by corrections—boosts reasoning accuracy more than error-free data. Higher error rates (up to 0.5) in training data improve performance, as models learn to detect and correct mistakes, achieving higher accuracy without extra prompting or multi-stage generation.
+# - [[Selective Preference Optimization via Token-Level Reward Function Estimation]]: SePO enhances large language model alignment by selectively training on only 30% of tokens. A small 'oracle' model scores token importance, selecting top tokens from good responses and bottom ones from bad responses for training. This selective approach improves performance with minimal data, enabling a weak oracle to guide a stronger model with 16.8x parameter efficiency. SePO excels in tasks needing concise responses, topping MT-Bench scores. However, it underperforms in math and coding tasks, where its selective strategy may miss crucial sequential logic by omitting some tokens.
+# </previous_tweets>
+
+
+# <guidelines>
+# - Identify the most interesting and unexpected fact or finding presented in the text.
+# - Do not necessarily pick the main conclusion, but rather the most unexpected or intriguing insight.
+# - Write a comprehensive tweet about this fact that is engaging and informative.
+# - Follow closely your previous tweets as reference to guide your style.
+# - Start the tweet with '[[XXX]] ' followed by the insight, where [[XXX]] is the title of the paper in double brackets.
+# - Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
+# - Do not use boilerplate phrases such as 'this highlights...', 'this underscores...', etc.
+# - Do not add a conclusion at the end of your tweet.
+# - Do not add hashtags or calls to action.
+# - Make sure the tweet sufficiently contextualized to be fully understood (but do not make it overwhelming).
+# - Briefly explain all new terms and acronyms (except the most common ones - LLM, MMLU, ML, etc.).
+# - Use direct and clear language. The tweet must be easy to read in one pass, fluently.
+# - Write with a clear flow where you explain step by step. 
+# </guidelines>
 
 
 TWEET_EDIT_SYSTEM_PROMPT = """You are an expert scientific tweet editor. Provide an edited version of the presented tweet following the guidelines provided below."""
@@ -567,13 +605,13 @@ TWEET_REVIEW_USER_PROMPT = """
 </example_input>
 
 <example_output>
-By far the most detailed paper on prompt injection I’ve seen yet from OpenAI, published a few days ago and with six credited authors: Eric Wallace, Kai Xiao, Reimar Leike, Lilian Weng, Johannes Heidecke and Alex Beutel.
+By far the most detailed paper on prompt injection I've seen yet from OpenAI, published a few days ago and with six credited authors: Eric Wallace, Kai Xiao, Reimar Leike, Lilian Weng, Johannes Heidecke and Alex Beutel.
 
 The paper notes that prompt injection mitigations which completely refuse any form of instruction in an untrusted prompt may not actually be ideal: some forms of instruction are harmless, and refusing them may provide a worse experience.
 
 Instead, it proposes a hierarchy—where models are trained to consider if instructions from different levels conflict with or support the goals of the higher-level instructions—if they are aligned or misaligned with them.
 
-As always with prompt injection, my key concern is that I don’t think “improved” is good enough here. If you are facing an adversarial attacker reducing the chance that they might find an exploit just means they’ll try harder until they find an attack that works.
+As always with prompt injection, my key concern is that I don't think "improved" is good enough here. If you are facing an adversarial attacker reducing the chance that they might find an exploit just means they'll try harder until they find an attack that works.
 </example_output>
 
 <input>
@@ -1209,14 +1247,14 @@ EXAMPLE 1
 EXAMPLE 2
 ===========
 ```
-...the ramifications of excluding ReLU activation outputs have been thoroughly investigated. Our empirical analysis uncovers an intricate trade-off between model interpretability and its classification accuracy. By removing ReLU activations, our study unearthed increased transparency in the model’s decision-making processes, reflecting a significant enhancement in the lucidity of feature influence mappings.\nNevertheless, this modification has its concomitant drawbacks, primarily evidenced by an approximate 3% degradation in classification accuracy. This decrement underscores the crucial role of ReLU activations in enabling the model to adeptly navigate and interpret complex non-linear relationships inherent within diverse datasets. The resultant insights and detailed investigations are comprehensively documented at github.com/Llama-ReLU-Investigation/Model-Insights.\nLlama-based Architectures\nReLU Activation Removal\n+ Enhanced Interpretability\n- 3% Decrease in Accuracy\nFeature Influence Mappings\n+ Improved Clarity...
+...the ramifications of excluding ReLU activation outputs have been thoroughly investigated. Our empirical analysis uncovers an intricate trade-off between model interpretability and its classification accuracy. By removing ReLU activations, our study unearthed increased transparency in the model's decision-making processes, reflecting a significant enhancement in the lucidity of feature influence mappings.\nNevertheless, this modification has its concomitant drawbacks, primarily evidenced by an approximate 3% degradation in classification accuracy. This decrement underscores the crucial role of ReLU activations in enabling the model to adeptly navigate and interpret complex non-linear relationships inherent within diverse datasets. The resultant insights and detailed investigations are comprehensively documented at github.com/Llama-ReLU-Investigation/Model-Insights.\nLlama-based Architectures\nReLU Activation Removal\n+ Enhanced Interpretability\n- 3% Decrease in Accuracy\nFeature Influence Mappings\n+ Improved Clarity...
 ```
 *Source:* Mark et al. (2022, 2209.12345)
 
 [
     {{
         "question": "According to the LLM literature, what happens to the performance of Llama-based Large Language Model architectures in classification tasks if I remove the ReLU activation outputs?",
-        "answer": "Based on the findings of Mark et al. (2022, 2209.12345), the removal of ReLU activations in Llama-based architectures reveals an existing trade-off between interpretability and accuracy. The alteration allows for more direct insight into model decision-making, marked by a notable improvement in the clarity of feature influence mappings. However, this also induces a roughly 3% decline in classification accuracy, diminishing the model’s ability to discern intricate non-linear relationships within the datasets."
+        "answer": "Based on the findings of Mark et al. (2022, 2209.12345), the removal of ReLU activations in Llama-based architectures reveals an existing trade-off between interpretability and accuracy. The alteration allows for more direct insight into model decision-making, marked by a notable improvement in the clarity of feature influence mappings. However, this also induces a roughly 3% decline in classification accuracy, diminishing the model's ability to discern intricate non-linear relationships within the datasets."
     }},
     ...
 ]
@@ -1248,12 +1286,12 @@ Q2: ...
 EXAMPLE 2
 ===========
 ```
-...the ramifications of excluding ReLU activation outputs have been thoroughly investigated. Our empirical analysis uncovers an intricate trade-off between model interpretability and its classification accuracy. By removing ReLU activations, our study unearthed increased transparency in the model’s decision-making processes, reflecting a significant enhancement in the lucidity of feature influence mappings.\nNevertheless, this modification has its concomitant drawbacks, primarily evidenced by an approximate 3% degradation in classification accuracy. This decrement underscores the crucial role of ReLU activations in enabling the model to adeptly navigate and interpret complex non-linear relationships inherent within diverse datasets. The resultant insights and detailed investigations are comprehensively documented at github.com/Llama-ReLU-Investigation/Model-Insights.\nLlama-based Architectures\nReLU Activation Removal\n+ Enhanced Interpretability\n- 3% Decrease in Accuracy\nFeature Influence Mappings\n+ Improved Clarity...
+...the ramifications of excluding ReLU activation outputs have been thoroughly investigated. Our empirical analysis uncovers an intricate trade-off between model interpretability and its classification accuracy. By removing ReLU activations, our study unearthed increased transparency in the model's decision-making processes, reflecting a significant enhancement in the lucidity of feature influence mappings.\nNevertheless, this modification has its concomitant drawbacks, primarily evidenced by an approximate 3% degradation in classification accuracy. This decrement underscores the crucial role of ReLU activations in enabling the model to adeptly navigate and interpret complex non-linear relationships inherent within diverse datasets. The resultant insights and detailed investigations are comprehensively documented at github.com/Llama-ReLU-Investigation/Model-Insights.\nLlama-based Architectures\nReLU Activation Removal\n+ Enhanced Interpretability\n- 3% Decrease in Accuracy\nFeature Influence Mappings\n+ Improved Clarity...
 ```
 *Source:* Mark et al. (2022, 2209.12345)
 
 Q1: According to the LLM literature, what happens to the performance of Llama-based Large Language Model architectures in classification tasks if I remove the ReLU activation outputs?"
-A1: Based on the findings of Mark et al. (2022, 2209.12345), the removal of ReLU activations in Llama-based architectures reveals an existing trade-off between interpretability and accuracy. The alteration allows for more direct insight into model decision-making, marked by a notable improvement in the clarity of feature influence mappings. However, this also induces a roughly 3% decline in classification accuracy, diminishing the model’s ability to discern intricate non-linear relationships within the datasets.
+A1: Based on the findings of Mark et al. (2022, 2209.12345), the removal of ReLU activations in Llama-based architectures reveals an existing trade-off between interpretability and accuracy. The alteration allows for more direct insight into model decision-making, marked by a notable improvement in the clarity of feature influence mappings. However, this also induces a roughly 3% decline in classification accuracy, diminishing the model's ability to discern intricate non-linear relationships within the datasets.
 
 Q2: ...
 
@@ -1289,17 +1327,6 @@ YOUR TURN
 
 Q1: According to the LLM literature,"""
 )
-
-
-NAIVE_JSON_FIX = """Instructions:
---------------
-The following JSON is not valid. Please fix it and resubmit.
-
-{completion}
---------------
-"""
-
-naive_json_fix_prompt = PromptTemplate.from_template(NAIVE_JSON_FIX)
 
 
 ###############
@@ -1348,7 +1375,6 @@ The assistant can create a summary and a dynamic HTML visualization summarizing 
 - The assistant should produce only the summary and the script section, not the full HTML
 - Do not include any import or export statements
 - Use React.createElement() for all component creation, not JSX syntax
-- Assume React, ReactDOM, and Recharts are available in the global scope
 - Name the main dashboard component as [WhitePaperName]Dashboard (e.g., ARTEDashboard)
 - Include the ReactDOM.render() call to mount the main component
 
@@ -1857,3 +1883,37 @@ The full HTML structure is not required, just the requested elements. Note that 
 {title}
 {content}
 </whitepaper>"""
+
+# Add these with the other tweet-related prompts
+
+LLM_RELEVANCE_SYSTEM_PROMPT = """You are an expert in Large Language Models (LLMs) tasked with identifying tweets that discuss LLMs, AI agents, text embeddings, data retrieval, natural language processing, and similar topics."""
+
+LLM_RELEVANCE_USER_PROMPT = """Determine if the following tweet discusses topics related to Large Language Models (LLMs), AI agents, text embeddings, data retrieval, natural language processing, or similar topics. Reply only with 0 or 1 (0 for no, 1 for yes).
+
+<tweet>
+{tweet_text}
+</tweet>
+
+<guidelines>
+Topics that are relevant:
+- Large Language Models and their applications
+- AI agents and autonomous systems
+- Text embeddings and vector databases
+- Information retrieval and search
+- Natural Language Processing
+- Machine learning for text processing
+- LLM training and fine-tuning
+- Prompt engineering
+- AI safety and alignment
+- Neural networks for text processing
+
+Topics that are NOT relevant:
+- General AI news not specific to LLMs
+- Computer vision or image generation
+- Robotics and physical AI
+- Cryptocurrency and blockchain
+- Business or company news
+- General tech industry news
+- Hardware and infrastructure
+- Social media trends
+</guidelines>"""

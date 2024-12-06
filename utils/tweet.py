@@ -26,103 +26,121 @@ USERNAME = os.getenv("TWITTER_EMAIL")
 PASSWORD = os.getenv("TWITTER_PASSWORD")
 PHONE = os.getenv("TWITTER_PHONE")
 
-def setup_browser(logger: logging.Logger):
+def setup_browser(logger: logging.Logger, headless: bool = True):
     logger.info("Setting up browser")
-    
+
     firefox_options = FirefoxOptions()
-    
+
     # Set a proper user agent
-    firefox_options.set_preference("general.useragent.override", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
-    
+    firefox_options.set_preference(
+        "general.useragent.override",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    )
+
     # Additional preferences to make the browser appear more like a regular user
     firefox_options.set_preference("dom.webdriver.enabled", False)
     firefox_options.set_preference("useAutomationExtension", False)
     firefox_options.set_preference("privacy.trackingprotection.enabled", False)
-    
+
     # Enable JavaScript and other important features
     firefox_options.set_preference("javascript.enabled", True)
     firefox_options.set_preference("dom.webnotifications.enabled", False)
     firefox_options.set_preference("network.http.connection-timeout", 30)
-    
+
     # Set proper window size
     firefox_options.add_argument("--width=1920")
     firefox_options.add_argument("--height=1080")
-    firefox_options.add_argument("--headless")
+    if headless:
+        firefox_options.add_argument("--headless")
     firefox_options.add_argument("--no-sandbox")
     firefox_options.add_argument("--disable-dev-shm-usage")
-    
+
     # Set up virtual display
     os.system("Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &")
     os.environ["DISPLAY"] = ":99"
-    
+
     try:
         service = FirefoxService()
         driver = webdriver.Firefox(options=firefox_options, service=service)
         driver.set_page_load_timeout(30)
         driver.set_window_size(1920, 1080)
-        
+
         # Execute JavaScript to modify navigator properties
-        driver.execute_script("""
+        driver.execute_script(
+            """
             Object.defineProperty(navigator, 'webdriver', {
                 get: () => undefined
             });
-        """)
-        
+        """
+        )
+
     except Exception as e:
         logger.error(f"Failed to create driver with default service: {str(e)}")
         try:
-            geckodriver_path = os.getenv("GECKODRIVER_PATH", "/usr/local/bin/geckodriver")
+            geckodriver_path = os.getenv(
+                "GECKODRIVER_PATH", "/usr/local/bin/geckodriver"
+            )
             service = FirefoxService(executable_path=geckodriver_path)
             driver = webdriver.Firefox(options=firefox_options, service=service)
         except Exception as e:
-            logger.error(f"Failed to create driver with explicit geckodriver path: {str(e)}")
+            logger.error(
+                f"Failed to create driver with explicit geckodriver path: {str(e)}"
+            )
             raise
 
     logger.info("Browser setup complete")
     return driver
 
+
 def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
     """Login to Twitter within any page of its domain."""
     logger.info("Attempting to log in to Twitter")
-    
+
     # Add page load debugging
     logger.info("Current URL before navigation: " + driver.current_url)
-    
+
     driver.get("https://x.com/i/flow/login")
     logger.info("Navigation completed")
     logger.info("Current URL after navigation: " + driver.current_url)
     logger.info("Page title: " + driver.title)
-    
+
     # Log page source to see what we're actually getting
     logger.info("Page source snippet: " + driver.page_source[:500])
-    
+
     # Add a small delay to ensure page is loaded
     time.sleep(5)
-    
+
     # Try to force JavaScript execution
     driver.execute_script("window.dispatchEvent(new Event('load'))")
     driver.execute_script("document.dispatchEvent(new Event('DOMContentLoaded'))")
-    
+
     logger.info("Attempting to locate username field")
     # Try different selectors to see which ones are present
     selectors_present = {
-        'username_autocomplete': len(driver.find_elements(By.CSS_SELECTOR, 'input[autocomplete="username"]')),
-        'any_input': len(driver.find_elements(By.TAG_NAME, 'input')),
-        'any_div': len(driver.find_elements(By.TAG_NAME, 'div'))
+        "username_autocomplete": len(
+            driver.find_elements(By.CSS_SELECTOR, 'input[autocomplete="username"]')
+        ),
+        "any_input": len(driver.find_elements(By.TAG_NAME, "input")),
+        "any_div": len(driver.find_elements(By.TAG_NAME, "div")),
     }
     logger.info(f"Elements found on page: {selectors_present}")
 
     try:
         input_field = WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.TAG_NAME, 'input'))
+            EC.presence_of_element_located((By.TAG_NAME, "input"))
         )
-        logger.info("Found an input field with attributes: " + str(input_field.get_attribute('outerHTML')))
+        logger.info(
+            "Found an input field with attributes: "
+            + str(input_field.get_attribute("outerHTML"))
+        )
     except Exception as e:
         logger.error(f"Could not find any input field: {str(e)}")
-    
+
     # Login attempt
     username_field = WebDriverWait(driver, 15).until(
-        EC.visibility_of_element_located((By.CSS_SELECTOR, 'input[autocomplete="username"]'))
+        EC.visibility_of_element_located(
+            (By.CSS_SELECTOR, 'input[autocomplete="username"]')
+        )
     )
     logger.info("Username field found successfully")
     username_field.send_keys(USERNAME)
@@ -149,14 +167,19 @@ def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
     logger.info("Successfully logged in to Twitter")
 
 
-def navigate_to_profile(browser: webdriver.Firefox, profile_url: str, logger: logging.Logger):
+def navigate_to_profile(
+    browser: webdriver.Firefox, profile_url: str, logger: logging.Logger
+):
     """Login to Twitter and navigate to a profile."""
     logger.info(f"Navigating to profile: {profile_url}")
     browser.get(profile_url)
 
 
 def verify_tweet_elements(
-  driver: webdriver.Firefox, expected_content: str, expected_image_count, logger: logging.Logger
+    driver: webdriver.Firefox,
+    expected_content: str,
+    expected_image_count,
+    logger: logging.Logger,
 ) -> Tuple[bool, str]:
     """Verify the presence of expected elements in a tweet composition."""
     logger.info("Verifying tweet elements")
@@ -165,11 +188,11 @@ def verify_tweet_elements(
     main_post_btn = WebDriverWait(driver, 30).until(
         EC.presence_of_element_located((By.XPATH, '//div[@aria-label="Post text"]'))
     )
-    
+
     # Scroll element into view and add a small delay
     driver.execute_script("arguments[0].scrollIntoView(true);", main_post_btn)
     time.sleep(1)
-    
+
     # Try to click using JavaScript
     try:
         driver.execute_script("arguments[0].click();", main_post_btn)
@@ -177,6 +200,7 @@ def verify_tweet_elements(
         logger.warning(f"JavaScript click failed: {str(e)}")
         # Fallback to regular click with actions
         from selenium.webdriver.common.action_chains import ActionChains
+
         actions = ActionChains(driver)
         actions.move_to_element(main_post_btn).click().perform()
 
@@ -218,8 +242,14 @@ def verify_tweet_elements(
     logger.info(f"Tweet element verification result: {verification_message}")
     return True, verification_message
 
+
 def send_tweet(
-    tweet_content: str, tweet_image_path: str, tweet_page_path: str, post_tweet: str, author_tweet: dict, logger: logging.Logger
+    tweet_content: str,
+    tweet_image_path: str,
+    tweet_page_path: str,
+    post_tweet: str,
+    author_tweet: dict,
+    logger: logging.Logger,
 ) -> bool:
     """Send a tweet with content and images using Selenium."""
     logger.info("Starting tweet sending process")
@@ -235,9 +265,7 @@ def send_tweet(
 
     # Enter tweet content
     tweet_textarea = WebDriverWait(driver, 60).until(
-        EC.presence_of_element_located(
-            (By.XPATH, '//div[@aria-label="Post text"]')
-        )
+        EC.presence_of_element_located((By.XPATH, '//div[@aria-label="Post text"]'))
     )
     tweet_textarea.send_keys(tweet_content)
 
@@ -320,17 +348,22 @@ def send_tweet(
 
     # Find and click the 'Post all' button
     tweet_all_button = WebDriverWait(driver, 30).until(
-        EC.element_to_be_clickable((
-            By.XPATH,
-            "//button[@data-testid='tweetButton']//span[contains(text(), 'Post all')]"
-        ))
+        EC.element_to_be_clickable(
+            (
+                By.XPATH,
+                "//button[@data-testid='tweetButton']//span[contains(text(), 'Post all')]",
+            )
+        )
     )
 
     # Highlight for visual confirmation
-    driver.execute_script("""
+    driver.execute_script(
+        """
         arguments[0].style.backgroundColor = '#ff0';
         arguments[0].style.border = '2px solid red';
-    """, tweet_all_button)
+    """,
+        tweet_all_button,
+    )
 
     # Optionally sleep before sending the tweet
     sleep_duration = 5  # Sleep between 10 seconds and 45 minutes
@@ -340,8 +373,9 @@ def send_tweet(
     time.sleep(5)
     logger.info("Tweet sent successfully")
     driver.quit()
-    
+
     return True
+
 
 def extract_author_tweet_data(tweet_elem, paper_title: str, paper_authors: str) -> dict:
     """Extract data from a single tweet element and assess if it's from an author."""
@@ -381,19 +415,20 @@ def extract_author_tweet_data(tweet_elem, paper_title: str, paper_authors: str) 
         logger.warning(f"Error extracting tweet details: {str(e)}")
         return None
 
+
 def find_paper_author_tweet(arxiv_code: str, logger: logging.Logger) -> dict:
     """
     Find a tweet from a paper's author discussing their paper.
-    
+
     Args:
         arxiv_code (str): The arXiv code of the paper
         logger (logging.Logger): Logger instance
-        
+
     Returns:
         dict: Tweet data if found, None if not found
     """
     logger.info(f"Searching for author tweet for paper {arxiv_code}")
-    
+
     # Get paper details
     paper_details = db.load_arxiv(arxiv_code)
     paper_title = paper_details.loc[arxiv_code, "title"]
@@ -402,7 +437,7 @@ def find_paper_author_tweet(arxiv_code: str, logger: logging.Logger) -> dict:
     browser = setup_browser(logger)
     # try:
     login_twitter(browser, logger)
-    
+
     # Setup search
     search_url = f"https://twitter.com/search?q='{paper_title}'&src=typed_query"
     browser.get(search_url)
@@ -428,7 +463,7 @@ def find_paper_author_tweet(arxiv_code: str, logger: logging.Logger) -> dict:
                 tweets_checked += 1
                 if tweets_checked > max_tweets_to_check:
                     break
-                    
+
                 tweet_data = extract_author_tweet_data(
                     tweet_elem, paper_title, paper_authors
                 )
@@ -438,11 +473,13 @@ def find_paper_author_tweet(arxiv_code: str, logger: logging.Logger) -> dict:
                     return tweet_data
 
             # Scroll and check progress
-            last_height = browser.execute_script("return document.body.scrollHeight")
-            browser.execute_script("window.scrollBy(0, window.innerHeight);")
-            time.sleep(random.uniform(2, 4))
-
-            if browser.execute_script("return document.body.scrollHeight") == last_height:
+            last_height = browser.execute_script("return document.documentElement.scrollHeight")
+            browser.execute_script("window.scrollTo(0, document.documentElement.scrollHeight);")
+            time.sleep(3)  # Wait for content to load
+            
+            new_height = browser.execute_script("return document.documentElement.scrollHeight")
+            if new_height == last_height:
+                logger.info("No new content loaded, breaking loop")
                 break
 
         except Exception as e:
@@ -452,15 +489,117 @@ def find_paper_author_tweet(arxiv_code: str, logger: logging.Logger) -> dict:
     logger.info(f"Checked {tweets_checked} tweets, no author tweet found")
     browser.quit()
     return None
-        
+
     # except Exception as e:
     #     logger.error(f"An error occurred while searching for author tweet: {str(e)}")
     #     return None
     # finally:
-        # browser.quit()
+    # browser.quit()
+
+
+def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50) -> list[dict]:
+    """
+    Collect tweets about LLMs from the Twitter home feed.
+
+    Args:
+        logger (logging.Logger): Logger instance
+        max_tweets (int): Maximum number of tweets to check before stopping
+
+    Returns:
+        list[dict]: List of relevant tweet data dictionaries
+    """
+    logger.info("Starting collection of LLM-related tweets")
+
+    browser = setup_browser(logger)
+    relevant_tweets = []
+    tweets_checked = 0
+
+    try:
+        # Login and navigate to home
+        login_twitter(browser, logger)
+        browser.get("https://twitter.com/home")
+        time.sleep(5)
+
+        while tweets_checked < max_tweets:
+            try:
+                # Wait for and get tweets
+                WebDriverWait(browser, 30).until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, 'article[data-testid="tweet"]')
+                    )
+                )
+                tweet_elements = browser.find_elements(
+                    By.CSS_SELECTOR, 'article[data-testid="tweet"]'
+                )
+
+                # Process new tweets
+                for tweet_elem in tweet_elements:
+                    tweets_checked += 1
+                    if tweets_checked > max_tweets:
+                        break
+
+                    try:
+                        # Extract tweet data
+                        user_name_elem = tweet_elem.find_element(
+                            By.CSS_SELECTOR, 'div[data-testid="User-Name"]'
+                        )
+                        user_name_parts = user_name_elem.text.split("\n")
+
+                        tweet_data = {
+                            "text": tweet_elem.find_element(
+                                By.CSS_SELECTOR, 'div[data-testid="tweetText"]'
+                            ).text,
+                            "timestamp": tweet_elem.find_element(
+                                By.TAG_NAME, "time"
+                            ).get_attribute("datetime"),
+                            "author": user_name_parts[0],
+                            "username": user_name_parts[1],
+                            "link": tweet_elem.find_element(
+                                By.CSS_SELECTOR, 'a[href*="/status/"]'
+                            ).get_attribute("href"),
+                        }
+
+                        # Check if tweet is LLM-related using verification function
+                        if vs.assess_llm_relevance(tweet_text=tweet_data["text"]):
+                            logger.info(
+                                # f"Found relevant tweet from: {tweet_data['username']}"
+                            )
+                            relevant_tweets.append(tweet_data)
+
+                    except Exception as e:
+                        # logger.warning(f"Error extracting tweet details: {str(e)}")
+                        continue
+
+                # Scroll and check progress
+                last_height = browser.execute_script("return document.documentElement.scrollHeight")
+                browser.execute_script("window.scrollTo(0, document.documentElement.scrollHeight);")
+                time.sleep(3)  # Wait for content to load
+                
+                new_height = browser.execute_script("return document.documentElement.scrollHeight")
+                if new_height == last_height:
+                    logger.info("No new content loaded, breaking loop")
+                    break
+
+            except Exception as e:
+                logger.error(f"Error during tweet collection: {str(e)}")
+                break
+
+        logger.info(
+            f"Checked {tweets_checked} tweets, found {len(relevant_tweets)} relevant tweets"
+        )
+        return relevant_tweets
+
+    except Exception as e:
+        logger.error(f"An error occurred while collecting LLM tweets: {str(e)}")
+        return []
+
+    finally:
+        browser.quit()
+
 
 if __name__ == "__main__":
     from utils.logging_utils import setup_logger
+
     logger = setup_logger(__name__, "tweet_test.log")
     logger.info("Starting browser...")
     send_tweet(
@@ -468,6 +607,6 @@ if __name__ == "__main__":
         "/Users/manuelrueda/Documents/python/llmpedia/data/arxiv_art/1902.03545.png",
         "/Users/manuelrueda/Documents/python/llmpedia/data/arxiv_art/1902.03545.png",
         "XXX",
-        logger
+        logger,
     )
     logger.info("Browser started.")
