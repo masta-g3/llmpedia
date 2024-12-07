@@ -114,7 +114,7 @@ def scrape_huggingface_papers(start_date, end_date=None):
 def scrape_rsrch_space_papers(start_date, end_date=None):
     if end_date is None:
         end_date = start_date
-
+    
     start_date = datetime.strptime(start_date, "%Y-%m-%d")
     end_date = datetime.strptime(end_date, "%Y-%m-%d")
 

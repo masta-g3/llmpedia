@@ -103,7 +103,12 @@ ENV GECKODRIVER_PATH=/usr/local/bin/geckodriver
 ENV PROJECT_PATH=/app
 ENV MODELS_PATH=/app/ComfyUI/models
 ENV COMFY_PATH=/app/ComfyUI
-# Start cron in the foreground
+
+# Create entrypoint script
+RUN echo '#!/bin/bash\nXvfb :99 -screen 0 1920x1080x24 &\nexport DISPLAY=:99\nexec "$@"' > /entrypoint.sh && \
+    chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["cron", "-f"]
 
 # Copy the update script
