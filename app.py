@@ -204,14 +204,6 @@ def get_similar_docs(
 
 
 def main():
-    ## URL info extraction.
-    url_query = st.query_params
-    if "arxiv_code" in url_query and len(st.session_state.arxiv_code) == 0:
-        db.log_visit(url_query["arxiv_code"])
-        paper_code = url_query["arxiv_code"]
-        st.session_state.arxiv_code = paper_code
-        su.click_tab(2)
-
     st.markdown(
         """<div class="pixel-font">LLMpedia</div>
     """,
@@ -339,6 +331,17 @@ def main():
         st.markdown(f"### {year} Topic Model Map")
         cluster_map = pt.plot_cluster_map(papers_df)
         st.plotly_chart(cluster_map, use_container_width=True)
+
+    
+    ## URL info extraction.
+    url_query = st.query_params
+    if "arxiv_code" in url_query and len(st.session_state.arxiv_code) == 0:
+        paper_code = url_query["arxiv_code"]
+        db.log_visit(paper_code)
+        st.session_state.arxiv_code = paper_code
+        print(st.session_state.arxiv_code)
+        su.click_tab(2)
+        
 
     with content_tabs[2]:
         ## Focus on a paper.

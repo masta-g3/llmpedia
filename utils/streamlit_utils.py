@@ -427,10 +427,14 @@ def create_bottom_navigation(label: str):
 def click_tab(tab_num):
     js = f"""
     <script>
-        var tabs = window.parent.document.querySelectorAll("[id^='tabs-bui'][id$='-tab-{tab_num}']");
-        if (tabs.length > 0) {{
-            tabs[0].click();
-        }}
+        (() => {{
+            var tabs = window.parent.document.querySelectorAll("[id^='tabs-bui'][id$='-tab-{tab_num}']");
+            if (tabs.length > 0) {{
+                tabs[0].click();
+            }} else {{
+                console.log("Tab with id '-tab-{tab_num}' not found");
+            }}
+        }})();
     </script>
     """
     st.components.v1.html(js)
