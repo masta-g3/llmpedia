@@ -55,7 +55,7 @@ def main():
             continue
 
         ## Extract and combine results.
-        result_dict = summary.json()
+        result_dict = summary.model_dump_json()
 
         ## Store on DB.
         data = pu.convert_innert_dict_strings_to_actual_dicts(result_dict)
@@ -71,7 +71,6 @@ def main():
         flat_entries["tstp"] = pd.Timestamp.now()
         logger.info(f"Uploading review for {arxiv_code} to database")
         db.upload_to_db(flat_entries, pu.db_params, "summaries")
-        logger.info(f"Successfully reviewed and uploaded {arxiv_code}")
 
     logger.info("Paper review process completed")
 

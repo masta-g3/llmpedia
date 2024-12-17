@@ -48,6 +48,8 @@ tweet_accounts = [
     "cwolferesearch",
     "HEI",
     "arXivGPT",
+    "_akhaliq",
+    "TheAITimeline",
 ]
 
 

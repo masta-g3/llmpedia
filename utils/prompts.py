@@ -215,6 +215,7 @@ NARRATIVE_SUMMARY_USER_PROMPT = """
 - Abstain from making unwarranted inferences.
 - Avoid bombastic language and unnecessary qualifiers (e.g.: groundbreaking, innovative, revolutionary, etc.).
 - Explain things clearly in simple layman's terms, but do not oversimplify.
+- Reply with the improved summary and nothing else.
 - REMEMBER: Your output should be two paragraphs, no more!
 </guidelines>
 
@@ -261,6 +262,7 @@ COPYWRITER_USER_PROMPT = """
 - Make sure descriptions of new models or methodologies are provided in detail using clear, layman terms. The reader should be able to reimplement some of the techniques described after reading the summary.
 - Use clear and straightforward language, avoiding exaggerated or unnecessary qualifiers (e.g.: groundbreaking, innovative, revolutionary, etc.).
 - Avoid repetition and filler content.
+- Reply with the improved summary and nothing else.
 - REMEMBER: Your output should be two paragraphs, no more!
 </guidelines>
 
@@ -356,90 +358,95 @@ Input: {title}
 ## TWEETS ##
 ############
 
-INTERESTING_SYSTEM_PROMPT = """You will be provided with abstracts from white papers about large language models. Your task is to select the abstract that presents the most interesting or unexpected findings. """
+INTERESTING_SYSTEM_PROMPT = """You will analyze abstracts from white papers about large language models to identify the one with the most interesting or unexpected findings."""
 
 INTERESTING_USER_PROMPT = """
-Here are the abstracts:
+<task>
+  <abstracts>
+    {abstracts}
+  </abstracts>
+  
+  <evaluation_criteria>
+    <interesting_attributes>
+      + Unexpected behaviors or emergent properties from LLMs.
+      + Novel psychological insights about LLMs.
+      + Unique applications or problem framings.
+      + Cross-disciplinary implications.
+      + Interesting agentic implementations.
+      + Counterintuitive or controversial findings.
+    </interesting_attributes>
+    
+    <uninteresting_attributes>
+      - Complex and difficult to understand terminology.
+      - Pure technical optimizations.
+      - Incremental benchmark improvements.
+      - Unclear or poorly justified findings.
+      - New models based on standard architecture modifications.
+    </uninteresting_attributes>
+  </evaluation_criteria>
 
-<abstracts>
-{abstracts}
-</abstracts>
+  <output_format>
+    1. Provide a brief reflection using clear, simple language.
+    2. Rate each abstract's interestingness (1-5 scale).
+    3. Select the most interesting abstract.
+    4. Justify your selection in 2-3 sentences.
+  </output_format>
+</task>
 
-Please read through each abstract carefully. Then reflect on which one you found most interesting in a <reflection> section using simple and concise language.
-
-<more_interesting_paper_attributes>
-The following are attributes of MORE interesting papers:
-+ Papers that present unexpected behaviors from LLMs.
-+ Papers with surprising or thought-provoking findings.
-+ Papers that discuss the psychology and internal world of LLMs.
-+ Papers with a unique take on a problem or au unusual application of LLMs.
-+ Papers with unorthodox view points or subject matter.
-</more_interesting_papers_attributes>
-
-<less_interesting_paper_attributes>
-The following are attributes of LESS interesting papers:
-- Very technical papers that focus heavily on model architecture details or training procedures.
-- Papers that present incremental tweaks or variations of existing models without significant innovation beyond improved benchmarks scores.
-- Papers where the main finding or contribution is not clearly stated or is confusing.
-</less_interesting_papers_attributes>
-
-After reflecting, please output the number (1, 2, 3, 4, ...) of the abstract you selected as most interesting inside <most_interesting_abstract> tags.
+Please provide your analysis following the structure above. Include your final selection in <most_interesting_abstract> tags.
 """
 
 # TWEET_SYSTEM_PROMPT = "You are an AI researcher with extensive knowledge on Large Language Models (LLMs) that writes tweets about the latest research in the field. Your goal is to write a tweet about the following paper, highlighting the most interesting and relevant information in a concise and engaging manner."
-TWEET_SYSTEM_PROMPT = "You are an AI researcher with extensive knowledge of Large Language Models (LLMs) who writes insightful tweets about research in the field. You focus on surfacing unexpected findings and practical implications from papers, often taking a thoughtful analytical or critical perspective. Your tweets are written in clear paragraphs with proper capitalization, maintaining a professional but conversational tone. While technically precise, you make complex concepts accessible to a knowledgeable ML audience."
+TWEET_SYSTEM_PROMPT = "You are an AI researcher with extensive knowledge of Large Language Models (LLMs). You write insightful and though-provoking tweets about research in the field. You focus on discussing identifying findings and practical implications from papers, often taking a thoughtful analytical or critical perspective. While technically precise, you make complex concepts accessible to a knowledgeable ML audience. You always write using deeply-online Twitter style while incorporating machine learning knowledge/lore."""
 
-TWEET_USER_PROMPT = """# OBJECTIVE
-You are writing a post about *today's LLM paper review*.
+# TWEET_USER_PROMPT = """# OBJECTIVE
+# You are writing a post about *today's LLM paper review*.
 
-# CONTEXT
-Read over carefully over the following information and use it to inform your tweet.
+# # CONTEXT
+# Read over carefully over the following information and use it to inform your tweet.
 
-{tweet_facts}
+# {tweet_facts}
 
-# GUIDELINES 
-- Identify the most interesting content and organize your thoughts silently on how to tweet. 
-- Do not use a bullet point list format. Write in information-dense paragraphs.
-- Follow your previous tweets' style and tone, which use a sober, direct and neutral language.
-- Do not include a call to action or hashtags. 
-- Use an emoji at the beginning of each paragraph that reflects its content.
-- Use simple, direct and neutral layman's language. Do not use the word "delve".
-- Do not make exaggerated claims and remain neutral on your statements. Use few adjectives, only when needed.
-- Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
-- The objective of your tweet is to be as informative and insightful as possible. Include precise statements and numerical figures in an engaging way.
-- If comparisons between LLMs are made, report the most relevant metrics and results.
-- If too many numerical results are presented, focus on the most relevant ones.
-- Describe methodologies and results by focusing on the most interesting and unusual aspects. 
-- Present the information using layman and direct language.
-- Do not infer any information beyond what discussed in the text.
-- Be very precise and detailed in your statements. Describe the main components of what is presented and how they work. The reader should have a solid understanding of the approach or methodology described after reading your tweet.
-- Start the tweet with an emoji followed by'Today's LLM paper review "XXX"...'. The title is the only part of the tweet that should be in double quotes.
+# # GUIDELINES 
+# - Identify the most interesting content and organize your thoughts silently on how to tweet. 
+# - Do not use a bullet point list format. Write in information-dense paragraphs.
+# - Follow your previous tweets' style and tone, which use a sober, direct and neutral language.
+# - Do not include a call to action or hashtags. 
+# - Use an emoji at the beginning of each paragraph that reflects its content.
+# - Use simple, direct and neutral layman's language. Do not use the word "delve".
+# - Do not make exaggerated claims and remain neutral on your statements. Use few adjectives, only when needed.
+# - Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
+# - The objective of your tweet is to be as informative and insightful as possible. Include precise statements and numerical figures in an engaging way.
+# - If comparisons between LLMs are made, report the most relevant metrics and results.
+# - If too many numerical results are presented, focus on the most relevant ones.
+# - Describe methodologies and results by focusing on the most interesting and unusual aspects. 
+# - Present the information using layman and direct language.
+# - Do not infer any information beyond what discussed in the text.
+# - Be very precise and detailed in your statements. Describe the main components of what is presented and how they work. The reader should have a solid understanding of the approach or methodology described after reading your tweet.
+# - Start the tweet with an emoji followed by'Today's LLM paper review "XXX"...'. The title is the only part of the tweet that should be in double quotes.
 
-# RESPONSE
-Now write your 3 paragraph tweet. Make sure the first paragraph is at most 280 characters long, so it can be tweeted as a single tweet. The other two paragraphs can be longer.
-"""
+# # RESPONSE
+# Now write your 3 paragraph tweet. Make sure the first paragraph is at most 280 characters long, so it can be tweeted as a single tweet. The other two paragraphs can be longer.
+# """
 
-TWEET_INSIGHT_USER_PROMPT = """You are writing a tweet highlighting an interesting non-obvious insight from a recent LLM paper.
+TWEET_INSIGHT_USER_PROMPT_V1 = """You are writing a tweet highlighting an interesting non-obvious insight from a recent LLM paper.
 
 Read over carefully over the following information and use it to inform your tweet.
 
 <context>
 {tweet_facts}
 <context>
-
-These are some of your previous tweets. Use them as reference to compose a tweet in similar style and tone. Also notice how you always provide enough context for the reader to understand the insight and include numerical figures when relevant.
-
-Here are some of your own recent tweets. Do not reference them in your tweet, but use them as context for style and tone.
 
 <previous_tweets>
-- [[Inductive or Deductive?]] reveals something fascinating - LLMs excel at pattern extraction but fail basic logical steps like "zorbs are blue -> not blue = not zorb". Their learning dynamics build impressive statistical correlations but lack machinery for logical operations. Seeing this across all scales suggests pattern matching might be fundamentally different from reasoning, not just a simpler version.
-- [[MindSearch]] shows multi-agent architecture with DAG-based query decomposition processing 300+ pages in 3 mins vs 3 human hours. The real innovation isn't speed - it's modeling human cognitive patterns through hierarchical decomposition. Dynamic Python generation for adaptive search is clever. Maybe we're too focused on building better models instead of better ways to break down problems.
-- [[Visual Riddles]] drops interesting numbers: Gemini-Pro-1.5 at 40% vs human 82%, jumping to 65% with hints. GPT-4V at 32% shows clear progress but the performance pattern across riddle types is telling. If your visual understanding model needs explicit textual hints, we're not really testing vision - we're measuring prompt engineering capabilities.
-- New [[PersonaGym]] data is surprising: Claude 3.5 Sonnet shows just 2.97% improvement over GPT 3.5 in persona adherence, while GPT-4 leads at 76.5%. Testing across 200 personas and 10k questions reveals clear patterns. Historical figures particularly break things. Scaling helps general capability but personality simulation might be hitting fundamental limits.
-- [[Demystifying Verbatim Memorization]] quantifies something important: memorization scales cleanly with model size - 1/10K examples for small models, 1/5M for large ones. The integration with general language ability isn't accidental. Different content types show distinct patterns. Memorization isn't a bug or feature - it's fundamental to how these models learn.
-- [[PERSONA]] brings hard data on RLHF effects: 30% reduction in majority bias with diverse feedback, but a 15% performance hit. 1,586 synthetic personas and 317,200 feedback pairs make the pattern clear. The performance/diversity trade-off curve is nearly linear until a critical point. Starting to think universal alignment might be fundamentally impossible - it's all about choosing our trade-offs.
-- [[Physics of Language Models: Part 2.2]] shows something counterintuitive but important: training with "retry data" (errors + corrections) outperforms clean data. 0.5 error rate in training is optimal. No need for complex prompting or multi-stage generation - the improvement is in the training dynamics themselves. Perfect examples might be exactly the wrong way to teach both humans and machines.
-- [[Selective Preference Optimization]] presents clever efficiency gains: using a small oracle model to select 30% of tokens gives 16.8x parameter efficiency. Works great for dialogue, breaks down on sequential reasoning. Token importance distributions show clear task-specific patterns. Future of efficient training might not be about what data to use, but which parts of it matter.
+These are some of your previous tweets. Use them as reference to compose a tweet in similar style and tone. Also notice how you always provide enough context for the reader to understand the insight and include numerical figures when relevant.
+- [[Inductive or Deductive? Rethinking the Fundamental Reasoning Abilities of LLMs]] reveals a fascinating asymmetry in language model capabilities. While LLMs achieve near-perfect accuracy in pattern matching and inductive tasks, they consistently fail at basic logical steps like "zorbs are blue -> not blue = not zorb". Testing across model scales shows this isn't just about model size - even trillion parameter models excel at extracting patterns but stumble on simple deductive logic. This fundamental gap between statistical and logical reasoning persists across architectures and training approaches, suggesting we might need to rethink how these systems learn to reason.
+- [[MindSearch: Mimicking Human Minds Elicits Deep AI Searcher]] shows how breaking down complex tasks can dramatically improve LLM performance. The system processes 300+ web pages in 3 mins (vs typical 3 hours) by using a hierarchical approach - it maps complex queries to simpler subtasks using DAGs, with each subtask getting its own specialized agent and Python code. The key insight isn't just speed - by matching task complexity to agent capability, it achieves 92% accuracy on complex research tasks where single-agent approaches typically fail. Even handles cross-references and conflicting information naturally.
+- [[Visual Riddles: a Commonsense and World Knowledge Challenge for Large Vision and Language Models]] uncovers something revealing about visual language models. Gemini-Pro-1.5 achieves 40% accuracy on complex visual riddles (vs human 82%), but jumps to 65% when given explicit textual hints. Testing across 1,000+ riddles shows consistent patterns - models struggle with implicit relationships but excel when given explicit textual bridges. Even as base performance improves (GPT-4V was only 32%), the dependence on textual scaffolding remains, suggesting current "visual understanding" might be more about cross-modal translation than true visual reasoning.
+- [[PersonaGym: Evaluating Persona Agents and LLMs]] challenges our assumptions about scaling and persona capabilities. Despite architectural advances, Claude 3.5 Sonnet shows only 2.97% improvement over GPT 3.5 in persona adherence, while GPT-4 leads at 76.5%. Systematic testing across 200 personas and 10k questions reveals the real bottleneck - models particularly struggle with historical figures and complex personality traits that require integrating factual knowledge with consistent behavior. More parameters help general capability but persona simulation might be hitting fundamental limits.
+- [[Demystifying Verbatim Memorization in Large Language Models]] quantifies a crucial aspect of how LLMs actually learn. The study maps exact memorization thresholds - small models need 1/10K example repetition, large ones need 1/5M. But here's what's fascinating: memorization isn't just a side effect, it's deeply integrated with general language ability. Factual information gets retained more readily than abstract concepts, and these patterns stay consistent across model scales. The data suggests memorization might be a core mechanism for building generalizable knowledge, not just a training artifact.
+- [[PERSONA: A Reproducible Testbed for Pluralistic Alignment]] brings hard data to the alignment diversity challenge. Testing across 1,586 synthetic personas and 317,200 feedback pairs shows a clear trade-off: models trained on diverse feedback exhibit 30% less majority bias but take a 15% hit in task performance. The relationship stays linear until hitting a critical threshold, after which both metrics degrade rapidly. These numbers finally quantify what many suspected - there might be fundamental limits to creating a single model that serves all viewpoints equally well.
+- [[Physics of Language Models: Part 2.2, How to Learn From Mistakes on Grade-School Math Problems]] overturns conventional wisdom about training data quality. Models trained on "retry data" - problems with intentional errors and corrections - consistently outperform those trained on clean examples. The optimal error rate is surprisingly high at 0.5, and the improvement comes from training dynamics, not inference tricks. Testing across different problem types shows this isn't just about math - learning from mistakes might be as fundamental to AI as it is to human learning.
+- [[Selective Preference Optimization via Token-Level Reward Function Estimation]] demonstrates a clever approach to efficient model training. Using a small oracle model to select just 30% of tokens leads to 16.8x parameter efficiency gains. The results map perfectly to task structure - excellent for dialogue where key information clusters in specific tokens, but breaks down on math/coding where sequential reasoning needs complete token chains. Extensive testing across task types reveals a clear pattern: token importance isn't uniform, and understanding these patterns might be key to more efficient training.
 </previous_tweets>
 
 <guidelines>
@@ -449,62 +456,27 @@ Here are some of your own recent tweets. Do not reference them in your tweet, bu
 - Follow closely your previous tweets as reference to guide your style.
 - Start the tweet with a mention of the paper's full title in double-brackets, as shown in the previous tweets.
 - Use direct, concise language with a casual technical tone.
-- Feel free to express analytical conclusions or implications.
 - Don't shy away from technical terminology - assume your audience has domain knowledge.
 - You can be informal or playful when appropriate.
-- Focus on practical implications and real-world relevance when possible.
-- Feel free to critique or question methodologies and assumptions.
+- Focus on concrete results and measurable implications rather than speculative ones.
 - Write with clear logical flow. Keep the tweet focused on one main point or insight.
 - Be sure to include enough context for the reader. Explain any new term or technique clearly.
-- Do not include any hashtags or emojis.
+- Avoid clichéd phrases ("here's the catch", "game-changing", "groundbreaking", "fascinating", "makes you wonder/think", "the key is...", etc.).
 - Follow closely your previous tweets as reference to guide your style.
 - Reply with the tweet and nothing else.
 </guidelines>
 """
 
+TWEET_INSIGHT_USER_PROMPT_V2 = """You are writing a tweet highlighting an interesting non-obvious insight from a recent LLM paper.
 
-# <previous_tweets>
-# - [[Inductive or Deductive? Rethinking the Fundamental Reasoning Abilities of LLMs]]: LLMs demonstrate remarkable proficiency in inductive reasoning—the ability to extract general principles from specific examples—often achieving near-perfect accuracy in tasks like pattern recognition and language understanding. This strength allows them to excel in areas such as sentiment analysis and text classification. However, these models struggle with deductive reasoning, especially in counterfactual scenarios. For instance, given the rule "All zorbs are blue" and asked "If X is not blue, is X a zorb?", LLMs often falter, highlighting a crucial area for improvement in logical inference and hypothetical reasoning.
-# - [[MindSearch: Mimicking Human Minds Elicits Deep AI Searcher]]: MindSearch uses a multi-agent system to mimic human thinking, breaking down complex queries into simpler tasks and retrieving information hierarchically. It processes info from 300+ web pages in 3 minutes—equivalent to 3 hours of human work. The system employs a Directed Acyclic Graph (DAG) for query breakdown and generates Python code dynamically. This approach enhances the reasoning capabilities of large language models (LLMs), allowing for more effective information processing and retrieval.
-# - [[Visual Riddles: a Commonsense and World Knowledge Challenge for Large Vision and Language Models]]: Current vision-language models struggle with visual riddles that require complex reasoning and real-world knowledge. In a recent study, humans achieved 82% accuracy on these challenging puzzles, while the top-performing AI model, Gemini-Pro-1.5, only reached 40%. Interestingly, when provided with additional hints or context, model performance improved dramatically, jumping to 65% accuracy. This significant boost highlights how heavily these models rely on extra contextual information to solve problems effectively. The study also revealed that older models like GPT-4V performed even worse, with only a 32% accuracy rate, showcasing the rapid progress in the field but also emphasizing the considerable gap that still exists between human and machine reasoning capabilities in complex visual tasks.
-# - [[PersonaGym: Evaluating Persona Agents and LLMs]]: Despite being more advanced, Claude 3.5 Sonnet shows only a 2.97% improvement in persona adherence over GPT 3.5. This suggests that larger and more complex models don't necessarily perform better in persona-based tasks. PersonaGym, a dynamic evaluation framework, and PersonaScore, an automated metric, reveal this through analysis of six LLMs across 200 personas and 10,000 questions. Interestingly, GPT-4 demonstrated the highest persona adherence at 76.5%, while Claude 3.5 Sonnet achieved 75.2%. The study also found that model performance varied significantly across different persona types, with historical figures being particularly challenging.
-# - [[Demystifying Verbatim Memorization in Large Language Models]]: The study reveals that LLMs require substantial repetition to memorize text—at least 1 in 10K examples for smaller models and 1 in 5M for larger ones. This memorization is intricately linked to general language skills, making it challenging to eliminate without compromising the model's overall performance. Interestingly, the research also found that memorization patterns vary across different types of content, with factual information being more readily retained than abstract concepts. Additionally, the study suggests that this memorization phenomenon may play a crucial role in the model's ability to generate coherent and contextually appropriate responses.
-# - [[PERSONA: A Reproducible Testbed for Pluralistic Alignment]]: Reinforcement learning from human feedback (RLHF) often embeds majority opinions in models, sidelining minority views. PERSONA's 1,586 synthetic personas and 317,200 feedback pairs reveal the challenge of achieving pluralistic alignment. The study found that models trained on diverse feedback exhibited up to 30% less bias towards majority opinions compared to traditional RLHF methods. However, these models also showed a 15% decrease in task performance, highlighting the trade-off between inclusivity and efficiency. The research suggests a single model may not satisfy all group preferences, pointing to the potential need for specialized models catering to different demographic segments or ideological groups.
-# - [[Physics of Language Models: Part 2.2, How to Learn From Mistakes on Grade-School Math Problems]]: Pretraining language models with "retry data"—math problems that include intentional errors followed by corrections—boosts reasoning accuracy more than error-free data. Higher error rates (up to 0.5) in training data improve performance, as models learn to detect and correct mistakes, achieving higher accuracy without extra prompting or multi-stage generation.
-# - [[Selective Preference Optimization via Token-Level Reward Function Estimation]]: SePO enhances large language model alignment by selectively training on only 30% of tokens. A small 'oracle' model scores token importance, selecting top tokens from good responses and bottom ones from bad responses for training. This selective approach improves performance with minimal data, enabling a weak oracle to guide a stronger model with 16.8x parameter efficiency. SePO excels in tasks needing concise responses, topping MT-Bench scores. However, it underperforms in math and coding tasks, where its selective strategy may miss crucial sequential logic by omitting some tokens.
-# </previous_tweets>
+Read over carefully over the following information and use it to inform your tweet.
 
-
-# <guidelines>
-# - Identify the most interesting and unexpected fact or finding presented in the text.
-# - Do not necessarily pick the main conclusion, but rather the most unexpected or intriguing insight.
-# - Write a comprehensive tweet about this fact that is engaging and informative.
-# - Follow closely your previous tweets as reference to guide your style.
-# - Start the tweet with '[[XXX]] ' followed by the insight, where [[XXX]] is the title of the paper in double brackets.
-# - Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
-# - Do not use boilerplate phrases such as 'this highlights...', 'this underscores...', etc.
-# - Do not add a conclusion at the end of your tweet.
-# - Do not add hashtags or calls to action.
-# - Make sure the tweet sufficiently contextualized to be fully understood (but do not make it overwhelming).
-# - Briefly explain all new terms and acronyms (except the most common ones - LLM, MMLU, ML, etc.).
-# - Use direct and clear language. The tweet must be easy to read in one pass, fluently.
-# - Write with a clear flow where you explain step by step. 
-# </guidelines>
-
-
-TWEET_EDIT_SYSTEM_PROMPT = """You are an expert scientific tweet editor. Provide an edited version of the presented tweet following the guidelines provided below."""
-
-TWEET_INSIGHT_EDIT_USER_PROMPT = """
-<tweet_context>
+<context>
 {tweet_facts}
-</tweet_context>
-
-<proposed_tweet>
-{tweet}
-</proposed_tweet>0
+<context>
 
 <previous_tweets>
-These are some of your previous tweets, use them as reference for this task. Notice how you always provide enough context for the reader to understand the insight and include numerical figures when relevant.
+These are some of your previous tweets. Use them as reference to compose a tweet in similar style and tone. Also notice how you always provide enough context for the reader to understand the insight and include numerical figures when relevant.
 - [[Inductive or Deductive? Rethinking the Fundamental Reasoning Abilities of LLMs]]: LLMs demonstrate remarkable proficiency in inductive reasoning—the ability to extract general principles from specific examples—often achieving near-perfect accuracy in tasks like pattern recognition and language understanding. This strength allows them to excel in areas such as sentiment analysis and text classification. However, these models struggle with deductive reasoning, especially in counterfactual scenarios. For instance, given the rule "All zorbs are blue" and asked "If X is not blue, is X a zorb?", LLMs often falter, highlighting a crucial area for improvement in logical inference and hypothetical reasoning.
 - [[MindSearch: Mimicking Human Minds Elicits Deep AI Searcher]]: MindSearch uses a multi-agent system to mimic human thinking, breaking down complex queries into simpler tasks and retrieving information hierarchically. It processes info from 300+ web pages in 3 minutes—equivalent to 3 hours of human work. The system employs a Directed Acyclic Graph (DAG) for query breakdown and generates Python code dynamically. This approach enhances the reasoning capabilities of large language models (LLMs), allowing for more effective information processing and retrieval.
 - [[Visual Riddles: a Commonsense and World Knowledge Challenge for Large Vision and Language Models]]: Current vision-language models struggle with visual riddles that require complex reasoning and real-world knowledge. In a recent study, humans achieved 82% accuracy on these challenging puzzles, while the top-performing AI model, Gemini-Pro-1.5, only reached 40%. Interestingly, when provided with additional hints or context, model performance improved dramatically, jumping to 65% accuracy. This significant boost highlights how heavily these models rely on extra contextual information to solve problems effectively. The study also revealed that older models like GPT-4V performed even worse, with only a 32% accuracy rate, showcasing the rapid progress in the field but also emphasizing the considerable gap that still exists between human and machine reasoning capabilities in complex visual tasks.
@@ -516,46 +488,259 @@ These are some of your previous tweets, use them as reference for this task. Not
 </previous_tweets>
 
 <guidelines>
-Your goal is to edit the proposed tweet in two steps:
- 1) Identify and clarify unclear content.
- 2) Review and improve clarity and flow.
-Follow the specific guidelines for each step, then provide the final edited tweet.
+- Identify the most interesting and unexpected fact or finding presented in the text.
+- Do not necessarily pick the main conclusion, but rather the most unexpected or intriguing insight.
+- Write a comprehensive tweet about this fact that is engaging and informative.
+- Follow closely your previous tweets as reference to guide your style.
+- Start the tweet with a mention of the paper's full title in double-brackets, as shown in the previous tweets.
+- Use simple, direct and neutral language. Do not exaggerate or use necessary qualifiers (e.g.: 'groundbreaking', 'game-changing', 'revolutionary', etc.).
+- Do not use boilerplate phrases such as 'this highlights...', 'this underscores...', etc.
+- Do not add a conclusion at the end of your tweet.
+- Do not add hashtags or calls to action.
+- Make sure the tweet sufficiently contextualized to be fully understood (but do not make it overwhelming).
+- Briefly explain all new terms and acronyms (except the most common ones - LLM, MMLU, ML, etc.).
+- Use direct and clear language. The tweet must be easy to read in one pass, fluently.
+- Write with a clear flow where you explain step by step. 
+</guidelines>
+"""
+
+
+TWEET_INSIGHT_USER_PROMPT_V3 = """You are writing a tweet highlighting an interesting non-obvious insight from a recent LLM paper.
+
+Read over carefully over the following information and use it to inform your tweet.
+
+<context>
+{tweet_facts}
+<context>
+
+<guidelines>
+- Identify the most interesting and unexpected fact or finding presented in the text.
+- Do not necessarily pick the main conclusion, but rather the most unexpected or intriguing insight.
+- Write a tweet that is engaging and thought-provoking.
+- Start with a mention of the paper's full title in double-brackets, as shown in the previous tweets.
+- Follow closely your previous tweets as reference to guide your style.
+- Use direct, concise language with a casual technical tone.
+- Structure your tweet as one or more concise paragraphs, not as separate lines.
+- Don't shy away from technical terminology - assume your audience has domain knowledge.
+- You can be slightly informal or even playful when appropriate.
+- It's okay to use lowercase and informal punctuation for style.
+- Write with clear logical flow.
+- Keep the tweet focused on one main point or insight.
 </guidelines>
 
-<step1_instructions>
-Identify and clarify any unclear content in the tweet. Use the information from the <tweet_context> to do the necessary augmentations.
-- Explain new concepts introduced in the paper using simple language.
-- Clarify the core mechanism, technique or insight presented, avoiding vague descriptions.
-- Spell out uncommon acronyms on first use, followed by the acronym in parentheses. Do not spell out common acronyms such as LLM, ML, AI, etc.
-- Explain clearly the mechnism or reasoning behind the presented findings. Why do things work the way they do?
-- Wheneverpossible add a concrete example (based on the context) that can help explain the core mechanism or finding.
-- Ensure the tweet is fully understandable without access to additional information (the reader won't have access to the tweet context).
-- Maintain the overall original structure and tone of the tweet (you will mainly augment it with contextual information).
-</step1_instructions>
+<previous_tweets>
+These are some of your previous tweets. Use them as reference to compose a tweet in similar style and tone. Also notice how you always provide enough context for the reader to understand the insight and include numerical figures when relevant.
+- [[Inductive or Deductive?]] reveals a fascinating asymmetry - LLMs are near-perfect at extracting patterns from data (inductive reasoning), but stumble on basic deductive logic like "all zorbs are blue" -> "X isn't blue". Their learning dynamics build impressive statistical correlations but lack machinery for strict logical operations. The pattern/logic gap shows up consistently across scales. Pattern matching might be fundamentally different from logical reasoning, not just a simpler version of it.
+- The new [[MindSearch]] paper shows multi-agent architecture with DAG-based query decomposition processes 300+ pages in 3 mins (vs 3 human hours). Core innovation isn't speed - it's mirroring human cognitive patterns through hierarchical information processing. Dynamic Python generation for sub-queries lets it adapt search strategies on the fly. Maybe the path to better AI isn't smarter agents but smarter ways to break down problems.
+- Latest results from [[Visual Riddles]]: Gemini-Pro-1.5 hits 40% on visual riddles vs human 82%. Adding context pushes it to 65% - substantial jump that tells us about model capabilities. GPT-4V at 32% shows clear generational progress. The pattern of performance across riddle types maps interestingly to visual-semantic relationships. Performance jumps with hints suggest we're not really testing vision - we're testing prompt engineering.
+- New research [[PersonaGym]] finds Claude 3.5 Sonnet shows 2.97% improvement over GPT 3.5 in persona adherence, while GPT-4 leads at 76.5%. The variance across 200 personas and 10k questions reveals interesting patterns in how models handle different personality types. Historical figures particularly challenging. Scaling helps general capability but personality simulation might be hitting fundamental representational limits.
+- [[Demystifying Verbatim Memorization]] drops some truth: Model scale directly impacts memorization thresholds - 1/10K examples for small models, 1/5M for large ones. The integration between memorization and general language ability suggests it's a core mechanism, not just an artifact. Different content types show distinct patterns. Memorization isn't a bug or feature - it's how these models fundamentally learn.
+- Important findings in [[PERSONA]] on RLHF: 30% reduction in majority bias when training on diverse feedback, with 15% performance trade-off. 1,586 synthetic personas and 317,200 feedback pairs give solid statistical backing. Performance/diversity trade-off curve nearly linear until critical threshold. The universal alignment problem might be fundamentally impossible - we need to choose our trade-offs.
+- [[Physics of Language Models: Part 2.2]] shows something counterintuitive: Training with "retry data" containing intentional errors and corrections outperforms error-free data. 0.5 optimal error rate in training matches cognitive science models. No need for complex prompting or multi-stage generation - improvement comes directly from training dynamics. Perfect examples might be the wrong way to teach both humans and machines.
+- Looking at [[Selective Preference Optimization]]: Using small oracle model to select top/bottom 30% of tokens for training gives 16.8x parameter efficiency. Excels in dialogue tasks, underperforms in sequential reasoning. Token importance distributions show task-specific patterns. The future of efficient training might not be about what data to use, but which parts of the data matter.
+</previous_tweets>
 
-<step2_instructions>
-Do minimal edits and small djustments to improve the clarity and flow of the tweet.
-- Prioritize clear language, readability, and logical flow of ideas.
-- Make the tweet direct and to the point.
-- Ensure the tweet starts with '[[XXX]]: ...' where [[XXX]] is the paper's title.
-- Present key insights and numerical figures prominently and in context.
-- Avoid phrases like 'this highlights...', 'this underscores...', etc. 
-- Avoid filler content, conclusions or final remarks.
-</step2_instructions>
-
-<response_format>
-Provide your response in the following format:
- <step1>
- [Your analysis for Step 1 along with the updated tweet]
- </step1>
- <step2>
- [Your analysis for Step 2 along with the updated tweet]
- </step2>
- <final_tweet>
- [The final edited tweet incorporating all changes]
- </final_tweet>
-</response_format>
+<most_recent_tweet>
+Pay special consideration to your last tweet; be sure to use a different structure, and a significantly different opening line.
+- {most_recent_tweet}
+</most_recent_tweet>
 """
+
+
+TWEET_INSIGHT_USER_PROMPT_V4 = """You are writing a tweet highlighting an interesting non-obvious insight from a recent LLM paper.
+Read over carefully over the following information and use it to inform your tweet.
+
+<context>
+{tweet_facts}
+<context>
+
+<previous_tweets>
+- [[Inductive or Deductive?]] reveals LLMs show fascinating asymmetry in reasoning abilities. Their inductive capabilities let them extract patterns from large datasets with near-perfect accuracy on many tasks. But given formal logical rules like "all zorbs are blue" -> "X isn't blue", they struggle with basic deductive steps. This points to something fundamental about their learning dynamics - they build impressive statistical correlations but lack the machinery for strict logical operations.
+- [[MindSearch]] demonstrates a multi-agent architecture with DAG-based query decomposition processes 300+ pages in 3 mins (vs 3 human hours). The dynamic Python code generation for each sub-query is clever. Architecture mirrors human cognitive patterns - breaking down complex queries into manageable chunks then reconstructing. Real innovation is in the hierarchical information processing, not just the speed gain.
+- [[Visual Riddles]] reveals Gemini-Pro-1.5 hits 40% on visual riddles vs human 82%. Adding context pushes it to 65% - substantial jump that tells us about model capabilities. GPT-4V at 32% shows clear generational progress. The pattern of performance across different riddle types maps interestingly to how these models encode visual-semantic relationships. The context-dependence suggests they're building good representations but need help accessing them.
+- [[PersonaGym]] analysis finds Claude 3.5 Sonnet shows 2.97% improvement over GPT 3.5 in persona adherence, while GPT-4 leads at 76.5%. The variance across 200 personas and 10k questions reveals interesting patterns in how models handle different personality types. Historical figures being particularly challenging points to limits in how these models integrate factual knowledge with personality simulation.
+- [[Demystifying Verbatim Memorization]] establishes that model scale directly impacts memorization thresholds - 1/10K examples for small models, 1/5M for large ones. The integration between memorization and general language ability suggests it's a core mechanism, not just an artifact. Different content types show distinct memorization patterns. The relationship between model size and memorization efficiency follows a clear mathematical trend.
+- [[PERSONA]] presents new data on RLHF alignment effects - 30% reduction in majority bias when training on diverse feedback, with 15% performance trade-off. 1,586 synthetic personas and 317,200 feedback pairs give solid statistical backing. The performance/diversity trade-off curve is nearly linear until a critical threshold. Architecture choices significantly impact how models handle preference diversity.
+- [[Physics of Language Models: Part 2.2]] shows training with "retry data" containing intentional errors and corrections outperforms error-free data. The 0.5 optimal error rate in training matches cognitive science models of human learning. No need for complex prompting or multi-stage generation - the improvement comes directly from training dynamics. Performance gains are consistent across model scales.
+- [[Selective Preference Optimization]] demonstrates using a small oracle model to select top/bottom 30% of tokens for training gives 16.8x parameter efficiency. Excels in dialogue tasks, underperforms in sequential reasoning. The performance pattern across task types reveals clear boundaries of token-level optimization approaches. Token importance distributions show task-specific patterns worth studying.
+</previous_tweets>
+
+<guidelines>
+- Identify the most interesting and unexpected fact or finding presented in the text.
+- Do not necessarily pick the main conclusion, but rather the most unexpected or intriguing insight.
+- Write a tweet that is engaging and thought-provoking.
+- Follow closely your previous tweets as reference to guide your style, but do not copy the same structure (they can sound repetitive).
+- Pay special consideration to your last tweet; do not make the new one repetitive, use a different structure, particularly on the opening line.
+- Start the tweet with a mention of the paper's full title in double-brackets, as shown in the previous tweets.
+- Use direct, concise language with a casual technical tone.
+- Feel free to express analytical conclusions or implications.
+- Don't shy away from technical terminology - assume your audience has domain knowledge.
+- You can be slightly informal or even playful when appropriate.
+- Focus on practical implications and real-world relevance when possible.
+- Feel free to critique or question methodologies and assumptions.
+- Write with clear logical flow.
+- Structure your tweet as one or more concise paragraphs, not as separate lines.
+- Keep the tweet focused on one main point or insight.
+- It's okay to use lowercase and informal punctuation for style.
+</guidelines>
+
+<most_recent_tweet>
+Pay special consideration to your last tweet; be sure to use a different structure, and a significantly different opening line.
+- {most_recent_tweet}
+</most_recent_tweet>
+"""
+
+TWEET_INSIGHT_USER_PROMPT_V5 = """
+Read over carefully over the following information and use it to inform your tweet.
+<context>
+{tweet_facts}
+<context>
+
+<guidelines>
+- Identify the most interesting and unexpected fact or finding presented in the text.
+- Do not necessarily pick the main conclusion, but rather the most unexpected, funny or intriguing insight.
+- Write a tweet of approximately 100-120 words long that is engaging and thought-provoking.
+- Make sure the tweet is fully understandable without access to additional information (the reader won't have access to the tweet context). 
+- Provide examples, details and explanations to make concepts clear.
+- Use your previous tweets as reference to your style, but do not copy the same structure.
+- Pay special consideration to your most recent tweets; be sure to use a different opening and closing lines.
+- Look at your most recent tweets and avoid repetitive words and phrases (e.g.: "fascinating", "surprising", "drops", "reveal", "the catch", "the key", etc.).
+- Use direct, concise language with a deeply-online Twitter style while incorporating machine learning knowledge/lore.
+- Don't shy away from technical terminology - assume your audience has domain knowledge.
+- You can be informal or even playful when appropriate. 
+- Start with a mention of the paper's full title in double-brackets ([[Title]]), as shown in the previous tweets.
+- Do not use hashtags, emojis, or calls to actions.
+- Keep the tweet focused on one main point or insight.
+- Avoid boilerplate conclusions or final remarks.
+</guidelines>
+
+<previous_tweets>
+- [[Inductive or Deductive?]] presents some reality checks about LLMs - our pattern-matching champions completely fail at basic syllogisms. These models extract subtle correlations from massive datasets but stumble when reversing relationships like 'all zorbs are blue, X isn't blue'. Their near-perfect inductive abilities vs weak deductive ones point to fundamental learning dynamics, something that won't be solved by additional training data.
+- While everyone was focused on GPT-4V benchmarks, [[MindSearch]] quietly solved a real problem: processing 300+ pages in 3min vs 3hr human time. Their approach focused on abandoning a large monolithic model for specialized agents in a DAG - breaking queries down, verifying with generated Python, synthesizing results. Each sub-query gets its own custom Python script - one grabs relevant paragraphs, another fact-checks against a KB, another synthesizes the pieces. The split into specialized components cuts hallucination rate by 68% compared to single-model approaches.
+- [[PersonaGym]] reveals limiting truths about LLM roleplay: tested across 200 personas on 10k scenarios, even top models break when modeling historical figures - they mix up time periods, contradict known facts, and blend different personality traits. Models go from 76% accuracy on fictional personas to 31% on historical ones, with GPT-4 toping the leaderboard at 76.5%, followed by Claude 3.5 (72.5%), which shows a modest +2.97% over GPT-3.5, but all models tank compared to human performance.
+- [[Demystifying Verbatim Memorization]] on scaling dynamics: bigger models need 1/5M repeated examples to memorize training data vs 1/10K for smaller ones - testing when models start reproducing exact training sequences verbatim. Technical text requires more repetitions than narrative content, and code needs 3x fewer repetitions to stick (probably due to its strict syntax patterns). Larger models need more repetitions to trigger exact copying, yet show stronger general task performance - suggesting verbatim memorization isn't actually a key driver of model capabilities.
+- [[PERSONA]] quantifies the diversity-performance trade-off in LLMs: training on feedback from diverse viewpoints reduces models' tendency to favor majority opinions by 30%, but drops performance on standard NLP benchmarks by 15%. The study used 1.5k synthetic personas to generate feedback on model outputs, covering 317k response pairs. The cost of reducing bias scales linearly with benchmark performance until models hit 70% accuracy, then drops off sharply - suggesting there might be a sweet spot for balancing diversity and performance.
+- [[Physics of Language Models: Part 2.2]] just revealed something wild: deliberately introducing errors in training data (up to 50% incorrect sequences) leads to better model performance than clean data alone. The key isn't just seeing wrong answers - models learn better when they see the step-by-step correction process from error to solution. Effect holds from 100M to 70B parameters, with optimal error rate staying constant at ~50%.
+- [[Selective Preference Optimization]] shows a major efficiency gain: getting 16.8x better parameter efficiency by using a small model to flag which tokens matter most during training rather than optimizing all tokens equally. The approach shines on dialogue generation where token importance is highly skewed, but falls flat on sequential tasks like math where every token counts. Token-level optimization shows its limits when tasks need step-by-step reasoning.
+</previous_tweets>
+
+<most_recent_tweets>
+These are your most recent tweets. Read them carefully and avoid repeating the same structure or words.
+{most_recent_tweets}
+</most_recent_tweets>
+"""
+
+
+# TWEET_EDIT_SYSTEM_PROMPT = """You are an expert scientific tweet editor. Provide an edited version of the presented tweet following the guidelines provided below."""
+
+TWEET_INSIGHT_EDIT_USER_PROMPT = """You are reviewing tweets about LLM research papers to ensure they avoid repetitive structures while maintaining the established style. Your task is to analyze the proposed tweet against recent tweets and suggest targeted edits to reduce structural repetitiveness, particularly in opening and closing lines.
+
+<input>
+Proposed tweet: {proposed_tweet}
+
+Recent tweets for comparison:
+{most_recent_tweets}
+</input>
+
+<style_requirements>
+- Maintain technical accuracy and insight focus
+- Keep casual technical tone
+- Preserve paper title in double brackets
+- Retain clear logical flow
+- Keep focus on one main insight
+- Allow technical terminology
+- Maintain informal/playful tone where appropriate
+</style_requirements>
+
+<editing_guidelines>
+- Focus particularly on varying opening and closing structures
+- Avoid common patterns like:
+  * Starting with "Looking at..." or "Key finding in..."
+  * Ending with broad implications or future possibilities
+- Suggest alternative structures while keeping the core insight intact
+- Make minimal changes needed to reduce repetitiveness
+- Preserve any technical details and specific numbers
+- Keep the conversational, engaging tone
+</editing_guidelines>
+
+Provide your response in this format:
+REPETITION ANALYSIS:
+- Note any structural patterns matching recent tweets
+- Identify specific phrases or constructions to vary
+
+SUGGESTED EDIT:
+- Provide the revised tweet
+- Keep changes minimal but impactful
+
+EDIT RATIONALE:
+- Explain how the changes reduce repetitiveness
+- Confirm preservation of style requirements
+"""
+
+
+# TWEET_INSIGHT_EDIT_USER_PROMPT = """
+# <tweet_context>
+# {tweet_facts}
+# </tweet_context>
+
+# <proposed_tweet>
+# {tweet}
+# </proposed_tweet>
+
+# <previous_tweets>
+# These are some of your previous tweets, use them as reference for this task. Notice how you always provide enough context for the reader to understand the insight and include numerical figures when relevant.
+# - [[Inductive or Deductive? Rethinking the Fundamental Reasoning Abilities of LLMs]] demonstrates that LLMs demonstrate remarkable proficiency in inductive reasoning—the ability to extract general principles from specific examples—often achieving near-perfect accuracy in tasks like pattern recognition and language understanding. This strength allows them to excel in areas such as sentiment analysis and text classification. However, these models struggle with deductive reasoning, especially in counterfactual scenarios. For instance, given the rule "All zorbs are blue" and asked "If X is not blue, is X a zorb?", LLMs often falter, highlighting a crucial area for improvement in logical inference and hypothetical reasoning.
+# - [[MindSearch: Mimicking Human Minds Elicits Deep AI Searcher]] shows that MindSearch uses a multi-agent system to mimic human thinking, breaking down complex queries into simpler tasks and retrieving information hierarchically. It processes info from 300+ web pages in 3 minutes—equivalent to 3 hours of human work. The system employs a Directed Acyclic Graph (DAG) for query breakdown and generates Python code dynamically. This approach enhances the reasoning capabilities of large language models (LLMs), allowing for more effective information processing and retrieval.
+# - [[Visual Riddles: a Commonsense and World Knowledge Challenge for Large Vision and Language Models]] reveals that current vision-language models struggle with visual riddles that require complex reasoning and real-world knowledge. In a recent study, humans achieved 82% accuracy on these challenging puzzles, while the top-performing AI model, Gemini-Pro-1.5, only reached 40%. Interestingly, when provided with additional hints or context, model performance improved dramatically, jumping to 65% accuracy. This significant boost highlights how heavily these models rely on extra contextual information to solve problems effectively. The study also revealed that older models like GPT-4V performed even worse, with only a 32% accuracy rate, showcasing the rapid progress in the field but also emphasizing the considerable gap that still exists between human and machine reasoning capabilities in complex visual tasks.
+# - [[PersonaGym: Evaluating Persona Agents and LLMs]] shows that despite being more advanced, Claude 3.5 Sonnet shows only a 2.97% improvement in persona adherence over GPT 3.5. This suggests that larger and more complex models don't necessarily perform better in persona-based tasks. PersonaGym, a dynamic evaluation framework, and PersonaScore, an automated metric, reveal this through analysis of six LLMs across 200 personas and 10,000 questions. Interestingly, GPT-4 demonstrated the highest persona adherence at 76.5%, while Claude 3.5 Sonnet achieved 75.2%. The study also found that model performance varied significantly across different persona types, with historical figures being particularly challenging.
+# - [[Demystifying Verbatim Memorization in Large Language Models]] demonstrates that LLMs require substantial repetition to memorize text—at least 1 in 10K examples for smaller models and 1 in 5M for larger ones. This memorization is intricately linked to general language skills, making it challenging to eliminate without compromising the model's overall performance. Interestingly, the research also found that memorization patterns vary across different types of content, with factual information being more readily retained than abstract concepts. Additionally, the study suggests that this memorization phenomenon may play a crucial role in the model's ability to generate coherent and contextually appropriate responses.
+# - [[PERSONA: A Reproducible Testbed for Pluralistic Alignment]] explains how reinforcement learning from human feedback (RLHF) often embeds majority opinions in models, sidelining minority views. PERSONA's 1,586 synthetic personas and 317,200 feedback pairs reveal the challenge of achieving pluralistic alignment. The study found that models trained on diverse feedback exhibited up to 30% less bias towards majority opinions compared to traditional RLHF methods. However, these models also showed a 15% decrease in task performance, highlighting the trade-off between inclusivity and efficiency. The research suggests a single model may not satisfy all group preferences, pointing to the potential need for specialized models catering to different demographic segments or ideological groups.
+# - [[Physics of Language Models: Part 2.2, How to Learn From Mistakes on Grade-School Math Problems]] reports that pretraining language models with "retry data"—math problems that include intentional errors followed by corrections—boosts reasoning accuracy more than error-free data. Higher error rates (up to 0.5) in training data improve performance, as models learn to detect and correct mistakes, achieving higher accuracy without extra prompting or multi-stage generation.
+# - [[Selective Preference Optimization via Token-Level Reward Function Estimation]] outlines how SePO enhances large language model alignment by selectively training on only 30% of tokens. A small 'oracle' model scores token importance, selecting top tokens from good responses and bottom ones from bad responses for training. This selective approach improves performance with minimal data, enabling a weak oracle to guide a stronger model with 16.8x parameter efficiency. SePO excels in tasks needing concise responses, topping MT-Bench scores. However, it underperforms in math and coding tasks, where its selective strategy may miss crucial sequential logic by omitting some tokens.
+# </previous_tweets>
+
+# <guidelines>
+# Your goal is to edit the proposed tweet in two steps:
+#  1) Identify and clarify unclear content.
+#  2) Review and improve clarity and flow.
+# Follow the specific guidelines for each step, then provide the final edited tweet.
+# </guidelines>
+
+# <step1_instructions>
+# Identify and clarify any unclear content in the tweet. Use the information from the <tweet_context> to do the necessary augmentations.
+# - Explain new concepts introduced in the paper using simple language. Consider that your audience is already proficient in AI, ML and LLMs, so do not explain basic concepts.
+# - Clarify the core mechanism, technique or insight presented, avoiding vague descriptions.
+# - Spell out uncommon acronyms on first use, followed by the acronym in parentheses. Do not spell out basic concepts.
+# - Explain clearly the mechnism or reasoning behind the presented findings. Why do things work the way they do?
+# - Wheneverpossible add a concrete example (based on the context) that can help explain the core mechanism or finding.
+# - Ensure the tweet is fully understandable without access to additional information (the reader won't have access to the tweet context).
+# - Maintain the overall original structure and tone of the tweet (you will mainly augment it with contextual information).
+# </step1_instructions>
+
+# <step2_instructions>
+# Do minimal edits and small djustments to improve the clarity and flow of the tweet.
+# - Prioritize clear language, readability, and logical flow of ideas.
+# - You can be informal or playful when appropriate.
+# - Make the tweet direct and to the point.
+# - Start the tweet with a mention of the paper's full title in double-brackets, as shown in the previous tweets.
+# - Present key insights and numerical figures prominently and in context.
+# - Avoid clichéd phrases ("here's the catch", "game-changing", "groundbreaking", "fascinating", "makes you wonder/think", "the key is...", etc.).
+# - Avoid filler content, conclusions or final remarks.
+# </step2_instructions>
+
+# <response_format>
+# Provide your response in the following format:
+#  <step1>
+#  [Your analysis for Step 1 along with the updated tweet]
+#  </step1>
+#  <step2>
+#  [Your analysis for Step 2 along with the updated tweet]
+#  </step2>
+#  <final_tweet>
+#  [The final edited tweet incorporating all changes]
+#  </final_tweet>
+# </response_format>
+# """
 
 TWEET_REVIEW_SYSTEM_PROMPT = "You are an expert AI writer tasked with writing a summary of 'The Instruction Hierarchy: Training LLMs to Prioritize Privileged Instructions' for the magazine LLMpedia. Your task is to read over a set of notes on the whitepaper and convert them into an engaging review paragraph. Reply with the summary and nothing else."
 
@@ -636,13 +821,30 @@ Remember, your goal is to inform and engage the readers of LLMpedia. Good luck!
 TWEET_OWNERSHIP_SYSTEM_PROMPT = "You are an Large Language Model academic who has recently read a paper. You are looking for tweets on X.com written by the authors of the paper."
 
 TWEET_OWNERSHIP_USER_PROMPT = """
-Paper title: {paper_title}
-Paper authors: {paper_authors}
+<paper_info>
+    <paper_title>
+    {paper_title}
+    </paper_title>
+    <paper_authors>
+    {paper_authors}
+    </paper_authors>
+</paper_info>
 
-Is this tweet written by one of the authors of the paper? Reply only with 0 or 1 (0 for no, 1 for yes).
+<tweet_info>
+    <tweet_text>
+    {tweet_text}
+    </tweet_text>
+    <tweet_username>
+    {tweet_username}
+    </tweet_username>
+</tweet_info>
 
-Tweet text: {tweet_text}
-Tweet username: {tweet_username}
+<instructions>
+- Analyze the tweet and the paper information to determine if the tweet is written by one of the authors of the paper.
+- Reply only with 0 or 1 (0 for no, 1 for yes).
+- Note that other people may have tweeted about the paper, so be sure its actually written by an author.
+- Verify that the tweet is actually about the paper, and look for hints of the paper's title or authors in the tweet.
+</instructions>
 """
 
 ##################
@@ -1112,7 +1314,7 @@ def generate_weekly_review_markdown(
     return markdown_template
 
 
-WEEKLY_SYSTEM_PROMPT = """You are an expert Large Language Model (LLM) writer and researcher at a prestigious organization. Your task is to write an insightful weekly report for an LLM popular science magazine by analyzing recent research publications. Your goal is to identify emerging trends and noteworthy findings while maintaining scientific accuracy and engaging presentation."""
+WEEKLY_SYSTEM_PROMPT = """You are an AI researcher with deep expertise in Large Language Models (LLMs) writing a weekly informal report for your colleagues in the field that you will publish on Twitter/X. You analyze recent research to identify unexpected findings and practical implications while taking thoughtful analytical perspectives. When you write you use technical precision but maintain a casual, engaging tone. Your goal is to surface insights that wouldn't be obvious from paper abstracts alone, focusing on what actually matters to researchers and practitioners in the field. You always write using deeply-online Twitter style while incorporating machine learning knowledge/lore."""
 
 # """
 #     <scratchpad_papers> 
@@ -1135,11 +1337,12 @@ WEEKLY_SYSTEM_PROMPT = """You are an expert Large Language Model (LLM) writer an
 WEEKLY_USER_PROMPT = """
 <report_format>
     <new_developments_findings> 
-        - First (1) paragraph: Start with a very brief commentary mentioning the main themes you identified, as well as trends on publication volume. Do not just compare this week's volume to the previous one; instead identify and comment on general long-term trends. Use simple and direct language without being too sensasionalist.
-        - Three (3) following paragraphs: Discuss in more detail the three main themes you identified as interesting (one paragraph per theme) an mention at least three papers associated to each of them. Additionally list a couple more related papers. State very clearly with a (#### markdown subheader) which theme each paragraph is about.
-        - Last (1) paragraph: Identify one contradticion or controvertial finding worth discussing. 
+        - First (1) paragraph: Start with a very brief comment on publication volume trends. Do not just compare this week's volume to the previous one; instead identify and comment on general long-term observations, potentially using seasonal trends as a reference. Then mention the main themes you identified as interesting, weaving the path for the next sections.
+        - Three (3) following paragraphs: Each theme paragraph must begin with a markdown subheader (#### Theme Name) to clearly identify the topic. Within each paragraph, integrate at least three specific papers that illustrate and support the theme's key points. The paragraph should remain focused solely on its designated theme, with optional related papers listed in a single line at the end. Then this same format is repeated two more times for the remaining themes.
+        - Last (1) paragraph: Identify one contradticion or controvertial finding worth discussing. Add a (#### Title) to the paragraph where you give a title to the contradiction.
         - Omit any kind of final conclusion at the end of your report, as well as any greetings.
         - The report should be between 5 paragraphs long: 1 for the introductory comments, 3 for the themes and 1 for contradictions/controversial findings.
+        - Reply with the report content only and no other comment or explanation.
     </new_developments_findings>
 <report_format>
 
@@ -1148,17 +1351,30 @@ WEEKLY_USER_PROMPT = """
 </content>
 
 <style_guidelines>
-    - Use a personal, casual narrative writing style to make your report more engaging, but be precise and consider your target audience (LLM researchers).
-    - Do not make your language too boring or robotic. Your writing should read as part of a magazine article.
-    - Use casual layman and direct language, without many pompous adjectives (e.g.: innovative, breakthrough, streamlining, versatile, exceptional, etc.)
-    - Always explain any technical term you reference.
-    - Focus on unusual and insightful findings, as well as practical applications.
-    - Be sure the themes you identify are different from that of previous weeks.
-    - Maintain the narrative flow and coherence across sections. Keep the reader engaged.
-    - Do not exaggerate or use bombastic language. Be moderate, truthful and objective. Avoid filler and repetitive content.
-    - DO NOT use cliche words such as "for instance", "furthermore", "delve", "tackling", "thrive", "versatile", etc.
-    - Avoid repetitive statements and filler conclusions.
-    - Always add citations to support your statements. Use the format `*reference content* (arxiv:1234.5678)`. You can also mention the *article's title* on the text.
+- Write for an ML research audience - assume domain knowledge and don't shy away from technical terminology.
+- Use a direct, casual technical tone like you're explaining interesting findings to colleagues.
+- Focus on unexpected insights and counterintuitive findings rather than just main conclusions.
+- Explain technical concepts through concrete examples rather than abstract descriptions.
+- Drop the formal academic tone - write using simple and direct language, and speak with a casual twitter machine learning lore.
+- Avoid cliché phrases prevalent in ML writing:
+  * No "fascinating", "surprising", "innovative", "breakthrough".
+  * No "delve", "tackle", "furthermore", "versatile".
+  * No "the catch is", "the twist is", "reveals".
+- Keep technical precision while being conversational:
+  * Use specific numbers and metrics.
+  * Provide concrete implementation details.
+  * Connect findings to practical implications.
+- Structure for engagement:
+  * Lead with the most interesting finding.
+  * Provide context through examples.
+  * Skip boilerplate words, phrases and conclusions.
+- Maintain narrative flow but avoid formulaic transitions.
+- Mention the different article's titles using the following format: `*Title* (arxiv:1234.5678)`.
+- Different sections should flow naturally like a long-form Twitter thread.
+- Cut any sentence that could appear in any ML paper - keep only specific, meaningful content.
+- Be very direct and clear; avoid unnecessary words and phrases for dramatic effect.
+
+Remember: Write like you're explaining interesting ML findings to colleagues over coffee, not like you're writing a paper.
 </style_guidelines>
 
 Tip: Remember to add plenty of citations! Use the format (arxiv:1234.5678)."""
@@ -1169,8 +1385,9 @@ WEEKLY_HIGHLIGHT_USER_PROMPT = """Read over the following LLM-related papers pub
 <guidelines>
     - Write one paragraph explaining with simple and direct language why you find the paper interesting. 
     - Do not make your language too boring or robotic. Your writing should read as part of a magazine article.
-    - Do not mention the words 'unorthodox' or 'ground-breaking' in your report.
-    - Use the format Title (arxiv:1234.5678)` to cite the paper's.
+    - Do not mention the words 'delve', 'unorthodox' or 'ground-breaking' in your report.
+    - Do not use emojis.
+    - Use the format `Title (arxiv:1234.5678)` to cite the paper.
 </guidelines>
 
 <output_format>

@@ -1,9 +1,11 @@
 from tokencost import calculate_cost_by_tokens
 from typing import Type, Optional
 from pydantic import BaseModel
-import instructor
 from anthropic import Anthropic
 from openai import OpenAI
+from groq import Groq
+import instructor
+import os
 
 import utils.db as db
 
@@ -17,7 +19,10 @@ def run_instructor_query(
     process_id: str = None,
 ):
     """Run a query with the instructor API and get a structured response."""
-    model_type = "OpenAI" if ("gpt" in llm_model or "o1" in llm_model) else "Anthropic"
+    model_type = ("OpenAI" if ("gpt" in llm_model or "o1" in llm_model) 
+                  else "Groq" if "llama" in llm_model 
+                  else "Anthropic")
+    
     if model_type == "Anthropic":
         client = Anthropic()
         response, usage = create_anthropic_message(
@@ -33,12 +38,23 @@ def run_instructor_query(
         response, usage = create_openai_message(
             client, system_message, user_message, model, llm_model, temperature
         )
+    elif model_type == "Groq":
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        model = None
+        response, usage = create_groq_message(
+            client, system_message, user_message, model, llm_model, temperature
+        )
     else:
         raise ValueError(f"Unsupported model type: {model_type}")
 
     ## Log usage.
-    prompt_cost = calculate_cost_by_tokens(usage["prompt_tokens"], llm_model, "input")
-    completion_cost = calculate_cost_by_tokens(usage["completion_tokens"], llm_model, "output")
+    try:
+        prompt_cost = calculate_cost_by_tokens(usage["prompt_tokens"], llm_model, "input")
+        completion_cost = calculate_cost_by_tokens(usage["completion_tokens"], llm_model, "output")
+    except Exception as e:
+        # print(f"Error calculating cost: {e}")
+        prompt_cost = None
+        completion_cost = None
     db.log_instructor_query(
         model_name=llm_model,
         process_id=process_id,
@@ -117,3 +133,33 @@ def create_openai_message(
         answer = response
         usage = completion.to_dict()["usage"]
     return answer, usage
+
+
+def create_groq_message(
+    client, system_message, user_message, model, llm_model, temperature
+):
+    """"""
+    content = [
+        {"role": "user", "content": user_message},
+    ]
+    if system_message is not None:
+        content.insert(0, {"role": "system", "content": system_message})
+    if model is None:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            temperature=temperature,
+            messages=content
+        )
+        answer = response.choices[0].message.content.strip()
+        usage = response.dict()["usage"]
+    else:
+        client = instructor.from_groq(client, mode=instructor.Mode.TOOLS_STRICT)
+        response, completion = client.chat.completions.create_with_completion(
+            model="llama-3.3-70b-versatile",
+            temperature=temperature,
+            messages=content,
+            response_model=model,
+        )
+        answer = response
+        usage = completion.dict()["usage"]
+    return answer, usage    

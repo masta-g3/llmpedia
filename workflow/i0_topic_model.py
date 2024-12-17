@@ -61,7 +61,7 @@ def process_text(text: str) -> str:
 
 def load_and_process_data(title_map: dict) -> pd.DataFrame:
     """Load and process data from json files, return DataFrame."""
-    logger.info("Loading and processing data")
+    logger.info("Loading and processing paper content data.")
     df = pd.DataFrame(columns=["title", "summary"])
     for arxiv_code, title in title_map.items():
         fpath = os.path.join(PROJECT_PATH, "data", "summaries", f"{arxiv_code}.json")
@@ -77,12 +77,12 @@ def load_and_process_data(title_map: dict) -> pd.DataFrame:
             title,
             summary["Summary"],
         ]
-    logger.info(f"Loaded and processed data for {len(df)} papers")
+    logger.info(f"Loaded and processed data for {len(df)} papers.")
     return df
 
 def create_embeddings(df: pd.DataFrame) -> tuple:
     """Create embeddings."""
-    logger.info("Creating embeddings")
+    logger.info("Creating embeddings...")
     content_cols = ["summary"]
     df_dict = (
         df[content_cols].apply(lambda x: "\n".join(x.astype(str)), axis=1).to_dict()
@@ -90,12 +90,12 @@ def create_embeddings(df: pd.DataFrame) -> tuple:
     all_content = list(df_dict.values())
     embedding_model = SentenceTransformer("barisaydin/gte-large")
     embeddings = embedding_model.encode(all_content, show_progress_bar=True)
-    logger.info("Embeddings created successfully")
+    logger.info("Embeddings created successfully.")
     return all_content, embedding_model, embeddings
 
 def create_topic_model(embedding_model: list, prompt: str) -> BERTopic:
     """Create topic model."""
-    logger.info("Creating topic model")
+    logger.info("Creating topic model...")
     load_dotenv()
     umap_model = UMAP(
         n_neighbors=15, n_components=10, min_dist=0.0, metric="cosine", random_state=42
@@ -233,7 +233,7 @@ def main():
 
     df.set_index("arxiv_code", inplace=True)
     if len(df) == 0:
-        print("No new documents to process.")
+        logger.info("No new documents to process.")
         return
     all_content, embedding_model, embeddings = create_embeddings(df)
     topics, reduced_embeddings, reduced_model = extract_topics_and_embeddings(
@@ -242,8 +242,6 @@ def main():
     store_topics_and_embeddings(
         df, all_content, topics, reduced_embeddings, topic_model, reduced_model, refit=REFIT
     )
-
-    print("Done!")
 
 
 if __name__ == "__main__":

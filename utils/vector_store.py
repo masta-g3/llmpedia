@@ -44,6 +44,7 @@ def recursive_summarize_by_parts(
     verbose=False,
 ):
     """Recursively apply the summarize_by_segments function to a document."""
+    
     ori_token_count = len(token_encoder.encode(document))
     token_count = ori_token_count + 0
     if verbose:
@@ -272,7 +273,7 @@ def generate_weekly_report(weekly_content_md: str, model="gpt-4o"):
     weekly_report = run_instructor_query(
         ps.WEEKLY_SYSTEM_PROMPT,
         ps.WEEKLY_USER_PROMPT.format(weekly_content=weekly_content_md),
-        model=po.WeeklyReview,
+        # model=po.WeeklyReview,
         llm_model=model,
         temperature=0.8,
         process_id="generate_weekly_report",
@@ -307,13 +308,16 @@ def extract_document_repo(paper_content: str, model="gpt-4o"):
 
 tweet_user_map = {
     # "review_v1": ps.TWEET_USER_PROMPT,
-    "insight_v1": ps.TWEET_INSIGHT_USER_PROMPT,
+    "insight_v1": ps.TWEET_INSIGHT_USER_PROMPT_V1,
+    "insight_v2": ps.TWEET_INSIGHT_USER_PROMPT_V2,
+    "insight_v3": ps.TWEET_INSIGHT_USER_PROMPT_V3,
+    "insight_v4": ps.TWEET_INSIGHT_USER_PROMPT_V4,
+    "insight_v5": ps.TWEET_INSIGHT_USER_PROMPT_V5,
     # "review_v2": ps.TWEET_REVIEW_USER_PROMPT,
 }
 
 tweet_edit_user_map = {
-    # "review_v1": ps.TWEET_EDIT_USER_PROMPT,
-    "insight_v1": ps.TWEET_INSIGHT_EDIT_USER_PROMPT,
+    "review": ps.TWEET_INSIGHT_EDIT_USER_PROMPT,
 }
 
 
@@ -322,15 +326,12 @@ def select_most_interesting_paper(arxiv_abstracts: str, model: str = "gpt-4o-min
     response = run_instructor_query(
         ps.INTERESTING_SYSTEM_PROMPT,
         ps.INTERESTING_USER_PROMPT.format(abstracts=arxiv_abstracts),
+        model=po.InterestingPaperSelection,
         llm_model=model,
         process_id="select_most_interesting_paper",
     )
-    abstract_idx = int(
-        response.split("<most_interesting_abstract>")[1].split(
-            "</most_interesting_abstract>"
-        )[0]
-    )
-    return abstract_idx
+    print(response)
+    return response.selected_arxiv_code
 
 
 def write_tweet(
@@ -338,13 +339,15 @@ def write_tweet(
     tweet_facts: str,
     tweet_type="new_review",
     model="gpt-4o",
+    most_recent_tweets: str = None,
     temperature: float = 0.8,
 ) -> str:
     """Write a tweet about an LLM paper."""
     system_prompt = ps.TWEET_SYSTEM_PROMPT
     user_prompt = tweet_user_map[tweet_type].format(
         # recent_tweets=recent_tweets, 
-        tweet_facts=tweet_facts
+        tweet_facts=tweet_facts,
+        most_recent_tweets=most_recent_tweets,
     )
     tweet = run_instructor_query(
         system_prompt,
@@ -358,24 +361,24 @@ def write_tweet(
 
 def edit_tweet(
     tweet: str,
-    tweet_facts: str,
+    most_recent_tweets: str,
     tweet_type="review",
     model="gpt-4o",
     temperature: float = 0.8,
 ) -> str:
     """Edit a tweet via run_instructor_query."""
-    system_prompt = ps.TWEET_EDIT_SYSTEM_PROMPT
+    system_prompt = ps.TWEET_SYSTEM_PROMPT
     user_prompt = tweet_edit_user_map[tweet_type].format(
-        tweet=tweet, tweet_facts=tweet_facts
+        proposed_tweet=tweet, most_recent_tweets=most_recent_tweets
     )
     edited_tweet = run_instructor_query(
         system_prompt,
         user_prompt,
         llm_model=model,
         temperature=temperature,
+        model=po.TweetEdit,
         process_id="edit_tweet",
     )
-    edited_tweet = edited_tweet.split("<final_tweet>")[1].split("</final_tweet>")[0]
     return edited_tweet
 
 

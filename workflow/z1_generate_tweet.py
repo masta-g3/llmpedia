@@ -65,14 +65,14 @@ def bold(input_text, extra_str):
 
 def main():
     """Generate a weekly review of highlights and takeaways from papers."""
-    logger.info("Starting tweet generation process")
-    tweet_type = "insight_v1"
+    logger.info("Starting tweet generation process.")
+    tweet_type = "insight_v5"
 
     ## Define arxiv code.
-    arxiv_codes = db.get_arxiv_id_list(db.db_params, "summary_notes")
+    arxiv_codes = pu.list_s3_files("arxiv-art", strip_extension=True)
     done_codes = db.get_arxiv_id_list(db.db_params, "tweet_reviews")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
-    arxiv_codes = sorted(arxiv_codes)[-200:]
+    arxiv_codes = sorted(arxiv_codes)[-100:]
     logger.info(f"Found {len(arxiv_codes)} recent papers")
     
     citations_df = db.load_citations()
@@ -91,16 +91,14 @@ def main():
         replace=False,
         p=citations_df["weight"] / citations_df["weight"].sum(),
     )
-    logger.info(f"Selected {len(candidate_arxiv_codes)} candidate papers based on citations")
+    logger.info(f"Selected {len(candidate_arxiv_codes)} candidate papers based on citations.")
 
-    candidate_abstracts = [
-        db.get_recursive_summary(arxiv_code) for arxiv_code in candidate_arxiv_codes
-    ]
+    candidate_abstracts = db.get_recursive_summary(arxiv_codes) 
 
     abstracts_str = "\n".join(
         [
-            f"<abstract{idx+1}>\n{abstract}\n</abstract{idx+1}>\n"
-            for idx, abstract in enumerate(candidate_abstracts)
+            f"<{code}>\n{abstract}\n</{code}>\n"
+            for code, abstract in candidate_abstracts.items()
         ]
     )
 
@@ -113,10 +111,10 @@ def main():
     # logger.info(f"Found {len(recent_tweets)} recent LLM-related tweets")
 
     logger.info("Selecting most interesting paper...")
-    arxiv_code_idx = vs.select_most_interesting_paper(
+    arxiv_code = vs.select_most_interesting_paper(
         abstracts_str, model="claude-3-5-sonnet-20241022"
     )
-    arxiv_code = candidate_arxiv_codes[arxiv_code_idx - 1]
+    # arxiv_code = candidate_arxiv_codes[arxiv_code_idx - 1]
     logger.info(f"Selected paper: {arxiv_code}")
     # last_post = db.get_latest_tstp(
     #     db.db_params,
@@ -133,8 +131,10 @@ def main():
 
     paper_summary = db.get_extended_notes(arxiv_code, expected_tokens=4500)
     paper_details = db.load_arxiv(arxiv_code)
-    publish_date = paper_details["published"][0].strftime("%B %Y")
+    # publish_date = paper_details["published"][0].strftime("%B %Y")
     publish_date_full = paper_details["published"][0].strftime("%b %d, %Y")
+    most_recent_tweets = db.load_tweet_insights(drop_rejected=True).head(3)["tweet_insight"].values
+    most_recent_tweets_str = "\n".join([f"- {tweet}" for tweet in most_recent_tweets])
     author = paper_details["authors"][0]
     title_map = db.get_arxiv_title_dict()
     paper_title = title_map[arxiv_code]
@@ -155,16 +155,17 @@ def main():
         # recent_tweets=recent_tweets_str,
         tweet_facts=tweet_facts,
         tweet_type=tweet_type,
+        most_recent_tweets=most_recent_tweets_str,
         model="claude-3-5-sonnet-20241022",  # "gpt-4o-2024-08-06",
-        temperature=0.5,
+        temperature=0.9,
     )
-    logger.info(f"Generated tweet for arxiv code: {arxiv_code}")
-    logger.info(f"Generated tweet content: {tweet_content}")
+    # logger.info(f"Generated tweet for arxiv code: {arxiv_code}")
+    # logger.info(f"Generated tweet content: {tweet_content}")
 
-    # if tweet_type != "review_v2":
+    # if tweet_type == "review_v5":
     #     edited_tweet = vs.edit_tweet(
     #         tweet_content,
-    #         tweet_facts=tweet_facts,
+    #         most_recent_tweets=most_recent_tweets_str,
     #         tweet_type=tweet_type,
     #         model="claude-3-5-sonnet-20241022",  # "gpt-4o-2024-08-06",
     #         temperature=0.5,
@@ -173,8 +174,7 @@ def main():
     #     edited_tweet = f'💭Review of "{paper_title}"\n\n{tweet_content}'
     edited_tweet = bold(tweet_content, publish_date_full)
 
-    logger.info("Tweet edited successfully")
-    logger.info(f"Edited tweet content: {edited_tweet}")
+    logger.info(f"Edited tweet: {edited_tweet}")
 
     ## Find related tweets from author.
     author_tweet = tweet.find_paper_author_tweet(arxiv_code, logger)
@@ -193,11 +193,10 @@ def main():
         pu.download_s3_file(
             arxiv_code, bucket_name="arxiv-first-page", prefix="data", format="png"
         )
-    logger.info(f"Tweet preview: {edited_tweet}")
 
     # sleep_time = random.randint(30, 35 * 60)
     # logger.info(f"Sleeping for {sleep_time} seconds")
-    # time.sleep((5*60*60))
+    # time.sleep((1*60*60)) 
 
     tweet_success = tweet.send_tweet(
         edited_tweet,
@@ -217,9 +216,9 @@ def main():
             rejected=False,
         )
         em.send_email_alert(edited_tweet, arxiv_code)
-        logger.info("Tweet stored in database and email alert sent")
+        logger.info("Tweet stored in database and email alert sent.")
     else:
-        logger.error("Failed to send tweet")
+        logger.error("Failed to send tweet.")
 
 
 if __name__ == "__main__":

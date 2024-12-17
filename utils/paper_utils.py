@@ -431,6 +431,7 @@ def preprocess_arxiv_doc(
     doc_content = doc_content.replace("<|fim_prefix|>", "|fim_prefix|")
     doc_content = doc_content.replace("<|fim_middle|>", "|fim_middle|")
     doc_content = doc_content.replace("<|fim_suffix|>", "|fim_suffix|")
+    doc_content = doc_content.replace('<|endofprompt|>', '|endofprompt|')
 
     if remove_references:
         if len(doc_content.split("References")) == 2:
@@ -553,6 +554,7 @@ def fetch_queue_gist(gist_id, gist_filename="llm_queue.txt"):
         if response.status_code == 200:
             paper_list = response.text.split("\n")
             paper_list = [p.strip() for p in paper_list if len(p.strip()) > 0]
+            paper_list = [p.split("v")[0] for p in paper_list]
             paper_list = list(set(paper_list))
 
     return paper_list
@@ -603,23 +605,29 @@ def convert_pdf_to_markdown(pdf_path):
     )
     rendered = converter(pdf_path)
     text, _, images = text_from_rendered(rendered)
-    return text
+    return text, images
 
 def ensure_pdf_exists(arxiv_code, pdf_path, logger=None):
     """Ensure PDF exists locally and in S3, downloading from arXiv if necessary."""
-    # Check if PDF exists in S3
-    s3_pdfs = list_s3_files("arxiv-pdf", strip_extension=True)
+    if os.path.exists(pdf_path):
+        return True
+        
+    s3_pdfs = list_s3_files("arxiv-pdfs", strip_extension=True)
     if arxiv_code in s3_pdfs:
-        if not os.path.exists(pdf_path):
-            try:
-                download_s3_file(arxiv_code, "arxiv-pdf", pdf_path)
+        try:
+            success = download_s3_file(arxiv_code, "arxiv-pdfs", format="pdf")
+            if success:
                 if logger:
                     logger.info(f"Downloaded PDF from S3 for {arxiv_code}")
-            except Exception as e:
+                return True
+            else:
                 if logger:
-                    logger.error(f"Failed to download PDF from S3 for {arxiv_code}: {str(e)}")
-                return False
-        return True
+                    logger.error(f"Failed to download PDF from S3 for {arxiv_code}")
+                # Fall through to arXiv download if S3 fails
+        except Exception as e:
+            if logger:
+                logger.error(f"Failed to download PDF from S3 for {arxiv_code}: {str(e)}")
+            # Fall through to arXiv download if S3 fails
 
     # Download from arXiv
     try:
@@ -627,7 +635,7 @@ def ensure_pdf_exists(arxiv_code, pdf_path, logger=None):
         if logger:
             logger.info(f"Downloaded PDF from arXiv for {arxiv_code}")
         # Upload to S3
-        upload_s3_file(arxiv_code, "arxiv-pdf", prefix="data", format="pdf")
+        upload_s3_file(arxiv_code, "arxiv-pdfs", format="pdf")
         if logger:
             logger.info(f"Uploaded PDF to S3 for {arxiv_code}")
         return True

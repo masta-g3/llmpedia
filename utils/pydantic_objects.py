@@ -59,6 +59,16 @@ class LLMVerifier(BaseModel):
     )
 
 
+class InterestingPaperSelection(BaseModel):
+    analysis: str = Field(
+        ...,
+        description="Analysis explaining why this abstract was selected as the most interesting.",
+    )
+    selected_arxiv_code: str = Field(
+        ...,
+        description="Arxiv code of the selected paper.",
+    )
+
 
 class QueryDecision(BaseModel):
     llm_query: bool
@@ -193,3 +203,18 @@ class QnaPair(BaseModel):
 
 class QnaSet(BaseModel):
     qna_pairs: list[QnaPair] = Field(..., description="List of Q&A pairs.")
+
+
+class TweetEdit(BaseModel):
+    repetition_analysis: List[str] = Field(
+        ...,
+        description="List of identified structural patterns and phrases that match recent tweets"
+    )
+    suggested_tweet: str = Field(
+        ...,
+        description="The revised tweet with minimal but impactful changes to reduce repetitiveness"
+    )
+    edit_rationale: str = Field(
+        ...,
+        description="Explanation of how the changes reduce repetitiveness while preserving style requirements"
+    )

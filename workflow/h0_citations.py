@@ -27,41 +27,41 @@ OVERRIDE = False
 
 def main():
     """Load summaries and add missing ones."""
-    logger.info("Starting citation fetching process")
+    logger.info("Starting citation fetching process.")
     arxiv_codes = db.get_arxiv_id_list(db.db_params, "summaries")
     done_codes = db.get_arxiv_id_list(db.db_params, "semantic_details")
     if not OVERRIDE:
         arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
 
-    logger.info(f"Found {len(arxiv_codes)} papers to process for citations")
+    logger.info(f"Found {len(arxiv_codes)} papers to process for citations.")
 
     items_added = 0
     errors = 0
-    for arxiv_code in arxiv_codes:
+    for idx, arxiv_code in enumerate(arxiv_codes):
         clear_previous = False
         already_exists = db.check_in_db(arxiv_code, db.db_params, "semantic_details")
         if not OVERRIDE:
             if already_exists:
-                logger.info(f"Skipping {arxiv_code} as it already exists in the database")
+                logger.info(f"[{idx}/{len(arxiv_codes)}] Skipping {arxiv_code} as it already exists in the database.")
                 continue
         else:
             clear_previous = True
 
         ss_info = pu.get_semantic_scholar_info(arxiv_code)
         if ss_info is None:
-            logger.warning(f"Could not find citations for {arxiv_code}")
+            logger.warning(f"[{idx}/{len(arxiv_codes)}] Could not find citations for {arxiv_code}.")
             errors += 1
             continue
 
         if already_exists and clear_previous:
-            logger.info(f"Removing existing entry for {arxiv_code} before updating")
+            logger.info(f"[{idx}/{len(arxiv_codes)}] Removing existing entry for {arxiv_code} before updating.")
             db.remove_from_db(arxiv_code, db.db_params, "semantic_details")
 
         ss_info = pu.transform_flat_dict(pu.flatten_dict(ss_info), semantic_map)
         ss_info["arxiv_code"] = arxiv_code
         db.upload_to_db(ss_info, db.db_params, "semantic_details")
-        logger.info(f"Added citations for {arxiv_code}")
+        logger.info(f"[{idx}/{len(arxiv_codes)}] Added citations for {arxiv_code}.")
         items_added += 1
         time.sleep(random.uniform(0.12, 0.5))
 

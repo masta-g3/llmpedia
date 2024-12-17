@@ -45,7 +45,13 @@ def setup_browser(logger: logging.Logger, headless: bool = True):
     # Enable JavaScript and other important features
     firefox_options.set_preference("javascript.enabled", True)
     firefox_options.set_preference("dom.webnotifications.enabled", False)
-    firefox_options.set_preference("network.http.connection-timeout", 30)
+    firefox_options.set_preference("network.http.connection-timeout", 60)
+    firefox_options.set_preference("page.load.timeout", 60000)
+
+    # Additional preferences to avoid detection
+    firefox_options.set_preference("general.platform.override", "Win32")
+    firefox_options.set_preference("general.appversion.override", "5.0 (Windows)")
+    firefox_options.set_preference("general.oscpu.override", "Windows NT 10.0; Win64; x64")
 
     # Set proper window size
     firefox_options.add_argument("--width=1920")
@@ -55,14 +61,12 @@ def setup_browser(logger: logging.Logger, headless: bool = True):
     firefox_options.add_argument("--no-sandbox")
     firefox_options.add_argument("--disable-dev-shm-usage")
 
-    # Set up virtual display
-    os.system("Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &")
-    os.environ["DISPLAY"] = ":99"
-
     try:
         service = FirefoxService()
         driver = webdriver.Firefox(options=firefox_options, service=service)
-        driver.set_page_load_timeout(30)
+        driver.set_page_load_timeout(60)  # Increased timeout
+        driver.set_script_timeout(60)     # Added script timeout
+        driver.implicitly_wait(20)        # Added implicit wait
         driver.set_window_size(1920, 1080)
 
         # Execute JavaScript to modify navigator properties
@@ -70,6 +74,12 @@ def setup_browser(logger: logging.Logger, headless: bool = True):
             """
             Object.defineProperty(navigator, 'webdriver', {
                 get: () => undefined
+            });
+            Object.defineProperty(navigator, 'languages', {
+                get: () => ['en-US', 'en']
+            });
+            Object.defineProperty(navigator, 'plugins', {
+                get: () => [1, 2, 3, 4, 5]
             });
         """
         )
@@ -95,76 +105,94 @@ def setup_browser(logger: logging.Logger, headless: bool = True):
 def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
     """Login to Twitter within any page of its domain."""
     logger.info("Attempting to log in to Twitter")
-
-    # Add page load debugging
-    logger.info("Current URL before navigation: " + driver.current_url)
-
-    driver.get("https://x.com/i/flow/login")
-    logger.info("Navigation completed")
-    logger.info("Current URL after navigation: " + driver.current_url)
-    logger.info("Page title: " + driver.title)
-
-    # Log page source to see what we're actually getting
-    logger.info("Page source snippet: " + driver.page_source[:500])
-
-    # Add a small delay to ensure page is loaded
-    time.sleep(5)
-
-    # Try to force JavaScript execution
-    driver.execute_script("window.dispatchEvent(new Event('load'))")
-    driver.execute_script("document.dispatchEvent(new Event('DOMContentLoaded'))")
-
-    logger.info("Attempting to locate username field")
-    # Try different selectors to see which ones are present
-    selectors_present = {
-        "username_autocomplete": len(
-            driver.find_elements(By.CSS_SELECTOR, 'input[autocomplete="username"]')
-        ),
-        "any_input": len(driver.find_elements(By.TAG_NAME, "input")),
-        "any_div": len(driver.find_elements(By.TAG_NAME, "div")),
-    }
-    logger.info(f"Elements found on page: {selectors_present}")
-
-    try:
-        input_field = WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.TAG_NAME, "input"))
-        )
-        logger.info(
-            "Found an input field with attributes: "
-            + str(input_field.get_attribute("outerHTML"))
-        )
-    except Exception as e:
-        logger.error(f"Could not find any input field: {str(e)}")
-
-    # Login attempt
-    username_field = WebDriverWait(driver, 15).until(
-        EC.visibility_of_element_located(
-            (By.CSS_SELECTOR, 'input[autocomplete="username"]')
-        )
-    )
-    logger.info("Username field found successfully")
-    username_field.send_keys(USERNAME)
-    username_field.send_keys(Keys.RETURN)
-
-    # Check if additional identification is required (e.g., phone)
-    identifier_field = WebDriverWait(driver, 5).until(
-        EC.presence_of_element_located((By.NAME, "text"))
-    )
-    identifier_field.send_keys(PHONE)
-    identifier_field.send_keys(Keys.RETURN)
-
-    # Enter password
-    password_field = WebDriverWait(driver, 15).until(
-        EC.presence_of_element_located((By.NAME, "password"))
-    )
-    password_field.send_keys(PASSWORD)
-    password_field.send_keys(Keys.RETURN)
-
-    # Wait until the "Post" button is clickable to ensure login is complete
-    WebDriverWait(driver, 15).until(
-        EC.element_to_be_clickable((By.XPATH, '//a[@aria-label="Post"]'))
-    )
-    logger.info("Successfully logged in to Twitter")
+    
+    max_retries = 3
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            # Clear cookies and cache before attempting login
+            driver.delete_all_cookies()
+            
+            logger.info("Current URL before navigation: " + driver.current_url)
+            driver.get("https://twitter.com/login")  # Changed to twitter.com instead of x.com
+            logger.info("Navigation completed")
+            
+            # Wait longer for initial page load
+            time.sleep(10)
+            
+            # Log debugging information
+            logger.info("Current URL after navigation: " + driver.current_url)
+            logger.info("Page title: " + driver.title)
+            
+            # Try multiple selectors for the username field
+            username_selectors = [
+                (By.CSS_SELECTOR, 'input[autocomplete="username"]'),
+                (By.NAME, "text"),
+                (By.CSS_SELECTOR, 'input[name="text"]'),
+                (By.CSS_SELECTOR, 'input[type="text"]')
+            ]
+            
+            username_field = None
+            for selector in username_selectors:
+                try:
+                    username_field = WebDriverWait(driver, 20).until(
+                        EC.presence_of_element_located(selector)
+                    )
+                    if username_field.is_displayed():
+                        break
+                except:
+                    continue
+            
+            if not username_field:
+                raise Exception("Could not find username field")
+            
+            # Clear field and enter username
+            username_field.clear()
+            username_field.send_keys(USERNAME)
+            time.sleep(2)
+            username_field.send_keys(Keys.RETURN)
+            time.sleep(5)
+            
+            # Handle phone verification if needed
+            try:
+                identifier_field = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.NAME, "text"))
+                )
+                identifier_field.send_keys(PHONE)
+                time.sleep(2)
+                identifier_field.send_keys(Keys.RETURN)
+                time.sleep(5)
+            except:
+                logger.info("Phone verification not required")
+            
+            # Enter password
+            password_field = WebDriverWait(driver, 20).until(
+                EC.presence_of_element_located((By.NAME, "password"))
+            )
+            password_field.send_keys(PASSWORD)
+            time.sleep(2)
+            password_field.send_keys(Keys.RETURN)
+            
+            # Wait for login to complete
+            try:
+                WebDriverWait(driver, 30).until(
+                    EC.presence_of_element_located((By.XPATH, '//a[@aria-label="Post"]'))
+                )
+                logger.info("Successfully logged in to Twitter")
+                return
+            except:
+                logger.warning("Could not find Post button after login")
+                raise Exception("Login verification failed")
+                
+        except Exception as e:
+            logger.error(f"Login attempt {retry_count + 1} failed: {str(e)}")
+            retry_count += 1
+            if retry_count >= max_retries:
+                raise Exception(f"Failed to login after {max_retries} attempts")
+            time.sleep(10)  # Wait before retrying
+            
+    raise Exception("Login failed after all retries")
 
 
 def navigate_to_profile(

@@ -109,7 +109,7 @@ def main(date_str: str):
             html_markdowns.append(paper_markdown)
 
     weekly_content_md += f"## Previous Week's Submissions for New Developments and Themes\nBelow is the introduction you published last week. Play close attention to the themes mentioned so you don't repeat them.\n"
-    weekly_content_md += f"```{previous_themes}```"
+    # weekly_content_md += f"```{previous_themes}```"
 
     ## Generate summary.
     logger.info("Generating weekly report and highlight")
@@ -162,5 +162,5 @@ def main(date_str: str):
 
 if __name__ == "__main__":
     ## Use provided date or default to 2024-10-07
-    date_str = sys.argv[1] if len(sys.argv) == 2 else "2024-11-04"
+    date_str = sys.argv[1] if len(sys.argv) == 2 else "2024-11-18"
     main(date_str)

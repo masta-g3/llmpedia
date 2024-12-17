@@ -17,6 +17,9 @@ os.chdir(PROJECT_PATH)
 
 import utils.paper_utils as pu
 import utils.db as db
+from utils.logging_utils import setup_logger
+
+logger = setup_logger(__name__, "j0_doc_chunker.log")
 
 data_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_text")
 meta_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_meta")
@@ -126,16 +129,15 @@ def main():
     arxiv_codes = pu.list_s3_files("arxiv-text", strip_extension=True)
 
     ## Child chunks.
-    print("Creating child chunks...")
+    logger.info("Creating child chunks.")
     child_done = db.get_arxiv_id_list(pu.db_params, "arxiv_chunks")
     child_codes = list(set(arxiv_codes) - set(child_done))
-    print(f"Found {len(child_codes)} child papers pending.")
+    logger.info(f"Found {len(child_codes)} child papers pending.")
 
-    for arxiv_code in tqdm(child_codes):
+    for idx, arxiv_code in enumerate(child_codes):
         ## Open doc and meta_data.
         doc_txt = pu.load_local(arxiv_code, data_path, relative=False, format="txt", s3_bucket="arxiv-text")
-        print(arxiv_code)
-        print(doc_txt)
+        logger.info(f"[{idx}/{len(child_codes)}] Processing {arxiv_code}.")
         doc_texts = text_splitter.split_text(doc_txt)
         doc_chunks = [doc.replace("\n", " ") for doc in doc_texts]
 
@@ -152,13 +154,13 @@ def main():
         pu.upload_s3_file(arxiv_code, "arxiv-chunks", prefix="data", format="json")
 
     ## Parent chunks.
-    print("Creating parent chunks...")
+    logger.info("Creating parent chunks.")
     parent_table_name = version_name_map[VERSION_NAME]
     parent_done = db.get_arxiv_id_list(pu.db_params, parent_table_name)
     parent_codes = list(set(arxiv_codes) - set(parent_done))
-    print(f"Found {len(parent_codes)} parent papers pending.")
+    logger.info(f"Found {len(parent_codes)} parent papers pending.")
 
-    for arxiv_code in tqdm(parent_codes):
+    for idx, arxiv_code in enumerate(parent_codes):
         ## Open doc and meta_data.
         doc_txt = pu.load_local(arxiv_code, data_path, relative=False, format="txt", s3_bucket="arxiv-text")
         doc_texts = parent_splitter.split_text(doc_txt)
@@ -177,11 +179,11 @@ def main():
         pu.upload_s3_file(arxiv_code, "arxiv-chunks", prefix="data", format="json")
 
     ## Mapping of child-to-parent.
-    print("Mapping child-to-parent...")
+    logger.info("Mapping child-to-parent.")
     ## ToDo: Allow version param here.
     mapping_done = db.get_arxiv_id_list(pu.db_params, "arxiv_chunk_map")
     mapping_codes = list(set(arxiv_codes) - set(mapping_done))
-    print(f"Found {len(mapping_codes)} mapping papers pending.")
+    logger.info(f"Found {len(mapping_codes)} mapping papers pending.")
 
     mapping_df = parallel_process_mapping(mapping_codes, child_path, parent_path)
     mapping_df["version"] = VERSION_NAME

@@ -36,18 +36,18 @@ def main():
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
     
-    logger.info(f"Found {len(arxiv_codes)} papers to summarize")
+    logger.info(f"Found {len(arxiv_codes)} papers to summarize.")
 
-    for arxiv_code in arxiv_codes:
+    for idx, arxiv_code in enumerate(arxiv_codes):
         paper_content = pu.load_local(arxiv_code, "arxiv_text", format="txt", s3_bucket="arxiv-text")
         paper_content = pu.preprocess_arxiv_doc(paper_content)
         title_dict = db.get_arxiv_title_dict()
         paper_title = title_dict.get(arxiv_code, None)
         if paper_title is None:
-            logger.warning(f"Could not find '{arxiv_code}' in the meta-database. Skipping...")
+            logger.warning(f"[{idx}/{len(arxiv_codes)}] Could not find '{arxiv_code}' in the meta-database. Skipping.")
             continue
 
-        logger.info(f"Summarizing paper: {arxiv_code} - '{paper_title}'")
+        logger.info(f"[{idx}/{len(arxiv_codes)}] Summarizing: {arxiv_code} - '{paper_title}'")
         summaries_dict, token_dict = vs.recursive_summarize_by_parts(
             paper_title,
             paper_content,
@@ -65,7 +65,7 @@ def main():
         
         db.upload_df_to_db(summary_notes, "summary_notes", db.db_params)
 
-    logger.info("Paper summarization process completed")
+    logger.info("Paper summarization process completed.")
 
 if __name__ == "__main__":
     main()

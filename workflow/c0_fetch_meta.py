@@ -17,19 +17,19 @@ from utils.logging_utils import setup_logger
 logger = setup_logger(__name__, "c0_fetch_meta.log")
 
 def main():
-    logger.info("Starting metadata fetching process")
+    logger.info("Starting metadata fetching process.")
     arxiv_codes = pu.list_s3_files("arxiv-text")
     done_codes = db.get_arxiv_id_list(db.db_params, "arxiv_details")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
     
-    logger.info(f"Found {len(arxiv_codes)} new papers to fetch metadata for")
+    logger.info(f"Found {len(arxiv_codes)} papers with missing meta-data.")
 
-    for arxiv_code in arxiv_codes:
-        logger.info(f"Fetching metadata for {arxiv_code}")
+    for idx, arxiv_code in enumerate(arxiv_codes):
+        logger.info(f" [{idx}/{len(arxiv_codes)}] Fetching metadata for {arxiv_code}.")
         arxiv_info = pu.get_arxiv_info(arxiv_code)
         if arxiv_info is None:
-            logger.warning(f"Could not find '{arxiv_code}' in Arxiv meta-data. Skipping...")
+            logger.warning(f" [{idx}/{len(arxiv_codes)}] Could not find '{arxiv_code}' in Arxiv meta-data.")
             continue
         processed_meta = pu.process_arxiv_data(arxiv_info._raw)
         db.upload_to_db(processed_meta, pu.db_params, "arxiv_details")

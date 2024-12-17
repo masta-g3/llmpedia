@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
+PROJECT_PATH = os.getenv("PROJECT_PATH", "/app")
 sys.path.append(PROJECT_PATH)
 
 os.chdir(PROJECT_PATH)
@@ -20,6 +20,7 @@ from utils.logging_utils import setup_logger
 # Set up logging
 logger = setup_logger(__name__, "b0_download_paper.log")
 
+
 def update_gist(gist_id, gist_filename, paper_list, logger):
     """Update the gist with the current queue."""
     gist_url = pu.update_gist(
@@ -31,8 +32,9 @@ def update_gist(gist_id, gist_filename, paper_list, logger):
     )
     return gist_url
 
+
 def main():
-    logger.info("Starting paper download process")
+    logger.info("Starting paper download process.")
     vs.validate_openai_env()
     parsed_list = []
 
@@ -40,17 +42,19 @@ def main():
     gist_id = "1dd189493c1890df6e04aaea6d049643"
     gist_filename = "llm_queue.txt"
     paper_list = pu.fetch_queue_gist(gist_id, gist_filename)
-    logger.info(f"Fetched {len(paper_list)} papers from gist")
+    logger.info(f"Fetched {len(paper_list)} papers from gist.")
 
     ## Check local files.
     done_codes = pu.list_s3_files("arxiv-text")
     nonllm_codes = pu.list_s3_files("nonllm-arxiv-text") + ["..."]
-    logger.info(f"Found {len(done_codes)} done papers and {len(nonllm_codes)} non-LLM papers")
+    logger.info(
+        f"Found {len(done_codes)} done papers and {len(nonllm_codes)} non-LLM papers."
+    )
 
     ## Remove duplicates.
     paper_list = list(set(paper_list) - set(done_codes) - set(nonllm_codes))
-    paper_list_iter = paper_list[:]
-    logger.info(f"{len(paper_list)} papers to process after removing duplicates")
+    paper_list_iter = sorted(paper_list[:])[::-1]
+    logger.info(f"{len(paper_list)} papers to process after removing duplicates.")
 
     arxiv_map = db.get_arxiv_title_dict()
     existing_paper_names = list(arxiv_map.values())
@@ -58,7 +62,7 @@ def main():
 
     ## Iterate.
     gist_url = None
-    for paper_name in paper_list_iter:
+    for idx, paper_name in enumerate(paper_list_iter):
         time.sleep(3)
         existing = pu.check_if_exists(
             paper_name, existing_paper_names, existing_paper_ids
@@ -66,7 +70,9 @@ def main():
 
         ## Check if we already have the document.
         if existing:
-            logger.info(f"Skipping '{paper_name}' as it is already in the database.")
+            logger.info(
+                f" [{idx}/{len(paper_list_iter)}] Skipping '{paper_name}' as it is already in the database."
+            )
             ## Update gist.
             parsed_list.append(paper_name)
             paper_list = list(set(paper_list) - set(parsed_list))
@@ -77,12 +83,15 @@ def main():
         try:
             new_doc = pu.search_arxiv_doc(paper_name)
         except Exception as e:
-            logger.error(f"Failed to search for '{paper_name}'. Skipping...")
-            logger.error(str(e))
+            logger.error(
+                f" [{idx}/{len(paper_list_iter)}] Failed to search for '{paper_name}': {str(e)}"
+            )
             continue
 
         if new_doc is None:
-            logger.warning(f"Could not find '{paper_name}' in Arxiv. Skipping...")
+            logger.warning(
+                f" [{idx}/{len(paper_list_iter)}] Could not find '{paper_name}' in Arxiv."
+            )
             continue
 
         new_meta = new_doc.metadata
@@ -92,27 +101,34 @@ def main():
         arxiv_code = re.sub(r"v\d+$", "", arxiv_code)
 
         ## Verify it's an LLM paper.
-        is_llm_paper = vs.verify_llm_paper(new_content[:1500] + " ...[continued]...", model="claude-3-5-sonnet-20241022")
+        is_llm_paper = vs.verify_llm_paper(
+            new_content[:1500] + " ...[continued]...",
+            model="claude-3-5-sonnet-20241022",
+        )
         if not is_llm_paper["is_related"]:
-            logger.info(f"'{paper_name}' - '{title}' is not a LLM paper. Skipping...")
+            logger.info(
+                f" [{idx}/{len(paper_list_iter)}] '{paper_name}' - '{title}' is not a LLM paper."
+            )
             parsed_list.append(paper_name)
             paper_list = list(set(paper_list) - set(parsed_list))
             gist_url = update_gist(gist_id, gist_filename, paper_list, logger)
             ## Store in nonllm_arxiv_text.
             pu.store_local(new_content, arxiv_code, "nonllm_arxiv_text", format="txt")
-            pu.upload_s3_file(arxiv_code, "nonllm-arxiv-text", prefix="data", format="txt")
+            pu.upload_s3_file(
+                arxiv_code, "nonllm-arxiv-text", prefix="data", format="txt"
+            )
             continue
 
         ## Check if we have a summary locally.
         local_paper_codes = os.path.join(
             os.environ.get("PROJECT_PATH"), "data", "arxiv_text"
         )
-        local_paper_codes = [
-            f.split(".json")[0] for f in os.listdir(local_paper_codes)
-        ]
+        local_paper_codes = [f.split(".json")[0] for f in os.listdir(local_paper_codes)]
         if arxiv_code in local_paper_codes:
             ## Update gist.
-            logger.info(f"Found '{paper_name}' - '{title}' locally. Skipping...")
+            logger.info(
+                f" [{idx}/{len(paper_list_iter)}] Found '{paper_name}' - '{title}' locally."
+            )
             parsed_list.append(paper_name)
             paper_list = list(set(paper_list) - set(parsed_list))
             gist_url = update_gist(gist_id, gist_filename, paper_list, logger)
@@ -121,7 +137,9 @@ def main():
         ## Store.
         pu.store_local(new_content, arxiv_code, "arxiv_text", format="txt")
         pu.upload_s3_file(arxiv_code, "arxiv-text", prefix="data", format="txt")
-        logger.info(f"'{paper_name}' - '{title}' stored locally.")
+        logger.info(
+            f" [{idx}/{len(paper_list)}] '{paper_name}' - '{title}' stored locally."
+        )
 
         ## Update gist.
         parsed_list.append(paper_name)
@@ -130,6 +148,7 @@ def main():
 
     if gist_url:
         logger.info(f"Done! Updated queue gist URL: {gist_url}")
+
 
 if __name__ == "__main__":
     main()

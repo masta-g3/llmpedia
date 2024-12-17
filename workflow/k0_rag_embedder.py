@@ -13,6 +13,7 @@ import json
 
 from dotenv import load_dotenv
 
+
 load_dotenv()
 PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
 sys.path.append(PROJECT_PATH)
@@ -21,6 +22,9 @@ chunk_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_chunks"
 
 import utils.paper_utils as pu
 import utils.db as db
+from utils.logging_utils import setup_logger
+
+logger = setup_logger(__name__, "k0_rag_embedder.log")
 
 MAX_RETRIES = 3
 RETRY_DELAY = 2
@@ -43,7 +47,7 @@ def main():
         f"@{pu.db_params['host']}:{pu.db_params['port']}/{pu.db_params['dbname']}"
     )
     for COLLECTION_NAME in COLLECTION_NAMES:
-        print(f"Processing {COLLECTION_NAME}...")
+        logger.info(f"Processing {COLLECTION_NAME}...")
         model_name = MODEL_NAME_MAP[COLLECTION_NAME]
 
         if "embed-english" in model_name:
@@ -65,7 +69,7 @@ def main():
         local_codes = [code.replace(".json", "") for code in local_codes]
         processing_codes = list(set(local_codes) - set(arxiv_codes))
 
-        for arxiv_code in processing_codes:
+        for idx, arxiv_code in enumerate(processing_codes):
             chunks_fname = os.path.join(chunk_path, f"{arxiv_code}.json")
             chunks_json = json.load(open(chunks_fname, "r"))
             chunks_df = pd.DataFrame(chunks_json)
@@ -84,7 +88,7 @@ def main():
                     except IntegrityError as e:
                         continue
                     except OperationalError as e:
-                        print(
+                        logger.error(
                             f"Encountered error on paper {metadata['arxiv_code']}: {e}"
                         )
                         if attempt < MAX_RETRIES - 1:
@@ -93,7 +97,7 @@ def main():
             # if metadata:
             #     print(f"Added {add_count} vectors for {metadata['arxiv_code']}.")
 
-        print("Process complete.")
+        logger.info("Process complete.")
 
 
 if __name__ == "__main__":

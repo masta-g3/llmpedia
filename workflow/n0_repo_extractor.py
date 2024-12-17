@@ -13,10 +13,14 @@ os.chdir(PROJECT_PATH)
 import utils.vector_store as vs
 import utils.db as db
 import utils.paper_utils as pu
+from utils.logging_utils import setup_logger
 
+logger = setup_logger(__name__, "n0_repo_extractor.log")
 
 def main():
     vs.validate_openai_env()
+
+    logger.info("Starting repo extraction process.")
 
     arxiv_codes = db.get_arxiv_id_list(db.db_params, "arxiv_details")
     done_codes = db.get_arxiv_id_list(db.db_params, "arxiv_repos")
@@ -24,7 +28,8 @@ def main():
     pending_arxiv_codes = sorted(pending_arxiv_codes)[::-1]
 
     external_resources = []
-    for arxiv_code in pending_arxiv_codes:
+    for idx, arxiv_code in enumerate(pending_arxiv_codes):
+        logger.info(f"[{idx}/{len(pending_arxiv_codes)}] Processing {arxiv_code}.")
         content_df = db.get_extended_content(arxiv_code)
         if len(content_df) == 0:
             continue
@@ -60,9 +65,9 @@ def main():
         try:
             db.upload_df_to_db(weekly_repos_df, "arxiv_repos", pu.db_params)
         except Exception as e:
-            print(f"Error uploading external resources for {arxiv_code}: {e}")
+            logger.error(f"Error uploading external resources for {arxiv_code}: {e}")
         external_resources.clear()
-    print("Done!")
+    logger.info("Done!")
 
 
 if __name__ == "__main__":

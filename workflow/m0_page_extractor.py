@@ -38,14 +38,14 @@ def process_arxiv_code(arxiv_code, page_dir):
 
             pu.upload_s3_file(arxiv_code=arxiv_code, bucket_name="arxiv-first-page", prefix="data", format="png")
         else:
-            logger.warning(f"Could not extract the first page of '{arxiv_code}'. Skipping...")
+            logger.warning(f"Could not extract the first page of '{arxiv_code}'. Skipping.")
     except Exception as e:
-        logger.error(f"Error processing '{arxiv_code}': {str(e)}. Skipping...")
+        logger.error(f"Error processing '{arxiv_code}': {str(e)}. Skipping.")
     finally:
         gc.collect()  # Force garbage collection
 
 def main():
-    logger.info("Starting page extraction process")
+    logger.info("Starting page extraction process.")
     page_dir = os.path.join(PROJECT_PATH, "data", "arxiv_first_page/")
     
     # Get arxiv codes from the S3 "arxiv-text" bucket
@@ -56,13 +56,15 @@ def main():
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
 
-    logger.info(f"Found {len(arxiv_codes)} papers to process for page extraction")
+    logger.info(f"Found {len(arxiv_codes)} papers to process for page extraction.")
 
-    for arxiv_code in arxiv_codes:
+    for idx, arxiv_code in enumerate(arxiv_codes):
+        logger.info(f" [{idx}/{len(arxiv_codes)}] Processing {arxiv_code}.")
         process_arxiv_code(arxiv_code, page_dir)
         gc.collect()  # Force garbage collection after each iteration
 
-    logger.info("Page extraction process completed")
+    logger.info("Page extraction process completed.")
 
 if __name__ == "__main__":
     main()
+

@@ -206,7 +206,7 @@ def main():
     arxiv_codes = list(set(arxiv_codes) - set(done_imgs))
     arxiv_codes = sorted(arxiv_codes)[::-1]
 
-    logger.info(f"Found {len(arxiv_codes)} papers to process for thumbnails")
+    logger.info(f"Found {len(arxiv_codes)} papers to process for thumbnails.")
 
     for idx, arxiv_code in enumerate(arxiv_codes):
         logger.info(f"Processing paper [{idx+1}/{len(arxiv_codes)}]: {arxiv_code}")
@@ -223,7 +223,7 @@ def main():
         s3.upload_file(img_file, "arxiv-art", arxiv_code + ".png")
         logger.info(f"--> Uploaded to S3.")
 
-    logger.info("Thumbnail creation process completed")
+    logger.info("Thumbnail creation process completed.")
 
 
 if __name__ == "__main__":

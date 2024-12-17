@@ -32,6 +32,13 @@ def pg_array_to_list(array_str):
     return array_str.strip("{}").split(",")
 
 
+def _batch_sql_query(arxiv_codes: list[str], batch_size: int = 1000) -> list[str]:
+    """Helper function to batch SQL IN clause queries for large lists."""
+    return [
+        arxiv_codes[i : i + batch_size] for i in range(0, len(arxiv_codes), batch_size)
+    ]
+
+
 def log_instructor_query(
     model_name: str,
     process_id: str,
@@ -354,9 +361,10 @@ def load_repositories(arxiv_code: str = None):
 
 
 def load_tweet_insights(arxiv_code: str = None, drop_rejected: bool = False):
-    query = "SELECT * FROM tweet_reviews where tweet_type = 'insight_v1'"
+    query = "SELECT * FROM tweet_reviews where tweet_type in ('insight_v1', 'insight_v2', 'insight_v3', 'insight_v4', 'insight_v5')"
     if arxiv_code:
-        query += f" WHERE arxiv_code = '{arxiv_code}';"
+        query += f" AND arxiv_code = '{arxiv_code}';"
+    query += " ORDER BY tstp DESC;"
     conn = create_engine(database_url)
     tweet_reviews_df = pd.read_sql(query, conn)
     tweet_reviews_df.set_index("arxiv_code", inplace=True)
@@ -750,17 +758,38 @@ def get_extended_notes(arxiv_code: str, level=None, expected_tokens=None):
     return summary[2]
 
 
-def get_recursive_summary(arxiv_code: Optional[str] = None) -> Union[dict[str, str], None]:
-    """Get recursive summaries for all papers or a specific arxiv code."""
+def get_recursive_summary(
+    arxiv_code: Optional[Union[str, list[str]]] = None
+) -> Union[dict[str, str], str, None]:
+    """Get recursive summaries for papers."""
+    codes = [arxiv_code] if isinstance(arxiv_code, str) else arxiv_code or []
+
     query = "SELECT * FROM recursive_summaries"
-    if arxiv_code:
-        query += f" WHERE arxiv_code = '{arxiv_code}';"
+    if codes:
+        codes_str = "','".join(codes[:1000])
+        query += f" WHERE arxiv_code IN ('{codes_str}')"
+
+    ## Execute query and get results.
     conn = create_engine(database_url)
-    summaries_df = pd.read_sql(query, conn)
-    summaries_df.set_index("arxiv_code", inplace=True)
-    if arxiv_code:
-        return summaries_df["summary"].iloc[0] if not summaries_df.empty else None
-    return summaries_df["summary"].to_dict()
+    results = pd.read_sql(query, conn).set_index("arxiv_code")["summary"].to_dict()
+
+    ## Get additional batches if needed.
+    if len(codes) > 1000:
+        for batch in _batch_sql_query(codes[1000:]):
+            codes_str = "','".join(batch)
+            batch_results = (
+                pd.read_sql(
+                    f"SELECT * FROM recursive_summaries WHERE arxiv_code IN ('{codes_str}')",
+                    conn,
+                )
+                .set_index("arxiv_code")["summary"]
+                .to_dict()
+            )
+            results.update(batch_results)
+
+    ## ToDo: Remove ugly hack.
+    ## Return single value if input was string, else return dict.
+    return results.get(arxiv_code) if isinstance(arxiv_code, str) else results
 
 
 def insert_tweet_review(arxiv_code, review, tstp, tweet_type, rejected=False):

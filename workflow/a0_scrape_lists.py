@@ -159,6 +159,8 @@ def scrape_ai_news_papers(start_date, end_date=None):
 
     for entry in mailinglist_entry:
         date_str = entry.find("div", class_="email-metadata").text.strip()
+        if len(date_str) == 0:
+            continue
         entry_date = datetime.strptime(date_str, "%B %d, %Y")
 
         if start_date <= entry_date <= end_date:

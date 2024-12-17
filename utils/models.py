@@ -2,6 +2,7 @@ from langchain_openai import ChatOpenAI
 from langchain_together import Together
 from langchain_anthropic import ChatAnthropic
 from langchain_groq import ChatGroq
+from typing import Union
 import os
 
 together_key = os.getenv("TOGETHER_API_KEY")
@@ -9,7 +10,7 @@ together_key = os.getenv("TOGETHER_API_KEY")
 
 def get_mlx_model(
     model_name: str = "una-cybertron-7b-v2-bf16-4bit-mlx",
-    chat_template_name: [str, None] = "chatml.jinja",
+    chat_template_name: Union[str, None] = "chatml.jinja",
 ):
     """Load MLX model + tokenizer and apply chat template."""
     from mlx_lm import load
@@ -106,9 +107,9 @@ llm_map = {
         together_api_key=together_key,
     ),
     ## Groq.
-    "llama3": ChatGroq(
-        model="llama3-70b-8192",
-        max_tokens=4096,
+    "llama-3.3-70b-versatile": ChatGroq(
+        model="llama-3.3-70b-versatile",
+        max_tokens=32768,
         temperature=0.0
     ),
     ## Local model.
