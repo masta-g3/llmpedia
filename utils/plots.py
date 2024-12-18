@@ -167,14 +167,21 @@ def plot_repos_by_feature(
     count_df = df.groupby(plot_by).count()[["repo_title"]].reset_index()
 
     if plot_by != "published":
-        count_df[plot_by] = np.where(count_df["repo_title"] < 10, "Other", count_df[plot_by])
+        count_df[plot_by] = np.where(
+            count_df["repo_title"] < 10, "Other", count_df[plot_by]
+        )
         count_df = count_df.sort_values("repo_title", ascending=False)
         count_df["topic_label"] = count_df[plot_by].apply(
             lambda x: (x[:max_chars] + "...") if len(x) > max_chars else x
         )
     else:
         count_df[plot_by] = pd.to_datetime(count_df[plot_by])
-        count_df[plot_by] = count_df[plot_by].dt.to_period("W").apply(lambda r: r.start_time)
+        count_df[plot_by] = (
+            count_df[plot_by]
+            .dt.tz_localize(None)
+            .dt.to_period("W")
+            .apply(lambda r: r.start_time)
+        )
         count_df = count_df.groupby(plot_by).sum().reset_index()
         count_df = count_df.sort_values(plot_by, ascending=True)
         count_df["topic_label"] = count_df[plot_by].dt.strftime("%b %d")

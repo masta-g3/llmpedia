@@ -604,14 +604,14 @@ Read over carefully over the following information and use it to inform your twe
 - Provide examples, details and explanations to make concepts clear.
 - Use your previous tweets as reference to your style, but do not copy the same structure.
 - Pay special consideration to your most recent tweets; be sure to use a different opening and closing lines.
-- Look at your most recent tweets and avoid repetitive words and phrases (e.g.: "fascinating", "surprising", "drops", "reveal", "the catch", "the key", etc.).
+- Look at your most recent tweets and avoid repetitive words and phrases (e.g.: "fascinating", "surprising", "drops", "reveal", "the catch", "the key", "makes you wonder", etc.).
 - Use direct, concise language with a deeply-online Twitter style while incorporating machine learning knowledge/lore.
 - Don't shy away from technical terminology - assume your audience has domain knowledge.
-- You can be informal or even playful when appropriate. 
+- You can be slightly informal or even playful when appropriate. 
 - Start with a mention of the paper's full title in double-brackets ([[Title]]), as shown in the previous tweets.
 - Do not use hashtags, emojis, or calls to actions.
 - Keep the tweet focused on one main point or insight.
-- Avoid boilerplate conclusions or final remarks.
+- Avoid boilerplate or dramatic conclusions and final remarks.
 </guidelines>
 
 <previous_tweets>

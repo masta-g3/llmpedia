@@ -29,9 +29,9 @@ def main():
 
     external_resources = []
     for idx, arxiv_code in enumerate(pending_arxiv_codes):
-        logger.info(f"[{idx}/{len(pending_arxiv_codes)}] Processing {arxiv_code}.")
         content_df = db.get_extended_content(arxiv_code)
         if len(content_df) == 0:
+            logger.warning(f" [{idx}/{len(pending_arxiv_codes)}] No content found for {arxiv_code}. Skipping.")
             continue
         row = content_df.iloc[0]
         paper_markdown = pu.format_paper_summary(row)
@@ -64,8 +64,9 @@ def main():
         weekly_repos_df["tstp"] = pd.Timestamp.now()
         try:
             db.upload_df_to_db(weekly_repos_df, "arxiv_repos", pu.db_params)
+            logger.info(f" [{idx}/{len(pending_arxiv_codes)}] Uploaded external resources for {arxiv_code}.")
         except Exception as e:
-            logger.error(f"Error uploading external resources for {arxiv_code}: {e}")
+            logger.error(f" [{idx}/{len(pending_arxiv_codes)}] Error uploading external resources for {arxiv_code}: {e}")
         external_resources.clear()
     logger.info("Done!")
 
