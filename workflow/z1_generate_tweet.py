@@ -102,6 +102,13 @@ def main():
         ]
     )
 
+    recent_llm_tweets = tweet.collect_llm_tweets(logger, max_tweets=100)
+    recent_llm_tweets_str = "\n".join([
+        f"COMMUNITY TWEET {i+1}:\n{tweet['text']}" 
+        for i, tweet in enumerate(recent_llm_tweets)
+    ])
+
+
     # logger.info("Collecting LLM-related tweets")
     # recent_tweets = tweet.collect_llm_tweets(logger, max_tweets=100)
 
@@ -112,7 +119,7 @@ def main():
 
     logger.info("Selecting most interesting paper...")
     arxiv_code = vs.select_most_interesting_paper(
-        abstracts_str, model="claude-3-5-sonnet-20241022"
+        abstracts_str, recent_llm_tweets_str, model="claude-3-5-sonnet-20241022"
     )
     # arxiv_code = candidate_arxiv_codes[arxiv_code_idx - 1]
     logger.info(f"Selected paper: {arxiv_code}")
@@ -133,8 +140,9 @@ def main():
     paper_details = db.load_arxiv(arxiv_code)
     # publish_date = paper_details["published"][0].strftime("%B %Y")
     publish_date_full = paper_details["published"][0].strftime("%b %d, %Y")
-    most_recent_tweets = db.load_tweet_insights(drop_rejected=True).head(3)["tweet_insight"].values
-    most_recent_tweets_str = "\n".join([f"- {tweet}" for tweet in most_recent_tweets])
+    most_recent_tweets = db.load_tweet_insights(drop_rejected=True).head(7)["tweet_insight"].values
+    most_recent_tweets_str = "\n".join([f"- {tweet.replace('Insight from ', 'From')}" for tweet in most_recent_tweets])
+
     author = paper_details["authors"][0]
     title_map = db.get_arxiv_title_dict()
     paper_title = title_map[arxiv_code]
@@ -152,12 +160,12 @@ def main():
 
     ## Run model.
     tweet_content = vs.write_tweet(
-        # recent_tweets=recent_tweets_str,
         tweet_facts=tweet_facts,
         tweet_type=tweet_type,
         most_recent_tweets=most_recent_tweets_str,
-        model="claude-3-5-sonnet-20241022",  # "gpt-4o-2024-08-06",
-        temperature=0.9,
+        recent_llm_tweets=recent_llm_tweets_str,
+        model="claude-3-5-sonnet-20241022",
+        temperature=0.7,
     )
     # logger.info(f"Generated tweet for arxiv code: {arxiv_code}")
     # logger.info(f"Generated tweet content: {tweet_content}")
@@ -195,8 +203,8 @@ def main():
         )
 
     # sleep_time = random.randint(30, 35 * 60)
-    # logger.info(f"Sleeping for {sleep_time} seconds")
-    # time.sleep((1*60*60)) 
+    # logger.info(f"22Sleeping for {sleep_time} seconds")
+    # time.sleep((2*60*60)) 
 
     tweet_success = tweet.send_tweet(
         edited_tweet,

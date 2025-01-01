@@ -54,7 +54,7 @@ def main():
     ## Remove duplicates.
     paper_list = list(set(paper_list) - set(done_codes) - set(nonllm_codes))
     paper_list_iter = sorted(paper_list[:])[::-1]
-    logger.info(f"{len(paper_list)} papers to process after removing duplicates.")
+    logger.info(f"{len(paper_list_iter)} papers to process after removing duplicates.")
 
     arxiv_map = db.get_arxiv_title_dict()
     existing_paper_names = list(arxiv_map.values())
@@ -138,7 +138,7 @@ def main():
         pu.store_local(new_content, arxiv_code, "arxiv_text", format="txt")
         pu.upload_s3_file(arxiv_code, "arxiv-text", prefix="data", format="txt")
         logger.info(
-            f" [{idx}/{len(paper_list)}] '{paper_name}' - '{title}' stored locally."
+            f" [{idx}/{len(paper_list_iter)}] '{paper_name}' - '{title}' stored locally."
         )
 
         ## Update gist.

@@ -205,6 +205,21 @@ class QnaSet(BaseModel):
     qna_pairs: list[QnaPair] = Field(..., description="List of Q&A pairs.")
 
 
+############
+## TWEETS ##
+############
+
+class TweetScratchpad(BaseModel):
+    content: str = Field(..., description="Content of the tweet.")
+    structure: str = Field(..., description="Structure of the tweet.")
+    broader_discussion: str = Field(..., description="How to connect to broader discussions?")
+
+
+class Tweet(BaseModel):
+    scratchpad: TweetScratchpad = Field(..., description="Freeform text for brainstorming.")
+    tweet: str = Field(..., description="Final version of the tweet.")
+
+
 class TweetEdit(BaseModel):
     repetition_analysis: List[str] = Field(
         ...,

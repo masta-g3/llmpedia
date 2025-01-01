@@ -313,6 +313,7 @@ tweet_user_map = {
     "insight_v3": ps.TWEET_INSIGHT_USER_PROMPT_V3,
     "insight_v4": ps.TWEET_INSIGHT_USER_PROMPT_V4,
     "insight_v5": ps.TWEET_INSIGHT_USER_PROMPT_V5,
+    "insight_v6": ps.TWEET_INSIGHT_USER_PROMPT_V6,
     # "review_v2": ps.TWEET_REVIEW_USER_PROMPT,
 }
 
@@ -321,11 +322,11 @@ tweet_edit_user_map = {
 }
 
 
-def select_most_interesting_paper(arxiv_abstracts: str, model: str = "gpt-4o-mini"):
+def select_most_interesting_paper(arxiv_abstracts: str, recent_llm_tweets_str: str, model: str = "gpt-4o-mini"):
     """Select the most interesting paper from a list of candidates."""
     response = run_instructor_query(
         ps.INTERESTING_SYSTEM_PROMPT,
-        ps.INTERESTING_USER_PROMPT.format(abstracts=arxiv_abstracts),
+        ps.INTERESTING_USER_PROMPT.format(abstracts=arxiv_abstracts, recent_llm_tweets=recent_llm_tweets_str),
         model=po.InterestingPaperSelection,
         llm_model=model,
         process_id="select_most_interesting_paper",
@@ -340,23 +341,26 @@ def write_tweet(
     tweet_type="new_review",
     model="gpt-4o",
     most_recent_tweets: str = None,
+    recent_llm_tweets: str = None,
     temperature: float = 0.8,
 ) -> str:
     """Write a tweet about an LLM paper."""
     system_prompt = ps.TWEET_SYSTEM_PROMPT
     user_prompt = tweet_user_map[tweet_type].format(
-        # recent_tweets=recent_tweets, 
         tweet_facts=tweet_facts,
         most_recent_tweets=most_recent_tweets,
+        recent_llm_tweets=recent_llm_tweets,
+
     )
     tweet = run_instructor_query(
         system_prompt,
         user_prompt,
+        model=po.Tweet,
         llm_model=model,
         temperature=temperature,
         process_id="write_tweet",
     )
-    return tweet
+    return tweet.tweet
 
 
 def edit_tweet(

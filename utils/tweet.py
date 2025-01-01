@@ -114,7 +114,6 @@ def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
             # Clear cookies and cache before attempting login
             driver.delete_all_cookies()
             
-            logger.info("Current URL before navigation: " + driver.current_url)
             driver.get("https://twitter.com/login")  # Changed to twitter.com instead of x.com
             logger.info("Navigation completed")
             
@@ -577,9 +576,9 @@ def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50) -> list[dic
                             "text": tweet_elem.find_element(
                                 By.CSS_SELECTOR, 'div[data-testid="tweetText"]'
                             ).text,
-                            "timestamp": tweet_elem.find_element(
-                                By.TAG_NAME, "time"
-                            ).get_attribute("datetime"),
+                            # "timestamp": tweet_elem.find_element(
+                            #     By.TAG_NAME, "time"
+                            # ).get_attribute("datetime"),
                             "author": user_name_parts[0],
                             "username": user_name_parts[1],
                             "link": tweet_elem.find_element(
@@ -590,12 +589,12 @@ def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50) -> list[dic
                         # Check if tweet is LLM-related using verification function
                         if vs.assess_llm_relevance(tweet_text=tweet_data["text"]):
                             logger.info(
-                                # f"Found relevant tweet from: {tweet_data['username']}"
+                                f"Found relevant tweet from: {tweet_data['username']}"
                             )
                             relevant_tweets.append(tweet_data)
 
                     except Exception as e:
-                        # logger.warning(f"Error extracting tweet details: {str(e)}")
+                        logger.warning(f"Error extracting tweet details: {str(e)}")
                         continue
 
                 # Scroll and check progress

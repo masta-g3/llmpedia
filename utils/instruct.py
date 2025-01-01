@@ -71,9 +71,10 @@ def create_anthropic_message(
     client, system_message, user_message, model, llm_model, temperature
 ):
     """Create a message with the Anthropic client, with an optional Pydantic model."""
+    max_tokens = 4096 if "opus" in llm_model else 8192
     if model is None:
         response = client.messages.create(
-            max_tokens=8192,
+            max_tokens=max_tokens,
             model=llm_model,
             system=system_message,
             temperature=temperature,
@@ -86,7 +87,7 @@ def create_anthropic_message(
     else:
         client = instructor.from_anthropic(client)
         response, completion = client.messages.create_with_completion(
-            max_tokens=8192,
+            max_tokens=max_tokens,
             max_retries=3,
             model=llm_model,
             temperature=temperature,

@@ -162,5 +162,5 @@ def main(date_str: str):
 
 if __name__ == "__main__":
     ## Use provided date or default to 2024-10-07
-    date_str = sys.argv[1] if len(sys.argv) == 2 else "2024-11-18"
+    date_str = sys.argv[1] if len(sys.argv) == 2 else "2024-11-25"
     main(date_str)
