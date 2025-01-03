@@ -24,7 +24,7 @@ def create_sidebar(full_papers_df: pd.DataFrame) -> Tuple[pd.DataFrame, int]:
         "Year",
         min_value=2016,
         max_value=2025,
-        value=2025,
+        value=2024,
         step=1,
         label_visibility="collapsed",
         disabled=st.session_state.all_years,

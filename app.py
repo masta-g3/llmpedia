@@ -230,7 +230,7 @@ def main():
     st.session_state["repos"] = repositories_df
 
     if len(papers_df) == 0:
-        st.error("No papers found.")
+        st.error("No papers found. Try a different year.")
         return
 
     published_df = generate_calendar_df(papers_df)
@@ -287,7 +287,7 @@ def main():
     )
 
     if len(papers_df) == 0:
-        st.markdown("No papers found.")
+        st.markdown("No papers found. Try changing some filters.")
         return
 
     ## Content tabs.
