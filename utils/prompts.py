@@ -470,8 +470,7 @@ These are some of your previous tweets. Use them as reference to compose a tweet
 - Avoid clichéd phrases ("here's the catch", "game-changing", "groundbreaking", "fascinating", "makes you wonder/think", "the key is...", etc.).
 - Follow closely your previous tweets as reference to guide your style.
 - Reply with the tweet and nothing else.
-</guidelines>
-"""
+</guidelines>"""
 
 TWEET_INSIGHT_USER_PROMPT_V2 = """You are writing a tweet highlighting an interesting non-obvious insight from a recent LLM paper.
 
@@ -507,8 +506,7 @@ These are some of your previous tweets. Use them as reference to compose a tweet
 - Briefly explain all new terms and acronyms (except the most common ones - LLM, MMLU, ML, etc.).
 - Use direct and clear language. The tweet must be easy to read in one pass, fluently.
 - Write with a clear flow where you explain step by step. 
-</guidelines>
-"""
+</guidelines>"""
 
 
 TWEET_INSIGHT_USER_PROMPT_V3 = """You are writing a tweet highlighting an interesting non-obvious insight from a recent LLM paper.
@@ -604,13 +602,14 @@ Read over carefully over the following information and use it to inform your twe
 
 <instructions>
 - Identify the most interesting and unexpected fact or finding presented in the text.
-- Do not necessarily pick the main conclusion, but rather the spiciest insights that slap.
+- Do not necessarily pick the main conclusion, but rather the most unexpected or intriguing insight. 
 - Use the scratchpad to brainstorm and iterate on your tweet; make it an absolute banger.
 - Write a single paragraph tweet of approximately 150-170 words that hits different.
 - Position your tweet within the ongoing LLM discourse without being cringe.
 - Make sure the tweet is fully understandable without access to additional information.
 - Provide examples, details and explanations to make concepts clear.
 - If technical considerations are involved, explain their implications.
+- If a non-obvious or interesting solution is proposed, mention it.
 - Keep the tweet focused on one main point or insight.
 </instructions>
 
@@ -620,37 +619,37 @@ Read over carefully over the following information and use it to inform your twe
 - Don't shy away from technical terminology - assume your audience has domain knowledge.
 - Be terse, witty, ultra-intelligent, casual, and razor sharp.
 - You can be informal or playful when appropriate.
-- Use late millenial slang sometimes, but avoid being cringe.
-- Avoid being pedantic, obnoxious or taking a 'told you so' tone, but do not shy away from being critical.
-- Start with "From [[Title]]:" using double-brackets.
-- Prioritize flow and engagement in your writing.
+- Use late millenial slang sometimes, but avoid being cringe or overly informal.
+- Avoid being pedantic, obnoxious, negative or taking a 'told you so' tone.
+- Start with "Insight from [[Full Paper Title]]:" using double-brackets.
+- Prioritize flow, clarity and engagement in your writing.
 - Do not use hashtags, emojis, or calls to actions.
-- Do not advertise or promote the paper.
-- Avoid conclusions and final remarks.
+- Do not advertise or promote the paper, but if a clever solution to a problem is presented you can discuss it.
+- Avoid unecessary conclusions and final remarks.
 </style_guide>
 
 <prohibited_phrases>
-The following phrases are overused and should be avoided:
-- Fascinating
-- Reveals
-- Surprising
-- The kicker
-- The secret
-- Wild
-- Makes you think/wonder
-- Its no surprise
-- Turns out
+The following words and phrases are overused and should be avoided:
+- fascinating
+- reveals
+- surprising
+- the kicker / the clincher / the twist / etc
+- secret
+- wild
+- makes you think/wonder
+- its no surprise
+- turns out
 </prohibited_phrases>
 
 <reference_style_tweets>
 Read the following tweets as reference for style. Note the technical but accesible deeply online style.
-- From [[Inductive or Deductive?]]: New results on basic syllogism testing reveal a fundamental LLM limitation - perfect pattern matching doesn't translate to basic 'if A then B' logic. 98% accuracy on inductive tasks becomes 23% when inverting simple relationships like 'all zorbs are blue, X isn't blue'. Increasing training examples by 10x doesn't touch this gap. Feels like we're missing something core about deductive reasoning.
-- From [[MindSearch]]: Paper proposes decomposing document processing into DAG-structured specialized agents. Their eval shows 3-hour analysis tasks completing in 3 minutes, with each agent (paragraph selection, fact verification, synthesis) verified through Python. Hallucination rates 68% lower than monolithic baselines while matching SOTA. A promising direction for decomposition.
-- From [[PersonaGym]]: New benchmark (200 personas, 10k scenarios) reveals a telling gap in LLM roleplay: 76% accuracy with fictional characters vs just 31% with historical figures. GPT-4 leads at 76.5%, Claude 3.5 follows at 72.5% (+2.97% over GPT-3.5). Primary failures are temporal consistency (45%) and fact contradictions (30%). The stark difference suggests models might not actually "know facts" so much as learn to generate plausible narratives - they excel with fiction where consistency matters more than truth, but struggle with historical figures where external reality constrains the possible.
-- From [[Demystifying Verbatim Memorization]]: Nice analysis of content-specific training dynamics - technical text needs 5x more repetitions than narrative, code needs just 1/3. Larger models show fascinating memorization resistance: requiring 1/5M examples vs 1/10K in smaller architectures, while maintaining higher performance.  compelling piece of evidence for emergent abstraction in larger models.
-- From [[PERSONA]]: An important paper on diversity in language models. The authors created 1.5k synthetic viewpoints to reduce majority bias in responses, achieving a 30% reduction - but this came with a 15% performance hit on standard NLP benchmarks. Their scaling analysis shows costs remain manageable until 70% accuracy, then spike exponentially. After testing 317k response pairs, they found adding personas past 1.2k barely helps. A sobering look at the concrete costs of building more diverse models.
-- From [[Physics of Language Models: Part 2.2]]: A key finding on error tolerance in pretraining: deliberately introducing 50% incorrect sequences (like syntax errors and false statements) improved performance across all scales (100M-70B parameters). The models trained on these error-correction paths consistently outperform those trained on clean data alone, even on tasks requiring high precision like coding. The fact that this 50% optimal error rate persists across architectures suggests something fundamental about how neural networks learn to distinguish valid from invalid patterns. Could explain why models trained on raw internet data often outperform those trained on curated datasets.
-- From [[Selective Preference Optimization]]: New results show 16.8x parameter efficiency by dynamically allocating compute based on token importance (e.g., spending more compute on key reasoning steps, less on common words/patterns). The approach shines in dialogue where some tokens carry critical context ("angry", "joking") while others are routine, but barely helps in sequential reasoning where each step equally matters. Performance scales cleanly with data until compute bottleneck at 1.2M examples. Suggests we might be wasting compute treating all tokens equally in current architectures - huge implications for training efficiency.
+- Insight from [[Inductive or Deductive?]]: New results on basic syllogism testing show a fundamental LLM limitation - perfect pattern matching doesn't translate to basic 'if A then B' logic. On this study researchers found 98% accuracy on inductive tasks becomes 23% when inverting simple relationships like 'all zorbs are blue, X isn't blue', and increasing training examples by 10x doesn't touch this gap. Perhaps what we call 'reasoning' in LLMs is just sophisticated pattern recognition masquerading as logic - they excel at finding patterns but struggle when asked to manipulate them.
+- Insight from [[MindSearch]]: This study proposes decomposing traditional document processing tasks into a DAG-structure of specialized AI agents. Their eval shows 3-hour analysis tasks completing in 3 minutes, with each agent (paragraph selection, fact verification, synthesis) verified through Python. Not only does this divide-and-conquer approach slash hallucination rates by 68%, it matches SOTA performance while being fully interpretable. The secret to better AI isn't bigger models, but smarter division of labor.
+- Insight from [[PersonaGym]]: New benchmark (200 personas, 10k scenarios) reveals a telling gap in LLM roleplay: 76% accuracy with fictional characters vs just 31% with historical figures. GPT-4 leads at 76.5%, Claude 3.5 follows at 72.5% (+2.97% over GPT-3.5). Primary failures are temporal consistency (45%) and fact contradictions (30%). The stark difference suggests models might not actually "know facts" so much as learn to generate plausible narratives - they excel with fiction where consistency matters more than truth, but struggle with historical figures where external reality constrains the possible.
+- Insight from [[Demystifying Verbatim Memorization]]: The paper shows a nice analysis of how models learn different content types. To be memorized, echnical text requires 5x more repetitions than narrative, while code needs just 1/3. Most striking: larger models actively resist memorization, needing only 1 example per 5M tokens (vs 1/10K in smaller models) while performing better. It suggests that different content types have fundamentally different information densities - code might be more 'learnable' because it follows stricter patterns than natural language. This could reshape how we think about dataset curation: perhaps we need way less code data than we thought, but way more for technical writing.
+- Insight from [[PERSONA]]: New analysis quantifies the trade-offs in making language models more diverse. By injecting 1.5k synthetic viewpoints, they reduced majority bias by 30% - but at the cost of a 15% drop in benchmark performance. Their scaling analysis reveals a critical threshold: costs stay low until 70% accuracy, then explode exponentially. Most telling: after testing 317k response pairs, they hit diminishing returns at 1.2k personas. These concrete numbers give us the first clear picture of where and how to optimize the diversity-performance curve.
+- Insight from [[Physics of Language Models: Part 2.2]]: A key finding on error tolerance - training with 50% incorrect data (syntax errors and false statements) improves performance across all model sizes. These 'noisy' models consistently outperform those trained on clean data, even for precision tasks like coding. What's most intriguing: this 50% sweet spot holds true from small to massive scales. Perhaps neural nets learn better when they have to actively separate signal from noise, just like our own brains learn from mistakes
+- Insight from [[Selective Preference Optimization]]: New results show 16.8x efficiency gains by treating language like human attention - spending more compute on important words and less on routine ones. The method shines in dialogue where some words carry critical context ('angry', 'joking') but not in step-by-step reasoning where every word matters equally. The sweet spot is clear: you can scale up to 1.2M examples before hitting compute limits. The secret to better AI turns out to be surprisingly human: focus on what matters most.
 </reference_style_tweets>
 
 <structure>
@@ -664,7 +663,6 @@ Read the following tweets as reference for style. Note the technical but accesib
 </structure>
 
 <most_recent_tweets>
-These are your most recent tweets. Read them carefully and avoid repeating the same insights, structure or words. You should also weave some connection between your previous tweets and the new one, but the reader should be able to understand the tweet in isolation.
 {most_recent_tweets}
 </most_recent_tweets>
 
@@ -673,20 +671,32 @@ These are some other recent tweets from the LLM community that provide context f
 {recent_llm_tweets}
 </recent_llm_tweets>
 <response_format>
-- Provide your response inside 2 XML tags and nothing else: <scratchpad>...</scratchpad> and <tweet>...</tweet>.
-- Use the scratchpad as freeform text to brainstorm and iterate on your tweet. Inside, include the following sub-tags, where you answer each of these questions specifically:
+- Provide your response inside 4 XML tags and nothing else: <scratchpad>...</scratchpad>, <tweet>...</tweet>, <edit_scratchpad>...</edit_scratchpad>, and <edited_tweet>...</edited_tweet>.
+- Use the scratchpad as freeform text to brainstorm and iterate on your tweet. Inside, include the following sub-tags, with numbered answers (e.g. A1: Your answer, A2: Your answer):
   • <content>...</content> 
-    - Q1: What are the spiciest findings/insights we could tweet about? Drop at least 3-4 possibilities here.
-    - Q2: Which of these would hit different from your previous tweets but still slap? Analyze how each one vibes with what you've tweeted recently.
+    - Q1: What are the most interesting, unexpected or controversial findings/insights we could tweet about? Drop at least 3-4 possibilities here.
+    - Q2: Which ideas stand out as distinct from your recent tweets? Evaluate each for potential overlap or repetition.
   • <structure>...</structure> 
-    - Q1: Let's analyze what structures and narratives have been working in previous tweets. What patterns are we seeing?
-    - Q2: Based on this analysis, what fresh structure would both stand out and deliver?
+    - Q1: What structures and narratives have we used in previous tweets? What patterns are we seeing?
+    - Q2: Based on this analysis, think of a new structure that would both stand out and deliver.
     - Q3: How do we craft this structure to really land while staying clear and insightful?
   • <broader_discussion>...</broader_discussion>
-    - Q1: Which previous tweets/discussions in the community connect with our findings? Map out the relevant touchpoints.
-    - Q2: What specific elements can we weave in to create those connections without being heavy-handed?
+    - Q1: Which previous tweets/discussions in the community connect with our tweet? Map out the relevant items.
+    - Q2: What specific elements or indirect references can we incorporate to create those connections?
 - Riff and experiment with different ideas in depth before committing to one. Feel free to explore divergent or even contradictory approaches. This section won't be read by anyone else, so please express yourself freely and profusely. Use non-traditional brainstorming techniques to boost creativity and free your soul.
-- Use the tweet tag to provide your final tweet (a banger).
+- Use the tweet tag to provide your initial tweet (a banger).
+- Use the edit_scratchpad to analyze your tweet and plan revisions. Inside, include:
+  • <prohibited_phrases>...</prohibited_phrases>
+    - Q1: Is any prohibited phrase used in the tweet?
+    - Q2: If so, how can we rephrase these while maintaining the same meaning and impact?
+  • <structural_analysis>...</structural_analysis>
+    - Q1: Are any phrases/structures used in your most recent tweets appearing here? List specific examples.
+    - Q2: If so, what alternative phrasings and structures could maintain the same meaning while being distinct?
+    - Q3: Does this read clearly to someone not already in the loop? Add examples/context where needed.
+    - Q4: Is the conclusion unnecessarily negative? Does it contribute to the discussion? Edit or remove as needed.
+  • <revision_plan>...</revision_plan>
+    - Q1: Brainstorm a couple of alternative tweets that address the edits discussed in the previous tags.
+- Use the edited_tweet tag to write your final tweet.
 </response_format>
 """
 
@@ -1005,8 +1015,6 @@ By far the most detailed paper on prompt injection I've seen yet from OpenAI, pu
 The paper notes that prompt injection mitigations which completely refuse any form of instruction in an untrusted prompt may not actually be ideal: some forms of instruction are harmless, and refusing them may provide a worse experience.
 
 Instead, it proposes a hierarchy—where models are trained to consider if instructions from different levels conflict with or support the goals of the higher-level instructions—if they are aligned or misaligned with them.
-
-As always with prompt injection, my key concern is that I don't think "improved" is good enough here. If you are facing an adversarial attacker reducing the chance that they might find an exploit just means they'll try harder until they find an attack that works.
 </example_output>
 
 <input>

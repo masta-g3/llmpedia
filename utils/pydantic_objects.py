@@ -215,9 +215,17 @@ class TweetScratchpad(BaseModel):
     broader_discussion: str = Field(..., description="How to connect to broader discussions?")
 
 
+class TweetEditScratchpad(BaseModel):
+    prohibited_phrases: str = Field(..., description="Analysis of prohibited phrases and planned rephrasing")
+    structural_analysis: str = Field(..., description="Analysis of structural patterns and planned reorganization")
+    revision_plan: str = Field(..., description="Specific changes to implement and how to preserve core message")
+
+
 class Tweet(BaseModel):
-    scratchpad: TweetScratchpad = Field(..., description="Freeform text for brainstorming.")
-    tweet: str = Field(..., description="Final version of the tweet.")
+    scratchpad: TweetScratchpad = Field(..., description="Freeform text for brainstorming initial tweet")
+    tweet: str = Field(..., description="Initial version of the tweet")
+    edit_scratchpad: TweetEditScratchpad = Field(..., description="Analysis and planning for tweet revision")
+    edited_tweet: str = Field(..., description="Revised version avoiding prohibited phrases and ensuring structural uniqueness")
 
 
 class TweetEdit(BaseModel):

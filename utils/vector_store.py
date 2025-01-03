@@ -1,6 +1,5 @@
 import pandas as pd
 import os
-
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import tiktoken
 
@@ -336,14 +335,13 @@ def select_most_interesting_paper(arxiv_abstracts: str, recent_llm_tweets_str: s
 
 
 def write_tweet(
-    # recent_tweets: str,
     tweet_facts: str,
     tweet_type="new_review",
     model="gpt-4o",
     most_recent_tweets: str = None,
     recent_llm_tweets: str = None,
     temperature: float = 0.8,
-) -> str:
+) -> po.Tweet:
     """Write a tweet about an LLM paper."""
     system_prompt = ps.TWEET_SYSTEM_PROMPT
     user_prompt = tweet_user_map[tweet_type].format(
@@ -360,7 +358,7 @@ def write_tweet(
         temperature=temperature,
         process_id="write_tweet",
     )
-    return tweet.tweet
+    return tweet
 
 
 def edit_tweet(

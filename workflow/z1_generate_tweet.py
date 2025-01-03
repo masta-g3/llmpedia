@@ -141,7 +141,7 @@ def main():
     # publish_date = paper_details["published"][0].strftime("%B %Y")
     publish_date_full = paper_details["published"][0].strftime("%b %d, %Y")
     most_recent_tweets = db.load_tweet_insights(drop_rejected=True).head(7)["tweet_insight"].values
-    most_recent_tweets_str = "\n".join([f"- {tweet.replace('Insight from ', 'From')}" for tweet in most_recent_tweets])
+    most_recent_tweets_str = "\n".join([f"- {tweet.replace('From ', 'Insight from ')}" for tweet in most_recent_tweets])
 
     author = paper_details["authors"][0]
     title_map = db.get_arxiv_title_dict()
@@ -159,7 +159,7 @@ def main():
             post_tweet += f"\nrepo: {repo_link}"
 
     ## Run model.
-    tweet_content = vs.write_tweet(
+    tweet_obj = vs.write_tweet(
         tweet_facts=tweet_facts,
         tweet_type=tweet_type,
         most_recent_tweets=most_recent_tweets_str,
@@ -167,21 +167,8 @@ def main():
         model="claude-3-5-sonnet-20241022",
         temperature=0.7,
     )
-    # logger.info(f"Generated tweet for arxiv code: {arxiv_code}")
-    # logger.info(f"Generated tweet content: {tweet_content}")
-
-    # if tweet_type == "review_v5":
-    #     edited_tweet = vs.edit_tweet(
-    #         tweet_content,
-    #         most_recent_tweets=most_recent_tweets_str,
-    #         tweet_type=tweet_type,
-    #         model="claude-3-5-sonnet-20241022",  # "gpt-4o-2024-08-06",
-    #         temperature=0.5,
-    #     )
-    # else:
-    #     edited_tweet = f'💭Review of "{paper_title}"\n\n{tweet_content}'
+    tweet_content = tweet_obj.edited_tweet
     edited_tweet = bold(tweet_content, publish_date_full)
-
     logger.info(f"Edited tweet: {edited_tweet}")
 
     ## Find related tweets from author.
