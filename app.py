@@ -488,7 +488,7 @@ def main():
             st.markdown("# 📰 LLM Weekly Review")
         with report_top_cols[1]:
             ## ToDo: Make dynamic?
-            if year == 2024:
+            if year == 2025:
                 max_date = get_max_report_date()
             else:
                 max_date = pd.to_datetime(f"{year}-12-31").date()
