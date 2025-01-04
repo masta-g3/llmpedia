@@ -25,7 +25,7 @@ def create_sidebar(full_papers_df: pd.DataFrame) -> Tuple[pd.DataFrame, int]:
         "Year",
         min_value=2016,
         max_value=2025,
-        value=2024,
+        value=2025,
         step=1,
         label_visibility="collapsed",
         disabled=st.session_state.all_years,
@@ -308,6 +308,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         st.markdown('\n'.join(numbered_summary))
             
     with tabs[1]:  # Notes
+        st.markdown("### 📝 Research Notes")
         level_select = st.selectbox(
             "Detail",
             [
@@ -344,6 +345,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         st.markdown(paper["takeaway_example"])
 
     with tabs[2]:  # Abstract
+        st.markdown("### 📄 Paper Abstract")
         st.markdown(paper["summary"])
         if not pd.isna(paper["arxiv_comment"]):
             st.markdown(f"\n\n*ArXiv Comment:* {paper['arxiv_comment']}")

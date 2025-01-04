@@ -215,16 +215,13 @@ def main():
     """,
         unsafe_allow_html=True,
     )
-    st.markdown("##### The Illustrated Large Language Model Encyclopedia")
-    ## Humorous and poetic introduction.
     st.markdown(
-        "LLMpedia is a curated collection of key papers on Large Language Models, selected and analyzed by GPT Maestro. "
-        " With pixel art and structured summaries, the encyclopedia is designed to guide you through the extensive research on LLMs. "
-        "If you have any questions or want to do LLM research, go to the *Chat* section and talk to the Maestro. "
-        "And don't forget to follow us [@GPTMaestro](https://twitter.com/GPTMaestro) for the latest updates and paper reviews.\n\n"
-        "*Buona lettura!*"
+        "##### The Illustrated Large Language Model Encyclopedia",
+        help="Welcome to LLMpedia, your curated guide to Large Language Model research, brought to you by GPT Maestro. "
+        "Our pixel art illustrations and structured summaries make complex research accessible. "
+        "Have questions or interested in LLM research? Chat with the Maestro or follow us [@GPTMaestro](https://twitter.com/GPTMaestro) for the latest updates.\n\n"
+        "*Buona lettura!*",
     )
-
     ## Main content.
     full_papers_df = load_data()
     papers_df, year = su.create_sidebar(full_papers_df)
@@ -341,7 +338,6 @@ def main():
         cluster_map = pt.plot_cluster_map(papers_df)
         st.plotly_chart(cluster_map, use_container_width=True)
 
-    
     ## URL info extraction.
     url_query = st.query_params
     if "arxiv_code" in url_query and len(st.session_state.arxiv_code) == 0:
@@ -350,7 +346,6 @@ def main():
         st.session_state.arxiv_code = paper_code
         print(st.session_state.arxiv_code)
         su.click_tab(2)
-        
 
     with content_tabs[2]:
         ## Focus on a paper.
@@ -513,7 +508,7 @@ def main():
         if year < 2023:
             st.error("Weekly reports are available from 2023 onwards.")
             return
-        
+
         else:
             weekly_content, weekly_highlight, weekly_repos = initialize_weekly_summary(
                 date_report
@@ -521,14 +516,14 @@ def main():
             if weekly_content is None:
                 st.error("No weekly report found for this week.")
                 return
-            
+
             else:
                 weekly_report = (
                     f"##### ({date_report.strftime('%B %d, %Y')} to "
-                f"{(date_report + pd.Timedelta(days=6)).strftime('%B %d, %Y')})\n\n"
-                f"## 🔬 New Developments & Findings\n\n{weekly_content}\n\n"
-                f"## 🌟 Highlight of the Week\n\n"
-            )
+                    f"{(date_report + pd.Timedelta(days=6)).strftime('%B %d, %Y')})\n\n"
+                    f"## 🔬 New Developments & Findings\n\n{weekly_content}\n\n"
+                    f"## 🌟 Highlight of the Week\n\n"
+                )
 
             st.write(weekly_report)
             report_highlights_cols = st.columns((1, 2.5))
@@ -541,7 +536,7 @@ def main():
 
 if __name__ == "__main__":
     # try:
-        main()
-    # except Exception as e:
-    #     db.log_error_db(e)
-        # st.error("Something went wrong. Please refresh the app and try again, we will look into it.")
+    main()
+# except Exception as e:
+#     db.log_error_db(e)
+# st.error("Something went wrong. Please refresh the app and try again, we will look into it.")
