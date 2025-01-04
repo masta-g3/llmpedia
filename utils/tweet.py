@@ -126,7 +126,7 @@ def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
             time.sleep(10)
 
             # Log debugging information
-            logger.info("Current URL after navigation: " + driver.current_url)
+            # logger.info("Current URL after navigation: " + driver.current_url)
             logger.info("Page title: " + driver.title)
 
             # Try multiple selectors for the username field
@@ -185,7 +185,7 @@ def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
                         (By.XPATH, '//a[@aria-label="Post"]')
                     )
                 )
-                logger.info("Successfully logged in to Twitter")
+                logger.info("Successfully logged in to X")
                 return
             except:
                 logger.warning("Could not find Post button after login")

@@ -604,6 +604,7 @@ Read over carefully over the following information and use it to inform your twe
 - Identify the most interesting and unexpected fact or finding presented in the text.
 - Do not necessarily pick the main conclusion, but rather the most unexpected or intriguing insight. 
 - Use the scratchpad to brainstorm and iterate on your tweet; make it an absolute banger.
+- Write a lengthy tweet of 120-140 words that is engaging and thought-provoking.
 - Position your tweet within the ongoing LLM discourse without being cringe.
 - Make sure the tweet is fully understandable without access to additional information.
 - Provide examples, details and explanations to make concepts clear.
@@ -696,8 +697,7 @@ These are some other recent tweets from the LLM community that provide context f
     - Q2: Based on this, brainstorm a couple of alternative tweets.
     - Q3: Which of these alternative tweets is the best (a banger)?
 - Use the edited_tweet tag to write your final tweet selection.
-</response_format>
-"""
+</response_format>"""
 
 #
 # <most_recent_tweets>
@@ -2350,4 +2350,15 @@ Topics that are NOT relevant:
 - General tech industry news
 - Hardware and infrastructure
 - Social media trends
+
+Reply only with 0 or 1 (0 for no, 1 for yes), and nothing else.
 </guidelines>"""
+
+PUNCHLINE_SUMMARY_SYSTEM_PROMPT = """You are an expert AI research communicator tasked with creating a clear, impactful one-sentence summary of "{paper_title}" for the Large Language Model Encyclopaedia. Your task is to review the notes on the paper and distill the main finding, contribution, or most interesting aspect into a single, memorable sentence."""
+
+PUNCHLINE_SUMMARY_USER_PROMPT = """Based on the following notes about the paper, generate a single clear and impactful sentence that captures the main finding, contribution, or most interesting aspect of the paper. Focus on what makes this paper unique or noteworthy.
+
+Notes:
+{notes}
+
+Generate a single sentence that starts with "This paper" and clearly states the main takeaway. Reply with this sentence only and nothing else."""

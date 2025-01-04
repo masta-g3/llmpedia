@@ -429,3 +429,22 @@ def assess_llm_relevance(
     )
 
     return bool(int(is_relevant))
+
+
+def generate_paper_punchline(
+    paper_title: str, notes: str, model: str = "GPT-3.5-Turbo"
+) -> str:
+    """Generate a single-sentence punchline summary that captures the main finding or contribution of the paper."""
+    from utils.prompts import PUNCHLINE_SUMMARY_SYSTEM_PROMPT, PUNCHLINE_SUMMARY_USER_PROMPT
+    from utils.llm import get_completion
+
+    system_prompt = PUNCHLINE_SUMMARY_SYSTEM_PROMPT.format(paper_title=paper_title)
+    user_prompt = PUNCHLINE_SUMMARY_USER_PROMPT.format(notes=notes)
+    
+    punchline = get_completion(
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        model=model
+    )
+    
+    return punchline.strip()

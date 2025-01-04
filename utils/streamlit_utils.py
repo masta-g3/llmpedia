@@ -188,46 +188,46 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         meta_col.markdown("<div style='margin: 1.5em 0;'>", unsafe_allow_html=True)
         action_btn_cols = meta_col.columns((1, 1, 1))
         
-        # Report button
-        report_log_space = meta_col.empty()
-        report_btn = action_btn_cols[0].popover("⚠️ Report")
-        if report_btn.checkbox("Report bad image", key=f"report_v1_{paper_code}_{name}"):
-            db.report_issue(paper_code, "bad_image")
-            report_log_space.success("Reported bad image. Thanks!")
-            time.sleep(3)
-            report_log_space.empty()
-        if report_btn.checkbox("Report bad summary", key=f"report_v2_{paper_code}_{name}"):
-            db.report_issue(paper_code, "bad_summary")
-            report_log_space.success("Reported bad summary. Thanks!")
-            time.sleep(3)
-            report_log_space.empty()
-        if report_btn.checkbox("Report non-LLM paper", key=f"report_v3_{paper_code}_{name}"):
-            db.report_issue(paper_code, "non_llm")
-            report_log_space.success("Reported non-LLM paper. Thanks!")
-            time.sleep(3)
-            report_log_space.empty()
-        if report_btn.checkbox("Report bad data card", key=f"report_v4_{paper_code}_{name}"):
-            db.report_issue(paper_code, "bad_datacard")
-            report_log_space.success("Reported bad data-card. Thanks!")
-            time.sleep(3)
-            report_log_space.empty()
+        # # Report button
+        # report_log_space = meta_col.empty()
+        # report_btn = action_btn_cols[0].popover("⚠️ Report")
+        # if report_btn.checkbox("Report bad image", key=f"report_v1_{paper_code}_{name}"):
+        #     db.report_issue(paper_code, "bad_image")
+        #     report_log_space.success("Reported bad image. Thanks!")
+        #     time.sleep(3)
+        #     report_log_space.empty()
+        # if report_btn.checkbox("Report bad summary", key=f"report_v2_{paper_code}_{name}"):
+        #     db.report_issue(paper_code, "bad_summary")
+        #     report_log_space.success("Reported bad summary. Thanks!")
+        #     time.sleep(3)
+        #     report_log_space.empty()
+        # if report_btn.checkbox("Report non-LLM paper", key=f"report_v3_{paper_code}_{name}"):
+        #     db.report_issue(paper_code, "non_llm")
+        #     report_log_space.success("Reported non-LLM paper. Thanks!")
+        #     time.sleep(3)
+        #     report_log_space.empty()
+        # if report_btn.checkbox("Report bad data card", key=f"report_v4_{paper_code}_{name}"):
+        #     db.report_issue(paper_code, "bad_datacard")
+        #     report_log_space.success("Reported bad data-card. Thanks!")
+        #     time.sleep(3)
+        #     report_log_space.empty()
 
-        # Data card button
-        datacard_btn = action_btn_cols[1].button("📊 Data Card", key=f"dashboard_{paper_code}", type="primary")
-        if datacard_btn:
-            with st.spinner("*Loading data card...*"):
-                db.log_visit(f"data_card_{paper_code}")
-                html_card = dc.generate_data_card_html(paper_code)
-                if html_card:
-                    @st.dialog(paper_title, width="large")
-                    def render():
-                        components.html(html_card, height=700, scrolling=True)
-                    render()
-                else:
-                    error_container = st.empty()
-                    error_container.warning("Data card not available yet. Check back soon!")
-                    time.sleep(2)
-                    error_container.empty()
+        # # Data card button
+        # datacard_btn = action_btn_cols[1].button("📊 Data Card", key=f"dashboard_{paper_code}", type="primary")
+        # if datacard_btn:
+        #     with st.spinner("*Loading data card...*"):
+        #         db.log_visit(f"data_card_{paper_code}")
+        #         html_card = dc.generate_data_card_html(paper_code)
+        #         if html_card:
+        #             @st.dialog(paper_title, width="large")
+        #             def render():
+        #                 components.html(html_card, height=700, scrolling=True)
+        #             render()
+        #         else:
+        #             error_container = st.empty()
+        #             error_container.error("Data card not available yet. Check back soon!")
+        #             time.sleep(2)
+        #             error_container.empty()
 
     # Content sections using tabs
     tab_names = [
