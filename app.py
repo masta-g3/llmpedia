@@ -489,7 +489,7 @@ def main():
         with report_top_cols[1]:
             ## ToDo: Make dynamic?
             if year == 2025:
-                max_date = get_max_report_date()
+                max_date = max(get_max_report_date(), pd.to_datetime(f"{year}-01-01").date())
             else:
                 max_date = pd.to_datetime(f"{year}-12-31").date()
             week_select = st.date_input(
