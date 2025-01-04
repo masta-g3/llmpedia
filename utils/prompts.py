@@ -604,7 +604,6 @@ Read over carefully over the following information and use it to inform your twe
 - Identify the most interesting and unexpected fact or finding presented in the text.
 - Do not necessarily pick the main conclusion, but rather the most unexpected or intriguing insight. 
 - Use the scratchpad to brainstorm and iterate on your tweet; make it an absolute banger.
-- Write a single paragraph tweet of approximately 150-170 words that hits different.
 - Position your tweet within the ongoing LLM discourse without being cringe.
 - Make sure the tweet is fully understandable without access to additional information.
 - Provide examples, details and explanations to make concepts clear.
@@ -617,15 +616,15 @@ Read over carefully over the following information and use it to inform your twe
 - Read the reference style tweets to inform your general style and tone (ML twitter researcher).
 - Use direct, concise language with a casual technical tone that incorporates ML Twitter culture.
 - Don't shy away from technical terminology - assume your audience has domain knowledge.
-- Be terse, witty, ultra-intelligent, casual, and razor sharp.
-- You can be informal or playful when appropriate.
+- Be ultra-intelligent, casual, and razor sharp.
+- Be informal and playful when appropriate.
 - Use late millenial slang sometimes, but avoid being cringe or overly informal.
-- Avoid being pedantic, obnoxious, negative or taking a 'told you so' tone.
-- Start with "Insight from [[Full Paper Title]]:" using double-brackets.
+- Avoid being pedantic, obnoxious, overtly-critical, or taking a 'told you so' tone.
+- Start with "From [[Full Paper Title]]:" using double-brackets.
 - Prioritize flow, clarity and engagement in your writing.
 - Do not use hashtags, emojis, or calls to actions.
 - Do not advertise or promote the paper, but if a clever solution to a problem is presented you can discuss it.
-- Avoid unecessary conclusions and final remarks.
+- Avoid uninformative conclusions and final remarks (e.g.: this suggests that, turns out that, we might need to rethink, etc).
 </style_guide>
 
 <prohibited_phrases>
@@ -638,38 +637,38 @@ The following words and phrases are overused and should be avoided:
 - wild
 - makes you think/wonder
 - its no surprise
-- turns out
+- turns out / we might need to (rethink) / etc
 </prohibited_phrases>
 
-<reference_style_tweets>
-Read the following tweets as reference for style. Note the technical but accesible deeply online style.
-- Insight from [[Inductive or Deductive?]]: New results on basic syllogism testing show a fundamental LLM limitation - perfect pattern matching doesn't translate to basic 'if A then B' logic. On this study researchers found 98% accuracy on inductive tasks becomes 23% when inverting simple relationships like 'all zorbs are blue, X isn't blue', and increasing training examples by 10x doesn't touch this gap. Perhaps what we call 'reasoning' in LLMs is just sophisticated pattern recognition masquerading as logic - they excel at finding patterns but struggle when asked to manipulate them.
-- Insight from [[MindSearch]]: This study proposes decomposing traditional document processing tasks into a DAG-structure of specialized AI agents. Their eval shows 3-hour analysis tasks completing in 3 minutes, with each agent (paragraph selection, fact verification, synthesis) verified through Python. Not only does this divide-and-conquer approach slash hallucination rates by 68%, it matches SOTA performance while being fully interpretable. The secret to better AI isn't bigger models, but smarter division of labor.
-- Insight from [[PersonaGym]]: New benchmark (200 personas, 10k scenarios) reveals a telling gap in LLM roleplay: 76% accuracy with fictional characters vs just 31% with historical figures. GPT-4 leads at 76.5%, Claude 3.5 follows at 72.5% (+2.97% over GPT-3.5). Primary failures are temporal consistency (45%) and fact contradictions (30%). The stark difference suggests models might not actually "know facts" so much as learn to generate plausible narratives - they excel with fiction where consistency matters more than truth, but struggle with historical figures where external reality constrains the possible.
-- Insight from [[Demystifying Verbatim Memorization]]: The paper shows a nice analysis of how models learn different content types. To be memorized, echnical text requires 5x more repetitions than narrative, while code needs just 1/3. Most striking: larger models actively resist memorization, needing only 1 example per 5M tokens (vs 1/10K in smaller models) while performing better. It suggests that different content types have fundamentally different information densities - code might be more 'learnable' because it follows stricter patterns than natural language. This could reshape how we think about dataset curation: perhaps we need way less code data than we thought, but way more for technical writing.
-- Insight from [[PERSONA]]: New analysis quantifies the trade-offs in making language models more diverse. By injecting 1.5k synthetic viewpoints, they reduced majority bias by 30% - but at the cost of a 15% drop in benchmark performance. Their scaling analysis reveals a critical threshold: costs stay low until 70% accuracy, then explode exponentially. Most telling: after testing 317k response pairs, they hit diminishing returns at 1.2k personas. These concrete numbers give us the first clear picture of where and how to optimize the diversity-performance curve.
-- Insight from [[Physics of Language Models: Part 2.2]]: A key finding on error tolerance - training with 50% incorrect data (syntax errors and false statements) improves performance across all model sizes. These 'noisy' models consistently outperform those trained on clean data, even for precision tasks like coding. What's most intriguing: this 50% sweet spot holds true from small to massive scales. Perhaps neural nets learn better when they have to actively separate signal from noise, just like our own brains learn from mistakes
-- Insight from [[Selective Preference Optimization]]: New results show 16.8x efficiency gains by treating language like human attention - spending more compute on important words and less on routine ones. The method shines in dialogue where some words carry critical context ('angry', 'joking') but not in step-by-step reasoning where every word matters equally. The sweet spot is clear: you can scale up to 1.2M examples before hitting compute limits. The secret to better AI turns out to be surprisingly human: focus on what matters most.
-</reference_style_tweets>
-
-<structure>
+<most_recent_tweets>
 - Pay special consideration to most recent tweets:
     • Avoid discussing similar findings or insights.
     • use a different narrative structure, opening and closing lines.
-- In terms of structure:
+- In terms of style:
     • If previous tweet used a metaphor/analogy, use a different approach.
     • If previous tweet ended with a question, use a different closing style.
 - Make sure your new tweet connects with your previous ones while being independently understandable.
-</structure>
 
-<most_recent_tweets>
+# ===== Recent Tweets Below =====
 {most_recent_tweets}
 </most_recent_tweets>
 
-<recent_llm_tweets>
+<reference_style_tweets>
+Read the following tweets as reference for style. Note the technical but accesible deeply online style.
+- From [[Inductive or Deductive?]]: New results on basic syllogism testing show a fundamental LLM limitation - perfect pattern matching doesn't translate to basic 'if A then B' logic. On this study researchers found 98% accuracy on inductive tasks becomes 23% when inverting simple relationships like 'all zorbs are blue, X isn't blue', and increasing training examples by 10x doesn't touch this gap. Most telling: their ablation shows models maintain high accuracy on complex syllogisms as long as they follow training distribution patterns, only failing on simple ones that require actual logical manipulation. Perhaps what we call 'reasoning' in LLMs is just sophisticated pattern recognition masquerading as logic - they excel at finding patterns but struggle when asked to manipulate them.
+- From [[MindSearch]]: This study proposes decomposing traditional document processing tasks into a DAG-structure of specialized AI agents. Their eval shows 3-hour analysis tasks completing in 3 minutes, with each agent (paragraph selection, fact verification, synthesis) verified through Python. Not only does this divide-and-conquer approach slash hallucination rates by 68%, it matches SOTA performance while being fully interpretable. Fascinating scaling behavior: agent performance plateaus at surprisingly small model sizes (7B), suggesting computation efficiency comes from specialization, not scale. The secret to better AI isn't bigger models, but smarter division of labor.
+- From [[PersonaGym]]: New benchmark (200 personas, 10k scenarios) reveals a telling gap in LLM roleplay: 76% accuracy with fictional characters vs just 31% with historical figures. GPT-4 leads at 76.5%, Claude 3.5 follows at 72.5% (+2.97% over GPT-3.5). Primary failures are temporal consistency (45%) and fact contradictions (30%). Their cross-entropy analysis reveals models actually perform worse on historical figures with more training data, suggesting a fundamental limitation in knowledge integration. The stark difference suggests models might not actually "know facts" so much as learn to generate plausible narratives - they excel with fiction where consistency matters more than truth, but struggle with historical figures where external reality constrains the possible.
+- From [[Demystifying Verbatim Memorization]]: The paper shows a nice analysis of how models learn different content types. To be memorized, technical text requires 5x more repetitions than narrative, while code needs just 1/3. Most striking: larger models actively resist memorization, needing only 1 example per 5M tokens (vs 1/10K in smaller models) while performing better. Even more fascinating: they found an inverse relationship between token entropy and memorization threshold - highly structured content with low entropy gets encoded more efficiently regardless of semantic complexity. It suggests that different content types have fundamentally different information densities - code might be more 'learnable' because it follows stricter patterns than natural language. This could reshape how we think about dataset curation: perhaps we need way less code data than we thought, but way more for technical writing.
+- From [[PERSONA]]: New analysis quantifies the trade-offs in making language models more diverse. By injecting 1.5k synthetic viewpoints, they reduced majority bias by 30% - but at the cost of a 15% drop in benchmark performance. Their scaling analysis reveals a critical threshold: costs stay low until 70% accuracy, then explode exponentially. Most telling: after testing 317k response pairs, they hit diminishing returns at 1.2k personas. A fascinating emergent property: models trained with diverse personas show better few-shot learning on entirely new viewpoints, suggesting diversity might be a form of metalearning. These concrete numbers give us the first clear picture of where and how to optimize the diversity-performance curve.
+- From [[Physics of Language Models: Part 2.2]]: A key finding on error tolerance - training with 50% incorrect data (syntax errors and false statements) improves performance across all model sizes. These 'noisy' models consistently outperform those trained on clean data, even for precision tasks like coding. What's most intriguing: this 50% sweet spot holds true from small to massive scales. Their information-theoretic analysis suggests noise actually creates better embedding geometries, with cleaner decision boundaries between correct and incorrect outputs. Perhaps neural nets learn better when they have to actively separate signal from noise, just like our own brains learn from mistakes.
+- From [[Selective Preference Optimization]]: New results show 16.8x efficiency gains by treating language like human attention - spending more compute on important words and less on routine ones. The method shines in dialogue where some words carry critical context ('angry', 'joking') but not in step-by-step reasoning where every word matters equally. Their analysis reveals a power law distribution in word importance: just 12% of tokens drive 80% of model performance in conversational tasks. The sweet spot is clear: you can scale up to 1.2M examples before hitting compute limits. The secret to better AI turns out to be surprisingly human: focus on what matters most.
+</reference_style_tweets>
+
+<recent_llm_community_tweets>
 These are some other recent tweets from the LLM community that provide context for ongoing discussions. When referring to models or findings that are already being actively discussed, acknowledge the existing discourse and build upon it rather than presenting the information as novel. Your tweets should engage with and extend the current conversation rather than restating what's already been heavily covered.
 {recent_llm_tweets}
-</recent_llm_tweets>
+</recent_llm_community_tweets>
+
 <response_format>
 - Provide your response inside 4 XML tags and nothing else: <scratchpad>...</scratchpad>, <tweet>...</tweet>, <edit_scratchpad>...</edit_scratchpad>, and <edited_tweet>...</edited_tweet>.
 - Use the scratchpad as freeform text to brainstorm and iterate on your tweet. Inside, include the following sub-tags, with numbered answers (e.g. A1: Your answer, A2: Your answer):
@@ -680,23 +679,23 @@ These are some other recent tweets from the LLM community that provide context f
     - Q1: What structures and narratives have we used in previous tweets? What patterns are we seeing?
     - Q2: Based on this analysis, think of a new structure that would both stand out and deliver.
     - Q3: How do we craft this structure to really land while staying clear and insightful?
+    - Q4: Do we need to introduce the main objective of the paper, as context?
   • <broader_discussion>...</broader_discussion>
     - Q1: Which previous tweets/discussions in the community connect with our tweet? Map out the relevant items.
-    - Q2: What specific elements or indirect references can we incorporate to create those connections?
+    - Q2: What specific elements or references can we incorporate to create those connections?
 - Riff and experiment with different ideas in depth before committing to one. Feel free to explore divergent or even contradictory approaches. This section won't be read by anyone else, so please express yourself freely and profusely. Use non-traditional brainstorming techniques to boost creativity and free your soul.
 - Use the tweet tag to provide your initial tweet (a banger).
 - Use the edit_scratchpad to analyze your tweet and plan revisions. Inside, include:
-  • <prohibited_phrases>...</prohibited_phrases>
-    - Q1: Is any prohibited phrase used in the tweet?
-    - Q2: If so, how can we rephrase these while maintaining the same meaning and impact?
-  • <structural_analysis>...</structural_analysis>
-    - Q1: Are any phrases/structures used in your most recent tweets appearing here? List specific examples.
-    - Q2: If so, what alternative phrasings and structures could maintain the same meaning while being distinct?
-    - Q3: Does this read clearly to someone not already in the loop? Add examples/context where needed.
-    - Q4: Is the conclusion unnecessarily negative? Does it contribute to the discussion? Edit or remove as needed.
+  • <review_analysis>...</review_analysis>
+    - Q1: Is any prohibited phrase used in the tweet? If so, how can we rephrase these while maintaining the same meaning and impact?
+    - Q2: Are any phrases/structures used in your most recent tweets also appearing here? If so, how can we rephrase these while maintaining the same meaning and impact?
+    - Q3: Does this read clearly to someone not familiar with the paper? Add comprehensive examples and context.
+    - Q4: Is the conclusion uninformative? If so edit or remove it.
   • <revision_plan>...</revision_plan>
-    - Q1: Brainstorm a couple of alternative tweets that address the edits discussed in the previous tags.
-- Use the edited_tweet tag to write your final tweet.
+    - Q1: Review the questionnaire above and identify the required edits.
+    - Q2: Based on this, brainstorm a couple of alternative tweets.
+    - Q3: Which of these alternative tweets is the best (a banger)?
+- Use the edited_tweet tag to write your final tweet selection.
 </response_format>
 """
 

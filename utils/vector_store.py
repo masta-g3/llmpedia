@@ -43,7 +43,7 @@ def recursive_summarize_by_parts(
     verbose=False,
 ):
     """Recursively apply the summarize_by_segments function to a document."""
-    
+
     ori_token_count = len(token_encoder.encode(document))
     token_count = ori_token_count + 0
     if verbose:
@@ -321,11 +321,15 @@ tweet_edit_user_map = {
 }
 
 
-def select_most_interesting_paper(arxiv_abstracts: str, recent_llm_tweets_str: str, model: str = "gpt-4o-mini"):
+def select_most_interesting_paper(
+    arxiv_abstracts: str, recent_llm_tweets_str: str, model: str = "gpt-4o-mini"
+):
     """Select the most interesting paper from a list of candidates."""
     response = run_instructor_query(
         ps.INTERESTING_SYSTEM_PROMPT,
-        ps.INTERESTING_USER_PROMPT.format(abstracts=arxiv_abstracts, recent_llm_tweets=recent_llm_tweets_str),
+        ps.INTERESTING_USER_PROMPT.format(
+            abstracts=arxiv_abstracts, recent_llm_tweets=recent_llm_tweets_str
+        ),
         model=po.InterestingPaperSelection,
         llm_model=model,
         process_id="select_most_interesting_paper",
@@ -348,7 +352,6 @@ def write_tweet(
         tweet_facts=tweet_facts,
         most_recent_tweets=most_recent_tweets,
         recent_llm_tweets=recent_llm_tweets,
-
     )
     tweet = run_instructor_query(
         system_prompt,
@@ -405,25 +408,24 @@ def assess_tweet_ownership(
     return tweet_ownership
 
 
-def assess_llm_relevance(tweet_text: str, model: str = "gpt-4o") -> bool:
+def assess_llm_relevance(
+    tweet_text: str, model: str = "claude-3-5-sonnet-20241022"
+) -> bool:
     """
     Assess if a tweet is related to LLMs or similar topics.
-    
+
     Args:
         tweet_text (str): The text content of the tweet
         model (str): The model to use for assessment
-        
+
     Returns:
         bool: True if the tweet is related to LLMs, False otherwise
     """
     system_prompt = ps.LLM_RELEVANCE_SYSTEM_PROMPT
     user_prompt = ps.LLM_RELEVANCE_USER_PROMPT.format(tweet_text=tweet_text)
-    
+
     is_relevant = run_instructor_query(
-        system_prompt,
-        user_prompt,
-        llm_model=model,
-        process_id="assess_llm_relevance"
+        system_prompt, user_prompt, llm_model=model, process_id="assess_llm_relevance"
     )
-    
+
     return bool(int(is_relevant))

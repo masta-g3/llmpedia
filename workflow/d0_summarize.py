@@ -30,9 +30,9 @@ def shorten_list(list_str: str):
     return list_str
 
 def main():
-    logger.info("Starting paper summarization process")
-    arxiv_codes = pu.list_s3_files("arxiv-text")
-    done_codes = db.get_arxiv_id_list(db.db_params, "summary_notes")
+    """Summarize arxiv docs."""
+    arxiv_codes = pu.list_s3_files("arxiv-text", strip_extension=True)
+    done_codes = db.get_arxiv_id_list(db.db_params, "summaries")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
     

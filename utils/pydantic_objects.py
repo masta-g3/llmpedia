@@ -216,9 +216,8 @@ class TweetScratchpad(BaseModel):
 
 
 class TweetEditScratchpad(BaseModel):
-    prohibited_phrases: str = Field(..., description="Analysis of prohibited phrases and planned rephrasing")
-    structural_analysis: str = Field(..., description="Analysis of structural patterns and planned reorganization")
-    revision_plan: str = Field(..., description="Specific changes to implement and how to preserve core message")
+    review_analysis: str = Field(..., description="Analysis of the tweet covering prohibited phrases, structural patterns, clarity and conclusions")
+    revision_plan: str = Field(..., description="Plan for revising the tweet based on the analysis")
 
 
 class Tweet(BaseModel):

@@ -224,7 +224,7 @@ def main():
         )
     else:
         ## Predict topics on new documents using existing model.
-        topic_model = BERTopic.load(os.path.join(PROJECT_PATH, "data", "bertopic", "topic_model.pkl"))
+        topic_model = BERTopic.load(path=os.path.join(PROJECT_PATH, "data", "bertopic", "topic_model.pkl"))
         reduced_model = pd.read_pickle(os.path.join(PROJECT_PATH, "data", "bertopic", "reduced_model.pkl"))
 
         done_codes = db.get_arxiv_id_list(db_params, "topics")

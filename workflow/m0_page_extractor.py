@@ -17,6 +17,7 @@ from utils.logging_utils import setup_logger
 # Set up logging
 logger = setup_logger(__name__, "m0_page_extractor.log")
 
+
 def process_arxiv_code(arxiv_code, page_dir):
     pdf_url = f"https://arxiv.org/pdf/{arxiv_code}.pdf"
     try:
@@ -25,7 +26,7 @@ def process_arxiv_code(arxiv_code, page_dir):
 
         pdf_data = response.content
         images = convert_from_bytes(pdf_data, first_page=1, last_page=1)
-        
+
         if images:
             first_page = images[0]
             png_path = os.path.join(page_dir, f"{arxiv_code}.png")
@@ -36,22 +37,27 @@ def process_arxiv_code(arxiv_code, page_dir):
             first_page = first_page.resize((new_width, new_height))
             first_page.save(png_path, "PNG")
 
-            pu.upload_s3_file(arxiv_code=arxiv_code, bucket_name="arxiv-first-page", prefix="data", format="png")
+            pu.upload_s3_file(
+                arxiv_code, "arxiv-first-page", prefix="data", format="png"
+            )
         else:
-            logger.warning(f"Could not extract the first page of '{arxiv_code}'. Skipping.")
+            logger.warning(
+                f"Could not extract the first page of '{arxiv_code}'. Skipping."
+            )
     except Exception as e:
         logger.error(f"Error processing '{arxiv_code}': {str(e)}. Skipping.")
     finally:
         gc.collect()  # Force garbage collection
 
+
 def main():
     logger.info("Starting page extraction process.")
     page_dir = os.path.join(PROJECT_PATH, "data", "arxiv_first_page/")
-    
+
     # Get arxiv codes from the S3 "arxiv-text" bucket
     arxiv_codes = pu.list_s3_files("arxiv-text", strip_extension=True)
     done_codes = pu.list_s3_files("arxiv-first-page", strip_extension=True)
-    
+
     # Find the difference between all arxiv codes and the done codes
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
@@ -65,6 +71,6 @@ def main():
 
     logger.info("Page extraction process completed.")
 
+
 if __name__ == "__main__":
     main()
-

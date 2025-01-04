@@ -26,6 +26,7 @@ USERNAME = os.getenv("TWITTER_EMAIL")
 PASSWORD = os.getenv("TWITTER_PASSWORD")
 PHONE = os.getenv("TWITTER_PHONE")
 
+
 def setup_browser(logger: logging.Logger, headless: bool = True):
     logger.info("Setting up browser")
 
@@ -51,7 +52,9 @@ def setup_browser(logger: logging.Logger, headless: bool = True):
     # Additional preferences to avoid detection
     firefox_options.set_preference("general.platform.override", "Win32")
     firefox_options.set_preference("general.appversion.override", "5.0 (Windows)")
-    firefox_options.set_preference("general.oscpu.override", "Windows NT 10.0; Win64; x64")
+    firefox_options.set_preference(
+        "general.oscpu.override", "Windows NT 10.0; Win64; x64"
+    )
 
     # Set proper window size
     firefox_options.add_argument("--width=1920")
@@ -65,8 +68,8 @@ def setup_browser(logger: logging.Logger, headless: bool = True):
         service = FirefoxService()
         driver = webdriver.Firefox(options=firefox_options, service=service)
         driver.set_page_load_timeout(60)  # Increased timeout
-        driver.set_script_timeout(60)     # Added script timeout
-        driver.implicitly_wait(20)        # Added implicit wait
+        driver.set_script_timeout(60)  # Added script timeout
+        driver.implicitly_wait(20)  # Added implicit wait
         driver.set_window_size(1920, 1080)
 
         # Execute JavaScript to modify navigator properties
@@ -105,33 +108,35 @@ def setup_browser(logger: logging.Logger, headless: bool = True):
 def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
     """Login to Twitter within any page of its domain."""
     logger.info("Attempting to log in to Twitter")
-    
+
     max_retries = 3
     retry_count = 0
-    
+
     while retry_count < max_retries:
         try:
             # Clear cookies and cache before attempting login
             driver.delete_all_cookies()
-            
-            driver.get("https://twitter.com/login")  # Changed to twitter.com instead of x.com
+
+            driver.get(
+                "https://twitter.com/login"
+            )  # Changed to twitter.com instead of x.com
             logger.info("Navigation completed")
-            
+
             # Wait longer for initial page load
             time.sleep(10)
-            
+
             # Log debugging information
             logger.info("Current URL after navigation: " + driver.current_url)
             logger.info("Page title: " + driver.title)
-            
+
             # Try multiple selectors for the username field
             username_selectors = [
                 (By.CSS_SELECTOR, 'input[autocomplete="username"]'),
                 (By.NAME, "text"),
                 (By.CSS_SELECTOR, 'input[name="text"]'),
-                (By.CSS_SELECTOR, 'input[type="text"]')
+                (By.CSS_SELECTOR, 'input[type="text"]'),
             ]
-            
+
             username_field = None
             for selector in username_selectors:
                 try:
@@ -142,17 +147,17 @@ def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
                         break
                 except:
                     continue
-            
+
             if not username_field:
                 raise Exception("Could not find username field")
-            
+
             # Clear field and enter username
             username_field.clear()
             username_field.send_keys(USERNAME)
             time.sleep(2)
             username_field.send_keys(Keys.RETURN)
             time.sleep(5)
-            
+
             # Handle phone verification if needed
             try:
                 identifier_field = WebDriverWait(driver, 10).until(
@@ -164,7 +169,7 @@ def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
                 time.sleep(5)
             except:
                 logger.info("Phone verification not required")
-            
+
             # Enter password
             password_field = WebDriverWait(driver, 20).until(
                 EC.presence_of_element_located((By.NAME, "password"))
@@ -172,34 +177,28 @@ def login_twitter(driver: webdriver.Firefox, logger: logging.Logger):
             password_field.send_keys(PASSWORD)
             time.sleep(2)
             password_field.send_keys(Keys.RETURN)
-            
+
             # Wait for login to complete
             try:
                 WebDriverWait(driver, 30).until(
-                    EC.presence_of_element_located((By.XPATH, '//a[@aria-label="Post"]'))
+                    EC.presence_of_element_located(
+                        (By.XPATH, '//a[@aria-label="Post"]')
+                    )
                 )
                 logger.info("Successfully logged in to Twitter")
                 return
             except:
                 logger.warning("Could not find Post button after login")
                 raise Exception("Login verification failed")
-                
+
         except Exception as e:
             logger.error(f"Login attempt {retry_count + 1} failed: {str(e)}")
             retry_count += 1
             if retry_count >= max_retries:
                 raise Exception(f"Failed to login after {max_retries} attempts")
             time.sleep(10)  # Wait before retrying
-            
+
     raise Exception("Login failed after all retries")
-
-
-def navigate_to_profile(
-    browser: webdriver.Firefox, profile_url: str, logger: logging.Logger
-):
-    """Login to Twitter and navigate to a profile."""
-    logger.info(f"Navigating to profile: {profile_url}")
-    browser.get(profile_url)
 
 
 def verify_tweet_elements(
@@ -412,10 +411,19 @@ def extract_author_tweet_data(tweet_elem, paper_title: str, paper_authors: str) 
         )
         user_name_parts = user_name_elem.text.split("\n")
 
+        # Find tweet text element
+        tweet_text_elements = tweet_elem.find_elements(
+            By.CSS_SELECTOR, 'div[data-testid="tweetText"]'
+        )
+        if not tweet_text_elements:
+            return None
+
+        tweet_text = tweet_text_elements[0].text
+        if not tweet_text.strip():  # Check if tweet text is empty or just whitespace
+            return None
+
         tweet_data = {
-            "text": tweet_elem.find_element(
-                By.CSS_SELECTOR, 'div[data-testid="tweetText"]'
-            ).text,
+            "text": tweet_text,
             "timestamp": tweet_elem.find_element(By.TAG_NAME, "time").get_attribute(
                 "datetime"
             ),
@@ -500,11 +508,17 @@ def find_paper_author_tweet(arxiv_code: str, logger: logging.Logger) -> dict:
                     return tweet_data
 
             # Scroll and check progress
-            last_height = browser.execute_script("return document.documentElement.scrollHeight")
-            browser.execute_script("window.scrollTo(0, document.documentElement.scrollHeight);")
+            last_height = browser.execute_script(
+                "return document.documentElement.scrollHeight"
+            )
+            browser.execute_script(
+                "window.scrollTo(0, document.documentElement.scrollHeight);"
+            )
             time.sleep(3)  # Wait for content to load
-            
-            new_height = browser.execute_script("return document.documentElement.scrollHeight")
+
+            new_height = browser.execute_script(
+                "return document.documentElement.scrollHeight"
+            )
             if new_height == last_height:
                 logger.info("No new content loaded, breaking loop")
                 break
@@ -522,6 +536,97 @@ def find_paper_author_tweet(arxiv_code: str, logger: logging.Logger) -> dict:
     #     return None
     # finally:
     # browser.quit()
+
+
+def extract_tweet_data(tweet_elem, logger: logging.Logger) -> dict:
+    """Extract all relevant data from a tweet element."""
+    try:
+        # Get user info
+        user_name_elem = tweet_elem.find_element(
+            By.CSS_SELECTOR, 'div[data-testid="User-Name"]'
+        )
+        user_name_parts = user_name_elem.text.split("\n")
+
+        # Get tweet text
+        tweet_text_elements = tweet_elem.find_elements(
+            By.CSS_SELECTOR, 'div[data-testid="tweetText"]'
+        )
+        if not tweet_text_elements:
+            return None
+
+        tweet_text = tweet_text_elements[0].text
+        if not tweet_text.strip():  # Skip if tweet text is empty or just whitespace
+            return None
+
+        # Get timestamp
+        time_elem = tweet_elem.find_element(By.TAG_NAME, "time")
+        tweet_timestamp = time_elem.get_attribute("datetime")
+
+        # Get metrics
+        metrics = {
+            "reply_count": 0,
+            "repost_count": 0,
+            "like_count": 0,
+            "view_count": 0,
+            "bookmark_count": 0,
+        }
+
+        try:
+            # Extract metrics from aria-label of the metrics group
+            metrics_group = tweet_elem.find_element(By.CSS_SELECTOR, '[role="group"]')
+            metrics_text = metrics_group.get_attribute("aria-label")
+
+            # Parse metrics from the aria-label text
+            if metrics_text:
+                parts = metrics_text.lower().split(",")
+                for part in parts:
+                    part = part.strip()
+                    if "repl" in part:
+                        metrics["reply_count"] = int(part.split()[0])
+                    elif "repost" in part:
+                        metrics["repost_count"] = int(part.split()[0])
+                    elif "like" in part:
+                        metrics["like_count"] = int(part.split()[0])
+                    elif "view" in part:
+                        metrics["view_count"] = int(part.split()[0])
+                    elif "bookmark" in part:
+                        metrics["bookmark_count"] = int(part.split()[0])
+        except Exception as e:
+            logger.warning(f"Error extracting metrics: {str(e)}")
+
+        # Check for media
+        has_media = bool(
+            tweet_elem.find_elements(
+                By.CSS_SELECTOR,
+                'div[data-testid="tweetPhoto"], div[data-testid="videoPlayer"]',
+            )
+        )
+
+        # Check for verification
+        is_verified = bool(
+            user_name_elem.find_elements(
+                By.CSS_SELECTOR, 'svg[aria-label="Verified account"]'
+            )
+        )
+
+        tweet_data = {
+            "text": tweet_text,
+            "author": user_name_parts[0],
+            "username": user_name_parts[1],
+            "link": tweet_elem.find_element(
+                By.CSS_SELECTOR, 'a[href*="/status/"]'
+            ).get_attribute("href"),
+            "tweet_timestamp": tweet_timestamp,
+            "has_media": has_media,
+            "is_verified": is_verified,
+            **metrics,  # Include all metrics
+        }
+
+        return tweet_data
+
+    except Exception as e:
+        logger.warning(f"Error extracting tweet details: {str(e)}")
+        return None
 
 
 def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50) -> list[dict]:
@@ -565,44 +670,33 @@ def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50) -> list[dic
                     if tweets_checked > max_tweets:
                         break
 
-                    try:
-                        # Extract tweet data
-                        user_name_elem = tweet_elem.find_element(
-                            By.CSS_SELECTOR, 'div[data-testid="User-Name"]'
+                    tweet_data = extract_tweet_data(tweet_elem, logger)
+                    if tweet_data and vs.assess_llm_relevance(
+                        tweet_text=tweet_data["text"]
+                    ):
+                        logger.info(
+                            f"Found relevant tweet from: {tweet_data['username']} ({tweets_checked}/{max_tweets} tweets processed)"
                         )
-                        user_name_parts = user_name_elem.text.split("\n")
+                        relevant_tweets.append(tweet_data)
 
-                        tweet_data = {
-                            "text": tweet_elem.find_element(
-                                By.CSS_SELECTOR, 'div[data-testid="tweetText"]'
-                            ).text,
-                            # "timestamp": tweet_elem.find_element(
-                            #     By.TAG_NAME, "time"
-                            # ).get_attribute("datetime"),
-                            "author": user_name_parts[0],
-                            "username": user_name_parts[1],
-                            "link": tweet_elem.find_element(
-                                By.CSS_SELECTOR, 'a[href*="/status/"]'
-                            ).get_attribute("href"),
-                        }
-
-                        # Check if tweet is LLM-related using verification function
-                        if vs.assess_llm_relevance(tweet_text=tweet_data["text"]):
-                            logger.info(
-                                f"Found relevant tweet from: {tweet_data['username']}"
-                            )
-                            relevant_tweets.append(tweet_data)
-
-                    except Exception as e:
-                        logger.warning(f"Error extracting tweet details: {str(e)}")
-                        continue
+                # Log progress every 10 tweets
+                if tweets_checked % 10 == 0:
+                    logger.info(
+                        f"Progress: {tweets_checked}/{max_tweets} tweets processed, found {len(relevant_tweets)} relevant"
+                    )
 
                 # Scroll and check progress
-                last_height = browser.execute_script("return document.documentElement.scrollHeight")
-                browser.execute_script("window.scrollTo(0, document.documentElement.scrollHeight);")
+                last_height = browser.execute_script(
+                    "return document.documentElement.scrollHeight"
+                )
+                browser.execute_script(
+                    "window.scrollTo(0, document.documentElement.scrollHeight);"
+                )
                 time.sleep(3)  # Wait for content to load
-                
-                new_height = browser.execute_script("return document.documentElement.scrollHeight")
+
+                new_height = browser.execute_script(
+                    "return document.documentElement.scrollHeight"
+                )
                 if new_height == last_height:
                     logger.info("No new content loaded, breaking loop")
                     break

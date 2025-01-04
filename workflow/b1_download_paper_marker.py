@@ -2,6 +2,8 @@ import sys, os
 from dotenv import load_dotenv
 import time
 from pathlib import Path
+import pypdfium2
+import psycopg2
 
 load_dotenv()
 
@@ -23,15 +25,12 @@ def main():
     # Get list of papers we need to process
     arxiv_codes = pu.list_s3_files("arxiv-text", strip_extension=True)
     title_dict = db.get_arxiv_title_dict(pu.db_params)
-    
-    # Check which papers are already processed as markdown
-    done_markdowns = pu.list_s3_files("arxiv-md", strip_extension=True)
+    done_markdowns = pu.list_s3_directories("arxiv-md")
     
     # Get papers that need to be processed
     arxiv_codes = list(set(arxiv_codes) - set(done_markdowns))
     arxiv_codes = sorted(arxiv_codes)[::-1]
-    arxic_codes = ["2405.19313"]
-
+    
     logger.info(f"Found {len(arxiv_codes)} papers to process")
 
     ## Iterate through papers
@@ -47,19 +46,34 @@ def main():
         # Convert to markdown
         try:
             markdown_text, images = pu.convert_pdf_to_markdown(pdf_path)
-            markdown_path = os.path.join(PROJECT_PATH, "data/arxiv_md", f"{arxiv_code}.md")
+            
+            # Create paper directory if it doesn't exist (both locally and on S3)
+            paper_dir = os.path.join(PROJECT_PATH, "data/arxiv_md", arxiv_code)
+            os.makedirs(paper_dir, exist_ok=True)
+            
+            # Save markdown file in paper directory
+            markdown_path = os.path.join(paper_dir, "paper.md")
             with open(markdown_path, 'w', encoding='utf-8') as f:
                 f.write(markdown_text)
+            
+            # Save each image in paper directory
             for img_name, img in images.items():
-                img.save(os.path.join(PROJECT_PATH, "data/arxiv_md", img_name), "PNG")
-            logger.info(f"Converted {arxiv_code} to markdown")
+                # Save locally in paper directory
+                local_path = os.path.join(paper_dir, img_name)
+                img.save(local_path, "PNG")
+            
+            # Upload entire paper directory to S3
+            pu.upload_s3_file(
+                local_path=paper_dir,
+                bucket_name="arxiv-md",
+                key=arxiv_code,
+                recursive=True
+            )
+            logger.info(f"Uploaded paper directory for {arxiv_code} to S3")
+            logger.info(f"Successfully processed '{arxiv_code}' - '{title}'")
 
-            # Upload markdown to S3
-            pu.upload_s3_file(arxiv_code, "arxiv-md", prefix="data", format="md")
-            logger.info(f"'{arxiv_code}' - '{title}' uploaded to S3")
-
-        except Exception as e:
-            logger.error(f"Failed to convert {arxiv_code} to markdown: {str(e)}.")
+        except pypdfium2._helpers.misc.PdfiumError as e:
+            logger.error(f"Failed to convert {arxiv_code} to markdown: {str(e)}")
             continue
 
     logger.info("Completed paper download and conversion process.")

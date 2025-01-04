@@ -266,13 +266,18 @@ def main():
     df["arxiv_code"] = df["arxiv_code"].str.replace(r"v\d+$", "", regex=True)
     new_codes = df["arxiv_code"].tolist()
     new_codes = [code for code in new_codes if pu.is_arxiv_code(code)]
-    done_codes = pu.list_s3_files("arxiv-text")
-    nonllm_codes = pu.list_s3_files("nonllm-arxiv-text")
+    done_codes = pu.list_s3_files("arxiv-text", strip_extension=True)
+    nonllm_codes = pu.list_s3_files("nonllm-arxiv-text", strip_extension=True)
 
     ## Remote paper list.
     gist_id = "1dd189493c1890df6e04aaea6d049643"
     gist_filename = "llm_queue.txt"
     paper_list = pu.fetch_queue_gist(gist_id, gist_filename)
+    logger.info(f"Fetched {len(paper_list)} papers from gist.")
+
+    ## Check local files.
+    done_codes = pu.list_s3_files("arxiv-text", strip_extension=True)
+    nonllm_codes = pu.list_s3_files("nonllm-arxiv-text", strip_extension=True)
 
     ## Update and upload arxiv codes.
     paper_list = list(set(paper_list + new_codes))

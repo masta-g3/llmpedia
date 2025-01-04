@@ -18,7 +18,7 @@ logger = setup_logger(__name__, "c0_fetch_meta.log")
 
 def main():
     logger.info("Starting metadata fetching process.")
-    arxiv_codes = pu.list_s3_files("arxiv-text")
+    arxiv_codes = pu.list_s3_files("arxiv-text", strip_extension=True)
     done_codes = db.get_arxiv_id_list(db.db_params, "arxiv_details")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]

@@ -6,6 +6,7 @@ import pandas as pd
 import psycopg2
 import uuid
 import os
+import logging
 
 try:
     db_params = {
@@ -863,3 +864,53 @@ def get_arxiv_dashboard_script(arxiv_code: str, sel_col: str = "script_content")
         script = row[0] if row else None
     engine.dispose()
     return script
+
+
+def store_tweets(tweets: list[dict], logger: logging.Logger) -> bool:
+    """Store tweets in the database."""
+    try:
+        engine = create_engine(database_url)
+        with engine.begin() as conn:
+            for tweet in tweets:
+                # Add collection timestamp
+                tweet['tstp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                # Insert tweet with all available metrics
+                query = text("""
+                    INSERT INTO llm_tweets (
+                        text, author, username, link, tstp, tweet_timestamp,
+                        reply_count, repost_count, like_count, view_count, bookmark_count,
+                        has_media, is_verified
+                    )
+                    VALUES (
+                        :text, :author, :username, :link, :tstp, :tweet_timestamp,
+                        :reply_count, :repost_count, :like_count, :view_count, :bookmark_count,
+                        :has_media, :is_verified
+                    )
+                    ON CONFLICT (link) DO NOTHING;
+                """)
+                
+                # Ensure all fields have default values if not present
+                tweet_data = {
+                    'text': tweet.get('text', ''),
+                    'author': tweet.get('author', ''),
+                    'username': tweet.get('username', ''),
+                    'link': tweet.get('link', ''),
+                    'tstp': tweet.get('tstp'),
+                    'tweet_timestamp': tweet.get('tweet_timestamp'),
+                    'reply_count': tweet.get('reply_count', 0),
+                    'repost_count': tweet.get('repost_count', 0),
+                    'like_count': tweet.get('like_count', 0),
+                    'view_count': tweet.get('view_count', 0),
+                    'bookmark_count': tweet.get('bookmark_count', 0),
+                    'has_media': tweet.get('has_media', False),
+                    'is_verified': tweet.get('is_verified', False)
+                }
+                
+                conn.execute(query, tweet_data)
+                
+        logger.info(f"Successfully stored {len(tweets)} tweets")
+        return True
+    except Exception as e:
+        logger.error(f"Error storing tweets: {str(e)}")
+        return False

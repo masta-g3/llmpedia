@@ -9,6 +9,7 @@ import utils.streamlit_utils as su
 import utils.app_utils as au
 import utils.plots as pt
 import utils.db as db
+import utils.styling as styling
 
 
 ## Page config.
@@ -18,6 +19,11 @@ st.set_page_config(
     page_icon="📚",
     initial_sidebar_state="expanded",
 )
+
+# Apply styling
+styling.apply_arxiv_theme()
+styling.apply_custom_fonts()
+styling.apply_centered_style()
 
 # Initialization of state variables
 if "papers" not in st.session_state:
@@ -308,14 +314,17 @@ def main():
             st.session_state.page_number = 0
 
         papers_df_subset = su.create_pagination(
-            papers_df, items_per_page=25, label="grid"
+            papers_df, items_per_page=25, label="grid", year=year
         )
         su.generate_grid_gallery(papers_df_subset)
         su.create_bottom_navigation(label="grid")
 
     with content_tabs[1]:
         total_papers = len(papers_df)
-        st.markdown(f"### 📈 Total Publication Counts: {total_papers}")
+        if not st.session_state.all_years:
+            st.markdown(f"### 📈 {year} Publication Counts: {total_papers}")
+        else:
+            st.markdown(f"### 📈 Total Publication Counts: {total_papers}")
         plot_type = st.radio(
             label="Plot Type",
             options=["Daily", "Cumulative"],
@@ -502,14 +511,20 @@ def main():
             weekly_plot_container.plotly_chart(weekly_ts_plot, use_container_width=True)
 
         if year < 2023:
-            st.warning("Weekly reports are available from 2023 onwards.")
+            st.error("Weekly reports are available from 2023 onwards.")
+            return
+        
         else:
             weekly_content, weekly_highlight, weekly_repos = initialize_weekly_summary(
                 date_report
             )
-
-            weekly_report = (
-                f"##### ({date_report.strftime('%B %d, %Y')} to "
+            if weekly_content is None:
+                st.error("No weekly report found for this week.")
+                return
+            
+            else:
+                weekly_report = (
+                    f"##### ({date_report.strftime('%B %d, %Y')} to "
                 f"{(date_report + pd.Timedelta(days=6)).strftime('%B %d, %Y')})\n\n"
                 f"## 🔬 New Developments & Findings\n\n{weekly_content}\n\n"
                 f"## 🌟 Highlight of the Week\n\n"
@@ -518,14 +533,15 @@ def main():
             st.write(weekly_report)
             report_highlights_cols = st.columns((1, 2.5))
             highlight_img = au.get_img_link_for_blob(weekly_highlight)
+            st.write(highlight_img)
             report_highlights_cols[0].image(highlight_img, use_column_width=True)
             report_highlights_cols[1].markdown(weekly_highlight)
             st.markdown(weekly_repos)
 
 
 if __name__ == "__main__":
-    try:
+    # try:
         main()
-    except Exception as e:
-        db.log_error_db(e)
-        st.error("Something went wrong. Please refresh the app and try again, we will look into it.")
+    # except Exception as e:
+    #     db.log_error_db(e)
+        # st.error("Something went wrong. Please refresh the app and try again, we will look into it.")

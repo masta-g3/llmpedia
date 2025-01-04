@@ -45,8 +45,8 @@ def main():
     logger.info(f"Fetched {len(paper_list)} papers from gist.")
 
     ## Check local files.
-    done_codes = pu.list_s3_files("arxiv-text")
-    nonllm_codes = pu.list_s3_files("nonllm-arxiv-text") + ["..."]
+    done_codes = pu.list_s3_files("arxiv-text", strip_extension=True)
+    nonllm_codes = pu.list_s3_files("nonllm-arxiv-text", strip_extension=True) + ["..."]
     logger.info(
         f"Found {len(done_codes)} done papers and {len(nonllm_codes)} non-LLM papers."
     )
@@ -138,7 +138,7 @@ def main():
         pu.store_local(new_content, arxiv_code, "arxiv_text", format="txt")
         pu.upload_s3_file(arxiv_code, "arxiv-text", prefix="data", format="txt")
         logger.info(
-            f" [{idx}/{len(paper_list_iter)}] '{paper_name}' - '{title}' stored locally."
+            f" [{idx}/{len(paper_list_iter)}] '{paper_name}' - '{title}' stored."
         )
 
         ## Update gist.

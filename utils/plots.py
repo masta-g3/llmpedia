@@ -25,12 +25,14 @@ def plot_publication_counts(df: pd.DataFrame, cumulative=False) -> go.Figure:
             x="published",
             y="Cumulative Count",
             title=None,
+            color_discrete_sequence=["#b31b1b"],
         )
     else:
         fig = px.bar(
             df,
             x="published",
             y="Count",
+            color_discrete_sequence=["#b31b1b"],
         )
     fig.update_xaxes(title=None, tickfont=dict(size=17))
     fig.update_yaxes(titlefont=dict(size=18), tickfont=dict(size=17))
@@ -40,8 +42,7 @@ def plot_publication_counts(df: pd.DataFrame, cumulative=False) -> go.Figure:
 
 def plot_activity_map(df_year: pd.DataFrame) -> Tuple[go.Figure, pd.DataFrame]:
     """Creates a calendar heatmap plot along with corresponding map of dates in a DF."""
-    colors = ["#003366", "#005599", "#0077CC", "#3399FF", "#66B2FF", "#99CCFF"]
-    colors = ["#994400", "#CC6600", "#FF8833", "#FF8833", "#FFCC99"]
+    colors = ["#b31b1b", "#c93232", "#e04848", "#e87070", "#f09898", "#f8c0c0"]
 
     week_max_dates = (
         df_year.groupby(df_year["published"].dt.isocalendar().week)["published"]
@@ -109,10 +110,11 @@ def plot_weekly_activity_ts(
         title=None,
         labels={"title": "Papers Published"},
         height=250,
+        color_discrete_sequence=["#b31b1b"],
     )
     fig.update_xaxes(title=None, tickfont=dict(size=17))
     fig.update_yaxes(titlefont=dict(size=18), tickfont=dict(size=17))
-    fig.add_vline(x=highlight_date_str, line_width=2, line_dash="dash")
+    fig.add_vline(x=highlight_date_str, line_width=2, line_dash="dash", line_color="#c93232")
     fig.update_layout(
         margin=dict(t=0, b=0, l=0, r=0),
         paper_bgcolor="rgba(0,0,0,0)",
@@ -131,7 +133,7 @@ def plot_weekly_activity_ts(
             y=[bar_height],
             mode="markers",
             showlegend=False,
-            marker=dict(size=20, color="#636EFA"),
+            marker=dict(size=20, color="#b31b1b"),
         )
     )
     return fig
@@ -139,6 +141,10 @@ def plot_weekly_activity_ts(
 
 def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
     """Creates a scatter plot of the UMAP embeddings of the papers."""
+    # Calculate marker size based on number of points
+    n_points = len(df)
+    marker_size = min(20, max(4, int(400 / n_points)))  # Size between 4 and 20, inverse to number of points
+    
     fig = px.scatter(
         df,
         x="dim1",
@@ -156,7 +162,7 @@ def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
     )
     fig.update_xaxes(title_text=None)
     fig.update_yaxes(title_text=None)
-    fig.update_traces(marker=dict(line=dict(width=0.5, color="Black"), size=4))
+    fig.update_traces(marker=dict(line=dict(width=0.5, color="Black"), size=marker_size))
     return fig
 
 
@@ -189,5 +195,5 @@ def plot_repos_by_feature(
     fig = px.bar(count_df, x=plot_by, y="repo_title", title=None, hover_data=[plot_by])
     fig.update_xaxes(title=None, tickfont=dict(size=13), tickangle=75)
     fig.update_yaxes(titlefont=dict(size=14), title="# Resources")
-    fig.update_traces(marker_color="darkorange", marker_line_color="orange")
+    fig.update_traces(marker_color="#b31b1b", marker_line_color="#c93232")
     return fig

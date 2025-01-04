@@ -220,12 +220,7 @@ def delete_local(arxiv_code, data_path, relative=True, format="json"):
 ##################
 def list_s3_files(bucket_name: str, strip_extension: bool = True) -> list[str]:
     """List all files in an S3 bucket."""
-    s3 = boto3.client(
-        "s3",
-        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
-        aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
-        region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"),
-    )
+    s3 = boto3.client("s3")
     paginator = s3.get_paginator("list_objects_v2")
     files = []
     for page in paginator.paginate(Bucket=bucket_name):
@@ -267,21 +262,75 @@ def download_s3_file(
 
 
 def upload_s3_file(
-    arxiv_code: str,
+    local_path: str,
     bucket_name: str,
     prefix: Optional[str] = "data",
     format: str = "json",
+    key: Optional[str] = None,
+    recursive: bool = False,
+    content_type: Optional[str] = None
 ) -> bool:
-    """Upload data to S3."""
+    """Upload data to S3. For single files, format is required. For recursive directory uploads, format is ignored."""
     s3 = boto3.client("s3")
-    local_path = os.path.join(
-        PROJECT_PATH,
-        *([prefix] if prefix else []),
-        bucket_name.replace("-", "_"),
-        f"{arxiv_code}.{format}",
-    )
-    s3.upload_file(local_path, bucket_name, f"{arxiv_code}.{format}")
+    
+    # Convert bucket name to local directory name
+    local_dir = bucket_name.replace("-", "_")
+    
+    # Construct full local path with prefix and format if not recursive
+    if not recursive:
+        local_path_with_ext = f"{local_path}.{format}"
+    else:
+        local_path_with_ext = local_path
+        
+    full_path = os.path.join(PROJECT_PATH, *([prefix] if prefix else []), local_dir, local_path_with_ext)
+    
+    if recursive and os.path.isdir(full_path):
+        # Upload entire directory
+        for root, _, files in os.walk(full_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                # Get relative path from the directory being uploaded
+                rel_path = os.path.relpath(file_path, full_path)
+                s3_key = f"{key}/{rel_path}" if key else rel_path
+                
+                # Guess content type if not provided
+                file_content_type = content_type
+                if not file_content_type:
+                    if file.endswith('.png'):
+                        file_content_type = 'image/png'
+                    elif file.endswith('.md'):
+                        file_content_type = 'text/markdown'
+                
+                extra_args = {'ContentType': file_content_type} if file_content_type else {}
+                s3.upload_file(file_path, bucket_name, s3_key, ExtraArgs=extra_args)
+    else:
+        # Upload single file
+        if not key:
+            s3_key = f"{local_path}.{format}"
+        else:
+            s3_key = key
+            
+        extra_args = {'ContentType': content_type} if content_type else {}
+        s3.upload_file(full_path, bucket_name, s3_key, ExtraArgs=extra_args)
+    
     return True
+
+
+def list_s3_directories(bucket_name):
+    """List all directories (prefixes) in an S3 bucket.
+    Returns a list of directory names without trailing slashes."""
+    s3 = boto3.client('s3')
+    paginator = s3.get_paginator('list_objects_v2')
+    
+    directories = set()
+    for page in paginator.paginate(Bucket=bucket_name, Delimiter='/'):
+        if 'CommonPrefixes' in page:
+            for prefix in page['CommonPrefixes']:
+                # Remove trailing slash and get directory name
+                dir_name = prefix['Prefix'].rstrip('/')
+                directories.add(dir_name)
+    
+    return sorted(list(directories))
 
 
 #####################
@@ -635,7 +684,7 @@ def ensure_pdf_exists(arxiv_code, pdf_path, logger=None):
         if logger:
             logger.info(f"Downloaded PDF from arXiv for {arxiv_code}")
         # Upload to S3
-        upload_s3_file(arxiv_code, "arxiv-pdfs", format="pdf")
+        upload_s3_file(arxiv_code, "arxiv-pdfs", prefix="data", format="pdf")
         if logger:
             logger.info(f"Uploaded PDF to S3 for {arxiv_code}")
         return True

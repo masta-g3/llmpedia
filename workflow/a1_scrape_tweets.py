@@ -50,6 +50,7 @@ tweet_accounts = [
     "arXivGPT",
     "_akhaliq",
     "TheAITimeline",
+    "alphaXiv",
 ]
 
 
@@ -94,7 +95,7 @@ def scrape_tweets(browser: webdriver.Firefox, max_tweets: int = 100) -> List[dic
         if new_height == last_height:
             break
         last_height = new_height
-        logger.info(f"Scraped {len(all_tweets)} tweets so far...")
+        # logger.info(f"Scraped {len(all_tweets)} tweets so far...")
     return all_tweets
 
 
@@ -122,8 +123,7 @@ def main():
 
     try:
         for account in tweet_accounts:
-            profile_url = f"https://x.com/{account}"
-            tweet.navigate_to_profile(browser, profile_url, logger)
+            browser.get(f"https://x.com/{account}")
             tweets = scrape_tweets(browser, max_tweets=30)
             all_tweets.extend(tweets)
             logger.info(f"Successfully scraped and saved {len(tweets)} tweets from {account}.")
@@ -137,8 +137,8 @@ def main():
 
         ## Update and upload arxiv codes.
         paper_list = list(set(paper_list + new_codes))
-        done_codes = pu.list_s3_files("arxiv-text")
-        nonllm_codes = pu.list_s3_files("nonllm-arxiv-text")
+        done_codes = pu.list_s3_files("arxiv-text", strip_extension=True)
+        nonllm_codes = pu.list_s3_files("nonllm-arxiv-text", strip_extension=True)
 
         logger.info(f"Total papers: {len(paper_list)}")
         paper_list = list(set(paper_list) - set(done_codes) - set(nonllm_codes))

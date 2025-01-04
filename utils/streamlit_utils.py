@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from typing import Dict, Tuple
 import time
+import re
 
 import utils.app_utils as au
 import utils.data_cards as dc
@@ -110,106 +111,211 @@ def create_sidebar(full_papers_df: pd.DataFrame) -> Tuple[pd.DataFrame, int]:
 
 def create_paper_card(paper: Dict, mode="closed", name=""):
     """Creates card UI for paper details."""
-    img_cols = st.columns((1, 3))
-    expanded = False
-    if mode == "open":
-        expanded = True
-    paper_code = paper["arxiv_code"]
-    try:
-        img_cols[0].image(
-            f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png", use_column_width=True
+    # Main container with padding and border
+    with st.container():
+        # Top section with image and metadata
+        img_cols = st.columns((1, 3))
+        expanded = False
+        if mode == "open":
+            expanded = True
+        paper_code = paper["arxiv_code"]
+        
+        # Image column
+        try:
+            img_cols[0].image(
+                f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png", 
+                use_column_width=True
+            )
+        except:
+            pass
+
+        # Metadata column
+        meta_col = img_cols[1]
+        
+        # Title with link
+        paper_title = paper["title"]
+        paper_url = paper["url"]
+        meta_col.markdown(
+            f'<h2 style="margin-top: 0; margin-bottom: 0.5em;"><a href="{paper_url}" style="color: #FF4B4B; text-decoration: none;">{paper_title}</a></h2>',
+            unsafe_allow_html=True,
         )
-    except:
-        pass
 
-    paper_title = paper["title"]
-    paper_url = paper["url"]
-    img_cols[1].markdown(
-        f'<h2><a href="{paper_url}" style="color: #FF4B4B;">{paper_title}</a></h2>',
-        unsafe_allow_html=True,
-    )
+        # Publication date
+        pub_date = pd.to_datetime(paper["published"]).strftime("%d %b %Y")
+        meta_col.markdown(
+            f"<p style='margin-bottom: 0.5em; color: #666;'><span style='display: inline-flex; align-items: center;'>📅 <span style='margin-left: 4px;'>{pub_date}</span></span></p>", 
+            unsafe_allow_html=True
+        )
+        
+        # Topic with enhanced styling
+        if "topic" in paper and not pd.isna(paper["topic"]):
+            topic = paper["topic"]
+            meta_col.markdown(f"""<p style='margin-bottom: 0.5em;'>
+                <span style='
+                    background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.1)); 
+                    padding: 4px 12px; 
+                    border-radius: 12px; 
+                    font-size: 0.95em;
+                    color: var(--text-color, currentColor);
+                '>{topic}</span></p>""", unsafe_allow_html=True)
 
-    pub_date = pd.to_datetime(paper["published"]).strftime("%B %d, %Y")
-    upd_date = pd.to_datetime(paper["updated"]).strftime("%B %d, %Y")
-    tweet_insight = paper["tweet_insight"]
-    if not pd.isna(tweet_insight):
-        # tweet_insight = tweet_insight.split("):")[1].strip()
-        img_cols[1].markdown(f"🐦 *{tweet_insight}*")
-    img_cols[1].markdown(f"#### Published: {pub_date}")
-    if pub_date != upd_date:
-        img_cols[1].caption(f"Last Updated: {upd_date}")
-    img_cols[1].markdown(f"*{paper['authors']}*")
-    influential_citations = int(paper["influential_citation_count"])
-    postpend = ""
-    if influential_citations > 0:
-        postpend = f" ({influential_citations} influential)"
-    img_cols[1].markdown(f"`{int(paper['citation_count'])} citations {postpend}`")
-    arxiv_comment = paper["arxiv_comment"]
-    if arxiv_comment:
-        img_cols[1].caption(f"*{arxiv_comment}*")
+        # Authors and citations in smaller text
+        influential_citations = int(paper["influential_citation_count"])
+        citation_count = int(paper["citation_count"])
+        citation_text = f"{citation_count} citation{'s' if citation_count != 1 else ''}"
+        if influential_citations > 0:
+            citation_text += f" (⭐️ {influential_citations} influential)"
+            
+        meta_col.markdown(
+            f"""<div style='margin: 0.5em 0;'>
+            <p style='color: var(--text-color, #666); font-size: 0.9em; margin-bottom: 0.8em;'>{paper['authors']}</p>
+            <div style='
+                display: inline-flex; 
+                align-items: center; 
+                background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.1)); 
+                padding: 6px 12px; 
+                border-radius: 12px;
+                color: var(--text-color, currentColor);
+            '>
+            <span style='display: flex; align-items: center;'>
+            <span style='margin-right: 4px;'>📊</span>
+            <span style='font-size: 0.9em;'>{citation_text}</span>
+            </span></div></div>""",
+            unsafe_allow_html=True
+        )
 
-    report_log_space = img_cols[1].empty()
-    action_btn_cols = img_cols[1].columns((1, 1, 1))
+        # Action buttons in a row with more spacing
+        meta_col.markdown("<div style='margin: 1.5em 0;'>", unsafe_allow_html=True)
+        action_btn_cols = meta_col.columns((1, 1, 1))
+        
+        # Report button
+        report_log_space = meta_col.empty()
+        report_btn = action_btn_cols[0].popover("⚠️ Report")
+        if report_btn.checkbox("Report bad image", key=f"report_v1_{paper_code}_{name}"):
+            db.report_issue(paper_code, "bad_image")
+            report_log_space.success("Reported bad image. Thanks!")
+            time.sleep(3)
+            report_log_space.empty()
+        if report_btn.checkbox("Report bad summary", key=f"report_v2_{paper_code}_{name}"):
+            db.report_issue(paper_code, "bad_summary")
+            report_log_space.success("Reported bad summary. Thanks!")
+            time.sleep(3)
+            report_log_space.empty()
+        if report_btn.checkbox("Report non-LLM paper", key=f"report_v3_{paper_code}_{name}"):
+            db.report_issue(paper_code, "non_llm")
+            report_log_space.success("Reported non-LLM paper. Thanks!")
+            time.sleep(3)
+            report_log_space.empty()
+        if report_btn.checkbox("Report bad data card", key=f"report_v4_{paper_code}_{name}"):
+            db.report_issue(paper_code, "bad_datacard")
+            report_log_space.success("Reported bad data-card. Thanks!")
+            time.sleep(3)
+            report_log_space.empty()
 
-    report_btn = action_btn_cols[0].popover("🚨 Report")
-    if report_btn.checkbox("Report bad image", key=f"report_v1_{paper_code}_{name}"):
-        db.report_issue(paper_code, "bad_image")
-        report_log_space.success("Reported bad image. Thanks!")
-        time.sleep(3)
-        report_log_space.empty()
-    if report_btn.checkbox("Report bad summary", key=f"report_v2_{paper_code}_{name}"):
-        db.report_issue(paper_code, "bad_summary")
-        report_log_space.success("Reported bad summary. Thanks!")
-        time.sleep(3)
-        report_log_space.empty()
-    if report_btn.checkbox(
-        "Report non-LLM paper", key=f"report_v3_{paper_code}_{name}"
-    ):
-        db.report_issue(paper_code, "non_llm")
-        report_log_space.success("Reported non-LLM paper. Thanks!")
-        time.sleep(3)
-        report_log_space.empty()
-    if report_btn.checkbox(
-        "Report bad data card", key=f"report_v4_{paper_code}_{name}"
-    ):
-        db.report_issue(paper_code, "bad_datacard")
-        report_log_space.success("Reported bad data-card. Thanks!")
-        time.sleep(3)
-        report_log_space.empty()
+        # Data card button
+        datacard_btn = action_btn_cols[1].button("📊 Data Card", key=f"dashboard_{paper_code}", type="primary")
+        if datacard_btn:
+            with st.spinner("*Loading data card...*"):
+                db.log_visit(f"data_card_{paper_code}")
+                html_card = dc.generate_data_card_html(paper_code)
+                if html_card:
+                    @st.dialog(paper_title, width="large")
+                    def render():
+                        components.html(html_card, height=700, scrolling=True)
+                    render()
+                else:
+                    error_container = st.empty()
+                    error_container.warning("Data card not available yet. Check back soon!")
+                    time.sleep(2)
+                    error_container.empty()
 
-    datacard_btn = action_btn_cols[1].button(
-        "🃏 Data Card", key=f"dashboard_{paper_code}", type="primary"
-    )
-    if datacard_btn:
-        with st.spinner("*Loading data card...*"):
-            db.log_visit(f"data_card_{paper_code}")
-            html_card = dc.generate_data_card_html(paper_code)
-            if html_card:
-
-                @st.dialog(paper_title, width="large")
-                def render():
-                    components.html(html_card, height=700, scrolling=True)
-
-                render()
+    # Content sections using tabs
+    tab_names = [
+        "❗️ Takeaways",  # Red exclamation for key points
+        "📝 Notes",       # Detailed notes
+        "📄 Abstract",    # Original abstract
+    ]
+    
+    # More robust repo check
+    has_repos = False
+    try:
+        if paper_code in st.session_state["repos"].index:
+            paper_repos = st.session_state["repos"].loc[paper_code]
+            if isinstance(paper_repos, pd.Series):
+                has_repos = True
+            elif isinstance(paper_repos, pd.DataFrame) and len(paper_repos) > 0:
+                has_repos = True
+    except Exception as e:
+        st.error(f"Error checking repos: {e}")
+        
+    if has_repos:
+        tab_names.append("💻 Code")
+        
+    tab_names.extend([
+        "💬 Chat",
+        "🔍 Related Papers",
+    ])
+    
+    # Only add Insight tab if we have an insight
+    if "tweet_insight" in paper and not pd.isna(paper["tweet_insight"]):
+        tab_names.append("🤖 Maestro's Insight")
+    tabs = st.tabs(tab_names)
+    
+    with tabs[0]:  # Takeaways
+        st.markdown("### ❗️ Key Takeaways")
+        bullet_summary = (
+            paper["bullet_list_summary"]
+            if not pd.isna(paper["bullet_list_summary"])
+            else "Not available yet, check back soon!"
+        )
+        bullet_summary_lines = bullet_summary.split('\n')
+        numbered_summary = []
+        number = 1
+        
+        # Regex pattern for matching emojis
+        emoji_pattern = re.compile(
+            "["
+            "\U0001F1E0-\U0001F1FF"  # flags (iOS)
+            "\U0001F300-\U0001F5FF"  # symbols & pictographs
+            "\U0001F600-\U0001F64F"  # emoticons
+            "\U0001F680-\U0001F6FF"  # transport & map symbols
+            "\U0001F700-\U0001F77F"  # alchemical symbols
+            "\U0001F780-\U0001F7FF"  # Geometric Shapes Extended
+            "\U0001F800-\U0001F8FF"  # Supplemental Arrows-C
+            "\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs
+            "\U0001FA00-\U0001FA6F"  # Chess Symbols
+            "\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A
+            "\U00002702-\U000027B0"  # Dingbats
+            "\U000024C2-\U0001F251" 
+            "]+",
+            flags=re.UNICODE
+        )
+        
+        for line in bullet_summary_lines:
+            if line.strip().startswith('- '):
+                # Remove the bullet point and clean the line
+                clean_line = line.strip()[2:].strip()
+                # Remove all emojis and extra spaces
+                clean_line = emoji_pattern.sub('', clean_line).strip()
+                numbered_summary.append(f"{number}. {clean_line}")
+                number += 1
             else:
-                error_container = st.empty()
-                error_container.warning("Data card not available yet. Check back soon!")
-                time.sleep(2)
-                error_container.empty()
-
-    with st.expander(f"💭 Abstract (arXiv:{paper_code})", expanded=False):
-        st.markdown(paper["summary"])
-
-    with st.expander(f"🗒 **Notes**", expanded=True):
+                # For non-bullet point lines, still remove emojis
+                clean_line = emoji_pattern.sub('', line).strip()
+                if clean_line:  # Only add non-empty lines
+                    numbered_summary.append(clean_line)
+                    
+        st.markdown('\n'.join(numbered_summary))
+            
+    with tabs[1]:  # Notes
         level_select = st.selectbox(
             "Detail",
             [
-                "5️⃣ Takeaways",
                 "📝 High-Level Overview",
                 "🔎 Detailed Research Notes",
             ],
             label_visibility="collapsed",
-            index=1,
+            index=0,
             key=f"level_select_{paper_code}{name}",
         )
 
@@ -219,26 +325,8 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             else paper["contribution_content"]
         )
         markdown_summary = paper["markdown_notes"]
-        bullet_summary = (
-            paper["bullet_list_summary"]
-            if not pd.isna(paper["bullet_list_summary"])
-            else "Not available yet, check back soon!"
-        )
 
-        if level_select == "5️⃣ Takeaways":
-            bullet_summary_lines = bullet_summary.split('\n')
-            numbered_summary = []
-            number = 1
-            for line in bullet_summary_lines:
-                print(line)
-                if line.strip().startswith('- '):
-                    numbered_summary.append(f"{number}. {line.strip()[2:]}")
-                    number += 1
-                else:
-                    numbered_summary.append(line)
-            st.markdown('\n'.join(numbered_summary))
-
-        elif level_select == "📝 High-Level Overview":
+        if level_select == "📝 High-Level Overview":
             st.markdown(summary)
 
         elif level_select == "🔎 Detailed Research Notes":
@@ -248,7 +336,38 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             else:
                 st.markdown("Currently unavailable. Check again soon!")
 
-    with st.expander("👮 **Interrogate** (Chat)", expanded=expanded):
+        # Add Application Ideas section
+        st.markdown("---")
+        st.markdown("### 💡 Application Ideas")
+        if not pd.isna(paper["takeaway_title"]):
+            st.markdown(f"#### {paper['takeaway_title']}")
+        st.markdown(paper["takeaway_example"])
+
+    with tabs[2]:  # Abstract
+        st.markdown(paper["summary"])
+        if not pd.isna(paper["arxiv_comment"]):
+            st.markdown(f"\n\n*ArXiv Comment:* {paper['arxiv_comment']}")
+
+    # Code & Resources tab (shown if repos exist)
+    tab_index = 3
+    if has_repos:
+        with tabs[tab_index]:
+            paper_repos = st.session_state["repos"].loc[paper_code]
+            if isinstance(paper_repos, pd.Series):
+                paper_repos = pd.DataFrame([paper_repos])
+            
+            # Convert to list of dictionaries for easier iteration
+            repos_list = paper_repos.to_dict('records')
+            for idx, repo in enumerate(repos_list):
+                st.markdown(f"### {repo['repo_title']}")
+                st.markdown(f"🔗 **Repository:** [{repo['repo_url']}]({repo['repo_url']})")
+                st.markdown(f"📝 **Description:** {repo['repo_description']}")
+                # Only add separator if it's not the last repo
+                if idx < len(repos_list) - 1:
+                    st.markdown("---")
+        tab_index += 1
+            
+    with tabs[tab_index]:  # Chat
         paper_question = st.text_area(
             "Ask GPT Maestro about this paper.",
             height=100,
@@ -260,53 +379,8 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             )
             db.log_qna_db(f"[{paper_code}] ::: {paper_question}", response)
             st.chat_message("assistant").write(response)
-
-    # if not pd.isna(paper["repo_url"]):
-    #     with st.expander("🔗 **Repositories & Libraries**", expanded=False):
-    #         repo_link = paper["repo_url"]
-    #         repo_title = paper["repo_title"]
-    #         repo_description = paper["repo_description"]
-    #
-    #         st.markdown(f"**{repo_title}**: {repo_link}")
-    #         st.markdown(repo_description)
-
-    # with st.expander("🌟 **GPT Assessments**", expanded=False):
-    #     assessment_cols = st.columns((1, 3, 1, 3, 1, 3))
-    #     assessment_cols[0].metric("Novelty", f"{paper['novelty_score']}/3", "🚀")
-    #     assessment_cols[1].caption(f"{paper['novelty_analysis']}")
-    #     assessment_cols[2].metric(
-    #         "Technical Depth", f"{paper['technical_score']}/3", "🔧"
-    #     )
-    #     assessment_cols[3].caption(f"{paper['technical_analysis']}")
-    #     assessment_cols[4].metric("Readability", f"{paper['enjoyable_score']}/3", "📚")
-    #     assessment_cols[5].caption(f"{paper['enjoyable_analysis']}")
-
-    paper_repos = st.session_state["repos"]
-    if paper_code in paper_repos.index:
-        paper_repos = paper_repos.loc[paper_code]
-    else:
-        paper_repos = pd.DataFrame()
-
-    if len(paper_repos) > 0:
-        with st.expander("🔗 **Repos & Other Resources**", expanded=False):
-            paper_repos = (
-                pd.DataFrame(paper_repos).T
-                if not isinstance(paper_repos, pd.DataFrame)
-                else paper_repos
-            )
-            for i, row in paper_repos.iterrows():
-                repo_link = row["repo_url"]
-                repo_title = row["repo_title"]
-                repo_description = row["repo_description"]
-                st.markdown(f"**{repo_title}**: {repo_link}")
-                st.markdown(repo_description)
-
-    with st.expander(
-        f"✏️ **Takeaways & Applications**:  {paper['takeaway_title']}", expanded=False
-    ):
-        st.markdown(f"{paper['takeaway_example']}")
-
-    with st.expander(f"📚 **Similar Papers**", expanded=False):
+            
+    with tabs[tab_index + 1]:  # Similar Papers
         papers_df = st.session_state["papers"]
         if paper_code in papers_df.index:
             similar_codes = pd.Series(papers_df.loc[paper_code]["similar_docs"])
@@ -318,6 +392,13 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
                     similar_codes = np.random.choice(similar_codes, 5, replace=False)
                 similar_df = papers_df.loc[similar_codes]
                 generate_grid_gallery(similar_df, extra_key="_sim", n_cols=5)
+
+    # GPT Maestro Insight tab (only shown if insight exists)
+    if "tweet_insight" in paper and not pd.isna(paper["tweet_insight"]):
+        with tabs[tab_index + 2]:
+            st.markdown("### 🤖 GPT Maestro's Key Insight")
+            st.markdown(f"{paper['tweet_insight']}")
+
     st.markdown("---")
 
 
@@ -381,7 +462,7 @@ def generate_grid_gallery(df, n_cols=5, extra_key=""):
                     # st.markdown(authors_str)
 
 
-def create_pagination(items, items_per_page, label="summaries"):
+def create_pagination(items, items_per_page, label="summaries", year=None):
     num_items = len(items)
     num_pages = num_items // items_per_page
     if num_items % items_per_page != 0:
@@ -389,7 +470,10 @@ def create_pagination(items, items_per_page, label="summaries"):
 
     st.session_state["num_pages"] = num_pages
 
-    st.markdown(f"**{num_items} papers found.**")
+    if not st.session_state.all_years and year is not None:
+        st.markdown(f"**{num_items} papers found for {year}.**")
+    else:
+        st.markdown(f"**{num_items} papers found.**")
     st.markdown(f"**Pg. {st.session_state.page_number + 1} of {num_pages}**")
     prev_button, mid, next_button = st.columns((1, 10, 1))
     prev_clicked = prev_button.button("Prev", key=f"prev_{label}")

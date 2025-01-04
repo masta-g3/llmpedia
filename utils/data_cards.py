@@ -12,49 +12,78 @@ html_template = """<!DOCTYPE html>
     <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 <style>
-    body, html {{
+    :root {
+        --primary-color: #b31b1b;
+        --primary-light: #fff1f1;
+        --text-on-primary: white;
+        --background: #ffffff;
+        --text-color: #000000;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --primary-color: #b31b1b;
+            --primary-light: #3d0909;
+            --text-on-primary: white;
+            --background: #0e1117;
+            --text-color: #fafafa;
+        }
+    }
+
+    body, html {
         margin: 0;
         padding: 0;
         font-family: Arial, sans-serif;
-        background-color: #FFF5E6;
+        background-color: var(--background);
+        color: var(--text-color);
         border-radius: 10px;
-    }}
-    p {{
+    }
+    
+    p {
         font-size: 0.9em;
-        }}
-    #header {{
+    }
+
+    .card {
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 16px;
+        overflow: hidden;
+        background-color: var(--primary-light);
+    }
+
+    .card-header {
+        padding: 16px;
+        font-weight: bold;
+        font-size: 1.2em;
+        border-bottom: 1px solid var(--primary-color);
+        background-color: var(--primary-color);
+        color: var(--text-on-primary);
+    }
+
+    .card-content {
+        padding: 16px;
+        background-color: var(--primary-color);
+        color: var(--text-on-primary);
+    }
+
+    #summary {
         position: fixed;
-        top: 0;
+        top: 0px;
+        left: 0;
+        right: 0;
+        margin: auto;
         width: 100%;
         z-index: 100;
-        background-color: #FF8C00;
-        color: white;
-        padding: 20px;
+        background-color: var(--primary-color);
+        color: var(--text-on-primary);
+        padding: 10px;
+        border-radius: 10px;
         text-align: center;
-        font-size: 2em;
-    }}
-    #summary {{
-    position: fixed;
-    top: 0px; /* Adjust this value based on the height of your header */
-    left: 0;
-    right: 0;
-    margin: auto;
-    width: 100%;
-    z-index: 100;
-    background-color: #FFA500;
-    color: white;
-    padding: 10px;
-    border-radius: 10px;
-    text-align: center;
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-    font-weight: bold;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    }}
-    #root {{
-        padding: 20px;
-        margin-top: 110px; /* Adjust this value based on the combined height of your summary */
-    }}
+        box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+        font-weight: bold;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
 </style>
 </head>
 <body>
@@ -65,11 +94,11 @@ html_template = """<!DOCTYPE html>
     <script>
         // Card component
         const Card = ({{ children, className, style }}) => (
-            React.createElement('div', {{ className: `card ${{className}}`, style: {{ ...style, backgroundColor: '#FFF8E1', borderRadius: '8px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', overflow: 'hidden', transition: 'all 0.3s ease-in-out' }} }}, children)
+            React.createElement('div', {{ className: `card ${{className}}`, style: {{ ...style, backgroundColor: 'var(--primary-light)', borderRadius: '8px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', overflow: 'hidden', transition: 'all 0.3s ease-in-out' }} }}, children)
         );
 
         const CardContent = ({{ children, className }}) => (
-            React.createElement('div', {{ className: `card-content ${{className}}`, style: {{ padding: '16px', color: '#333333' }} }}, children)
+            React.createElement('div', {{ className: `card-content ${{className}}`, style: {{ padding: '16px', color: 'var(--text-color)' }} }}, children)
         );
 
         // Tabs components
@@ -92,14 +121,13 @@ html_template = """<!DOCTYPE html>
             React.createElement('div', {{
                 className: `tabs-list ${{className}}`,
                 style: {{
-                    // position: 'fixed', // Make it fixed at the top
                     width: '100%',
                     display: 'flex',
                     justifyContent: 'space-around',
                     padding: '8px 0',
-                    background: '#FFF8E1',
-                    borderBottom: '3px solid #FF8C00',
-                    zIndex: '101', // Ensure it's above other content, adjust as necessary
+                    background: 'var(--background)',
+                    borderBottom: '3px solid var(--primary-color)',
+                    zIndex: '101'
                 }}
             }},
             React.Children.map(children, child =>
@@ -111,26 +139,24 @@ html_template = """<!DOCTYPE html>
             React.createElement('button', {{
                 className: `tabs-trigger ${{className}} ${{activeTab === value ? 'active' : ''}}`,
                 onClick: () => handleClick(value),
-                style: {{ padding: '8px 16px', cursor: 'pointer', borderBottom: activeTab === value ? '2px solid #FF8C00' : 'none', transition: 'all 0.3s ease-in-out' }}
+                style: {{ padding: '8px 16px', cursor: 'pointer', borderBottom: activeTab === value ? '2px solid var(--primary-color)' : 'none', transition: 'all 0.3s ease-in-out', color: 'var(--text-color)' }}
             }}, children)
         );
 
         const TabsContent = ({{ value, children, activeTab, className }}) => (
             React.createElement('div', {{
                 className: `tabs-content ${{className}}`,
-                style: {{ display: activeTab === value ? 'block' : 'none', padding: '16px'}}
+                style: {{ display: activeTab === value ? 'block' : 'none', padding: '16px', color: 'var(--text-color)'}}
             }}, children)
         );
         {script}
 
         // Calculate margin-top
         const summaryText = document.getElementById('summary').innerText;
-
         const charsPerLine = 75;
         const numberOfLines = Math.ceil(summaryText.length / charsPerLine);
-
-        const baseMargin = 110; // Base margin for 4 lines
-        const additionalMarginPerTwoLines = 40; // Additional margin for every 2 lines above 4
+        const baseMargin = 110;
+        const additionalMarginPerTwoLines = 40;
         let marginTop = baseMargin;
         if (numberOfLines > 4) {{
             marginTop += Math.floor((numberOfLines - 4) / 2) * additionalMarginPerTwoLines;

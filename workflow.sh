@@ -10,31 +10,9 @@ PROJECT_PATH=${PROJECT_PATH:-.}
 while true; do
     # Create timestamped log file
     TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-    LOG_FILE="${PROJECT_PATH}/workflow_${TIMESTAMP}.log"
+    LOG_FILE="${PROJECT_PATH}/logs/workflow_${TIMESTAMP}.log"
     
     echo "Workflow started at $(date)" | tee -a "$LOG_FILE" 2>/dev/null || true
-
-    sleep_minutes=$(( (RANDOM % 81) + 120 ))
-    total_seconds=$((sleep_minutes * 60))
-    echo "Sleeping for ${sleep_minutes} minutes..." | tee -a "$LOG_FILE"
-    
-    for ((i=0; i<=$total_seconds; i++)); do
-        # Calculate percentages and counts
-        pct=$((i * 100 / total_seconds))
-        filled=$((pct / 2))
-        unfilled=$((50 - filled))
-        
-        # Create the progress bar
-        printf "\r["
-        printf "%${filled}s" '' | tr ' ' '#'
-        printf "%${unfilled}s" '' | tr ' ' '-'
-        printf "] %d%% (%dm %ds/%dm)" $pct $((i / 60)) $((i % 60)) $sleep_minutes
-        
-        sleep 1
-    done
-    printf "\n"
-    
-    echo "Waking up after ${sleep_minutes} minute sleep..." | tee -a "$LOG_FILE"
 
     function run_step() {
         local step_name="$1"
@@ -67,4 +45,26 @@ while true; do
 
     echo "Cycle completed at $(date)" | tee -a "$LOG_FILE"
     echo "Starting next cycle..."
+
+    sleep_minutes=$(( (RANDOM % 81) + 120 ))
+    total_seconds=$((sleep_minutes * 60))
+    echo "Sleeping for ${sleep_minutes} minutes..." | tee -a "$LOG_FILE"
+    
+    for ((i=0; i<=$total_seconds; i++)); do
+        # Calculate percentages and counts
+        pct=$((i * 100 / total_seconds))
+        filled=$((pct / 2))
+        unfilled=$((50 - filled))
+        
+        # Create the progress bar
+        printf "\r["
+        printf "%${filled}s" '' | tr ' ' '#'
+        printf "%${unfilled}s" '' | tr ' ' '-'
+        printf "] %d%% (%dm %ds/%dm)" $pct $((i / 60)) $((i % 60)) $sleep_minutes
+        
+        sleep 1
+    done
+    printf "\n"
+    
+    echo "Waking up after ${sleep_minutes} minute sleep..." | tee -a "$LOG_FILE"
 done
