@@ -28,7 +28,7 @@ def main():
     
     # Get papers that need to be processed
     arxiv_codes = list(set(arxiv_codes) - set(done_markdowns))
-    arxiv_codes = sorted(arxiv_codes)[::-1][:600]
+    arxiv_codes = sorted(arxiv_codes)[::-1][:20]
     
     logger.info(f"Found {len(arxiv_codes)} papers to process")
 
