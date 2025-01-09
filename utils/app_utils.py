@@ -5,6 +5,7 @@ import numpy as np
 import datetime
 import json
 import os, re
+import boto3
 
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CohereRerank
@@ -546,3 +547,45 @@ def get_similar_docs(
         return similar_docs, similar_titles, publish_dates
     else:
         return [], [], []
+
+
+def get_paper_markdown(arxiv_code: str) -> Tuple[str, bool]:
+    """Fetch and process paper markdown from S3."""
+    s3 = boto3.client('s3')
+    
+    try:
+        # First check if the paper directory exists in S3
+        response = s3.list_objects_v2(
+            Bucket='arxiv-md',
+            Prefix=f'{arxiv_code}/'
+        )
+        
+        if 'Contents' not in response:
+            return "Paper content not available yet. Check back soon!", False
+            
+        # Get the paper.md content
+        response = s3.get_object(
+            Bucket='arxiv-md',
+            Key=f'{arxiv_code}/paper.md'
+        )
+        markdown_content = response.get('Body').read().decode('utf-8')
+        
+        # Process image references to point to S3
+        # First, handle relative paths
+        markdown_content = re.sub(
+            r'!\[(.*?)\]\((?!http)(.*?)\)',
+            lambda m: f'![{m.group(1)}](https://arxiv-md.s3.amazonaws.com/{arxiv_code}/{m.group(2)})',
+            markdown_content
+        )
+        
+        # Then, handle paths that might start with the arxiv code
+        markdown_content = re.sub(
+            f'!\[(.*?)\]\({arxiv_code}/(.*?)\)',
+            lambda m: f'![{m.group(1)}](https://arxiv-md.s3.amazonaws.com/{arxiv_code}/{m.group(2)})',
+            markdown_content
+        )
+        
+        return markdown_content, True
+        
+    except Exception as e:
+        return f"Error loading paper content: {str(e)}", False

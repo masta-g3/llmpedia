@@ -10,7 +10,6 @@ import markdown2
 import utils.app_utils as au
 import utils.data_cards as dc
 import utils.db as db
-import utils.paper_utils as pu
 
 
 def create_sidebar(full_papers_df: pd.DataFrame) -> Tuple[pd.DataFrame, int]:
@@ -348,7 +347,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             
     with tabs[2]:  # Full Paper Content
         # Fetch paper content
-        markdown_content, success = pu.get_paper_markdown(paper_code)
+        markdown_content, success = au.get_paper_markdown(paper_code)
         
         if success:
             # Create columns to center the content with some margin
