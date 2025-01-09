@@ -512,7 +512,7 @@ def generate_grid_gallery(df, n_cols=5, extra_key=""):
                     focus_btn = st.button(
                         "Read More",
                         key=f"focus_{paper_code}{extra_key}",
-                        help=punchline if punchline else None,
+                        help=punchline if type(punchline) == str else None,
                         use_container_width=True,
                     )
                     if focus_btn:
