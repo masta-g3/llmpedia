@@ -2,12 +2,14 @@ import pandas as pd
 import os
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import tiktoken
+from typing import Optional
 
 import utils.db as db
 import utils.prompts as ps
 import utils.pydantic_objects as po
 import utils.app_utils as au
 from utils.instruct import run_instructor_query
+import utils.paper_utils as pu
 
 CONNECTION_STRING = (
     f"postgresql+psycopg2://{db.db_params['user']}:{db.db_params['password']}"
@@ -325,6 +327,9 @@ def select_most_interesting_paper(
     arxiv_abstracts: str, recent_llm_tweets_str: str, model: str = "gpt-4o-mini"
 ):
     """Select the most interesting paper from a list of candidates."""
+    ## Set the abstracts on the model class for validation.
+    po.InterestingPaperSelection._abstracts = arxiv_abstracts
+
     response = run_instructor_query(
         ps.INTERESTING_SYSTEM_PROMPT,
         ps.INTERESTING_USER_PROMPT.format(
@@ -335,6 +340,10 @@ def select_most_interesting_paper(
         process_id="select_most_interesting_paper",
     )
     print(response)
+
+    ## Clean up class variable.
+    delattr(po.InterestingPaperSelection, "_abstracts")
+
     return response.selected_arxiv_code
 
 
@@ -432,19 +441,115 @@ def assess_llm_relevance(
 
 
 def generate_paper_punchline(
-    paper_title: str, notes: str, model: str = "GPT-3.5-Turbo"
+    paper_title: str,
+    notes: str,
+    model: str = "claude-3-5-sonnet-20241022",
 ) -> str:
     """Generate a single-sentence punchline summary that captures the main finding or contribution of the paper."""
-    from utils.prompts import PUNCHLINE_SUMMARY_SYSTEM_PROMPT, PUNCHLINE_SUMMARY_USER_PROMPT
-    from utils.llm import get_completion
-
-    system_prompt = PUNCHLINE_SUMMARY_SYSTEM_PROMPT.format(paper_title=paper_title)
-    user_prompt = PUNCHLINE_SUMMARY_USER_PROMPT.format(notes=notes)
-    
-    punchline = get_completion(
-        system_prompt=system_prompt,
-        user_prompt=user_prompt,
-        model=model
+    punchline = run_instructor_query(
+        ps.PUNCHLINE_SUMMARY_SYSTEM_PROMPT.format(paper_title=paper_title),
+        ps.PUNCHLINE_SUMMARY_USER_PROMPT.format(notes=notes),
+        llm_model=model,
+        process_id="generate_paper_punchline",
     )
-    
+
+    if "<punchline>" in punchline:
+        punchline = punchline.split("<punchline>")[1].split("</punchline>")[0]
+
     return punchline.strip()
+
+
+def analyze_paper_images(
+    arxiv_code: str,
+    model: str = "claude-3-5-sonnet-20241022",
+    paper_comment: Optional[str] = None,
+) -> str:
+    """Analyze paper images using Claude vision API to select the most suitable one for social media."""
+    import base64
+    import os
+    import re
+    import requests
+
+    # Get paper details
+    paper_details = db.get_extended_content(arxiv_code)
+    if paper_details.empty:
+        return None
+
+    # Get paper markdown and images
+    markdown_content, success = pu.get_paper_markdown(arxiv_code)
+    if not success:
+        return None
+
+    # Extract image filenames from markdown
+    image_urls = re.findall(r"!\[.*?\]\((.*?)\)", markdown_content)
+    if not image_urls:
+        return None
+
+    # Download images and convert to base64
+    images = []
+    for url in image_urls:
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                b64_image = base64.b64encode(response.content).decode("utf-8")
+                images.append(
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "image/png",
+                            "data": b64_image,
+                        },
+                    }
+                )
+        except Exception as e:
+            print(f"Failed to download image {url}: {str(e)}")
+            continue
+
+    if not images:
+        return None
+
+    # Prepare paper summary
+    paper_summary = f"""Title: {paper_details['title'].iloc[0]}
+Summary: {paper_details['summary'].iloc[0]}"""
+
+    if paper_comment:
+        paper_summary += f"\n\nKey Point to Illustrate: {paper_comment}"
+
+    # Prepare image descriptions
+    image_descriptions = []
+    for i, url in enumerate(image_urls, 1):
+        filename = url.split("/")[-1]
+        image_descriptions.append(f"Image {i}: {filename}")
+    image_descriptions = "\n".join(image_descriptions)
+
+    # Call Claude vision API via instruct
+    content = images + [
+        {
+            "type": "text",
+            "text": ps.IMAGE_ANALYSIS_USER_PROMPT.format(
+                paper_summary=paper_summary, image_descriptions=image_descriptions
+            ),
+        }
+    ]
+
+    messages = [{"role": "user", "content": content}]
+
+    response = run_instructor_query(
+        system_message=ps.IMAGE_ANALYSIS_SYSTEM_PROMPT,
+        user_message="",  # Not used when messages is provided
+        llm_model=model,
+        model=po.ImageAnalysis,
+        process_id="analyze_paper_images",
+        messages=messages,
+    )
+
+    if not response or response.selected_image == "NA":
+        return None
+
+    try:
+        selected_idx = int(response.selected_image.split()[-1]) - 1
+        # Extract just the filename from the full S3 URL
+        return image_urls[selected_idx].split("/")[-1]
+    except:
+        return None

@@ -72,7 +72,7 @@ def main():
     arxiv_codes = pu.list_s3_files("arxiv-art", strip_extension=True)
     done_codes = db.get_arxiv_id_list(db.db_params, "tweet_reviews")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
-    arxiv_codes = sorted(arxiv_codes)[-100:]
+    arxiv_codes = sorted(arxiv_codes)[-250:]
     logger.info(f"Found {len(arxiv_codes)} recent papers")
 
     citations_df = db.load_citations()
@@ -87,7 +87,7 @@ def main():
     citations_df["weight"] = citations_df["weight"] / citations_df["weight"].sum()
     candidate_arxiv_codes = np.random.choice(
         citations_df.index,
-        size=50,
+        size=25,
         replace=False,
         p=citations_df["weight"] / citations_df["weight"].sum(),
     )
@@ -104,7 +104,11 @@ def main():
         ]
     )
 
-    recent_llm_tweets = tweet.collect_llm_tweets(logger, max_tweets=100)
+    # Collect all batches and flatten into a single list
+    recent_llm_tweets = []
+    for batch in tweet.collect_llm_tweets(logger, max_tweets=10):
+        recent_llm_tweets.extend(batch)
+    
     recent_llm_tweets_str = "\n".join(
         [
             f"COMMUNITY TWEET {i+1}:\n{tweet['text']}"
@@ -112,36 +116,14 @@ def main():
         ]
     )
 
-    # logger.info("Collecting LLM-related tweets")
-    # recent_tweets = tweet.collect_llm_tweets(logger, max_tweets=100)
-
-    # recent_tweets_str = "\n".join(
-    #     [f"<tweet{idx+1}>\n{tweet['text']}\n</tweet{idx+1}>\n" for idx, tweet in enumerate(recent_tweets)]
-    # )
-    # logger.info(f"Found {len(recent_tweets)} recent LLM-related tweets")
-
     logger.info("Selecting most interesting paper...")
     arxiv_code = vs.select_most_interesting_paper(
         abstracts_str, recent_llm_tweets_str, model="claude-3-5-sonnet-20241022"
     )
-    # arxiv_code = candidate_arxiv_codes[arxiv_code_idx - 1]
     logger.info(f"Selected paper: {arxiv_code}")
-    # last_post = db.get_latest_tstp(
-    #     db.db_params,
-    #     "tweet_reviews",
-    #     extra_condition="where tweet_type='review_v2' and rejected=false",
-    # )
-    # if datetime.datetime.date(last_post) == datetime.datetime.today().date():
-    #     tweet_type = "insight_v1"
-
-    ## Load previous tweets.
-    # previous_tweets_df = db.load_tweet_insights(drop_rejected=True).head(5)
-    # previous_tweets = previous_tweets_df["tweet_insight"].values
-    # previous_tweets_str = "\n".join(previous_tweets)
 
     paper_summary = db.get_extended_notes(arxiv_code, expected_tokens=4500)
     paper_details = db.load_arxiv(arxiv_code)
-    # publish_date = paper_details["published"][0].strftime("%B %Y")
     publish_date_full = paper_details["published"][0].strftime("%b %d, %Y")
     most_recent_tweets = (
         db.load_tweet_insights(drop_rejected=True).head(7)["tweet_insight"].values
@@ -172,7 +154,7 @@ def main():
         most_recent_tweets=most_recent_tweets_str,
         recent_llm_tweets=recent_llm_tweets_str,
         model="claude-3-5-sonnet-20241022",
-        temperature=0.7,
+        temperature=0.9,
     )
     tweet_content = tweet_obj.edited_tweet
     edited_tweet = bold(tweet_content, publish_date_full)
@@ -196,17 +178,30 @@ def main():
             arxiv_code, bucket_name="arxiv-first-page", prefix="data", format="png"
         )
 
-    # sleep_time = random.randint(30, 35 * 60)
-    # logger.info(f"22Sleeping for {sleep_time} seconds")
-    # time.sleep((2*60*60))
-
+    analyzed_image = vs.analyze_paper_images(arxiv_code, model="claude-3-5-sonnet-20241022")
+    
+    # Log image analysis outcome
+    if not analyzed_image:
+        logger.info("No suitable image found for social media visualization")
+    else:
+        logger.info(f"Selected image for visualization: {analyzed_image}")
+    
+    # Structure the tweet thread with optional analyzed image
+    analyzed_image_path = None
+    if analyzed_image:
+        analyzed_image_path = os.path.join(DATA_PATH, "arxiv_md", arxiv_code, analyzed_image)
+        if not os.path.exists(analyzed_image_path):
+            logger.warning(f"Selected image {analyzed_image} not found in arxiv_md/{arxiv_code}")
+            analyzed_image_path = None
+    
     tweet_success = tweet.send_tweet(
         edited_tweet,
         tweet_image_path,
         tweet_page_path,
-        post_tweet,
+        post_tweet,  # Using the already constructed post_tweet with links
         author_tweet,
         logger,
+        analyzed_image_path=analyzed_image_path
     )
 
     if tweet_success:

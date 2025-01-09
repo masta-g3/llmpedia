@@ -7,28 +7,74 @@ set +a
 
 PROJECT_PATH=${PROJECT_PATH:-.}
 
+function show_progress() {
+    local elapsed=$1
+    local total=$2
+    local pct=$((elapsed * 100 / total))
+    local filled=$((pct / 2))
+    local unfilled=$((50 - filled))
+    
+    printf "\r["
+    printf "%${filled}s" '' | tr ' ' '#'
+    printf "%${unfilled}s" '' | tr ' ' '-'
+    printf "] %d%% (%dm %ds/%dm)" $pct $((elapsed / 60)) $((elapsed % 60)) $((total / 60))
+}
+
+function sleep_with_progress() {
+    local minutes=$1
+    local total_seconds=$((minutes * 60))
+    
+    echo "Sleeping for ${minutes} minutes..." | tee -a "$LOG_FILE"
+    
+    for ((i=0; i<=$total_seconds; i++)); do
+        show_progress $i $total_seconds
+        sleep 1
+    done
+    printf "\n"
+    
+    echo "Waking up after ${minutes} minute sleep..." | tee -a "$LOG_FILE"
+}
+
+function run_step() {
+    local step_name="$1"
+    local script="$2"
+    local temp_error_file="/tmp/workflow_error_$TIMESTAMP.txt"
+    
+    echo ">> [$step_name] Started at $(date)" | tee -a "$LOG_FILE"
+    
+    ## Run the Python script and capture output.
+    if ! python "${PROJECT_PATH}/${script}" 2>&1 | tee -a "$LOG_FILE" "$temp_error_file"; then
+        ## If the script failed, log the error.
+        local error_msg=$(cat "$temp_error_file")
+        python -c "from utils.db import log_workflow_run; log_workflow_run('$step_name', '$script', 'error', '''$error_msg''')"
+        rm -f "$temp_error_file"
+        echo ">> [$step_name] Failed at $(date)" | tee -a "$LOG_FILE"
+        return 1
+    fi
+    
+    ## Log successful run.
+    python -c "from utils.db import log_workflow_run; log_workflow_run('$step_name', '$script', 'success')"
+    rm -f "$temp_error_file"
+    echo ">> [$step_name] Completed at $(date)" | tee -a "$LOG_FILE"
+    return 0
+}
+
 while true; do
-    # Create timestamped log file
+    ## Create timestamped log file.
     TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
     LOG_FILE="${PROJECT_PATH}/logs/workflow_${TIMESTAMP}.log"
     
     echo "Workflow started at $(date)" | tee -a "$LOG_FILE" 2>/dev/null || true
 
-    function run_step() {
-        local step_name="$1"
-        local script="$2"
-        echo ">> [$step_name] Started at $(date)" >> "$LOG_FILE"
-        python "${PROJECT_PATH}/${script}" 2>&1 | tee -a "$LOG_FILE"
-        echo ">> [$step_name] Completed at $(date)" >> "$LOG_FILE"
-    }
-
     run_step "0: Web Scraper" "workflow/a0_scrape_lists.py"
     run_step "1 Tweet Scraper" "workflow/a1_scrape_tweets.py"
     run_step "1: Document Fetcher" "workflow/b0_download_paper.py"
+    run_step "2: Marker Fetcher" "workflow/b1_download_paper_marker.py"
     run_step "2: Meta-Data Collect" "workflow/c0_fetch_meta.py"
     run_step "3: Summarizer" "workflow/d0_summarize.py"
     run_step "4: Narrator" "workflow/e0_narrate.py"
     run_step "4.1: Bullet List" "workflow/e1_narrate_bullet.py"
+    run_step "4.2: Punchline" "workflow/e2_narrate_punchline.py"
     # run_step "4.2: Data Card" "workflow/e2_data_card.py" # BY DEMAND
     run_step "5: Reviewer" "workflow/f0_review.py"
     run_step "6: Visual Artist" "workflow/g0_create_thumbnail.py"
@@ -46,25 +92,6 @@ while true; do
     echo "Cycle completed at $(date)" | tee -a "$LOG_FILE"
     echo "Starting next cycle..."
 
-    sleep_minutes=$(( (RANDOM % 81) + 120 ))
-    total_seconds=$((sleep_minutes * 60))
-    echo "Sleeping for ${sleep_minutes} minutes..." | tee -a "$LOG_FILE"
-    
-    for ((i=0; i<=$total_seconds; i++)); do
-        # Calculate percentages and counts
-        pct=$((i * 100 / total_seconds))
-        filled=$((pct / 2))
-        unfilled=$((50 - filled))
-        
-        # Create the progress bar
-        printf "\r["
-        printf "%${filled}s" '' | tr ' ' '#'
-        printf "%${unfilled}s" '' | tr ' ' '-'
-        printf "] %d%% (%dm %ds/%dm)" $pct $((i / 60)) $((i % 60)) $sleep_minutes
-        
-        sleep 1
-    done
-    printf "\n"
-    
-    echo "Waking up after ${sleep_minutes} minute sleep..." | tee -a "$LOG_FILE"
+    sleep_minutes=$(( (RANDOM % 151) + 150 ))
+    sleep_with_progress $sleep_minutes
 done

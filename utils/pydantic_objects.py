@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from enum import Enum
 from typing import Optional, List, Dict
+from pydantic import validator
 
 ################
 ## SUMMARIZER ##
@@ -68,6 +69,15 @@ class InterestingPaperSelection(BaseModel):
         ...,
         description="Arxiv code of the selected paper.",
     )
+
+    @validator("selected_arxiv_code")
+    def validate_arxiv_code_in_abstracts(cls, v, values, **kwargs):
+        """Validate that the selected arxiv code appears in the abstracts."""
+        if not hasattr(cls, "_abstracts"):
+            return v
+        if f"<{v}>" not in cls._abstracts:
+            raise ValueError(f"Selected arxiv code {v} not found in abstracts")
+        return v
 
 
 class QueryDecision(BaseModel):
@@ -239,4 +249,15 @@ class TweetEdit(BaseModel):
     edit_rationale: str = Field(
         ...,
         description="Explanation of how the changes reduce repetitiveness while preserving style requirements"
+    )
+
+
+class ImageAnalysis(BaseModel):
+    analysis: str = Field(
+        ..., 
+        description="Detailed analysis of each image's potential for social media communication"
+    )
+    selected_image: str = Field(
+        ..., 
+        description="The selected image number (e.g., 'Image 1') or 'NA' if no suitable image found"
     )

@@ -16,15 +16,15 @@ def main():
     logger.info("Starting tweet collection process")
     
     try:
-        # Collect tweets
-        tweets = collect_llm_tweets(logger, max_tweets=2000)
-        logger.info(f"Collected {len(tweets)} relevant tweets")
+        # Collect and store tweets in batches
+        total_stored = 0
+        for tweet_batch in collect_llm_tweets(logger, max_tweets=2000, batch_size=100):
+            if tweet_batch:
+                store_tweets(tweet_batch, logger)
+                total_stored += len(tweet_batch)
+                logger.info(f"Total tweets stored so far: {total_stored}")
         
-        # Store tweets
-        if tweets:
-            store_tweets(tweets, logger)
-        
-        logger.info("Tweet collection process completed")
+        logger.info(f"Tweet collection process completed. Total tweets stored: {total_stored}")
         
     except Exception as e:
         logger.error(f"Error in tweet collection process: {str(e)}")

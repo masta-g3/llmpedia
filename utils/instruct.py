@@ -1,5 +1,5 @@
 from tokencost import calculate_cost_by_tokens
-from typing import Type, Optional
+from typing import Type, Optional, List, Dict, Union
 from pydantic import BaseModel
 from anthropic import Anthropic
 from openai import OpenAI
@@ -17,6 +17,7 @@ def run_instructor_query(
     llm_model: str = "gpt-4o",
     temperature: float = 0.5,
     process_id: str = None,
+    messages: Optional[List[Dict]] = None,
 ):
     """Run a query with the instructor API and get a structured response."""
     model_type = ("OpenAI" if ("gpt" in llm_model or "o1" in llm_model) 
@@ -26,7 +27,7 @@ def run_instructor_query(
     if model_type == "Anthropic":
         client = Anthropic()
         response, usage = create_anthropic_message(
-            client, system_message, user_message, model, llm_model, temperature
+            client, system_message, user_message, model, llm_model, temperature, messages
         )
     elif model_type == "OpenAI":
         client = OpenAI()
@@ -68,19 +69,22 @@ def run_instructor_query(
 
 
 def create_anthropic_message(
-    client, system_message, user_message, model, llm_model, temperature
+    client, system_message, user_message, model, llm_model, temperature, messages=None
 ):
     """Create a message with the Anthropic client, with an optional Pydantic model."""
     max_tokens = 4096 if "opus" in llm_model else 8192
+    
+    # Use provided messages if available (for image content), otherwise construct from user_message
+    if messages is None:
+        messages = [{"role": "user", "content": user_message}]
+        
     if model is None:
         response = client.messages.create(
             max_tokens=max_tokens,
             model=llm_model,
             system=system_message,
             temperature=temperature,
-            messages=[
-                {"role": "user", "content": user_message},
-            ],
+            messages=messages,
         )
         answer = response.content[0].text.strip()
         usage = response.to_dict()["usage"]
@@ -92,9 +96,7 @@ def create_anthropic_message(
             model=llm_model,
             temperature=temperature,
             system=system_message,
-            messages=[
-                {"role": "user", "content": user_message},
-            ],
+            messages=messages,
             response_model=model,
         )
         answer = response

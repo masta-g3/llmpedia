@@ -5,10 +5,12 @@ import numpy as np
 from typing import Dict, Tuple
 import time
 import re
+import markdown2
 
 import utils.app_utils as au
 import utils.data_cards as dc
 import utils.db as db
+import utils.paper_utils as pu
 
 
 def create_sidebar(full_papers_df: pd.DataFrame) -> Tuple[pd.DataFrame, int]:
@@ -231,9 +233,9 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
 
     # Content sections using tabs
     tab_names = [
-        "❗️ Takeaways",  # Red exclamation for key points
-        "📝 Notes",       # Detailed notes
-        "📄 Abstract",    # Original abstract
+        "❗️ Takeaways",     # Start with the most concise overview
+        "📝 Research Notes",  # More detailed analysis
+        "📖 Full Paper",     # Complete in-depth content
     ]
     
     # More robust repo check
@@ -253,7 +255,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         
     tab_names.extend([
         "💬 Chat",
-        "🔍 Related Papers",
+        "🔍 Similar Papers",
     ])
     
     # Only add Insight tab if we have an insight
@@ -261,8 +263,8 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         tab_names.append("🤖 Maestro's Insight")
     tabs = st.tabs(tab_names)
     
-    with tabs[0]:  # Takeaways
-        st.markdown("### ❗️ Key Takeaways")
+    with tabs[0]:
+        st.markdown("### ❗️ Takeaways")
         bullet_summary = (
             paper["bullet_list_summary"]
             if not pd.isna(paper["bullet_list_summary"])
@@ -307,7 +309,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
                     
         st.markdown('\n'.join(numbered_summary))
             
-    with tabs[1]:  # Notes
+    with tabs[1]:  # Research Notes
         st.markdown("### 📝 Research Notes")
         level_select = st.selectbox(
             "Detail",
@@ -343,13 +345,82 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         if not pd.isna(paper["takeaway_title"]):
             st.markdown(f"#### {paper['takeaway_title']}")
         st.markdown(paper["takeaway_example"])
-
-    with tabs[2]:  # Abstract
-        st.markdown("### 📄 Paper Abstract")
-        st.markdown(paper["summary"])
-        if not pd.isna(paper["arxiv_comment"]):
-            st.markdown(f"\n\n*ArXiv Comment:* {paper['arxiv_comment']}")
-
+            
+    with tabs[2]:  # Full Paper Content
+        # Fetch paper content
+        markdown_content, success = pu.get_paper_markdown(paper_code)
+        
+        if success:
+            # Create columns to center the content with some margin
+            _, col, _ = st.columns([1, 8, 1])
+            
+            with col:
+                # Convert markdown to HTML
+                html_content = markdown2.markdown(
+                    markdown_content,
+                    extras=[
+                        'fenced-code-blocks',
+                        'tables',
+                        'header-ids',
+                        'break-on-newline'
+                    ]
+                )
+                
+                # Create an HTML string with styling
+                full_html = f"""
+                    <html>
+                        <head>
+                            <link href="https://cdn.jsdelivr.net/npm/github-markdown-css/github-markdown.min.css" rel="stylesheet">
+                            <style>
+                                .markdown-body {{
+                                    box-sizing: border-box;
+                                    min-width: 200px;
+                                    max-width: 100%;
+                                    margin: 0 auto;
+                                    padding: 1rem;
+                                }}
+                                body {{
+                                    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+                                }}
+                                img {{
+                                    max-width: 100%;
+                                    height: auto;
+                                    display: block;
+                                    margin: 1.5rem auto;
+                                    border-radius: 4px;
+                                }}
+                                pre {{
+                                    background-color: #f6f8fa;
+                                    border-radius: 6px;
+                                    padding: 16px;
+                                    overflow: auto;
+                                }}
+                                code {{
+                                    background-color: rgba(175,184,193,0.2);
+                                    padding: .2em .4em;
+                                    border-radius: 6px;
+                                }}
+                                pre code {{
+                                    background-color: transparent;
+                                    padding: 0;
+                                }}
+                            </style>
+                        </head>
+                        <body class="markdown-body">
+                            {html_content}
+                        </body>
+                    </html>
+                """
+                
+                # Use the components.html to create a scrollable iframe
+                components.html(
+                    full_html,
+                    height=800,
+                    scrolling=True
+                )
+        else:
+            st.warning(markdown_content)
+            
     # Code & Resources tab (shown if repos exist)
     tab_index = 3
     if has_repos:
@@ -438,9 +509,11 @@ def generate_grid_gallery(df, n_cols=5, extra_key=""):
                     st.markdown(centered_code, unsafe_allow_html=True)
 
                     paper_code = df.iloc[i * n_cols + j]["arxiv_code"]
+                    punchline = df.iloc[i * n_cols + j].get("punchline")
                     focus_btn = st.button(
                         "Read More",
                         key=f"focus_{paper_code}{extra_key}",
+                        help=punchline if punchline else None,
                         use_container_width=True,
                     )
                     if focus_btn:

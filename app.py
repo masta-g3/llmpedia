@@ -88,6 +88,7 @@ def combine_input_data():
     markdown_summaries = db.load_summary_markdown()
     tweets = db.load_tweet_insights()
     similar_docs_df = db.load_similar_documents()
+    punchlines_df = db.load_punchlines()
 
     papers_df = summaries_df.join(arxiv_df, how="left")
     papers_df = papers_df.join(topics_df, how="left")
@@ -97,6 +98,7 @@ def combine_input_data():
     papers_df = papers_df.join(markdown_summaries, how="left")
     papers_df = papers_df.join(tweets, how="left")
     papers_df = papers_df.join(similar_docs_df, how="left")
+    papers_df = papers_df.join(punchlines_df, how="left")
 
     papers_df["arxiv_code"] = papers_df.index
     papers_df["url"] = papers_df["arxiv_code"].map(

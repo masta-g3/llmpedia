@@ -7,6 +7,7 @@ import psycopg2
 import uuid
 import os
 import logging
+import sys
 
 try:
     db_params = {
@@ -375,6 +376,16 @@ def load_tweet_insights(arxiv_code: str = None, drop_rejected: bool = False):
     tweet_reviews_df.drop(columns=["tstp", "rejected", "tweet_type"], inplace=True)
     tweet_reviews_df.rename(columns={"review": "tweet_insight"}, inplace=True)
     return tweet_reviews_df
+
+
+def load_punchlines():
+    """Load paper punchlines from the database."""
+    query = "SELECT * FROM summary_punchlines;"
+    conn = create_engine(database_url)
+    punchlines_df = pd.read_sql(query, conn)
+    punchlines_df.set_index("arxiv_code", inplace=True)
+    punchlines_df.drop(columns=["tstp"], inplace=True)
+    return punchlines_df
 
 
 def get_arxiv_parent_chunk_ids(chunk_ids: list):
@@ -913,4 +924,53 @@ def store_tweets(tweets: list[dict], logger: logging.Logger) -> bool:
         return True
     except Exception as e:
         logger.error(f"Error storing tweets: {str(e)}")
+        return False
+
+
+def log_workflow_error(step_name: str, script_path: str, error_message: str) -> bool:
+    """Log workflow execution errors to the database."""
+    try:
+        engine = create_engine(database_url)
+        with engine.begin() as conn:
+            query = text("""
+                INSERT INTO workflow_errors 
+                (tstp, step_name, script_path, error_message)
+                VALUES (:tstp, :step_name, :script_path, :error_message)
+            """)
+            
+            conn.execute(query, {
+                "tstp": datetime.now(),
+                "step_name": step_name,
+                "script_path": script_path,
+                "error_message": error_message
+            })
+            
+        return True
+    except Exception as e:
+        print(f"Failed to log workflow error to database: {str(e)}", file=sys.stderr)
+        return False
+
+
+def log_workflow_run(step_name: str, script_path: str, status: str, error_message: str = None) -> bool:
+    """Log workflow execution status to the database."""
+    try:
+        engine = create_engine(database_url)
+        with engine.begin() as conn:
+            query = text("""
+                INSERT INTO workflow_runs 
+                (tstp, step_name, script_path, status, error_message)
+                VALUES (:tstp, :step_name, :script_path, :status, :error_message)
+            """)
+            
+            conn.execute(query, {
+                "tstp": datetime.now(),
+                "step_name": step_name,
+                "script_path": script_path,
+                "status": status,
+                "error_message": error_message
+            })
+            
+        return True
+    except Exception as e:
+        print(f"Failed to log workflow run to database: {str(e)}", file=sys.stderr)
         return False

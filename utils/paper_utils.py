@@ -10,7 +10,7 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
+from typing import Optional, Tuple
 import dotenv
 import ast
 
@@ -652,9 +652,14 @@ def convert_pdf_to_markdown(pdf_path):
     converter = PdfConverter(
         artifact_dict=create_model_dict(),
     )
-    rendered = converter(pdf_path)
-    text, _, images = text_from_rendered(rendered)
-    return text, images
+    try:
+        rendered = converter(pdf_path)
+        text, _, images = text_from_rendered(rendered)
+        return text, images
+    except ValueError as e:
+        print(f"Error converting PDF to markdown: {e}")
+        return None, None
+    
 
 def ensure_pdf_exists(arxiv_code, pdf_path, logger=None):
     """Ensure PDF exists locally and in S3, downloading from arXiv if necessary."""
@@ -702,3 +707,44 @@ def download_pdf(arxiv_code, pdf_path):
             f.write(response.content)
     else:
         raise Exception(f"Failed to download PDF from arXiv: {response.status_code}")
+
+def get_paper_markdown(arxiv_code: str) -> Tuple[str, bool]:
+    """Fetch and process paper markdown from S3."""
+    s3 = boto3.client('s3')
+    
+    try:
+        # First check if the paper directory exists in S3
+        response = s3.list_objects_v2(
+            Bucket='arxiv-md',
+            Prefix=f'{arxiv_code}/'
+        )
+        
+        if 'Contents' not in response:
+            return "Paper content not available yet. Check back soon!", False
+            
+        # Get the paper.md content
+        response = s3.get_object(
+            Bucket='arxiv-md',
+            Key=f'{arxiv_code}/paper.md'
+        )
+        markdown_content = response.get('Body').read().decode('utf-8')
+        
+        # Process image references to point to S3
+        # First, handle relative paths
+        markdown_content = re.sub(
+            r'!\[(.*?)\]\((?!http)(.*?)\)',
+            lambda m: f'![{m.group(1)}](https://arxiv-md.s3.amazonaws.com/{arxiv_code}/{m.group(2)})',
+            markdown_content
+        )
+        
+        # Then, handle paths that might start with the arxiv code
+        markdown_content = re.sub(
+            f'!\[(.*?)\]\({arxiv_code}/(.*?)\)',
+            lambda m: f'![{m.group(1)}](https://arxiv-md.s3.amazonaws.com/{arxiv_code}/{m.group(2)})',
+            markdown_content
+        )
+        
+        return markdown_content, True
+        
+    except Exception as e:
+        return f"Error loading paper content: {str(e)}", False

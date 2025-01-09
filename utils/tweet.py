@@ -276,8 +276,10 @@ def send_tweet(
     post_tweet: str,
     author_tweet: dict,
     logger: logging.Logger,
+    analyzed_image_path: str = None,  # Path to the image selected by Claude for visualization
 ) -> bool:
     """Send a tweet with content and images using Selenium."""
+    
     logger.info("Starting tweet sending process")
     driver = setup_browser(logger)
     login_twitter(driver, logger)
@@ -310,40 +312,77 @@ def send_tweet(
         )
     )
 
-    # Upload second image
-    logger.info("Uploading second image")
-    upload_input.send_keys(tweet_page_path)
+    # Upload second image if provided
+    expected_image_count = 1
+    if tweet_page_path:
+        logger.info("Uploading second image")
+        upload_input.send_keys(tweet_page_path)
+        expected_image_count = 2
 
-    # Verify both images are uploaded
-    def correct_image_count(driver):
-        remove_buttons = driver.find_elements(
-            By.XPATH, "//button[@aria-label='Remove media']"
+        # Verify both images are uploaded
+        def correct_image_count(driver):
+            remove_buttons = driver.find_elements(
+                By.XPATH, "//button[@aria-label='Remove media']"
+            )
+            return len(remove_buttons) == expected_image_count
+
+        WebDriverWait(driver, 30).until(correct_image_count)
+
+    # Add image tweet if provided
+    if analyzed_image_path:
+        time.sleep(10)
+        logger.info("Adding image tweet")
+        tweet_reply_btn = WebDriverWait(driver, 60).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[@data-testid='addButton']"))
         )
-        return len(remove_buttons) == 2
+        tweet_reply_btn.click()
 
-    WebDriverWait(driver, 30).until(correct_image_count)
+        # Enter image tweet content
+        tweet_box = WebDriverWait(driver, 60).until(
+            EC.element_to_be_clickable(
+                (
+                    By.XPATH,
+                    "//div[@contenteditable='true' and @data-testid='tweetTextarea_1']",
+                )
+            )
+        )
+        tweet_box.send_keys("Key visualization from the paper 📊")
 
-    # Add follow-up tweet
+        # Upload image
+        upload_input = driver.find_element(
+            By.XPATH,
+            '//input[@accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime"]',
+        )
+        upload_input.send_keys(analyzed_image_path)
+
+        # Verify image is uploaded
+        WebDriverWait(driver, 60).until(
+            EC.presence_of_element_located(
+                (By.XPATH, "(//button[@aria-label='Remove media'])[1]")
+            )
+        )
+
+    # Add links tweet
     time.sleep(10)
-    logger.info("Adding follow-up tweet section")
+    logger.info("Adding links tweet")
     tweet_reply_btn = WebDriverWait(driver, 60).until(
         EC.element_to_be_clickable((By.XPATH, "//button[@data-testid='addButton']"))
     )
     tweet_reply_btn.click()
 
-    # Enter follow-up tweet content
+    # Enter links tweet content
     tweet_box = WebDriverWait(driver, 60).until(
         EC.element_to_be_clickable(
             (
                 By.XPATH,
-                "//div[@contenteditable='true' and @data-testid='tweetTextarea_1']",
+                f"//div[@contenteditable='true' and @data-testid='tweetTextarea_{2 if analyzed_image_path else 1}']",
             )
         )
     )
     tweet_box.send_keys(post_tweet)
 
+    # Add author tweet if provided
     if author_tweet:
-        # Add author tweet link as third tweet in thread
         tweet_reply_btn = WebDriverWait(driver, 60).until(
             EC.element_to_be_clickable((By.XPATH, "//button[@data-testid='addButton']"))
         )
@@ -353,7 +392,7 @@ def send_tweet(
             EC.element_to_be_clickable(
                 (
                     By.XPATH,
-                    "//div[@contenteditable='true' and @data-testid='tweetTextarea_2']",
+                    f"//div[@contenteditable='true' and @data-testid='tweetTextarea_{3 if analyzed_image_path else 2}']",
                 )
             )
         )
@@ -361,7 +400,7 @@ def send_tweet(
 
     # Verify tweet elements
     elements_verified, verification_message = verify_tweet_elements(
-        driver, tweet_content, expected_image_count=2, logger=logger
+        driver, tweet_content, expected_image_count=expected_image_count, logger=logger
     )
     if not elements_verified:
         logger.error(f"Tweet verification failed: {verification_message}")
@@ -370,7 +409,6 @@ def send_tweet(
     # Send tweet
     time.sleep(5)
     logger.info("Attempting to send tweet")
-    # No need to click tweet_box again
 
     # Find and click the 'Post all' button
     tweet_all_button = WebDriverWait(driver, 30).until(
@@ -391,8 +429,8 @@ def send_tweet(
         tweet_all_button,
     )
 
-    # Optionally sleep before sending the tweet
-    sleep_duration = 5  # Sleep between 10 seconds and 45 minutes
+    # Sleep before sending the tweet
+    sleep_duration = 5
     logger.info(f"Sleeping for {sleep_duration} seconds before sending the tweet...")
     time.sleep(sleep_duration)
     tweet_all_button.click()
@@ -406,33 +444,9 @@ def send_tweet(
 def extract_author_tweet_data(tweet_elem, paper_title: str, paper_authors: str) -> dict:
     """Extract data from a single tweet element and assess if it's from an author."""
     try:
-        user_name_elem = tweet_elem.find_element(
-            By.CSS_SELECTOR, 'div[data-testid="User-Name"]'
-        )
-        user_name_parts = user_name_elem.text.split("\n")
-
-        # Find tweet text element
-        tweet_text_elements = tweet_elem.find_elements(
-            By.CSS_SELECTOR, 'div[data-testid="tweetText"]'
-        )
-        if not tweet_text_elements:
+        tweet_data = extract_tweet_data(tweet_elem, logger)
+        if not tweet_data:
             return None
-
-        tweet_text = tweet_text_elements[0].text
-        if not tweet_text.strip():  # Check if tweet text is empty or just whitespace
-            return None
-
-        tweet_data = {
-            "text": tweet_text,
-            "timestamp": tweet_elem.find_element(By.TAG_NAME, "time").get_attribute(
-                "datetime"
-            ),
-            "author": user_name_parts[0],
-            "username": user_name_parts[1],
-            "link": tweet_elem.find_element(
-                By.CSS_SELECTOR, 'a[href*="/status/"]'
-            ).get_attribute("href"),
-        }
 
         if int(
             vs.assess_tweet_ownership(
@@ -445,6 +459,101 @@ def extract_author_tweet_data(tweet_elem, paper_title: str, paper_authors: str) 
         ):
             return tweet_data
         return None
+
+    except Exception as e:
+        logger.warning(f"Error extracting tweet details: {str(e)}")
+        return None
+
+def extract_tweet_data(tweet_elem, logger: logging.Logger) -> dict:
+    """Extract all relevant data from a tweet element."""
+    try:
+        ## Get user info.
+        user_name_elem = tweet_elem.find_element(
+            By.CSS_SELECTOR, 'div[data-testid="User-Name"]'
+        )
+        user_name_parts = user_name_elem.text.split("\n")
+
+        # Get tweet text
+        tweet_text_elements = tweet_elem.find_elements(
+            By.CSS_SELECTOR, 'div[data-testid="tweetText"]'
+        )
+        if not tweet_text_elements:
+            return None
+
+        tweet_text = tweet_text_elements[0].text
+        if not tweet_text.strip():
+            return None
+
+        ## Build base tweet data.
+        tweet_data = {
+            "text": tweet_text,
+            "author": user_name_parts[0],
+            "username": user_name_parts[1],
+            "link": tweet_elem.find_element(
+                By.CSS_SELECTOR, 'a[href*="/status/"]'
+            ).get_attribute("href"),
+        }
+
+        # Try to get timestamp, but don't fail if not found
+        try:
+            tweet_data["tweet_timestamp"] = tweet_elem.find_element(By.TAG_NAME, "time").get_attribute("datetime")
+        except Exception as e:
+            logger.warning(f"Could not find timestamp element: {str(e)}")
+            tweet_data["tweet_timestamp"] = None
+
+        # Get metrics
+        metrics = {
+            "reply_count": 0,
+            "repost_count": 0,
+            "like_count": 0,
+            "view_count": 0,
+            "bookmark_count": 0,
+        }
+
+        try:
+            ## Extract metrics from aria-label of the metrics group.
+            metrics_group = tweet_elem.find_element(By.CSS_SELECTOR, '[role="group"]')
+            metrics_text = metrics_group.get_attribute("aria-label")
+
+            ## Parse metrics from the aria-label text.
+            if metrics_text:
+                parts = metrics_text.lower().split(",")
+                for part in parts:
+                    part = part.strip()
+                    if "repl" in part:
+                        metrics["reply_count"] = int(part.split()[0])
+                    elif "repost" in part:
+                        metrics["repost_count"] = int(part.split()[0])
+                    elif "like" in part:
+                        metrics["like_count"] = int(part.split()[0])
+                    elif "view" in part:
+                        metrics["view_count"] = int(part.split()[0])
+                    elif "bookmark" in part:
+                        metrics["bookmark_count"] = int(part.split()[0])
+        except Exception as e:
+            logger.warning(f"Error extracting metrics: {str(e)}")
+
+        ## Check for media.
+        has_media = bool(
+            tweet_elem.find_elements(
+                By.CSS_SELECTOR,
+                'div[data-testid="tweetPhoto"], div[data-testid="videoPlayer"]',
+            )
+        )
+
+        ## Check for verification.
+        is_verified = bool(
+            user_name_elem.find_elements(
+                By.CSS_SELECTOR, 'svg[aria-label="Verified account"]'
+            )
+        )
+
+        return {
+            **tweet_data,
+            "has_media": has_media,
+            "is_verified": is_verified,
+            **metrics,  # Include all metrics
+        }
 
     except Exception as e:
         logger.warning(f"Error extracting tweet details: {str(e)}")
@@ -464,13 +573,12 @@ def find_paper_author_tweet(arxiv_code: str, logger: logging.Logger) -> dict:
     """
     logger.info(f"Searching for author tweet for paper {arxiv_code}")
 
-    # Get paper details
+    ## Get paper details.
     paper_details = db.load_arxiv(arxiv_code)
     paper_title = paper_details.loc[arxiv_code, "title"]
     paper_authors = paper_details.loc[arxiv_code, "authors"]
 
     browser = setup_browser(logger)
-    # try:
     login_twitter(browser, logger)
 
     # Setup search
@@ -493,7 +601,7 @@ def find_paper_author_tweet(arxiv_code: str, logger: logging.Logger) -> dict:
                 By.CSS_SELECTOR, 'article[data-testid="tweet"]'
             )
 
-            # Process tweets
+            ## Process tweets.
             for tweet_elem in tweet_elements:
                 tweets_checked += 1
                 if tweets_checked > max_tweets_to_check:
@@ -507,7 +615,7 @@ def find_paper_author_tweet(arxiv_code: str, logger: logging.Logger) -> dict:
                     browser.quit()
                     return tweet_data
 
-            # Scroll and check progress
+            ## Scroll and check progress.
             last_height = browser.execute_script(
                 "return document.documentElement.scrollHeight"
             )
@@ -531,131 +639,25 @@ def find_paper_author_tweet(arxiv_code: str, logger: logging.Logger) -> dict:
     browser.quit()
     return None
 
-    # except Exception as e:
-    #     logger.error(f"An error occurred while searching for author tweet: {str(e)}")
-    #     return None
-    # finally:
-    # browser.quit()
 
-
-def extract_tweet_data(tweet_elem, logger: logging.Logger) -> dict:
-    """Extract all relevant data from a tweet element."""
-    try:
-        # Get user info
-        user_name_elem = tweet_elem.find_element(
-            By.CSS_SELECTOR, 'div[data-testid="User-Name"]'
-        )
-        user_name_parts = user_name_elem.text.split("\n")
-
-        # Get tweet text
-        tweet_text_elements = tweet_elem.find_elements(
-            By.CSS_SELECTOR, 'div[data-testid="tweetText"]'
-        )
-        if not tweet_text_elements:
-            return None
-
-        tweet_text = tweet_text_elements[0].text
-        if not tweet_text.strip():  # Skip if tweet text is empty or just whitespace
-            return None
-
-        # Get timestamp
-        time_elem = tweet_elem.find_element(By.TAG_NAME, "time")
-        tweet_timestamp = time_elem.get_attribute("datetime")
-
-        # Get metrics
-        metrics = {
-            "reply_count": 0,
-            "repost_count": 0,
-            "like_count": 0,
-            "view_count": 0,
-            "bookmark_count": 0,
-        }
-
-        try:
-            # Extract metrics from aria-label of the metrics group
-            metrics_group = tweet_elem.find_element(By.CSS_SELECTOR, '[role="group"]')
-            metrics_text = metrics_group.get_attribute("aria-label")
-
-            # Parse metrics from the aria-label text
-            if metrics_text:
-                parts = metrics_text.lower().split(",")
-                for part in parts:
-                    part = part.strip()
-                    if "repl" in part:
-                        metrics["reply_count"] = int(part.split()[0])
-                    elif "repost" in part:
-                        metrics["repost_count"] = int(part.split()[0])
-                    elif "like" in part:
-                        metrics["like_count"] = int(part.split()[0])
-                    elif "view" in part:
-                        metrics["view_count"] = int(part.split()[0])
-                    elif "bookmark" in part:
-                        metrics["bookmark_count"] = int(part.split()[0])
-        except Exception as e:
-            logger.warning(f"Error extracting metrics: {str(e)}")
-
-        # Check for media
-        has_media = bool(
-            tweet_elem.find_elements(
-                By.CSS_SELECTOR,
-                'div[data-testid="tweetPhoto"], div[data-testid="videoPlayer"]',
-            )
-        )
-
-        # Check for verification
-        is_verified = bool(
-            user_name_elem.find_elements(
-                By.CSS_SELECTOR, 'svg[aria-label="Verified account"]'
-            )
-        )
-
-        tweet_data = {
-            "text": tweet_text,
-            "author": user_name_parts[0],
-            "username": user_name_parts[1],
-            "link": tweet_elem.find_element(
-                By.CSS_SELECTOR, 'a[href*="/status/"]'
-            ).get_attribute("href"),
-            "tweet_timestamp": tweet_timestamp,
-            "has_media": has_media,
-            "is_verified": is_verified,
-            **metrics,  # Include all metrics
-        }
-
-        return tweet_data
-
-    except Exception as e:
-        logger.warning(f"Error extracting tweet details: {str(e)}")
-        return None
-
-
-def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50) -> list[dict]:
-    """
-    Collect tweets about LLMs from the Twitter home feed.
-
-    Args:
-        logger (logging.Logger): Logger instance
-        max_tweets (int): Maximum number of tweets to check before stopping
-
-    Returns:
-        list[dict]: List of relevant tweet data dictionaries
-    """
+def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50, batch_size: int = 100) -> list[dict]:
+    """Collect tweets about LLMs from the Twitter home feed in batches."""
     logger.info("Starting collection of LLM-related tweets")
 
     browser = setup_browser(logger)
-    relevant_tweets = []
+    current_batch = []
     tweets_checked = 0
 
     try:
-        # Login and navigate to home
+        ## Login and navigate to home.
         login_twitter(browser, logger)
         browser.get("https://twitter.com/home")
-        time.sleep(5)
+        time.sleep(3)
 
         while tweets_checked < max_tweets:
             try:
-                # Wait for and get tweets
-                WebDriverWait(browser, 30).until(
+                ## Wait for and get tweets.
+                WebDriverWait(browser, 15).until(
                     EC.presence_of_element_located(
                         (By.CSS_SELECTOR, 'article[data-testid="tweet"]')
                     )
@@ -664,7 +666,7 @@ def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50) -> list[dic
                     By.CSS_SELECTOR, 'article[data-testid="tweet"]'
                 )
 
-                # Process new tweets
+                ## Process new tweets.
                 for tweet_elem in tweet_elements:
                     tweets_checked += 1
                     if tweets_checked > max_tweets:
@@ -677,22 +679,27 @@ def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50) -> list[dic
                         logger.info(
                             f"Found relevant tweet from: {tweet_data['username']} ({tweets_checked}/{max_tweets} tweets processed)"
                         )
-                        relevant_tweets.append(tweet_data)
+                        current_batch.append(tweet_data)
+                        
+                        # Yield batch when it reaches the specified size
+                        if len(current_batch) >= batch_size:
+                            yield current_batch
+                            current_batch = []
 
-                # Log progress every 10 tweets
+                ## Log progress every 10 tweets.
                 if tweets_checked % 10 == 0:
                     logger.info(
-                        f"Progress: {tweets_checked}/{max_tweets} tweets processed, found {len(relevant_tweets)} relevant"
+                        f"Progress: {tweets_checked}/{max_tweets} tweets processed"
                     )
 
-                # Scroll and check progress
+                ## Scroll and check progress.
                 last_height = browser.execute_script(
                     "return document.documentElement.scrollHeight"
                 )
                 browser.execute_script(
                     "window.scrollTo(0, document.documentElement.scrollHeight);"
                 )
-                time.sleep(3)  # Wait for content to load
+                time.sleep(2)
 
                 new_height = browser.execute_script(
                     "return document.documentElement.scrollHeight"
@@ -705,14 +712,18 @@ def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50) -> list[dic
                 logger.error(f"Error during tweet collection: {str(e)}")
                 break
 
+        # Yield any remaining tweets in the final batch
+        if current_batch:
+            yield current_batch
+
         logger.info(
-            f"Checked {tweets_checked} tweets, found {len(relevant_tweets)} relevant tweets"
+            f"Checked {tweets_checked} tweets"
         )
-        return relevant_tweets
 
     except Exception as e:
         logger.error(f"An error occurred while collecting LLM tweets: {str(e)}")
-        return []
+        if current_batch:
+            yield current_batch
 
     finally:
         browser.quit()

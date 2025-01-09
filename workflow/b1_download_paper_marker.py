@@ -24,19 +24,17 @@ def main():
 
     # Get list of papers we need to process
     arxiv_codes = pu.list_s3_files("arxiv-text", strip_extension=True)
-    title_dict = db.get_arxiv_title_dict(pu.db_params)
     done_markdowns = pu.list_s3_directories("arxiv-md")
     
     # Get papers that need to be processed
     arxiv_codes = list(set(arxiv_codes) - set(done_markdowns))
-    arxiv_codes = sorted(arxiv_codes)[::-1]
+    arxiv_codes = sorted(arxiv_codes)[::-1][:600]
     
     logger.info(f"Found {len(arxiv_codes)} papers to process")
 
     ## Iterate through papers
     for arxiv_code in arxiv_codes:
         time.sleep(3)
-        title = title_dict.get(arxiv_code, "Unknown Title")
         
         # Ensure PDF exists locally and in S3
         pdf_path = os.path.join(PROJECT_PATH, "data/arxiv_pdfs", f"{arxiv_code}.pdf")
@@ -46,6 +44,10 @@ def main():
         # Convert to markdown
         try:
             markdown_text, images = pu.convert_pdf_to_markdown(pdf_path)
+
+            if markdown_text is None:
+                logger.error(f"Failed to convert {arxiv_code} to markdown")
+                continue
             
             # Create paper directory if it doesn't exist (both locally and on S3)
             paper_dir = os.path.join(PROJECT_PATH, "data/arxiv_md", arxiv_code)
@@ -70,7 +72,7 @@ def main():
                 recursive=True
             )
             logger.info(f"Uploaded paper directory for {arxiv_code} to S3")
-            logger.info(f"Successfully processed '{arxiv_code}' - '{title}'")
+            logger.info(f"Successfully processed '{arxiv_code}'")
 
         except pypdfium2._helpers.misc.PdfiumError as e:
             logger.error(f"Failed to convert {arxiv_code} to markdown: {str(e)}")
