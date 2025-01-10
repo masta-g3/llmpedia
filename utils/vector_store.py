@@ -9,7 +9,6 @@ import utils.prompts as ps
 import utils.pydantic_objects as po
 import utils.app_utils as au
 from utils.instruct import run_instructor_query
-import utils.paper_utils as pu
 
 CONNECTION_STRING = (
     f"postgresql+psycopg2://{db.db_params['user']}:{db.db_params['password']}"
@@ -476,7 +475,7 @@ def analyze_paper_images(
         return None
 
     # Get paper markdown and images
-    markdown_content, success = pu.get_paper_markdown(arxiv_code)
+    markdown_content, success = au.get_paper_markdown(arxiv_code)
     if not success:
         return None
 

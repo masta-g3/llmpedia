@@ -53,3 +53,11 @@
 - [x] Add token usage logging.
 - [x] Extract pydantic objects to repo.
 - [x] Reorg images.
+
+## v.1.4.0
+- [x] New color scheme.
+- [x] New paper card format.
+- [x] New topic model.
+- [x] Better topic model visualization.
+- [x] Punchline.
+- [x] Markdown reader.

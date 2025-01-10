@@ -145,24 +145,47 @@ def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
     n_points = len(df)
     marker_size = min(20, max(4, int(400 / n_points)))  # Size between 4 and 20, inverse to number of points
     
-    fig = px.scatter(
-        df,
-        x="dim1",
-        y="dim2",
-        color="topic",
-        hover_name="title",
-        color_discrete_sequence=cc.glasbey,
-    )
+    # Create base contour plot
+    fig = go.Figure()
+    
+    ## Add density contours.
+    fig.add_trace(go.Histogram2dContour(
+        x=df["dim1"],
+        y=df["dim2"],
+        colorscale="Blues",
+        showscale=False,
+        ncontours=20,
+        contours=dict(coloring="fill"),
+        opacity=0.2,
+    ))
+    
+    ## Add scatter points on top.
+    for topic in df["topic"].unique():
+        mask = df["topic"] == topic
+        fig.add_trace(go.Scatter(
+            x=df[mask]["dim1"],
+            y=df[mask]["dim2"],
+            mode="markers",
+            name=topic,
+            marker=dict(
+                size=marker_size,
+                line=dict(width=0.5, color="Black"),
+            ),
+            hovertemplate="<b>%{customdata}</b><extra></extra>",
+            customdata=df[mask]["title"],
+        ))
+    
     fig.update_layout(
         legend=dict(
             title=None,
             font=dict(size=14),
         ),
         margin=dict(t=0, b=0, l=0, r=0),
+        xaxis=dict(showgrid=True, gridwidth=0.1),
+        yaxis=dict(showgrid=True, gridwidth=0.1)
     )
     fig.update_xaxes(title_text=None)
     fig.update_yaxes(title_text=None)
-    fig.update_traces(marker=dict(line=dict(width=0.5, color="Black"), size=marker_size))
     return fig
 
 
