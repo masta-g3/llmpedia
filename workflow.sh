@@ -43,7 +43,10 @@ function run_step() {
     echo ">> [$step_name] Started at $(date)" | tee -a "$LOG_FILE"
     
     ## Run the Python script and capture output.
-    if ! python "${PROJECT_PATH}/${script}" 2>&1 | tee -a "$LOG_FILE" "$temp_error_file"; then
+    python "${PROJECT_PATH}/${script}" 2>&1 | tee -a "$LOG_FILE" "$temp_error_file"
+    local exit_status=${PIPESTATUS[0]}
+    
+    if [ $exit_status -ne 0 ]; then
         ## If the script failed, log the error.
         local error_msg=$(cat "$temp_error_file")
         python -c "from utils.db import log_workflow_run; log_workflow_run('$step_name', '$script', 'error', '''$error_msg''')"

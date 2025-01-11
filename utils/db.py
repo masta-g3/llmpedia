@@ -767,7 +767,7 @@ def get_extended_notes(arxiv_code: str, level=None, expected_tokens=None):
         result = conn.execute(query)
         summary = result.fetchone()
     engine.dispose()
-    return summary[2]
+    return None if summary is None else summary[2]
 
 
 def get_recursive_summary(

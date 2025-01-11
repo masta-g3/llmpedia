@@ -332,11 +332,44 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             st.markdown(summary)
 
         elif level_select == "🔎 Detailed Research Notes":
-            if not pd.isna(markdown_summary):
-                markdown_summary = markdown_summary.replace("#", "###")
-                st.markdown(markdown_summary)
-            else:
-                st.markdown("Currently unavailable. Check again soon!")
+            # Add level selector with predefined values
+            level_select = st.select_slider(
+                "Summary Level",
+                options=["Most Detailed", "Detailed", "Concise", "Very Concise"],
+                value="Detailed",
+                help="Adjust the level of detail in the research notes"
+            )
+            
+            # Map selection to level values (level 1 is most detailed)
+            level_map = {
+                "Most Detailed": 1,  # First summary iteration (most detailed)
+                "Detailed": 2,       # Second iteration
+                "Concise": 3,        # Third iteration
+                "Very Concise": 4    # Fourth iteration (most concise)
+            }
+            
+            # Get notes based on selected level
+            try:
+                selected_level = level_map[level_select]
+                detailed_notes = db.get_extended_notes(paper["arxiv_code"], level=selected_level)
+                
+                if detailed_notes is None:
+                    # If we're trying to get more detailed notes (lower level numbers)
+                    if level_map[level_select] <= 2:
+                        st.warning("No more detailed notes available for this paper")
+                    # If we're trying to get more concise notes (higher level numbers)
+                    else:
+                        st.warning("No more concise notes available for this paper")
+                elif pd.isna(detailed_notes):
+                    st.warning("Notes currently unavailable at this level")
+                else:
+                    detailed_notes = detailed_notes.replace("#", "###")
+                    # Add word count indicator
+                    word_count = len(detailed_notes.split())
+                    st.caption(f"📝 {word_count:,} words")
+                    st.markdown(detailed_notes)
+            except Exception as e:
+                st.error(f"Error retrieving notes: {str(e)}")
 
         # Add Application Ideas section
         st.markdown("---")
