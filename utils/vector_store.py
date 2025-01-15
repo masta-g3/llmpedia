@@ -323,22 +323,20 @@ tweet_edit_user_map = {
 
 
 def select_most_interesting_paper(
-    arxiv_abstracts: str, recent_llm_tweets_str: str, model: str = "gpt-4o-mini"
-):
+    arxiv_abstracts: str,
+    model: str = "claude-3-5-sonnet-20241022",
+) -> str:
     """Select the most interesting paper from a list of candidates."""
     ## Set the abstracts on the model class for validation.
     po.InterestingPaperSelection._abstracts = arxiv_abstracts
 
     response = run_instructor_query(
         ps.INTERESTING_SYSTEM_PROMPT,
-        ps.INTERESTING_USER_PROMPT.format(
-            abstracts=arxiv_abstracts, recent_llm_tweets=recent_llm_tweets_str
-        ),
+        ps.INTERESTING_USER_PROMPT.format(abstracts=arxiv_abstracts),
         model=po.InterestingPaperSelection,
         llm_model=model,
         process_id="select_most_interesting_paper",
     )
-    print(response)
 
     ## Clean up class variable.
     delattr(po.InterestingPaperSelection, "_abstracts")
@@ -349,7 +347,7 @@ def select_most_interesting_paper(
 def write_tweet(
     tweet_facts: str,
     tweet_type="new_review",
-    model="gpt-4o",
+    model="claude-3-5-sonnet-20241022",
     most_recent_tweets: str = None,
     recent_llm_tweets: str = None,
     temperature: float = 0.8,
@@ -370,6 +368,54 @@ def write_tweet(
         process_id="write_tweet",
     )
     return tweet
+
+
+def write_fable(
+    tweet_facts: str,
+    image_data: Optional[str] = None,
+    model: str = "claude-3-5-sonnet-20241022",
+    temperature: float = 0.8,
+) -> str:
+    """Generate an Aesop-style fable from a paper summary and optionally its thumbnail image."""
+    system_prompt = ps.TWEET_SYSTEM_PROMPT
+    user_prompt = ps.TWEET_FABLE_USER_PROMPT_V1.format(tweet_facts=tweet_facts)
+    
+    if image_data:
+        # If image is provided, use vision API format
+        content = [
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": "image/png",
+                    "data": image_data,
+                },
+            },
+            {
+                "type": "text",
+                "text": user_prompt,
+            }
+        ]
+        messages = [{"role": "user", "content": content}]
+        fable = run_instructor_query(
+            system_message=system_prompt,
+            user_message="",  # Not used when messages is provided
+            llm_model=model,
+            temperature=temperature,
+            process_id="write_fable",
+            messages=messages,
+        )
+    else:
+        # Fallback to text-only format
+        fable = run_instructor_query(
+            system_prompt,
+            user_prompt,
+            llm_model=model,
+            temperature=temperature,
+            process_id="write_fable",
+        )
+    
+    return fable.strip()
 
 
 def edit_tweet(

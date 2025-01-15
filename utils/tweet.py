@@ -272,11 +272,11 @@ def verify_tweet_elements(
 def send_tweet(
     tweet_content: str,
     tweet_image_path: str,
-    tweet_page_path: str,
     post_tweet: str,
-    author_tweet: dict,
     logger: logging.Logger,
-    analyzed_image_path: str = None,  # Path to the image selected by Claude for visualization
+    author_tweet: dict | None = None,
+    tweet_page_path: str | None = None,
+    analyzed_image_path: str | None = None,
 ) -> bool:
     """Send a tweet with content and images using Selenium."""
     

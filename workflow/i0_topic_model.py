@@ -87,41 +87,52 @@ def load_and_process_data(title_map: dict) -> pd.DataFrame:
     return df
 
 
-def create_embeddings(df: pd.DataFrame, embedding_model: SentenceTransformer = None, embedding_type: str = "gte") -> tuple:
-    """Create embeddings for documents using either GTE or NV-Embed-v2 model, returning content, model, and embeddings."""
+def initialize_embedding_model(embedding_type: str) -> SentenceTransformer:
+    """Initialize and configure a SentenceTransformer model based on the specified type."""
+    if embedding_type == "gte":
+        model = SentenceTransformer("barisaydin/gte-large")
+    elif embedding_type == "nv":
+        model = SentenceTransformer("nvidia/NV-Embed-v2", trust_remote_code=True)
+        model.max_seq_length = 32768
+        model.tokenizer.padding_side = "right"
+    else:
+        raise ValueError(f"Unknown embedding type: {embedding_type}. Must be either 'gte' or 'nv'")
+    return model
+
+
+def create_embeddings(
+    df: pd.DataFrame,
+    embedding_model: SentenceTransformer = None,
+    embedding_type: str = "gte",
+) -> tuple:
+    """Create embeddings for documents using either GTE or NV-Embed-v2 model."""
     logger.info(f"Creating embeddings using {embedding_type} model...")
     content_cols = ["summary"]
     df_dict = (
         df[content_cols].apply(lambda x: "\n".join(x.astype(str)), axis=1).to_dict()
     )
     all_content = list(df_dict.values())
-    
+
     if embedding_model is None:
-        if embedding_type == "gte":
-            embedding_model = SentenceTransformer("barisaydin/gte-large")
-        elif embedding_type == "nv":
-            embedding_model = SentenceTransformer('nvidia/NV-Embed-v2', trust_remote_code=True)
-            embedding_model.max_seq_length = 32768
-            embedding_model.tokenizer.padding_side = "right"
-        else:
-            raise ValueError(f"Unknown embedding type: {embedding_type}. Must be either 'gte' or 'nv'")
-    
+        embedding_model = initialize_embedding_model(embedding_type)
+
     if embedding_type == "nv":
         # Add EOS token to each input
-        all_content = [text + embedding_model.tokenizer.eos_token for text in all_content]
-        
-        # Use query prefix for topic identification
-        query_prefix = "Instruct: Identify the topic or theme of the following academic documents\nQuery: "
+        all_content = [
+            text + embedding_model.tokenizer.eos_token for text in all_content
+        ]
+
+        ## Use query prefix for topic identification.
+        query_prefix = "Instruct: Identify the topic or theme of the following AI & Large Language Model document\nQuery: "
         embeddings = embedding_model.encode(
-            all_content, 
-            batch_size=1, 
-            prompt=query_prefix, 
+            all_content,
+            prompt=query_prefix,
             normalize_embeddings=True,
-            show_progress_bar=True
+            show_progress_bar=True,
         )
     else:
         embeddings = embedding_model.encode(all_content)
-    
+
     logger.info("Embeddings created successfully.")
     return all_content, embedding_model, embeddings
 
@@ -154,7 +165,7 @@ def create_topic_model(prompt: str) -> BERTopic:
         exponential_backoff=True,
         chat=True,
         prompt=prompt,
-        nr_docs=15,
+        nr_docs=20,
     )
     topic_model = BERTopic(
         embedding_model=None,
@@ -240,35 +251,30 @@ def store_topics_and_embeddings(
     )
 
 
-def create_embeddings_in_batches(df: pd.DataFrame, batch_size: int = 50) -> tuple[list, list]:
+def create_embeddings_in_batches(
+    df: pd.DataFrame, batch_size: int = 50
+) -> tuple[list, list]:
     """Process document embeddings in batches to manage memory usage, returning combined content and embeddings."""
-    logger.info(f"Creating embeddings for {len(df)} documents in batches of {batch_size}")
-    
+    logger.info(
+        f"Creating embeddings for {len(df)} documents in batches of {batch_size}"
+    )
+
     # Initialize embedding model once
-    if embedding_type == "gte":
-        embedding_model = SentenceTransformer("barisaydin/gte-large")
-    elif embedding_type == "nv":
-        embedding_model = SentenceTransformer('nvidia/NV-Embed-v2', trust_remote_code=True)
-        embedding_model.max_seq_length = 32768
-        embedding_model.tokenizer.padding_side = "right"
-    else:
-        raise ValueError(f"Unknown embedding type: {embedding_type}")
-    
+    embedding_model = initialize_embedding_model(embedding_type)
+
     all_content = []
     all_embeddings = []
-    
+
     # Process in batches
     for i in range(0, len(df), batch_size):
-        batch_df = df.iloc[i:i + batch_size]
-        batch_num = i//batch_size + 1
+        batch_df = df.iloc[i : i + batch_size]
+        batch_num = i // batch_size + 1
         total_batches = (len(df) + batch_size - 1) // batch_size
         logger.info(f"Processing embedding batch {batch_num}/{total_batches}")
-        
+
         try:
             batch_content, _, batch_embeddings = create_embeddings(
-                batch_df, 
-                embedding_model=embedding_model,
-                embedding_type=embedding_type
+                batch_df, embedding_model=embedding_model, embedding_type=embedding_type
             )
             all_content.extend(batch_content)
             all_embeddings.append(batch_embeddings)
@@ -276,17 +282,19 @@ def create_embeddings_in_batches(df: pd.DataFrame, batch_size: int = 50) -> tupl
         except Exception as e:
             logger.error(f"Error processing batch {batch_num}: {str(e)}")
             raise
-    
+
     # Combine all embeddings
     combined_embeddings = np.vstack(all_embeddings)
     logger.info(f"Successfully created embeddings for all {len(df)} documents")
     return all_content, combined_embeddings
 
 
-def create_and_fit_topic_model(all_content: list, embeddings: list, refit: bool = False) -> tuple:
+def create_and_fit_topic_model(
+    all_content: list, embeddings: list, refit: bool = False
+) -> tuple:
     """Create and fit topic model on the complete set of document embeddings, returning topics, embeddings, and models."""
     logger.info("Creating and fitting topic model...")
-    
+
     if refit:
         # Initialize new models for refit
         topic_model = create_topic_model(PROMPT)
@@ -300,25 +308,29 @@ def create_and_fit_topic_model(all_content: list, embeddings: list, refit: bool 
     else:
         # Load existing models for transform
         logger.info("Loading existing models...")
-        topic_model_path = os.path.join(PROJECT_PATH, "data", "bertopic", "topic_model.pkl")
+        topic_model_path = os.path.join(
+            PROJECT_PATH, "data", "bertopic", "topic_model.pkl"
+        )
         reduced_model_path = os.path.join(PROJECT_PATH, "data", "reduced_model.pkl")
-        
-        if not os.path.exists(topic_model_path) or not os.path.exists(reduced_model_path):
+
+        if not os.path.exists(topic_model_path) or not os.path.exists(
+            reduced_model_path
+        ):
             raise FileNotFoundError(
                 "Cannot run in non-REFIT mode: Missing model files. "
                 "Please run with REFIT=True first."
             )
-        
+
         topic_model = BERTopic.load(path=topic_model_path)
         reduced_model = pd.read_pickle(reduced_model_path)
-        
+
         # Verify model has topics
         if not topic_model.get_topic(0):
             raise ValueError(
                 "Loaded topic model has no topics. "
                 "Please run with REFIT=True to initialize the model."
             )
-    
+
     # Extract topics and embeddings
     try:
         topics, reduced_embeddings, reduced_model = extract_topics_and_embeddings(
@@ -331,7 +343,7 @@ def create_and_fit_topic_model(all_content: list, embeddings: list, refit: bool 
                 "Consider running with REFIT=True."
             )
         raise
-    
+
     return topics, reduced_embeddings, topic_model, reduced_model
 
 
@@ -357,16 +369,24 @@ def main():
             return
         logger.info(f"Non-refit mode: Processing {len(df)} pending documents")
         df.set_index("arxiv_code", inplace=True)
-        all_content, _, embeddings = create_embeddings(df, embedding_type=embedding_type)
-    
+        all_content, _, embeddings = create_embeddings(
+            df, embedding_type=embedding_type
+        )
+
     # Create and fit topic model using all embeddings
     topics, reduced_embeddings, topic_model, reduced_model = create_and_fit_topic_model(
         all_content, embeddings, refit=REFIT
     )
-    
+
     # Store results
     store_topics_and_embeddings(
-        df, all_content, topics, reduced_embeddings, topic_model, reduced_model, refit=REFIT
+        df,
+        all_content,
+        topics,
+        reduced_embeddings,
+        topic_model,
+        reduced_model,
+        refit=REFIT,
     )
 
 

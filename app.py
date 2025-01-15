@@ -1,5 +1,6 @@
 import streamlit as st
 from datetime import timedelta
+from pathlib import Path
 
 from streamlit_plotly_events import plotly_events
 from typing import List, Tuple
@@ -337,8 +338,28 @@ def main():
 
         ## Cluster map.
         st.markdown(f"### {year} Topic Model Map")
-        cluster_map = pt.plot_cluster_map(papers_df)
-        st.plotly_chart(cluster_map, use_container_width=True)
+        
+        def show_topic_map():
+            import time
+            import requests
+            time.sleep(2)
+            
+            github_url = "https://raw.githubusercontent.com/masta-g3/assets/refs/heads/main/arxiv_cluster_map.html"
+            try:
+                response = requests.get(github_url)
+                if response.status_code == 200:
+                    cluster_map_html = response.text
+                    st.components.v1.html(
+                        cluster_map_html,
+                        height=800,
+                        scrolling=True
+                    )
+                else:
+                    st.warning(f"Could not fetch topic model map (Status code: {response.status_code})")
+            except Exception as e:
+                st.warning(f"Error loading topic model map: {str(e)}")
+        
+        show_topic_map()
 
     ## URL info extraction.
     url_query = st.query_params
@@ -493,7 +514,7 @@ def main():
             if year == 2025:
                 max_date = max(get_max_report_date(), pd.to_datetime(f"{year}-01-01").date())
             else:
-                max_date = pd.to_datetime(f"{year}-12-31").date()
+                max_date = get_max_report_date()
             week_select = st.date_input(
                 "Select Week",
                 value=pd.to_datetime(max_date),
@@ -530,7 +551,6 @@ def main():
             st.write(weekly_report)
             report_highlights_cols = st.columns((1, 2.5))
             highlight_img = au.get_img_link_for_blob(weekly_highlight)
-            st.write(highlight_img)
             report_highlights_cols[0].image(highlight_img, use_column_width=True)
             report_highlights_cols[1].markdown(weekly_highlight)
             st.markdown(weekly_repos)

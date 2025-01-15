@@ -84,6 +84,7 @@ while true; do
     run_step "7: Scholar" "workflow/h0_citations.py"
     run_step "8: Topic Model" "workflow/i0_topic_model.py"
     run_step "8.1: Similar Documents" "workflow/i1_similar_docs.py"
+    run_step "8.2: Topic Map" "workflow/j2_topic_map.py"
     # run_step "9: Document Chunker" "workflow/j0_doc_chunker.py" # DEPRECATED
     # run_step "10: Document Embedder" "workflow/k0_rag_embedder.py" # DEPRECATED
     run_step "11: Abstract Embedder" "workflow/l0_abstract_embedder.py"
