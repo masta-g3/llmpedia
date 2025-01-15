@@ -337,7 +337,7 @@ def main():
         st.plotly_chart(ts_plot, use_container_width=True)
 
         ## Cluster map.
-        st.markdown(f"### {year} Topic Model Map")
+        st.markdown(f"###Topic Model Map")
         
         def show_topic_map():
             import time
