@@ -337,14 +337,14 @@ def main():
         st.plotly_chart(ts_plot, use_container_width=True)
 
         ## Cluster map.
-        st.markdown(f"###Topic Model Map")
+        st.markdown(f"### Topic Model Map")
         
         def show_topic_map():
             import time
             import requests
             time.sleep(2)
             
-            github_url = "https://raw.githubusercontent.com/masta-g3/assets/refs/heads/main/arxiv_cluster_map.html"
+            github_url = "https://raw.githubusercontent.com/masta-g3/llmpedia/refs/heads/main/artifacts/arxiv_cluster_map.html"
             try:
                 response = requests.get(github_url)
                 if response.status_code == 200:
