@@ -35,13 +35,18 @@ def create_topic_map(topics_df: pd.DataFrame, citations_df: pd.DataFrame, arxiv_
     embeddings = topics_df[["dim1", "dim2"]].to_numpy()
     labels = topics_df["topic"].tolist()
     titles = topics_df["title"].tolist()
-    citation_values = np.array([citations_df.get("citation_count", {}).get(idx, 0) for idx in arxiv_ids])
-    marker_sizes = 4 + np.log1p(citation_values) * 1.2
     
     # Get publication dates and citations
     publication_dates = pd.to_datetime(arxiv_df.loc[arxiv_ids, "published"]).values
     citation_values = np.array([citations_df.get("citation_count", {}).get(idx, 0) for idx in arxiv_ids])
-    marker_sizes = 4 + np.log1p(citation_values) * 1.2
+    
+    # Marker sizes: combine log and sqrt for faster growth while still handling the long tail
+    marker_sizes = 3 + np.log1p(citation_values)*2.5 + np.sqrt(citation_values)/4
+    
+    # Log size ranges for verification
+    min_size = marker_sizes.min()
+    max_size = marker_sizes.max()
+    logger.info(f"Marker size range: {min_size:.1f} to {max_size:.1f}")
     
     date_range = (publication_dates.min(), publication_dates.max())
     logger.info(f"Publication date range: {date_range[0]} to {date_range[1]}")
@@ -52,6 +57,11 @@ def create_topic_map(topics_df: pd.DataFrame, citations_df: pd.DataFrame, arxiv_
     colors = sns.color_palette("husl", len(unique_labels))
     color_map = {label: rgb2hex(color) for label, color in zip(unique_labels, colors)}
     marker_colors = np.array([color_map[label] for label in labels])
+
+    # Prepare citation data for colormap
+    log_citations = np.log1p(citation_values)
+    logger.info(f"Citation range: {citation_values.min():.0f} to {citation_values.max():.0f}")
+    logger.info(f"Log citation range: {log_citations.min():.1f} to {log_citations.max():.1f}")
 
     # Create hover template
     hover_template = """
@@ -78,8 +88,9 @@ def create_topic_map(topics_df: pd.DataFrame, citations_df: pd.DataFrame, arxiv_
         height=800,
         darkmode=False,
         enable_search=True,
-        noise_color="#aaaaaa22",
+        noise_color="#88888822",
         color_label_text=False,
+        background_color="#cccccc",
         inline_data=True,
         extra_point_data=pd.DataFrame({
             "hover_text": titles,
@@ -104,7 +115,16 @@ def create_topic_map(topics_df: pd.DataFrame, citations_df: pd.DataFrame, arxiv_
         on_click="window.open(`http://llmpedia.streamlit.app/?arxiv_code={arxiv_id}`)",
         histogram_data=publication_dates,
         histogram_group_datetime_by="quarter",
-        histogram_range=(pd.Timestamp("2020-01-01"), pd.Timestamp("2024-12-31"))
+        histogram_range=(pd.Timestamp("2020-01-01"), pd.Timestamp("2024-12-31")),
+        colormap_rawdata=[log_citations],
+        colormap_metadata=[
+            {
+                "field": "citations",
+                "description": "Citation Impact",
+                "cmap": "rocket",
+                "kind": "continuous"
+            }
+        ]
     )
     
     return plot
