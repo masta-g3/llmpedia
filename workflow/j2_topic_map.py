@@ -90,7 +90,7 @@ def create_topic_map(topics_df: pd.DataFrame, citations_df: pd.DataFrame, arxiv_
         enable_search=True,
         noise_color="#88888822",
         color_label_text=False,
-        background_color="#cccccc",
+        background_color="#eeeeee",
         inline_data=True,
         extra_point_data=pd.DataFrame({
             "hover_text": titles,
