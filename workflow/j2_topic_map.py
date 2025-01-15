@@ -25,18 +25,27 @@ from utils.logging_utils import setup_logger
 logger = setup_logger(__name__, "j2_topic_map.log")
 
 
-def create_topic_map(topics_df: pd.DataFrame, citations_df: pd.DataFrame, title_map: dict) -> datamapplot.interactive_rendering.InteractiveFigure:
+def create_topic_map(topics_df: pd.DataFrame, citations_df: pd.DataFrame, arxiv_df: pd.DataFrame) -> datamapplot.interactive_rendering.InteractiveFigure:
     """Create interactive topic map visualization."""
     logger.info("Creating topic map visualization...")
     
     # Prepare data
-    topics_df["title"] = topics_df.index.map(title_map)
+    arxiv_ids = topics_df.index.tolist()
+    topics_df["title"] = arxiv_df.loc[arxiv_ids, "title"]
     embeddings = topics_df[["dim1", "dim2"]].to_numpy()
     labels = topics_df["topic"].tolist()
     titles = topics_df["title"].tolist()
-    arxiv_ids = topics_df.index.tolist()
-    citation_values = np.array([citations_df.get("citation_count", {}).get(idx, 0) for idx in topics_df.index])
+    citation_values = np.array([citations_df.get("citation_count", {}).get(idx, 0) for idx in arxiv_ids])
     marker_sizes = 4 + np.log1p(citation_values) * 1.2
+    
+    # Get publication dates and citations
+    publication_dates = pd.to_datetime(arxiv_df.loc[arxiv_ids, "published"]).values
+    citation_values = np.array([citations_df.get("citation_count", {}).get(idx, 0) for idx in arxiv_ids])
+    marker_sizes = 4 + np.log1p(citation_values) * 1.2
+    
+    date_range = (publication_dates.min(), publication_dates.max())
+    logger.info(f"Publication date range: {date_range[0]} to {date_range[1]}")
+    logger.info(f"Number of papers: {len(publication_dates)}")
     
     # Create color mapping for topics
     unique_labels = sorted(list(set(labels)))
@@ -47,7 +56,10 @@ def create_topic_map(topics_df: pd.DataFrame, citations_df: pd.DataFrame, title_
     # Create hover template
     hover_template = """
     <div style="max-width: 500px; font-family: system-ui, -apple-system, sans-serif;">
-        <div style="font-size: 14px; font-weight: bold; padding: 4px; color: #2a2a2a;">{hover_text}</div>
+        <div style="font-size: 14px; font-weight: bold; padding: 4px; color: #2a2a2a;">
+            {hover_text}
+            <a href="http://llmpedia.streamlit.app/?arxiv_code={arxiv_id}" target="_blank" style="text-decoration: none; margin-left: 6px; color: #666;">🔗</a>
+        </div>
         <div style="display: flex; gap: 8px; margin-top: 4px;">
             <div style="background-color: {color}; color: white; border-radius: 4px; padding: 4px 8px; font-size: 12px;">{topic}</div>
             <div style="background-color: #f0f0f0; color: #666; border-radius: 4px; padding: 4px 8px; font-size: 12px;">{citation_count} citations</div>
@@ -88,7 +100,11 @@ def create_topic_map(topics_df: pd.DataFrame, citations_df: pd.DataFrame, title_
         font_family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         cluster_boundary_polygons=True,
         color_cluster_boundaries=False,
-        on_click="window.open(`http://llmpedia.streamlit.app/?arxiv_code={arxiv_id}`)"
+        initial_zoom_fraction=0.87,
+        on_click="window.open(`http://llmpedia.streamlit.app/?arxiv_code={arxiv_id}`)",
+        histogram_data=publication_dates,
+        histogram_group_datetime_by="quarter",
+        histogram_range=(pd.Timestamp("2020-01-01"), pd.Timestamp("2024-12-31"))
     )
     
     return plot
@@ -103,10 +119,10 @@ def main():
         logger.info("Loading required data from database")
         topics_df = db.load_topics()
         citations_df = db.load_citations()
-        title_map = db.load_arxiv()["title"].to_dict()
+        arxiv_df = db.load_arxiv()
         
         # Create visualization
-        plot = create_topic_map(topics_df, citations_df, title_map)
+        plot = create_topic_map(topics_df, citations_df, arxiv_df)
         
         # Save plot
         output_path = Path(PROJECT_PATH) / "artifacts" / "arxiv_cluster_map.html"
