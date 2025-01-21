@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, Engine
 from datetime import datetime
 from typing import Optional, Union
 import streamlit as st
@@ -271,6 +271,7 @@ def load_summaries():
 
 
 def load_recursive_summaries():
+    """ Load narrated summaries from DB."""
     query = "SELECT * FROM recursive_summaries;"
     conn = create_engine(database_url)
     recursive_summaries_df = pd.read_sql(query, conn)
@@ -774,10 +775,10 @@ def get_recursive_summary(
     arxiv_code: Optional[Union[str, list[str]]] = None
 ) -> Union[dict[str, str], str, None]:
     """Get recursive summaries for papers."""
-    codes = [arxiv_code] if isinstance(arxiv_code, str) else arxiv_code or []
+    codes = [arxiv_code] if isinstance(arxiv_code, str) else arxiv_code
 
     query = "SELECT * FROM recursive_summaries"
-    if codes:
+    if len(codes) > 0:
         codes_str = "','".join(codes[:1000])
         query += f" WHERE arxiv_code IN ('{codes_str}')"
 
@@ -877,49 +878,51 @@ def get_arxiv_dashboard_script(arxiv_code: str, sel_col: str = "script_content")
     return script
 
 
-def store_tweets(tweets: list[dict], logger: logging.Logger) -> bool:
+def store_tweets(tweets: list[dict], logger: logging.Logger, engine: Engine) -> bool:
     """Store tweets in the database."""
     try:
-        engine = create_engine(database_url)
         with engine.begin() as conn:
             for tweet in tweets:
                 # Add collection timestamp
-                tweet['tstp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                
+                tweet["tstp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
                 # Insert tweet with all available metrics
-                query = text("""
+                query = text(
+                    """
                     INSERT INTO llm_tweets (
                         text, author, username, link, tstp, tweet_timestamp,
                         reply_count, repost_count, like_count, view_count, bookmark_count,
-                        has_media, is_verified
+                        has_media, is_verified, arxiv_code
                     )
                     VALUES (
                         :text, :author, :username, :link, :tstp, :tweet_timestamp,
                         :reply_count, :repost_count, :like_count, :view_count, :bookmark_count,
-                        :has_media, :is_verified
+                        :has_media, :is_verified, :arxiv_code
                     )
                     ON CONFLICT (link) DO NOTHING;
-                """)
-                
+                """
+                )
+
                 # Ensure all fields have default values if not present
                 tweet_data = {
-                    'text': tweet.get('text', ''),
-                    'author': tweet.get('author', ''),
-                    'username': tweet.get('username', ''),
-                    'link': tweet.get('link', ''),
-                    'tstp': tweet.get('tstp'),
-                    'tweet_timestamp': tweet.get('tweet_timestamp'),
-                    'reply_count': tweet.get('reply_count', 0),
-                    'repost_count': tweet.get('repost_count', 0),
-                    'like_count': tweet.get('like_count', 0),
-                    'view_count': tweet.get('view_count', 0),
-                    'bookmark_count': tweet.get('bookmark_count', 0),
-                    'has_media': tweet.get('has_media', False),
-                    'is_verified': tweet.get('is_verified', False)
+                    "text": tweet.get("text", ""),
+                    "author": tweet.get("author", ""),
+                    "username": tweet.get("username", ""),
+                    "link": tweet.get("link", ""),
+                    "tstp": tweet.get("tstp"),
+                    "tweet_timestamp": tweet.get("tweet_timestamp"),
+                    "reply_count": tweet.get("reply_count", 0),
+                    "repost_count": tweet.get("repost_count", 0),
+                    "like_count": tweet.get("like_count", 0),
+                    "view_count": tweet.get("view_count", 0),
+                    "bookmark_count": tweet.get("bookmark_count", 0),
+                    "has_media": tweet.get("has_media", False),
+                    "is_verified": tweet.get("is_verified", False),
+                    "arxiv_code": tweet.get("arxiv_code"),
                 }
-                
+
                 conn.execute(query, tweet_data)
-                
+
         logger.info(f"Successfully stored {len(tweets)} tweets")
         return True
     except Exception as e:
@@ -932,45 +935,231 @@ def log_workflow_error(step_name: str, script_path: str, error_message: str) -> 
     try:
         engine = create_engine(database_url)
         with engine.begin() as conn:
-            query = text("""
+            query = text(
+                """
                 INSERT INTO workflow_errors 
                 (tstp, step_name, script_path, error_message)
                 VALUES (:tstp, :step_name, :script_path, :error_message)
-            """)
-            
-            conn.execute(query, {
-                "tstp": datetime.now(),
-                "step_name": step_name,
-                "script_path": script_path,
-                "error_message": error_message
-            })
-            
+            """
+            )
+
+            conn.execute(
+                query,
+                {
+                    "tstp": datetime.now(),
+                    "step_name": step_name,
+                    "script_path": script_path,
+                    "error_message": error_message,
+                },
+            )
+
         return True
     except Exception as e:
         print(f"Failed to log workflow error to database: {str(e)}", file=sys.stderr)
         return False
 
 
-def log_workflow_run(step_name: str, script_path: str, status: str, error_message: str = None) -> bool:
+def log_workflow_run(
+    step_name: str, script_path: str, status: str, error_message: str = None
+) -> bool:
     """Log workflow execution status to the database."""
     try:
         engine = create_engine(database_url)
         with engine.begin() as conn:
-            query = text("""
+            query = text(
+                """
                 INSERT INTO workflow_runs 
                 (tstp, step_name, script_path, status, error_message)
                 VALUES (:tstp, :step_name, :script_path, :status, :error_message)
-            """)
-            
-            conn.execute(query, {
-                "tstp": datetime.now(),
-                "step_name": step_name,
-                "script_path": script_path,
-                "status": status,
-                "error_message": error_message
-            })
-            
+            """
+            )
+
+            conn.execute(
+                query,
+                {
+                    "tstp": datetime.now(),
+                    "step_name": step_name,
+                    "script_path": script_path,
+                    "status": status,
+                    "error_message": error_message,
+                },
+            )
+
         return True
     except Exception as e:
         print(f"Failed to log workflow run to database: {str(e)}", file=sys.stderr)
         return False
+
+
+def store_embeddings_batch(
+    arxiv_codes: list[str],
+    doc_type: str,
+    embedding_type: str,
+    embeddings: list[list],
+    engine: Engine,
+    dimension: int = 4096,
+) -> bool:
+    """Store multiple document embeddings in the appropriate arxiv_embeddings table based on dimension."""
+    with engine.begin() as conn:
+        query = text(
+            f"""
+            INSERT INTO arxiv_embeddings_{dimension} (arxiv_code, doc_type, embedding_type, embedding, tstp)
+            VALUES (:arxiv_code, :doc_type, :embedding_type, :embedding, :tstp)
+            ON CONFLICT (arxiv_code, doc_type, embedding_type) 
+            DO UPDATE SET embedding = EXCLUDED.embedding, tstp = EXCLUDED.tstp
+            """
+        )
+
+        now = datetime.now()
+        params = [
+            {
+                "arxiv_code": code,
+                "doc_type": doc_type,
+                "embedding_type": embedding_type,
+                "embedding": emb,
+                "tstp": now,
+            }
+            for code, emb in zip(arxiv_codes, embeddings)
+        ]
+        
+        conn.execute(query, params)
+
+    return True
+
+
+def load_embeddings(
+    arxiv_codes: list[str],
+    doc_type: str,
+    embedding_type: str,
+    engine: Engine,
+) -> list[list[float]]:
+    """Load embeddings for specified documents from the database."""
+    with engine.begin() as conn:
+        query = text(
+            """
+            SELECT arxiv_code, embedding
+            FROM arxiv_embeddings_4096
+            WHERE arxiv_code = ANY(:arxiv_codes)
+            AND doc_type = :doc_type
+            AND embedding_type = :embedding_type
+            ORDER BY arxiv_code
+            """
+        )
+        
+        result = conn.execute(
+            query,
+            {
+                "arxiv_codes": arxiv_codes,
+                "doc_type": doc_type,
+                "embedding_type": embedding_type,
+            },
+        ).fetchall()
+        
+        # Maintain order and handle missing embeddings
+        embeddings = []
+        for code in arxiv_codes:
+            emb = next((r[1] for r in result if r[0] == code), None)
+            if emb is not None:
+                embeddings.append(emb)
+                
+    return embeddings
+
+
+def format_query_condition(field_name: str, template: str, value: str, embedding_model: str):
+    """Format query conditions for semantic search, handling both vector and regular conditions."""
+    if isinstance(value, list) and "semantic_search_queries" in field_name:
+        distance_scores = []
+        for query in value:
+            from utils.vector_store import convert_query_to_vector
+            vector = convert_query_to_vector(query, embedding_model)
+            vector_str = ", ".join(map(str, vector))
+            # Using pgvector's cosine similarity operator <=> and converting to similarity score
+            condition = f"1 - (e.embedding <=> ARRAY[{vector_str}]::vector) "
+            distance_scores.append(condition)
+        if distance_scores:
+            max_similarity = f"GREATEST({', '.join(distance_scores)})"
+            return (
+                f"({' OR '.join([c + ' > 0.6' for c in distance_scores])})",  # Threshold of 0.6 for similarity
+                max_similarity,
+            )
+        else:
+            return "AND TRUE", "0 as max_similarity"
+    elif isinstance(value, list):
+        value_str = "', '".join(value)
+        return template % value_str, "0 as max_similarity"
+    else:
+        return template % value, "0 as max_similarity"
+
+
+def generate_semantic_search_query(criteria: dict, config: dict, embedding_model: str = "embed-english-v3.0") -> str:
+    """Generate SQL query for semantic search using pgvector."""
+    query_parts = [
+        ## Select basic paper info and notes.
+        """SELECT 
+            a.arxiv_code, 
+            a.title, 
+            a.published, 
+            s.citation_count, 
+            a.summary AS abstract,
+            n.notes""",
+        ## From tables.
+        """FROM arxiv_details a, 
+             semantic_details s, 
+             topics t, 
+             arxiv_embeddings_1024 e,
+             (SELECT DISTINCT ON (arxiv_code) arxiv_code, summary as notes, tokens 
+              FROM summary_notes 
+              ORDER BY arxiv_code, ABS(tokens - %d) ASC) n""" % (criteria['response_length'] * 3),
+        ## Join conditions.
+        """WHERE a.arxiv_code = s.arxiv_code
+        AND a.arxiv_code = t.arxiv_code 
+        AND a.arxiv_code = n.arxiv_code 
+        AND a.arxiv_code = e.arxiv_code 
+        AND e.doc_type = 'abstract'
+        AND e.embedding_type = '%s'""" % embedding_model,
+    ]
+
+    ## Add similarity conditions if present.
+    similarity_scores = []
+    for field, value in criteria.items():
+        if value is not None and field in config and field != "response_length":
+            condition_str, similarity_expr = format_query_condition(
+                field, config[field], value, embedding_model
+            )
+            query_parts.append(f"AND {condition_str}")
+            if similarity_expr != "0 as max_similarity":
+                similarity_scores.append(similarity_expr)
+
+    # Add similarity score to SELECT if we have any
+    if similarity_scores:
+        similarity_select = f"GREATEST({', '.join(similarity_scores)}) as similarity_score"
+        query_parts[0] = query_parts[0].rstrip(",") + f", {similarity_select}"
+        query_parts.append("ORDER BY similarity_score DESC")
+    
+    return "\n".join(query_parts)
+
+
+def get_pending_embeddings(
+    doc_type: str,
+    embedding_type: str,
+    dimension: int,
+    engine: Engine,
+) -> list[str]:
+    """Get list of arxiv codes that don't have embeddings yet for given doc_type and embedding model."""
+    query = text(
+        f"""
+        SELECT DISTINCT arxiv_code 
+        FROM arxiv_embeddings_{dimension}
+        WHERE doc_type = :doc_type
+        AND embedding_type = :embedding_type
+        """
+    )
+    
+    with engine.begin() as conn:
+        existing_embeddings = pd.read_sql_query(
+            query,
+            engine,
+            params={"doc_type": doc_type, "embedding_type": embedding_type}
+        )
+    
+    return existing_embeddings.arxiv_code.tolist()

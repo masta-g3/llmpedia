@@ -1,6 +1,8 @@
 import pandas as pd
 import os
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_cohere import CohereEmbeddings
+from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
 import tiktoken
 from typing import Optional
 
@@ -9,6 +11,8 @@ import utils.prompts as ps
 import utils.pydantic_objects as po
 import utils.app_utils as au
 from utils.instruct import run_instructor_query
+import voyageai
+from sentence_transformers import SentenceTransformer
 
 CONNECTION_STRING = (
     f"postgresql+psycopg2://{db.db_params['user']}:{db.db_params['password']}"
@@ -23,6 +27,33 @@ def validate_openai_env():
     api_base = os.environ.get("OPENAI_API_BASE", "")
     false_base = "http://localhost:1234/v1"
     assert api_base != false_base, "API base is not set to local."
+
+
+def convert_query_to_vector(query: str, model_name: str) -> list[float]:
+    """Convert a text query into a vector using the specified embedding model."""
+    if "embed-english" in model_name:
+        embeddings = CohereEmbeddings(
+            cohere_api_key=os.getenv("COHERE_API_KEY"), model=model_name
+        )
+    elif model_name == "voyage":
+        client = voyageai.Client()
+        return client.embed(
+            [query], model="voyage-3-large", input_type="document"
+        ).embeddings[0]
+    elif model_name == "nvidia/NV-Embed-v2":
+        model = SentenceTransformer(model_name, trust_remote_code=True)
+        model.max_seq_length = 32768
+        model.tokenizer.padding_side = "right"
+        query_prefix = "Instruct: Identify the topic or theme of the following AI & Large Language Model document\nQuery: "
+        return model.encode(
+            query + model.tokenizer.eos_token,
+            prompt=query_prefix,
+            normalize_embeddings=True,
+        ).tolist()
+    else:
+        embeddings = HuggingFaceEmbeddings(model_name=model_name)
+
+    return embeddings.embed_query(query)
 
 
 ###################
@@ -307,14 +338,7 @@ def extract_document_repo(paper_content: str, model="gpt-4o"):
 
 
 tweet_user_map = {
-    # "review_v1": ps.TWEET_USER_PROMPT,
-    "insight_v1": ps.TWEET_INSIGHT_USER_PROMPT_V1,
-    "insight_v2": ps.TWEET_INSIGHT_USER_PROMPT_V2,
-    "insight_v3": ps.TWEET_INSIGHT_USER_PROMPT_V3,
-    "insight_v4": ps.TWEET_INSIGHT_USER_PROMPT_V4,
     "insight_v5": ps.TWEET_INSIGHT_USER_PROMPT_V5,
-    "insight_v6": ps.TWEET_INSIGHT_USER_PROMPT_V6,
-    # "review_v2": ps.TWEET_REVIEW_USER_PROMPT,
 }
 
 tweet_edit_user_map = {
@@ -358,6 +382,7 @@ def write_tweet(
         tweet_facts=tweet_facts,
         most_recent_tweets=most_recent_tweets,
         recent_llm_tweets=recent_llm_tweets,
+        base_style=ps.TWEET_BASE_STYLE,
     )
     tweet = run_instructor_query(
         system_prompt,
@@ -379,7 +404,7 @@ def write_fable(
     """Generate an Aesop-style fable from a paper summary and optionally its thumbnail image."""
     system_prompt = ps.TWEET_SYSTEM_PROMPT
     user_prompt = ps.TWEET_FABLE_USER_PROMPT_V1.format(tweet_facts=tweet_facts)
-    
+
     if image_data:
         # If image is provided, use vision API format
         content = [
@@ -394,7 +419,7 @@ def write_fable(
             {
                 "type": "text",
                 "text": user_prompt,
-            }
+            },
         ]
         messages = [{"role": "user", "content": content}]
         fable = run_instructor_query(
@@ -414,8 +439,31 @@ def write_fable(
             temperature=temperature,
             process_id="write_fable",
         )
-    
+
     return fable.strip()
+
+
+def write_punchline_tweet(
+    markdown_content: str,
+    paper_title: str,
+    model: str = "claude-3-5-sonnet-20241022",
+    temperature: float = 0.8,
+) -> po.PunchlineSummary:
+    """Generate a punchline summary and select a relevant image from a paper's markdown content."""
+    punchline = run_instructor_query(
+        ps.TWEET_SYSTEM_PROMPT,
+        ps.PUNCHLINE_TWEET_USER_PROMPT.format(
+            paper_title=paper_title,
+            markdown_content=markdown_content,
+            base_style=ps.TWEET_BASE_STYLE,
+        ),
+        model=po.PunchlineSummary,
+        llm_model=model,
+        temperature=temperature,
+        process_id="write_punchline",
+    )
+
+    return punchline
 
 
 def edit_tweet(
@@ -464,25 +512,17 @@ def assess_tweet_ownership(
 
 def assess_llm_relevance(
     tweet_text: str, model: str = "claude-3-5-sonnet-20241022"
-) -> bool:
-    """
-    Assess if a tweet is related to LLMs or similar topics.
-
-    Args:
-        tweet_text (str): The text content of the tweet
-        model (str): The model to use for assessment
-
-    Returns:
-        bool: True if the tweet is related to LLMs, False otherwise
-    """
-    system_prompt = ps.LLM_RELEVANCE_SYSTEM_PROMPT
-    user_prompt = ps.LLM_RELEVANCE_USER_PROMPT.format(tweet_text=tweet_text)
-
-    is_relevant = run_instructor_query(
-        system_prompt, user_prompt, llm_model=model, process_id="assess_llm_relevance"
+) -> po.TweetRelevanceInfo:
+    """Assess if a tweet is related to LLMs and extract any arxiv code if present."""
+    relevance_info = run_instructor_query(
+        ps.LLM_RELEVANCE_SYSTEM_PROMPT,
+        ps.LLM_RELEVANCE_USER_PROMPT.format(tweet_text=tweet_text),
+        llm_model=model,
+        model=po.TweetRelevanceInfo,
+        process_id="assess_llm_relevance",
     )
 
-    return bool(int(is_relevant))
+    return relevance_info
 
 
 def generate_paper_punchline(

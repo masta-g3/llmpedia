@@ -685,7 +685,7 @@ def ensure_pdf_exists(arxiv_code, pdf_path, logger=None):
 
     # Download from arXiv
     try:
-        download_pdf(arxiv_code, pdf_path)
+        download_pdf(arxiv_code, pdf_path, logger)
         if logger:
             logger.info(f"Downloaded PDF from arXiv for {arxiv_code}")
         # Upload to S3
@@ -698,12 +698,61 @@ def ensure_pdf_exists(arxiv_code, pdf_path, logger=None):
             logger.error(f"Failed to download PDF from arXiv for {arxiv_code}: {str(e)}")
         return False
 
-def download_pdf(arxiv_code, pdf_path):
-    """Download PDF from arXiv."""
-    url = f"https://export.arxiv.org/pdf/{arxiv_code}.pdf"
-    response = requests.get(url)
-    if response.status_code == 200:
-        with open(pdf_path, 'wb') as f:
-            f.write(response.content)
-    else:
-        raise Exception(f"Failed to download PDF from arXiv: {response.status_code}")
+
+def download_pdf(arxiv_code: str, pdf_path: str, logger=None) -> bool:
+    """Download PDF from arXiv using multiple fallback URLs and verify its validity.
+    
+    Args:
+        arxiv_code: The arXiv paper code
+        pdf_path: Path where to save the PDF
+        logger: Optional logger instance
+    
+    Returns:
+        bool: True if download and verification succeeded, False otherwise
+    """
+    urls = [
+        f"https://export.arxiv.org/pdf/{arxiv_code}.pdf",
+        f"https://arxiv.org/pdf/{arxiv_code}.pdf"
+    ]
+    
+    for url in urls:
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                # Write the PDF to a temporary file first
+                temp_path = pdf_path + ".tmp"
+                with open(temp_path, 'wb') as f:
+                    f.write(response.content)
+                
+                # Verify the PDF is valid
+                try:
+                    import PyPDF2
+                    with open(temp_path, 'rb') as f:
+                        PyPDF2.PdfReader(f)
+                    
+                    # If verification succeeds, move to final location
+                    import shutil
+                    shutil.move(temp_path, pdf_path)
+                    if logger:
+                        logger.info(f"Successfully downloaded and verified PDF from {url}")
+                    return True
+                    
+                except Exception as e:
+                    if logger:
+                        logger.warning(f"Downloaded file from {url} is not a valid PDF: {str(e)}")
+                    # Clean up the invalid file
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+                    continue
+            else:
+                if logger:
+                    logger.warning(f"Failed to download from {url}: HTTP {response.status_code}")
+                continue
+                
+        except Exception as e:
+            if logger:
+                logger.warning(f"Error downloading from {url}: {str(e)}")
+            continue
+    
+    # If we get here, all URLs failed
+    raise Exception(f"Failed to download valid PDF for {arxiv_code} from all URLs")

@@ -360,6 +360,15 @@ def main():
                 st.warning(f"Error loading topic model map: {str(e)}")
         
         show_topic_map()
+        
+        ## Report button for cluster map
+        report_log_space = st.empty()
+        report_btn = st.popover("⚠️ Report Cluster Map Issue")
+        if report_btn.checkbox("Report cluster map not showing"):
+            db.report_issue("cluster_map", "not_showing")
+            report_log_space.success("Reported cluster map issue. Thanks!")
+            time.sleep(3)
+            report_log_space.empty()
 
     ## URL info extraction.
     url_query = st.query_params
@@ -387,15 +396,30 @@ def main():
             label="Ask any question about LLMs or the arxiv papers.", value=""
         )
         chat_btn_disabled = len(user_question) == 0
+
+        ## Advanced response settings in an expander
+        with st.expander("⚙️ Response Settings", expanded=False):
+            settings_cols = st.columns(2)
+            
+            with settings_cols[0]:
+                response_length = st.select_slider(
+                    "Response Length (words)",
+                    options=[250, 1000, 3000],
+                    value=1000,
+                    format_func=lambda x: f"{x} words"
+                )
+                
+            with settings_cols[1]:
+                max_sources = st.select_slider(
+                    "Maximum Sources",
+                    options=[1, 3, 5, 7, 10, 15, 20, 25, 30],
+                    value=7
+                )
+                
+
         chat_cols = st.columns((1, 2, 1))
         chat_btn = chat_cols[0].button("Send", disabled=chat_btn_disabled)
-        # response_length = chat_cols[2].select_slider(
-        #     "Response Length",
-        #     options=["Short Answer", "Normal"],
-        #     value="Short Answer",
-        #     label_visibility="collapsed",
-        # )
-        response_length = "Short Answer"
+
         if chat_btn:
             if user_question != "":
                 with st.spinner(
@@ -407,6 +431,8 @@ def main():
                         query_llm_model="claude-3-5-sonnet-20241022",
                         rerank_llm_model="gpt-4o-mini",
                         response_llm_model="claude-3-5-sonnet-20241022",
+                        max_sources=max_sources,
+                        debug=True
                     )
                     db.log_qna_db(user_question, response)
                     st.divider()
@@ -557,8 +583,8 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        db.log_error_db(e)
-        st.error("Something went wrong. Please refresh the app and try again, we will look into it.")
+    # try:
+    main()
+    # except Exception as e:
+    #     db.log_error_db(e)
+    #     st.error("Something went wrong. Please refresh the app and try again, we will look into it.")

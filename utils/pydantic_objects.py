@@ -49,6 +49,7 @@ class PaperReview(BaseModel):
 ## VECTOR STORE ##
 ##################
 
+
 class LLMVerifier(BaseModel):
     analysis: str = Field(
         ...,
@@ -130,6 +131,9 @@ class SearchCriteria(BaseModel):
     min_citations: Optional[int] = Field(
         None, description="Minimum number of citations of the paper."
     )
+    response_length: Optional[int] = Field(
+        None, description="Target token length for the paper summaries to be retrieved."
+    )
 
     # @model_validator(mode="before")
     # def validate_fields(cls, values):
@@ -150,17 +154,17 @@ class SearchCriteria(BaseModel):
 class DocumentAnalysis(BaseModel):
     document_id: int
     analysis: str
-    selected: bool
+    selected: float
 
 
 class RerankedDocuments(BaseModel):
     documents: List[DocumentAnalysis]
 
 
-
 ###################
 ## WEEKLY REVIEW ##
 ###################
+
 
 class WeeklyReview(BaseModel):
     # scratchpad_papers: str = Field(
@@ -201,6 +205,7 @@ class ExternalResources(BaseModel):
 ## Q&A MODEL ##
 ###############
 
+
 class QnaPair(BaseModel):
     question: str = Field(
         ...,
@@ -215,49 +220,102 @@ class QnaSet(BaseModel):
     qna_pairs: list[QnaPair] = Field(..., description="List of Q&A pairs.")
 
 
+class TweetRelevanceInfo(BaseModel):
+    is_llm_related: bool = Field(
+        ...,
+        description="Indicates if the tweet is related to LLMs or similar topics.",
+    )
+    arxiv_code: Optional[str] = Field(
+        None,
+        description="Extracted arxiv code if present in the tweet, without version suffix.",
+    )
+
+
 ############
 ## TWEETS ##
 ############
 
+
 class TweetScratchpad(BaseModel):
     content: str = Field(..., description="Content of the tweet.")
     structure: str = Field(..., description="Structure of the tweet.")
-    broader_discussion: str = Field(..., description="How to connect to broader discussions?")
+    broader_discussion: str = Field(
+        ..., description="How to connect to broader discussions?"
+    )
 
 
 class TweetEditScratchpad(BaseModel):
-    review_analysis: str = Field(..., description="Analysis of the tweet covering prohibited phrases, structural patterns, clarity and conclusions")
-    revision_plan: str = Field(..., description="Plan for revising the tweet based on the analysis")
+    review_analysis: str = Field(
+        ...,
+        description="Analysis of the tweet covering prohibited phrases, structural patterns, clarity and conclusions",
+    )
+    revision_plan: str = Field(
+        ..., description="Plan for revising the tweet based on the analysis"
+    )
 
 
 class Tweet(BaseModel):
-    scratchpad: TweetScratchpad = Field(..., description="Freeform text for brainstorming initial tweet")
+    scratchpad: TweetScratchpad = Field(
+        ..., description="Freeform text for brainstorming initial tweet"
+    )
     tweet: str = Field(..., description="Initial version of the tweet")
-    edit_scratchpad: TweetEditScratchpad = Field(..., description="Analysis and planning for tweet revision")
-    edited_tweet: str = Field(..., description="Revised version avoiding prohibited phrases and ensuring structural uniqueness")
+    edit_scratchpad: TweetEditScratchpad = Field(
+        ..., description="Analysis and planning for tweet revision"
+    )
+    edited_tweet: str = Field(
+        ...,
+        description="Revised version avoiding prohibited phrases and ensuring structural uniqueness",
+    )
 
 
 class TweetEdit(BaseModel):
     repetition_analysis: List[str] = Field(
         ...,
-        description="List of identified structural patterns and phrases that match recent tweets"
+        description="List of identified structural patterns and phrases that match recent tweets",
     )
     suggested_tweet: str = Field(
         ...,
-        description="The revised tweet with minimal but impactful changes to reduce repetitiveness"
+        description="The revised tweet with minimal but impactful changes to reduce repetitiveness",
     )
     edit_rationale: str = Field(
         ...,
-        description="Explanation of how the changes reduce repetitiveness while preserving style requirements"
+        description="Explanation of how the changes reduce repetitiveness while preserving style requirements",
     )
 
 
 class ImageAnalysis(BaseModel):
     analysis: str = Field(
-        ..., 
-        description="Detailed analysis of each image's potential for social media communication"
+        ...,
+        description="Detailed analysis of each image's potential for social media communication",
     )
     selected_image: str = Field(
-        ..., 
-        description="The selected image number (e.g., 'Image 1') or 'NA' if no suitable image found"
+        ...,
+        description="The selected image number (e.g., 'Image 1') or 'NA' if no suitable image found",
+    )
+
+
+class PunchlineScratchpad(BaseModel):
+    line_options: str = Field(
+        ..., description="Analysis of potential lines/quotes and their strengths"
+    )
+    visual_analysis: str = Field(
+        ..., description="Analysis of available images and tables, and their fit with the lines"
+    )
+    selection_rationale: str = Field(
+        ..., description="Explanation of final selection and its potential impact"
+    )
+
+
+class PunchlineSummary(BaseModel):
+    scratchpad: PunchlineScratchpad = Field(
+        ..., description="Freeform text for brainstorming and analysis"
+    )
+    line: str = Field(
+        ..., description="The selected impactful line or quote from the paper"
+    )
+    image: str | None = Field(
+        None, description="The image name (e.g., '_page_11_Figure_2.jpeg') selected from the paper, if an image was chosen"
+    )
+    table: str | None = Field(
+        None, description="A copy of the full markdown table selected from the paper, if a table was chosen"
     )

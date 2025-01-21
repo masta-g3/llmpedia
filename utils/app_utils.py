@@ -27,6 +27,8 @@ CONNECTION_STRING = (
     f"@{db.db_params['host']}:{db.db_params['port']}/{db.db_params['dbname']}"
 )
 
+VS_EMBEDDING_MODEL = "voyage"
+
 report_sections_map = {
     "scratchpad": "Scratchpad",
     "new_developments_findings": "New Development & Findings",
@@ -275,8 +277,8 @@ class Document(BaseModel):
     published_date: datetime.datetime
     citations: int
     abstract: str
+    notes: str
     distance: float
-    notes: str = None
 
 
 query_config_json = """
@@ -321,23 +323,12 @@ def decide_query_action(user_question: str) -> po.QueryDecision:
     return response
 
 
-def convert_query_to_vector(query: str, model_name: str):
-    if "embed-english" in model_name:
-        embeddings = CohereEmbeddings(
-            cohere_api_key=os.getenv("COHERE_API_KEY"), model=model_name
-        )
-    else:
-        embeddings = HuggingFaceEmbeddings(model_name=model_name)
-
-    return embeddings.embed_query(query)
 
 
 def generate_query_object(user_question: str, llm_model: str):
-    system_message = ps.VS_QUERY_SYSTEM_PROMPT
-    user_message = ps.create_query_user_prompt(user_question)
     query_obj = run_instructor_query(
-        system_message,
-        user_message,
+        ps.VS_QUERY_SYSTEM_PROMPT,
+        ps.create_query_user_prompt(user_question),
         po.SearchCriteria,
         llm_model=llm_model,
         temperature=0.5,
@@ -346,63 +337,10 @@ def generate_query_object(user_question: str, llm_model: str):
     return query_obj
 
 
-def format_query_condition(field_name: str, template: str, value: str):
-    if isinstance(value, list) and "semantic_search_queries" in field_name:
-        distance_scores = []
-        for query in value:
-            vector = convert_query_to_vector(query, "embed-english-v3.0")
-            vector_str = ", ".join(map(str, vector))
-            condition = f"l.embedding <-> ARRAY[{vector_str}]::vector "
-            distance_scores.append(condition)
-        if distance_scores:
-            min_distance = f"LEAST({', '.join(distance_scores)})"
-            return (
-                f"({' OR '.join([c + ' < 1' for c in distance_scores])})",
-                min_distance,
-            )
-        else:
-            return "AND TRUE", "0 as min_distance"
-    elif isinstance(value, list):
-        value_str = "', '".join(value)
-        return template % value_str, "0 as min_distance"
-    else:
-        return template % value, "0 as min_distance"
-
-
-def generate_query(criteria: po.SearchCriteria, config: dict) -> str:
-    query_parts = [
-        "SELECT a.arxiv_code, a.title,  a.published, s.citation_count, a.summary AS abstract, ",
-        "FROM arxiv_details a, semantic_details s, topics t, langchain_pg_embedding l ",
-        "WHERE a.arxiv_code = s.arxiv_code "
-        "AND a.arxiv_code = t.arxiv_code "
-        "AND l.collection_id = '7bf1c691-da2b-4a2b-81b3-e7dd165bfa39' "
-        "AND a.arxiv_code = l.cmetadata ->> 'arxiv_code' ",
-    ]
-    extra_selects = []
-
-    for field, value in criteria.model_dump(exclude_none=True).items():
-        if field in config:
-            condition_str, max_similarity = format_query_condition(
-                field, config[field], value
-            )
-            query_parts.append(f"AND {condition_str}")
-            extra_selects.append(max_similarity)
-
-    if len(extra_selects) > 1:
-        extra_selects = list(filter(lambda x: x != "0 as min_distance", extra_selects))
-
-    query_parts[0] += ", ".join(extra_selects)
-    query_parts.append("ORDER BY 6 ASC ")
-
-    return "\n".join(query_parts)
-
-
 def rerank_documents_new(
     user_question: str, documents: list, llm_model="gpt-4o", temperature=0.2
 ) -> po.RerankedDocuments:
     system_message = "You are an expert system that can identify and select relevant arxiv papers that can be used to answer a user query."
-    import streamlit as st
-
     rerank_msg = ps.create_rerank_user_prompt(user_question, documents)
     response = run_instructor_query(
         system_message,
@@ -416,9 +354,9 @@ def rerank_documents_new(
 
 
 def resolve_query(
-    user_question: str, documents: list[Document], response_length: str, llm_model: str
+    user_question: str, documents: list[Document], response_length: int, llm_model: str
 ):
-    system_message = "You are an AI academic focused on Large Language Models. Please answer the user query leveraging the information provided in the context."
+    system_message = "You are GPT Maestro, an AI expert focused on Large Language Models. Answer the user query leveraging the information provided in the context. Pay close attention to the provided guidelines."
     user_message = ps.create_resolve_user_prompt(
         user_question, documents, response_length
     )
@@ -447,63 +385,16 @@ def resolve_query_other(user_question: str) -> str:
     return response
 
 
-def query_llmpedia_new(
-    user_question: str,
-    response_length: str,
-    query_llm_model: str,
-    rerank_llm_model: str,
-    response_llm_model: str,
-) -> Tuple[str, List[str], List[str]]:
-    """Extended RAG workflow to answer a user query with the LLMpedia."""
-    action = decide_query_action(user_question)
-
-    if action.llm_query:
-        ## Create query.
-        query_obj = generate_query_object(
-            user_question=user_question, llm_model=query_llm_model
-        )
-
-        ## Fetch results.
-        query_obj.topic_categories = None
-        sql = generate_query(query_obj, query_config)
-        documents = db.execute_query(sql, limit=20)
-        if len(documents) == 0:
-            return "Sorry, I don't know about that.", [], []
-        documents = [
-            Document(**dict(zip(Document.__fields__.keys(), d))) for d in documents
-        ]
-
-        ## Rerank.
-        reranked_documents = rerank_documents_new(
-            user_question, documents, llm_model=rerank_llm_model
-        )
-        filtered_document_ids = [
-            int(d.document_id) for d in reranked_documents.documents if d.selected
-        ]
-        filtered_documents = [
-            d for i, d in enumerate(documents) if i in filtered_document_ids
-        ]
-        if len(filtered_documents) == 0:
-            return "Sorry, I don't know about that.", [], []
-
-        ## Resolve.
-        answer = resolve_query(
-            user_question,
-            filtered_documents,
-            response_length,
-            llm_model=response_llm_model,
-        )
-        answer_augment = add_links_to_text_blob(answer)
-        referenced_arxiv_codes = extract_arxiv_codes(answer_augment)
-        filtered_arxiv_codes = [d.arxiv_code for d in filtered_documents]
-        filtered_arxiv_codes = [
-            d for d in filtered_arxiv_codes if d not in referenced_arxiv_codes
-        ]
-        return answer_augment, referenced_arxiv_codes, filtered_arxiv_codes
-
-    else:
-        answer = resolve_query_other(user_question)
-        return answer, [], []
+def log_debug(msg: str, data: any = None, indent_level: int = 0):
+    """Helper function to print debug information in a clean, structured way."""
+    indent = "  " * indent_level
+    print(f"{indent}🔍 {msg}")
+    if data is not None:
+        if isinstance(data, (list, dict)):
+            import json
+            print(f"{indent}   {json.dumps(data, indent=2, default=str)}")
+        else:
+            print(f"{indent}   {data}")
 
 
 def get_similar_titles(
@@ -589,3 +480,131 @@ def get_paper_markdown(arxiv_code: str) -> Tuple[str, bool]:
         
     except Exception as e:
         return f"Error loading paper content: {str(e)}", False
+
+
+def query_llmpedia_new(
+    user_question: str,
+    response_length: int,
+    query_llm_model: str,
+    rerank_llm_model: str,
+    response_llm_model: str,
+    max_sources: int = 7,
+    debug: bool = False,
+) -> Tuple[str, List[str], List[str]]:
+    """Query LLMpedia with customized response parameters."""
+    if debug:
+        log_debug("~~Starting LLMpedia query pipeline~~")
+        log_debug("Input parameters:", {
+            "question": user_question,
+            "response_length": response_length,
+            "max_sources": max_sources,
+        })
+
+    action = decide_query_action(user_question)
+    if debug:
+        log_debug("Query action decision:", action.model_dump(), 1)
+
+    if action.llm_query:
+        query_obj = generate_query_object(
+            user_question=user_question, llm_model=query_llm_model
+        )
+        if debug:
+            log_debug("Generated search criteria:", query_obj.model_dump(), 2)
+
+        ## Calculate target summary length with roughly 3:1 source-to-summary ratio.
+        per_source_words = 0
+        if response_length <= 250:  # Brief note
+            per_source_words = response_length * 3 // min(max_sources, 2)
+        elif response_length <= 1000:  # Short summary
+            per_source_words = response_length * 3 // min(max_sources, 3)
+        elif response_length <= 3000:  # Detailed analysis
+            per_source_words = response_length * 3 // min(max_sources, 5)
+        else:
+            per_source_words = response_length * 3 // max_sources
+
+        query_obj.response_length = per_source_words
+        if debug:
+            log_debug(f"Target length per source: {per_source_words} words", indent_level=2)
+
+        ## Fetch results.
+        query_obj.topic_categories = None
+        criteria_dict = query_obj.model_dump(exclude_none=True)
+        sql = db.generate_semantic_search_query(criteria_dict, query_config, embedding_model=VS_EMBEDDING_MODEL)
+        
+        documents = db.execute_query(sql, limit=max_sources*2)
+        documents = [
+            Document(**dict(zip(Document.__fields__.keys(), d))) for d in documents
+        ]
+
+        if debug:
+            log_debug(f"Retrieved {len(documents)} initial documents", indent_level=2)
+            for doc in documents:
+                log_debug(f"- {doc.title} (arxiv:{doc.arxiv_code}, citations: {doc.citations}, distance: {doc.distance})", indent_level=3)
+        
+        if len(documents) == 0:
+            if debug:
+                log_debug("No documents found, returning early", indent_level=2)
+            return "I don't know about that my friend. Try asking something else.", [], []
+        
+        ## Rerank.
+        reranked_documents = rerank_documents_new(
+            user_question, documents, llm_model=rerank_llm_model
+        )
+
+        if debug:
+            log_debug("Reranking analysis:", indent_level=2)
+            for doc_analysis in reranked_documents.documents:
+                relevance = "HIGH" if doc_analysis.selected == 1.0 else "MEDIUM" if doc_analysis.selected == 0.5 else "LOW"
+                log_debug(f"- [{relevance}] Document {doc_analysis.document_id}:", indent_level=3)
+                log_debug(f"Analysis: {doc_analysis.analysis}", indent_level=4)
+
+        ## First get high relevance docs (1.0), then medium (0.5), preserving original order.
+        high_relevance_ids = [
+            int(d.document_id) for d in reranked_documents.documents if d.selected == 1.0
+        ]
+        medium_relevance_ids = [
+            int(d.document_id) for d in reranked_documents.documents if d.selected == 0.5
+        ]
+        filtered_document_ids = (high_relevance_ids + medium_relevance_ids)[:max_sources]
+        
+        filtered_documents = [
+            d for i, d in enumerate(documents) if i in filtered_document_ids
+        ]
+        if debug:
+            log_debug(f"Selected {len(filtered_documents)} documents after reranking:", indent_level=2)
+            for doc in filtered_documents:
+                log_debug(f"- {doc.title} (arxiv:{doc.arxiv_code}, citations: {doc.citations})", indent_level=3)
+        
+        if len(filtered_documents) == 0:
+            if debug:
+                log_debug("No documents selected after reranking, returning early", indent_level=2)
+            return "I don't know about that my friend. Try asking something else.", [], []
+
+        ## Resolve.
+        answer = resolve_query(
+            user_question,
+            filtered_documents,
+            response_length,
+            llm_model=response_llm_model,
+        )
+        answer_augment = add_links_to_text_blob(answer)
+        referenced_arxiv_codes = extract_arxiv_codes(answer_augment)
+        filtered_arxiv_codes = [d.arxiv_code for d in filtered_documents]
+        filtered_arxiv_codes = [
+            d for d in filtered_arxiv_codes if d not in referenced_arxiv_codes
+        ]
+
+        if debug:
+            log_debug("Response statistics:", {
+                "response_length": len(answer.split()),
+                "referenced_papers": len(referenced_arxiv_codes),
+                "additional_relevant": len(filtered_arxiv_codes)
+            }, 2)
+
+        return answer_augment, referenced_arxiv_codes, filtered_arxiv_codes
+
+    else:
+        if debug:
+            log_debug("Query classified as non-LLM related, generating simple response", indent_level=1)
+        answer = resolve_query_other(user_question)
+        return answer, [], []
