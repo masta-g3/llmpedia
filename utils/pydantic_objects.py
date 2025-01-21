@@ -313,9 +313,9 @@ class PunchlineSummary(BaseModel):
     line: str = Field(
         ..., description="The selected impactful line or quote from the paper"
     )
-    image: str | None = Field(
+    image: Optional[str] = Field(
         None, description="The image name (e.g., '_page_11_Figure_2.jpeg') selected from the paper, if an image was chosen"
     )
-    table: str | None = Field(
+    table: Optional[str] = Field(
         None, description="A copy of the full markdown table selected from the paper, if a table was chosen"
     )
