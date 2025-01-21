@@ -11,7 +11,7 @@ import utils.app_utils as au
 import utils.plots as pt
 import utils.db as db
 import utils.styling as styling
-
+import time
 
 ## Page config.
 st.set_page_config(
@@ -340,7 +340,6 @@ def main():
         st.markdown(f"### Topic Model Map")
         
         def show_topic_map():
-            import time
             import requests
             time.sleep(2)
             
@@ -376,7 +375,6 @@ def main():
         paper_code = url_query["arxiv_code"]
         db.log_visit(paper_code)
         st.session_state.arxiv_code = paper_code
-        print(st.session_state.arxiv_code)
         su.click_tab(2)
 
     with content_tabs[2]:
