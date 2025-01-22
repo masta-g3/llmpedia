@@ -38,6 +38,7 @@ def create_topic_map(topics_df: pd.DataFrame, citations_df: pd.DataFrame, arxiv_
     
     # Get publication dates and citations
     publication_dates = pd.to_datetime(arxiv_df.loc[arxiv_ids, "published"]).values
+    formatted_dates = [pd.Timestamp(d).strftime("%B %d, %Y") for d in publication_dates]  # Convert to pandas Timestamp
     citation_values = np.array([citations_df.get("citation_count", {}).get(idx, 0) for idx in arxiv_ids])
     
     # Marker sizes: combine log and sqrt for faster growth while still handling the long tail
@@ -70,9 +71,10 @@ def create_topic_map(topics_df: pd.DataFrame, citations_df: pd.DataFrame, arxiv_
             {hover_text}
             <a href="http://llmpedia.streamlit.app/?arxiv_code={arxiv_id}" target="_blank" style="text-decoration: none; margin-left: 6px; color: #666;">🔗</a>
         </div>
-        <div style="display: flex; gap: 8px; margin-top: 4px;">
+        <div style="display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap;">
             <div style="background-color: {color}; color: white; border-radius: 4px; padding: 4px 8px; font-size: 12px;">{topic}</div>
             <div style="background-color: #f0f0f0; color: #666; border-radius: 4px; padding: 4px 8px; font-size: 12px;">{citation_count} citations</div>
+            <div style="background-color: #f0f0f0; color: #666; border-radius: 4px; padding: 4px 8px; font-size: 12px;">{date}</div>
         </div>
     </div>
     """
@@ -97,7 +99,8 @@ def create_topic_map(topics_df: pd.DataFrame, citations_df: pd.DataFrame, arxiv_
             "topic": labels,
             "color": marker_colors,
             "citation_count": citation_values,
-            "arxiv_id": arxiv_ids
+            "arxiv_id": arxiv_ids,
+            "date": formatted_dates
         }),
         hover_text_html_template=hover_template,
         title="LLM Research Landscape",
@@ -108,20 +111,20 @@ def create_topic_map(topics_df: pd.DataFrame, citations_df: pd.DataFrame, arxiv_
         text_max_pixel_size=48,
         min_fontsize=16,
         max_fontsize=32,
-        font_family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        font_family="Cinzel",
         cluster_boundary_polygons=True,
-        color_cluster_boundaries=False,
-        initial_zoom_fraction=0.87,
+        color_cluster_boundaries=True,
+        initial_zoom_fraction=0.85,
         on_click="window.open(`http://llmpedia.streamlit.app/?arxiv_code={arxiv_id}`)",
         histogram_data=publication_dates,
         histogram_group_datetime_by="quarter",
-        histogram_range=(pd.Timestamp("2020-01-01"), pd.Timestamp("2024-12-31")),
+        histogram_range=(pd.Timestamp("2020-01-01"), pd.Timestamp.today()),
         colormap_rawdata=[log_citations],
         colormap_metadata=[
             {
                 "field": "citations",
                 "description": "Citation Impact",
-                "cmap": "rocket",
+                "cmap": "Greens",
                 "kind": "continuous"
             }
         ]

@@ -1,7 +1,7 @@
 import os, sys
 import time
 import random
-from typing import Tuple
+from typing import Tuple, List, Iterator
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -271,9 +271,9 @@ def verify_tweet_elements(
 
 def send_tweet(
     tweet_content: str,
-    tweet_image_path: str,
     post_tweet: str,
     logger: logging.Logger,
+    tweet_image_path: str | None = None,
     author_tweet: dict | None = None,
     tweet_page_path: str | None = None,
     analyzed_image_path: str | None = None,
@@ -297,27 +297,38 @@ def send_tweet(
     )
     tweet_textarea.send_keys(tweet_content)
 
-    # Upload first image
-    logger.info("Uploading first image")
+    expected_image_count = 0
     upload_input = driver.find_element(
         By.XPATH,
         '//input[@accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime"]',
     )
-    upload_input.send_keys(tweet_image_path)
+    ## ToDo: Replace below with single check at the end for all expected image counts (or trailing test).
 
-    # Verify first image is uploaded
-    WebDriverWait(driver, 60).until(
-        EC.presence_of_element_located(
-            (By.XPATH, "(//button[@aria-label='Remove media'])[1]")
+    ## Upload first image if provided.
+    if tweet_image_path:
+        logger.info("Uploading first image")
+        expected_image_count += 1
+        upload_input.send_keys(tweet_image_path)
+
+        ## Verify first image is uploaded.
+        WebDriverWait(driver, 60).until(
+            EC.presence_of_element_located(
+                (By.XPATH, "(//button[@aria-label='Remove media'])[1]")
+            )
         )
-    )
 
-    # Upload second image if provided
-    expected_image_count = 1
+        ## Verify first image is uploaded.
+        WebDriverWait(driver, 60).until(
+            EC.presence_of_element_located(
+                (By.XPATH, "(//button[@aria-label='Remove media'])[1]")
+            )
+        )
+
+    ## Upload second image if provided.
     if tweet_page_path:
         logger.info("Uploading second image")
         upload_input.send_keys(tweet_page_path)
-        expected_image_count = 2
+        expected_image_count += 1
 
         # Verify both images are uploaded
         def correct_image_count(driver):
@@ -328,7 +339,7 @@ def send_tweet(
 
         WebDriverWait(driver, 30).until(correct_image_count)
 
-    # Add image tweet if provided
+    ## Add image tweet if provided.
     if analyzed_image_path:
         time.sleep(10)
         logger.info("Adding image tweet")
@@ -337,7 +348,7 @@ def send_tweet(
         )
         tweet_reply_btn.click()
 
-        # Enter image tweet content
+        ## Enter image tweet content.
         tweet_box = WebDriverWait(driver, 60).until(
             EC.element_to_be_clickable(
                 (
@@ -348,7 +359,7 @@ def send_tweet(
         )
         tweet_box.send_keys("Key visualization from the paper 📊")
 
-        # Upload image
+        ## Upload image.
         upload_input = driver.find_element(
             By.XPATH,
             '//input[@accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime"]',
@@ -362,7 +373,7 @@ def send_tweet(
             )
         )
 
-    # Add links tweet
+    ## Add links tweet.
     time.sleep(10)
     logger.info("Adding links tweet")
     tweet_reply_btn = WebDriverWait(driver, 60).until(
@@ -370,7 +381,7 @@ def send_tweet(
     )
     tweet_reply_btn.click()
 
-    # Enter links tweet content
+    ## Enter links tweet content.
     tweet_box = WebDriverWait(driver, 60).until(
         EC.element_to_be_clickable(
             (
@@ -441,28 +452,28 @@ def send_tweet(
     return True
 
 
-def extract_author_tweet_data(tweet_elem, paper_title: str, paper_authors: str) -> dict:
-    """Extract data from a single tweet element and assess if it's from an author."""
+def extract_author_tweet_data(tweet_elem, paper_title, paper_authors, logger):
+    """Extract tweet data if it's from a paper author."""
     try:
-        tweet_data = extract_tweet_data(tweet_elem, logger)
-        if not tweet_data:
-            return None
+        # Extract tweet text
+        tweet_text = tweet_elem.find_element(
+            By.CSS_SELECTOR, '[data-testid="tweetText"]'
+        ).text
 
-        if int(
-            vs.assess_tweet_ownership(
-                paper_title=paper_title,
-                paper_authors=paper_authors,
-                tweet_text=tweet_data["text"],
-                tweet_username=tweet_data["username"],
-                model="gpt-4o-mini",
-            )
-        ):
-            return tweet_data
-        return None
+        # Extract username
+        username = tweet_elem.find_element(
+            By.CSS_SELECTOR, '[data-testid="User-Name"]'
+        ).text.split("@")[1].split("·")[0].strip()
+
+        # Check if username matches any author
+        if any(username.lower() in author.lower() for author in paper_authors):
+            return {"text": tweet_text, "username": username}
 
     except Exception as e:
-        logger.warning(f"Error extracting tweet details: {str(e)}")
+        logger.error(f"Error extracting tweet data: {str(e)}")
         return None
+
+    return None
 
 def extract_tweet_data(tweet_elem, logger: logging.Logger) -> dict:
     """Extract all relevant data from a tweet element."""
@@ -498,7 +509,6 @@ def extract_tweet_data(tweet_elem, logger: logging.Logger) -> dict:
         try:
             tweet_data["tweet_timestamp"] = tweet_elem.find_element(By.TAG_NAME, "time").get_attribute("datetime")
         except Exception as e:
-            logger.warning(f"Could not find timestamp element: {str(e)}")
             tweet_data["tweet_timestamp"] = None
 
         # Get metrics
@@ -552,7 +562,7 @@ def extract_tweet_data(tweet_elem, logger: logging.Logger) -> dict:
             **tweet_data,
             "has_media": has_media,
             "is_verified": is_verified,
-            **metrics,  # Include all metrics
+            **metrics,
         }
 
     except Exception as e:
@@ -560,104 +570,33 @@ def extract_tweet_data(tweet_elem, logger: logging.Logger) -> dict:
         return None
 
 
-def find_paper_author_tweet(arxiv_code: str, logger: logging.Logger) -> dict:
-    """
-    Find a tweet from a paper's author discussing their paper.
-
-    Args:
-        arxiv_code (str): The arXiv code of the paper
-        logger (logging.Logger): Logger instance
-
-    Returns:
-        dict: Tweet data if found, None if not found
-    """
-    logger.info(f"Searching for author tweet for paper {arxiv_code}")
-
-    ## Get paper details.
-    paper_details = db.load_arxiv(arxiv_code)
-    paper_title = paper_details.loc[arxiv_code, "title"]
-    paper_authors = paper_details.loc[arxiv_code, "authors"]
-
-    browser = setup_browser(logger)
-    login_twitter(browser, logger)
-
-    # Setup search
-    search_url = f"https://twitter.com/search?q='{paper_title}'&src=typed_query"
-    browser.get(search_url)
-    time.sleep(5)
-
-    tweets_checked = 0
-    max_tweets_to_check = 20
-
-    while tweets_checked < max_tweets_to_check:
-        try:
-            # Wait for and get tweets
-            WebDriverWait(browser, 30).until(
-                EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, 'article[data-testid="tweet"]')
-                )
-            )
-            tweet_elements = browser.find_elements(
-                By.CSS_SELECTOR, 'article[data-testid="tweet"]'
-            )
-
-            ## Process tweets.
-            for tweet_elem in tweet_elements:
-                tweets_checked += 1
-                if tweets_checked > max_tweets_to_check:
-                    break
-
-                tweet_data = extract_author_tweet_data(
-                    tweet_elem, paper_title, paper_authors
-                )
-                if tweet_data:
-                    logger.info(f"Found author tweet from: {tweet_data['username']}")
-                    browser.quit()
-                    return tweet_data
-
-            ## Scroll and check progress.
-            last_height = browser.execute_script(
-                "return document.documentElement.scrollHeight"
-            )
-            browser.execute_script(
-                "window.scrollTo(0, document.documentElement.scrollHeight);"
-            )
-            time.sleep(3)  # Wait for content to load
-
-            new_height = browser.execute_script(
-                "return document.documentElement.scrollHeight"
-            )
-            if new_height == last_height:
-                logger.info("No new content loaded, breaking loop")
-                break
-
-        except Exception as e:
-            logger.error(f"Error during tweet collection: {str(e)}")
-            break
-
-    logger.info(f"Checked {tweets_checked} tweets, no author tweet found")
-    browser.quit()
-    return None
-
-
-def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50, batch_size: int = 100) -> list[dict]:
-    """Collect tweets about LLMs from the Twitter home feed in batches."""
-    logger.info("Starting collection of LLM-related tweets")
-
-    browser = setup_browser(logger)
-    current_batch = []
-    tweets_checked = 0
-
+def find_paper_author_tweet(arxiv_code: str, logger) -> dict:
+    """Find a tweet from a paper's author about their paper."""
+    logger.info(f"Searching for author tweet for {arxiv_code}")
     try:
-        ## Login and navigate to home.
-        login_twitter(browser, logger)
-        browser.get("https://twitter.com/home")
-        time.sleep(3)
-
-        while tweets_checked < max_tweets:
+        # Get paper details
+        paper_details = db.load_arxiv(arxiv_code)
+        paper_title = paper_details["title"].iloc[0]
+        paper_authors = paper_details["authors"].iloc[0].split(", ")
+        
+        # Initialize browser
+        browser = setup_browser(logger)
+        if not browser:
+            logger.error("Failed to initialize browser")
+            return None
+            
+        # Search for paper title
+        search_url = f"https://twitter.com/search?q={paper_title}&src=typed_query&f=live"
+        browser.get(search_url)
+        
+        # Initialize variables
+        tweets_checked = 0
+        max_tweets_to_check = 100
+        
+        while tweets_checked < max_tweets_to_check:
             try:
-                ## Wait for and get tweets.
-                WebDriverWait(browser, 15).until(
+                # Wait for and get tweets
+                WebDriverWait(browser, 30).until(
                     EC.presence_of_element_located(
                         (By.CSS_SELECTOR, 'article[data-testid="tweet"]')
                     )
@@ -666,40 +605,28 @@ def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50, batch_size:
                     By.CSS_SELECTOR, 'article[data-testid="tweet"]'
                 )
 
-                ## Process new tweets.
+                # Process tweets
                 for tweet_elem in tweet_elements:
                     tweets_checked += 1
-                    if tweets_checked > max_tweets:
+                    if tweets_checked > max_tweets_to_check:
                         break
 
-                    tweet_data = extract_tweet_data(tweet_elem, logger)
-                    if tweet_data and vs.assess_llm_relevance(
-                        tweet_text=tweet_data["text"]
-                    ):
-                        logger.info(
-                            f"Found relevant tweet from: {tweet_data['username']} ({tweets_checked}/{max_tweets} tweets processed)"
-                        )
-                        current_batch.append(tweet_data)
-                        
-                        # Yield batch when it reaches the specified size
-                        if len(current_batch) >= batch_size:
-                            yield current_batch
-                            current_batch = []
-
-                ## Log progress every 10 tweets.
-                if tweets_checked % 10 == 0:
-                    logger.info(
-                        f"Progress: {tweets_checked}/{max_tweets} tweets processed"
+                    tweet_data = extract_author_tweet_data(
+                        tweet_elem, paper_title, paper_authors, logger
                     )
+                    if tweet_data:
+                        logger.info(f"Found author tweet from: {tweet_data['username']}")
+                        browser.quit()
+                        return tweet_data
 
-                ## Scroll and check progress.
+                # Scroll and check progress
                 last_height = browser.execute_script(
                     "return document.documentElement.scrollHeight"
                 )
                 browser.execute_script(
                     "window.scrollTo(0, document.documentElement.scrollHeight);"
                 )
-                time.sleep(2)
+                time.sleep(3)  # Wait for content to load
 
                 new_height = browser.execute_script(
                     "return document.documentElement.scrollHeight"
@@ -712,6 +639,91 @@ def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50, batch_size:
                 logger.error(f"Error during tweet collection: {str(e)}")
                 break
 
+        browser.quit()
+        return None
+
+    except Exception as e:
+        logger.error(f"Error in find_paper_author_tweet: {str(e)}")
+        if 'browser' in locals():
+            browser.quit()
+        return None
+
+
+def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50, batch_size: int = 100) -> Iterator[List[dict]]:
+    """Collect tweets about LLMs from the Twitter home feed in batches."""
+    logger.info("Starting collection of LLM-related tweets")
+
+    browser = setup_browser(logger)
+    current_batch = []
+    tweets_checked = 0
+
+    # try:
+    ## Login and navigate to home.
+    login_twitter(browser, logger)
+    browser.get("https://twitter.com/home")
+    time.sleep(3) 
+
+    while tweets_checked < max_tweets:
+        # try:
+            ## Wait for and get tweets.
+        WebDriverWait(browser, 15).until(
+            EC.presence_of_element_located(
+                (By.CSS_SELECTOR, 'article[data-testid="tweet"]')
+            )
+        )
+        tweet_elements = browser.find_elements(
+            By.CSS_SELECTOR, 'article[data-testid="tweet"]'
+        )
+
+        ## Process new tweets.
+        for tweet_elem in tweet_elements:
+            tweets_checked += 1
+            if tweets_checked > max_tweets:
+                break
+
+            tweet_data = extract_tweet_data(tweet_elem, logger)
+            if tweet_data:
+                relevance_info = vs.assess_llm_relevance(
+                    tweet_text=tweet_data["text"]
+                )
+                tweet_data["arxiv_code"] = relevance_info.arxiv_code
+                if relevance_info.is_llm_related:
+                    logger.info(
+                        f"Found relevant tweet from: {tweet_data['username']} ({tweets_checked}/{max_tweets} tweets processed)"
+                    )
+                    current_batch.append(tweet_data)
+                    
+                    # Yield batch when it reaches the specified size
+                    if len(current_batch) >= batch_size:
+                        yield current_batch
+                        current_batch = []
+
+        ## Log progress every 10 tweets.
+        if tweets_checked % 10 == 0:
+            logger.info(
+                f"Progress: {tweets_checked}/{max_tweets} tweets processed"
+            )
+
+        ## Scroll and check progress.
+        last_height = browser.execute_script(
+            "return document.documentElement.scrollHeight"
+        )
+        browser.execute_script(
+            "window.scrollTo(0, document.documentElement.scrollHeight);"
+        )
+        time.sleep(5)
+
+        new_height = browser.execute_script(
+            "return document.documentElement.scrollHeight"
+        )
+        if new_height == last_height:
+            logger.info("No new content loaded, breaking loop")
+            break
+
+            # except Exception as e:
+                # logger.error(f"Error during tweet collection: {str(e)}")
+                # break
+
         # Yield any remaining tweets in the final batch
         if current_batch:
             yield current_batch
@@ -720,13 +732,13 @@ def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50, batch_size:
             f"Checked {tweets_checked} tweets"
         )
 
-    except Exception as e:
-        logger.error(f"An error occurred while collecting LLM tweets: {str(e)}")
-        if current_batch:
-            yield current_batch
+    # except Exception as e:
+    #     logger.error(f"An error occurred while collecting LLM tweets: {str(e)}")
+    #     if current_batch:
+    #         yield current_batch
 
-    finally:
-        browser.quit()
+    # finally:
+    #     browser.quit()
 
 
 if __name__ == "__main__":
@@ -735,7 +747,7 @@ if __name__ == "__main__":
     logger = setup_logger(__name__, "tweet_test.log")
     logger.info("Starting browser...")
     send_tweet(
-        "𝗠𝗲𝗻𝘁𝗮𝗹𝗔𝗿𝗲𝗻𝗮: 𝗦𝗲𝗹𝗳-𝗽𝗹𝗮𝘆 𝗧𝗿𝗮𝗶𝗻𝗶𝗻𝗴 𝗼𝗳 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗠𝗼𝗱𝗲𝗹𝘀 𝗳𝗼𝗿 𝗗𝗶𝗮𝗴𝗻𝗼𝘀𝗶𝘀 𝗮𝗻𝗱 𝗧𝗿𝗲𝗮𝘁𝗺𝗲𝗻𝘁 𝗼𝗳 𝗠𝗲𝗻𝘁𝗮𝗹 𝗛𝗲𝗮𝗹𝘁𝗵 𝗗𝗶𝘀𝗼𝗿𝗱𝗲𝗿𝘀 (Oct 09, 2024): MentalArena is a self-play framework that trains language models to simulate both patient and therapist roles in mental health scenarios. Using GPT-3.5-turbo as a base, it outperformed the more advanced GPT-4o by 7.7% on mental health tasks. The framework generated 18,000 high-quality training samples, addressing data scarcity due to privacy concerns in mental health AI. MentalArena showed resilience against catastrophic forgetting, maintaining or improving performance on general benchmarks like BIG-Bench-Hard while excelling in specialized mental health applications. This demonstrates the potential of self-play training in generating domain-specific data and enhancing model performance in sensitive areas.",
+        "𝗠𝗲𝗻𝘁𝗮𝗹𝗔𝗿𝗲𝗻𝗮: 𝗦𝗲𝗹𝗳-𝗽𝗹𝗮𝘆 𝗧𝗿𝗮𝗶𝗻𝗶𝗻𝗴 𝗼𝗳 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗠𝗼𝗱𝗲𝗹𝘀 𝗳𝗼𝗿 𝗗𝗶𝗮𝗴𝗻𝗼𝘀𝗶𝘀 𝗮𝗻𝗱 𝗧𝗿𝗲𝗮𝘁𝗺𝗲𝗻𝘁 𝗼𝗳 𝗠��𝗻𝘁𝗮𝗹 𝗛𝗲𝗮𝗹𝘁𝗵 𝗗𝗶𝘀𝗼𝗿𝗱𝗲𝗿𝘀 (Oct 09, 2024): MentalArena is a self-play framework that trains language models to simulate both patient and therapist roles in mental health scenarios. Using GPT-3.5-turbo as a base, it outperformed the more advanced GPT-4o by 7.7% on mental health tasks. The framework generated 18,000 high-quality training samples, addressing data scarcity due to privacy concerns in mental health AI. MentalArena showed resilience against catastrophic forgetting, maintaining or improving performance on general benchmarks like BIG-Bench-Hard while excelling in specialized mental health applications. This demonstrates the potential of self-play training in generating domain-specific data and enhancing model performance in sensitive areas.",
         "/Users/manuelrueda/Documents/python/llmpedia/data/arxiv_art/1902.03545.png",
         "/Users/manuelrueda/Documents/python/llmpedia/data/arxiv_art/1902.03545.png",
         "XXX",

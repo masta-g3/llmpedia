@@ -23,6 +23,11 @@ except:
 
 database_url = f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}"
 
+EMBEDDING_DIMENSIONS = {
+    "gte": 1024,
+    "nv": 4096,
+    "voyage": 1024
+}
 
 def list_to_pg_array(lst):
     lst = [str(x).replace("arxiv_code:", "") for x in lst]
@@ -997,9 +1002,9 @@ def store_embeddings_batch(
     embedding_type: str,
     embeddings: list[list],
     engine: Engine,
-    dimension: int = 4096,
 ) -> bool:
     """Store multiple document embeddings in the appropriate arxiv_embeddings table based on dimension."""
+    dimension = EMBEDDING_DIMENSIONS[embedding_type]
     with engine.begin() as conn:
         query = text(
             f"""
@@ -1031,38 +1036,41 @@ def load_embeddings(
     arxiv_codes: list[str],
     doc_type: str,
     embedding_type: str,
-    engine: Engine,
-) -> list[list[float]]:
+) -> tuple[list[str], list[list[float]]]:
     """Load embeddings for specified documents from the database."""
-    with engine.begin() as conn:
-        query = text(
-            """
-            SELECT arxiv_code, embedding
-            FROM arxiv_embeddings_4096
-            WHERE arxiv_code = ANY(:arxiv_codes)
-            AND doc_type = :doc_type
-            AND embedding_type = :embedding_type
-            ORDER BY arxiv_code
-            """
-        )
-        
-        result = conn.execute(
-            query,
-            {
-                "arxiv_codes": arxiv_codes,
-                "doc_type": doc_type,
-                "embedding_type": embedding_type,
-            },
-        ).fetchall()
-        
-        # Maintain order and handle missing embeddings
-        embeddings = []
-        for code in arxiv_codes:
-            emb = next((r[1] for r in result if r[0] == code), None)
-            if emb is not None:
-                embeddings.append(emb)
-                
-    return embeddings
+    dimension = EMBEDDING_DIMENSIONS[embedding_type]
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as conn:
+            query = text(
+                f"""
+                SELECT arxiv_code, embedding
+                FROM arxiv_embeddings_{dimension}
+                WHERE arxiv_code = ANY(:arxiv_codes)
+                AND doc_type = :doc_type
+                AND embedding_type = :embedding_type
+                ORDER BY arxiv_code
+                """
+            )
+            
+            result = conn.execute(
+                query,
+                {
+                    "arxiv_codes": arxiv_codes,
+                    "doc_type": doc_type,
+                    "embedding_type": embedding_type,
+                },
+            ).fetchall()
+            
+            codes = [r[0] for r in result]
+            embeddings = [
+                [float(x) for x in emb.strip('[]').split(',')]
+                for emb in [r[1] for r in result]
+            ]
+                    
+        return dict(zip(codes, embeddings))
+    finally:
+        engine.dispose()
 
 
 def format_query_condition(field_name: str, template: str, value: str, embedding_model: str):
@@ -1142,10 +1150,10 @@ def generate_semantic_search_query(criteria: dict, config: dict, embedding_model
 def get_pending_embeddings(
     doc_type: str,
     embedding_type: str,
-    dimension: int,
     engine: Engine,
 ) -> list[str]:
     """Get list of arxiv codes that don't have embeddings yet for given doc_type and embedding model."""
+    dimension = EMBEDDING_DIMENSIONS[embedding_type]
     query = text(
         f"""
         SELECT DISTINCT arxiv_code 

@@ -511,7 +511,7 @@ def assess_tweet_ownership(
 
 
 def assess_llm_relevance(
-    tweet_text: str, model: str = "claude-3-5-sonnet-20241022"
+    tweet_text: str, model: str = "gpt-4o-mini"
 ) -> po.TweetRelevanceInfo:
     """Assess if a tweet is related to LLMs and extract any arxiv code if present."""
     relevance_info = run_instructor_query(

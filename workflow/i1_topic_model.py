@@ -16,7 +16,6 @@ warnings.filterwarnings("ignore")
 
 from umap import UMAP
 from bertopic import BERTopic
-from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import CountVectorizer
 from bertopic.representation import OpenAI, MaximalMarginalRelevance
 from hdbscan import HDBSCAN
@@ -29,16 +28,16 @@ import utils.db as db
 from utils.logging_utils import setup_logger
 
 # Set up logging
-logger = setup_logger(__name__, "i0_topic_model.log")
+logger = setup_logger(__name__, "i1_topic_model.log")
 
 db_params = pu.db_params
+REFIT = False
+embedding_type = "nv"
+doc_type = "recursive_summary"
 
 ## Download necessary NLTK data.
 nltk.download("wordnet", quiet=True)
 nltk.download("stopwords", quiet=True)
-
-REFIT = False
-embedding_type = "nv"
 
 ## Create a lemmatizer and list of stop words.
 LEMMATIZER = WordNetLemmatizer()
@@ -52,7 +51,6 @@ Based on this information, extract a short but highly descriptive and specific c
 topic: <topic label>
 """
 
-
 def process_text(text: str) -> str:
     """Preprocess text."""
     text = text.lower()
@@ -61,81 +59,6 @@ def process_text(text: str) -> str:
         [LEMMATIZER.lemmatize(word) for word in text.split() if word not in STOP_WORDS]
     )
     return text
-
-
-def load_and_process_data(title_map: dict) -> pd.DataFrame:
-    """Load and process data from json files, return DataFrame."""
-    logger.info("Loading and processing paper content data.")
-    df = pd.DataFrame(columns=["title", "summary"])
-    for arxiv_code, title in title_map.items():
-        fpath = os.path.join(PROJECT_PATH, "data", "summaries", f"{arxiv_code}.json")
-        fpath_meta = os.path.join(
-            PROJECT_PATH, "data", "arxiv_meta", f"{arxiv_code}.json"
-        )
-        with open(fpath) as f:
-            summary = json.load(f)
-            summary = pu.convert_innert_dict_strings_to_actual_dicts(summary)
-        with open(fpath_meta) as f:
-            meta = json.load(f)
-        summary["Summary"] = meta["summary"]
-
-        df.loc[str(arxiv_code)] = [
-            title,
-            summary["Summary"],
-        ]
-    logger.info(f"Loaded and processed data for {len(df)} papers.")
-    return df
-
-
-def initialize_embedding_model(embedding_type: str) -> SentenceTransformer:
-    """Initialize and configure a SentenceTransformer model based on the specified type."""
-    if embedding_type == "gte":
-        model = SentenceTransformer("barisaydin/gte-large")
-    elif embedding_type == "nv":
-        model = SentenceTransformer("nvidia/NV-Embed-v2", trust_remote_code=True)
-        model.max_seq_length = 32768
-        model.tokenizer.padding_side = "right"
-    else:
-        raise ValueError(f"Unknown embedding type: {embedding_type}. Must be either 'gte' or 'nv'")
-    return model
-
-
-def create_embeddings(
-    df: pd.DataFrame,
-    embedding_model: SentenceTransformer = None,
-    embedding_type: str = "gte",
-) -> tuple:
-    """Create embeddings for documents using either GTE or NV-Embed-v2 model."""
-    logger.info(f"Creating embeddings using {embedding_type} model...")
-    content_cols = ["summary"]
-    df_dict = (
-        df[content_cols].apply(lambda x: "\n".join(x.astype(str)), axis=1).to_dict()
-    )
-    all_content = list(df_dict.values())
-
-    if embedding_model is None:
-        embedding_model = initialize_embedding_model(embedding_type)
-
-    if embedding_type == "nv":
-        # Add EOS token to each input
-        all_content = [
-            text + embedding_model.tokenizer.eos_token for text in all_content
-        ]
-
-        ## Use query prefix for topic identification.
-        query_prefix = "Instruct: Identify the topic or theme of the following AI & Large Language Model document\nQuery: "
-        embeddings = embedding_model.encode(
-            all_content,
-            prompt=query_prefix,
-            normalize_embeddings=True,
-            show_progress_bar=True,
-        )
-    else:
-        embeddings = embedding_model.encode(all_content)
-
-    logger.info("Embeddings created successfully.")
-    return all_content, embedding_model, embeddings
-
 
 def create_topic_model(prompt: str) -> BERTopic:
     """Create topic model."""
@@ -178,7 +101,6 @@ def create_topic_model(prompt: str) -> BERTopic:
     )
     return topic_model
 
-
 def extract_topics_and_embeddings(
     all_content: list,
     embeddings: list,
@@ -204,7 +126,6 @@ def extract_topics_and_embeddings(
 
     return topics, reduced_embeddings, reduced_model
 
-
 def store_topics_and_embeddings(
     df: pd.DataFrame,
     all_content: list,
@@ -227,10 +148,6 @@ def store_topics_and_embeddings(
         pd.to_pickle(
             reduced_model, os.path.join(PROJECT_PATH, "data", "reduced_model.pkl")
         )
-        with open(
-            os.path.join(PROJECT_PATH, "data", "bertopic", "all_content.json"), "w"
-        ) as f:
-            json.dump(all_content, f)
 
     topic_names = topic_model.get_topic_info().set_index("Topic")["Name"]
     topic_names[-1] = "Miscellaneous"
@@ -250,47 +167,8 @@ def store_topics_and_embeddings(
         if_exists=if_exists_policy,
     )
 
-
-def create_embeddings_in_batches(
-    df: pd.DataFrame, batch_size: int = 50
-) -> tuple[list, list]:
-    """Process document embeddings in batches to manage memory usage, returning combined content and embeddings."""
-    logger.info(
-        f"Creating embeddings for {len(df)} documents in batches of {batch_size}"
-    )
-
-    # Initialize embedding model once
-    embedding_model = initialize_embedding_model(embedding_type)
-
-    all_content = []
-    all_embeddings = []
-
-    # Process in batches
-    for i in range(0, len(df), batch_size):
-        batch_df = df.iloc[i : i + batch_size]
-        batch_num = i // batch_size + 1
-        total_batches = (len(df) + batch_size - 1) // batch_size
-        logger.info(f"Processing embedding batch {batch_num}/{total_batches}")
-
-        try:
-            batch_content, _, batch_embeddings = create_embeddings(
-                batch_df, embedding_model=embedding_model, embedding_type=embedding_type
-            )
-            all_content.extend(batch_content)
-            all_embeddings.append(batch_embeddings)
-            logger.info(f"Successfully created embeddings for batch {batch_num}")
-        except Exception as e:
-            logger.error(f"Error processing batch {batch_num}: {str(e)}")
-            raise
-
-    # Combine all embeddings
-    combined_embeddings = np.vstack(all_embeddings)
-    logger.info(f"Successfully created embeddings for all {len(df)} documents")
-    return all_content, combined_embeddings
-
-
 def create_and_fit_topic_model(
-    all_content: list, embeddings: list, refit: bool = False
+    all_content: list, embeddings: np.array, refit: bool = False
 ) -> tuple:
     """Create and fit topic model on the complete set of document embeddings, returning topics, embeddings, and models."""
     logger.info("Creating and fitting topic model...")
@@ -331,7 +209,7 @@ def create_and_fit_topic_model(
                 "Please run with REFIT=True to initialize the model."
             )
 
-    # Extract topics and embeddings
+    ## Extract topics and embeddings.
     try:
         topics, reduced_embeddings, reduced_model = extract_topics_and_embeddings(
             all_content, embeddings, topic_model, reduced_model, refit=refit
@@ -346,39 +224,47 @@ def create_and_fit_topic_model(
 
     return topics, reduced_embeddings, topic_model, reduced_model
 
-
 def main():
-    """Process documents, create embeddings, and generate topic models either in full refit or incremental mode."""
-    arxiv_codes = db.get_arxiv_id_list(db_params, "summaries")
-    title_map = db.get_arxiv_title_dict(db_params)
-    title_map = {k: v for k, v in title_map.items() if k in arxiv_codes}
+    """Load embeddings and generate topic models."""
+    logger.info("Starting topic model generation")
+    
+    ## Load data with recursive summaries.
     df = db.load_arxiv().reset_index()
-
-    if REFIT:
-        df = df[df["arxiv_code"].isin(arxiv_codes)]
-        logger.info("Refit mode: Processing documents in batches")
-        df.set_index("arxiv_code", inplace=True)
-        all_content, embeddings = create_embeddings_in_batches(df, batch_size=50)
-    else:
-        # For non-refit, process only pending documents
+    df.rename(columns={"summary": "abstract"}, inplace=True)
+    df = df.merge(db.load_recursive_summaries(), on="arxiv_code", how="inner")
+    
+    ## For non-refit, process only pending documents.
+    if not REFIT:
         done_codes = db.get_arxiv_id_list(db_params, "topics")
-        working_codes = list(set(arxiv_codes) - set(done_codes))
-        df = df[df["arxiv_code"].isin(working_codes)]
+        working_codes = list(set(df.arxiv_code) - set(done_codes))
+        df = df[df.arxiv_code.isin(working_codes)]
         if len(df) == 0:
-            logger.info("No new documents to process.")
+            logger.info("No new documents to process")
             return
-        logger.info(f"Non-refit mode: Processing {len(df)} pending documents")
-        df.set_index("arxiv_code", inplace=True)
-        all_content, _, embeddings = create_embeddings(
-            df, embedding_type=embedding_type
-        )
+    
+    logger.info(f"Processing {len(df)} documents")
+    df.set_index("arxiv_code", inplace=True)
+    
+    ## Load embeddings and generate content.
+    embeddings_map = db.load_embeddings(
+        arxiv_codes=list(df.index),
+        doc_type=doc_type,
+        embedding_type=embedding_type,
+    )
 
-    # Create and fit topic model using all embeddings
+    all_content = df[doc_type].to_dict()
+
+    ## align content and embeddings.
+    arxiv_codes = list(embeddings_map.keys())
+    all_content = [all_content[code] for code in arxiv_codes]
+    embeddings = np.array([np.array(embeddings_map[code])for code in arxiv_codes])
+    
+    logger.info(f"Loaded {len(embeddings_map)} embeddings and corresponding content")
+
     topics, reduced_embeddings, topic_model, reduced_model = create_and_fit_topic_model(
         all_content, embeddings, refit=REFIT
     )
 
-    # Store results
     store_topics_and_embeddings(
         df,
         all_content,
@@ -388,7 +274,8 @@ def main():
         reduced_model,
         refit=REFIT,
     )
-
+    
+    logger.info("Successfully processed all documents")
 
 if __name__ == "__main__":
     main()
