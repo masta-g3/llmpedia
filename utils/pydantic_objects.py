@@ -319,3 +319,18 @@ class PunchlineSummary(BaseModel):
     table: Optional[str] = Field(
         None, description="A copy of the full markdown table selected from the paper, if a table was chosen"
     )
+
+
+class ResolveQuery(BaseModel):
+    brainstorm: str = Field(
+        ...,
+        description="Analysis of relevant information from documents and planning of response structure including markdown sections and additional elements (code blocks, tables, etc.)."
+    )
+    sketch: str = Field(
+        ...,
+        description="Detailed outline of the response using nested lists, prefilling each section with key ideas, findings, and supporting evidence."
+    )
+    response: str = Field(
+        ...,
+        description="The final response following the style guidelines and length requirements, incorporating all planned elements."
+    )

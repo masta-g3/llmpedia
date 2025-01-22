@@ -1,4 +1,5 @@
 from langchain.prompts import PromptTemplate
+from typing import Optional
 import datetime
 
 import utils.pydantic_objects as po
@@ -1243,7 +1244,10 @@ def create_rerank_user_prompt(user_question: str, documents: list) -> str:
 
 
 def create_resolve_user_prompt(
-    user_question: str, documents: list, response_length: int
+    user_question: str, 
+    documents: list, 
+    response_length: int,
+    custom_instructions: Optional[str] = None
 ) -> str:
     notes = ""
     ## Convert word count to response guidance.
@@ -1268,6 +1272,13 @@ def create_resolve_user_prompt(
 
     ---"""
     notes = notes.strip()
+    
+    custom_instructions_section = f"""
+    <custom_instructions>
+    {custom_instructions}
+    </custom_instructions>
+    """ if custom_instructions else ""
+    
     user_message = f""""
     <question>
     {user_question}
@@ -1277,23 +1288,48 @@ def create_resolve_user_prompt(
     {notes}
     </context>
 
+    <output_format>
+    Your response should be structured in three parts:
+
+    BRAINSTORM:
+    - Analyze each document's relevance and key contributions to answering the query
+    - Plan the structure of your response including:
+      * Required markdown sections and their hierarchy
+      * Additional elements needed (code blocks, tables, diagrams)
+      * Key papers to cite in each section
+    - Consider how to maintain narrative flow between sections
+
+    SKETCH:
+    - Create a detailed outline using nested markdown lists
+    - For each planned section:
+      * List key points, findings, and evidence to include
+      * Note specific citations and technical details
+      * Identify examples and practical applications
+      * Plan transitions between ideas
+    - Include placeholders for code blocks or other elements
+
+    RESPONSE:
+    {response_guidance}
+    - Pay special attention to the style guidelines when formulating your response.
+    </output_format>
+
     <instructions>
     - Use narrative writing to provide a complete, direct and useful answer. Structure your response as a mini-report in a magazine.
+    - Provide the conclusion of your analysis upfront, and then provide the rest of the report in a narrative manner.
     - Do not mention 'the context'! The user does not have access to it, so do not reference it or the fact that I presented it to you. Act as if you have all the information in your head (i.e.: do not say 'Based on the information provided...', etc.).
-    - Make sure your report reads naturally and is easy to the eye. Do not enumerate the paragraphs (e.g.: 'Paragraph 1: ...').
-    - Use markdown to add a title to your response (i.e.: '##'), incorporate code blocks (when relevant, informed by the content of the documents), and elements that help improve clarity and flow.
+    - Make sure your report reads naturally and is easy to follow.
+    - Use markdown to add a title to your response (i.e.: '##'), add subtitles, incorporate code blocks (when relevant, informed by the content of the documents), and any other elements that help improve clarity and flow.
     - Use information-dense paragraphs interweaving techncial details with clear examples.
+    - Even if your report is extensive, be sure to not get lost in the weeds. Provide clear conclusions and implications upfront.
     - Avoid listicles, enumerations and other repetitive, non-engaging writing styles.
     - Be practical and reference any existing libraries or implementations mentioned on the documents.
     - If there is conflicting information present the different viewpoints and consider that more recent papers or those with more citations are generally more reliable. 
-    - Present different viewpoints if they exist.
+    - Present different viewpoints if they exist, but avoid being vague or unclear.
     - Inform your response with the information available in the context, and less so with your own opinions (although you can draw simple connections between ideas and draw conclusions).
     - Add citations when referencing papers by mentioning the relevant arxiv_codes (e.g.: use the format *reference content* (arxiv:1234.5678)). If you mention paper titles wrap them in double quotes.
     </instructions>
 
-    <response_format>
-    {response_guidance}
-    </response_format>
+    {custom_instructions_section}
 
     {TWEET_BASE_STYLE}
     """

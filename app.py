@@ -45,6 +45,15 @@ if "openai_api_key" not in st.session_state:
 if "all_years" not in st.session_state:
     st.session_state.all_years = False
 
+# Chat-related state variables
+if "chat_response" not in st.session_state:
+    st.session_state.chat_response = None
+
+if "referenced_codes" not in st.session_state:
+    st.session_state.referenced_codes = []
+
+if "relevant_codes" not in st.session_state:
+    st.session_state.relevant_codes = []
 
 collection_map = {
     "GTE-Large": "arxiv_vectors",
@@ -300,9 +309,9 @@ def main():
     content_tabs = st.tabs(
         [
             "🧮 Release Feed",
-            "🗺️ Statistics",
+            "🗺️ Statistics & Topics",
             "🔍 Paper Details",
-            "🤖 Chat Assistant",
+            "🤖 Research Assistant",
             "⚙️  Links & Repositories",
             "🗞 Weekly Report",
         ]
@@ -403,56 +412,106 @@ def main():
                 response_length = st.select_slider(
                     "Response Length (words)",
                     options=[250, 1000, 3000],
-                    value=1000,
+                    value=250,
                     format_func=lambda x: f"{x} words"
                 )
-                
             with settings_cols[1]:
                 max_sources = st.select_slider(
                     "Maximum Sources",
                     options=[1, 3, 5, 7, 10, 15, 20, 25, 30],
                     value=7
                 )
-                
+            
+            custom_instructions = st.text_area(
+                "Custom Instructions (Optional)",
+                placeholder="Add any specific instructions for how you would like the response to be structured or formatted...",
+                help="Provide custom style guidelines, instructions on what to focus on, etc."
+            )
 
-        chat_cols = st.columns((1, 2, 1))
+            show_only_sources = st.checkbox(
+                "Show me only the sources",
+                help="Skip generating a response and just show the most relevant papers for this query."
+            )
+
+        chat_cols = st.columns((1, 1, 1))
         chat_btn = chat_cols[0].button("Send", disabled=chat_btn_disabled)
+        
+        # Show clear button only when we have a response
+        if st.session_state.chat_response:
+            if chat_cols[1].button("Clear", type="secondary"):
+                st.session_state.chat_response = None
+                st.session_state.referenced_codes = []
+                st.session_state.relevant_codes = []
+                st.rerun()
 
         if chat_btn:
             if user_question != "":
-                with st.spinner(
-                    "Consulting the GPT maestro, this might take a minute..."
-                ):
-                    response, referenced_codes, relevant_codes = au.query_llmpedia_new(
-                        user_question=user_question,
-                        response_length=response_length,
-                        query_llm_model="claude-3-5-sonnet-20241022",
-                        rerank_llm_model="gpt-4o-mini",
-                        response_llm_model="claude-3-5-sonnet-20241022",
-                        max_sources=max_sources,
-                        debug=True
+                progress_placeholder = st.empty()
+                def update_progress(message: str):
+                    with progress_placeholder:
+                        st.info(message)
+                        
+                response, referenced_codes, relevant_codes = au.query_llmpedia_new(
+                    user_question=user_question,
+                    response_length=response_length,
+                    query_llm_model="claude-3-5-sonnet-20241022",
+                    rerank_llm_model="gpt-4o-mini",
+                    response_llm_model="claude-3-5-sonnet-20241022",
+                    max_sources=max_sources,
+                    debug=True,
+                    progress_callback=update_progress,
+                    custom_instructions=custom_instructions if custom_instructions.strip() else None,
+                    show_only_sources=show_only_sources
+                )
+                progress_placeholder.empty()
+                
+                # Store results in session state
+                st.session_state.chat_response = response
+                st.session_state.referenced_codes = referenced_codes
+                st.session_state.relevant_codes = relevant_codes
+                
+                db.log_qna_db(user_question, response)
+
+        # Display results if they exist in session state
+        if st.session_state.chat_response:
+            st.divider()
+            st.markdown(st.session_state.chat_response)
+            
+            if len(st.session_state.referenced_codes) > 0:
+                st.divider()
+                
+                # View selector for paper display format
+                display_format = st.radio(
+                    "Display Format",
+                    options=["Grid View", "Citation List"],
+                    horizontal=True,
+                    label_visibility="collapsed",
+                    key="papers_display_format"
+                )
+                
+                st.markdown(
+                    "<h4>Referenced Papers:</h4>", unsafe_allow_html=True
+                )
+                reference_df = st.session_state["papers"].loc[st.session_state.referenced_codes]
+                if display_format == "Grid View":
+                    su.generate_grid_gallery(
+                        reference_df, n_cols=5, extra_key="_chat"
                     )
-                    db.log_qna_db(user_question, response)
+                else:
+                    su.generate_citations_list(reference_df)
+                    
+                if len(st.session_state.relevant_codes) > 0:
                     st.divider()
-                    st.markdown(response)
-                    if len(referenced_codes) > 0:
-                        st.divider()
-                        st.markdown(
-                            "<h4>Referenced Papers:</h4>", unsafe_allow_html=True
-                        )
-                        reference_df = st.session_state["papers"].loc[referenced_codes]
-                        su.generate_grid_gallery(
-                            reference_df, n_cols=5, extra_key="_chat"
-                        )
-                    if len(relevant_codes) > 0:
-                        st.divider()
-                        st.markdown(
-                            "<h4>Other Relevant Papers:</h4>", unsafe_allow_html=True
-                        )
-                        relevant_df = st.session_state["papers"].loc[relevant_codes]
+                    st.markdown(
+                        "<h4>Other Relevant Papers:</h4>", unsafe_allow_html=True
+                    )
+                    relevant_df = st.session_state["papers"].loc[st.session_state.relevant_codes]
+                    if display_format == "Grid View":
                         su.generate_grid_gallery(
                             relevant_df, n_cols=5, extra_key="_chat"
                         )
+                    else:
+                        su.generate_citations_list(relevant_df)
 
     with content_tabs[4]:
         ## Repositories.

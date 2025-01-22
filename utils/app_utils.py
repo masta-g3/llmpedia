@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Callable
 import pandas as pd
 import numpy as np
 import datetime
@@ -354,21 +354,28 @@ def rerank_documents_new(
 
 
 def resolve_query(
-    user_question: str, documents: list[Document], response_length: int, llm_model: str
+    user_question: str, 
+    documents: list[Document], 
+    response_length: int, 
+    llm_model: str,
+    custom_instructions: Optional[str] = None
 ):
     system_message = "You are GPT Maestro, an AI expert focused on Large Language Models. Answer the user query leveraging the information provided in the context. Pay close attention to the provided guidelines."
     user_message = ps.create_resolve_user_prompt(
-        user_question, documents, response_length
+        user_question=user_question,
+        documents=documents,
+        response_length=response_length,
+        custom_instructions=custom_instructions
     )
     response = run_instructor_query(
         system_message=system_message,
         user_message=user_message,
-        model=None,
+        model=po.ResolveQuery,
         llm_model=llm_model,
         temperature=0.2,
         process_id="resolve_query",
     )
-    return response
+    return response.response
 
 
 def resolve_query_other(user_question: str) -> str:
@@ -490,14 +497,20 @@ def query_llmpedia_new(
     response_llm_model: str,
     max_sources: int = 7,
     debug: bool = False,
+    progress_callback: Optional[Callable[[str], None]] = None,
+    custom_instructions: Optional[str] = None,
+    show_only_sources: bool = False
 ) -> Tuple[str, List[str], List[str]]:
     """Query LLMpedia with customized response parameters."""
+    if progress_callback:
+        progress_callback("Generating semantic search query...")
     if debug:
         log_debug("~~Starting LLMpedia query pipeline~~")
         log_debug("Input parameters:", {
             "question": user_question,
             "response_length": response_length,
             "max_sources": max_sources,
+            "show_only_sources": show_only_sources
         })
 
     action = decide_query_action(user_question)
@@ -510,6 +523,9 @@ def query_llmpedia_new(
         )
         if debug:
             log_debug("Generated search criteria:", query_obj.model_dump(), 2)
+
+        if progress_callback:
+            progress_callback("Searching through the LLM research archive...")
 
         ## Calculate target summary length with roughly 3:1 source-to-summary ratio.
         per_source_words = 0
@@ -535,6 +551,9 @@ def query_llmpedia_new(
         documents = [
             Document(**dict(zip(Document.__fields__.keys(), d))) for d in documents
         ]
+
+        if progress_callback:
+            progress_callback("Reranking most relevant documents...")
 
         if debug:
             log_debug(f"Retrieved {len(documents)} initial documents", indent_level=2)
@@ -581,11 +600,21 @@ def query_llmpedia_new(
             return "I don't know about that my friend. Try asking something else.", [], []
 
         ## Resolve.
+        if show_only_sources:
+            if debug:
+                log_debug("Skipping response generation (show_only_sources=True)", indent_level=2)
+            arxiv_codes = [d.arxiv_code for d in filtered_documents]
+            return f"### Documents related to: *{user_question}*", arxiv_codes, []
+            
+        if progress_callback:
+            progress_callback("Generating response...")
+            
         answer = resolve_query(
             user_question,
             filtered_documents,
             response_length,
             llm_model=response_llm_model,
+            custom_instructions=custom_instructions
         )
         answer_augment = add_links_to_text_blob(answer)
         referenced_arxiv_codes = extract_arxiv_codes(answer_augment)

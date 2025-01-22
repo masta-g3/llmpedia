@@ -569,6 +569,53 @@ def generate_grid_gallery(df, n_cols=5, extra_key=""):
                     # st.markdown(authors_str)
 
 
+def generate_citations_list(df: pd.DataFrame) -> None:
+    """Generate a formatted list of paper citations with rich styling."""
+    for _, paper in df.iterrows():
+        # Extract paper information
+        title = paper["title"].replace("\n", "")
+        authors = paper["authors"]
+        paper_url = paper["url"]
+        paper_code = paper["arxiv_code"]
+        publish_date = pd.to_datetime(paper["published"]).strftime("%b %d, %Y")
+        citation_count = int(paper.get("citation_count", 0))
+        influential_count = int(paper.get("influential_citation_count", 0))
+        punchline = paper.get("punchline", "")
+
+        # Build HTML components separately
+        star_badge = " ⭐️" if influential_count > 0 else ""
+        citation_text = f"citation{'s' if citation_count != 1 else ''}"
+        punchline_div = f'<div style="margin-top: 12px; font-style: italic; color: var(--text-color, #666);">{punchline}</div>' if punchline else ''
+        
+        citation_html = f'''
+        <div style="margin: 20px 0; padding: 20px; border-radius: 8px; border-left: 4px solid var(--arxiv-red);">
+            <div style="margin-bottom: 12px;">
+                <span onclick="parent.postMessage({{cmd: 'streamlit:setComponentValue', args: {{value: '{paper_code}', dataType: 'str', key: 'arxiv_code'}}}}, '*')" style="color: var(--arxiv-red); text-decoration: none; font-size: 1.1em; font-weight: bold; cursor: pointer;">{title}</span>{star_badge}
+            </div>
+            <div style="color: var(--text-color, #666); font-size: 0.9em; margin-bottom: 8px;">
+                {authors}
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 8px; font-size: 0.9em;">
+                <span style="background-color: rgba(179, 27, 27, 0.05); padding: 4px 8px; border-radius: 4px;">📅 {publish_date}</span>
+                <span style="background-color: rgba(179, 27, 27, 0.05); padding: 4px 8px; border-radius: 4px;">📊 {citation_count} {citation_text}</span>
+                <a href="{paper_url}" target="_blank" style="text-decoration: none;">
+                    <span style="background-color: rgba(179, 27, 27, 0.05); padding: 4px 8px; border-radius: 4px;">
+                        <span style="color: var(--arxiv-red);">📄</span> arXiv:{paper_code} <span style="font-size: 0.8em;">↗</span>
+                    </span>
+                </a>
+            </div>
+            {punchline_div}
+        </div>
+        '''
+        
+        st.markdown(citation_html, unsafe_allow_html=True)
+        
+        # Hidden button to handle tab switching after state is set
+        if paper_code == st.session_state.get("arxiv_code"):
+            click_tab(2)
+            st.session_state.pop("arxiv_code", None)  # Clear it after use
+
+
 def create_pagination(items, items_per_page, label="summaries", year=None):
     num_items = len(items)
     num_pages = num_items // items_per_page
