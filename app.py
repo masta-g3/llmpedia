@@ -458,7 +458,7 @@ def main():
                     rerank_llm_model="gpt-4o-mini",
                     response_llm_model="claude-3-5-sonnet-20241022",
                     max_sources=max_sources,
-                    debug=True,
+                    debug=False,
                     progress_callback=update_progress,
                     custom_instructions=custom_instructions if custom_instructions.strip() else None,
                     show_only_sources=show_only_sources
