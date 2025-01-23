@@ -1073,15 +1073,27 @@ def load_embeddings(
         engine.dispose()
 
 
+def convert_query_to_vector(query: str, model_name: str) -> list[float]:
+    """Convert a text query into a vector using the specified embedding model."""
+    ## ToDo: Move to app_utils.
+    import voyageai
+    if model_name != "voyage":
+        raise ValueError(f"Unsupported embedding model: {model_name}")
+
+    client = voyageai.Client()
+    return client.embed(
+        [query], model="voyage-3-large", input_type="document"
+    ).embeddings[0]
+    
+
 def format_query_condition(field_name: str, template: str, value: str, embedding_model: str):
     """Format query conditions for semantic search, handling both vector and regular conditions."""
     if isinstance(value, list) and "semantic_search_queries" in field_name:
         distance_scores = []
         for query in value:
-            from utils.vector_store import convert_query_to_vector
             vector = convert_query_to_vector(query, embedding_model)
             vector_str = ", ".join(map(str, vector))
-            # Using pgvector's cosine similarity operator <=> and converting to similarity score
+            ## Using pgvector's cosine similarity operator <=> and converting to similarity score.
             condition = f"1 - (e.embedding <=> ARRAY[{vector_str}]::vector) "
             distance_scores.append(condition)
         if distance_scores:

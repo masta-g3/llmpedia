@@ -30,7 +30,6 @@ from utils.logging_utils import setup_logger
 # Set up logging
 logger = setup_logger(__name__, "i1_topic_model.log")
 
-db_params = pu.db_params
 REFIT = False
 embedding_type = "nv"
 doc_type = "recursive_summary"
@@ -88,7 +87,7 @@ def create_topic_model(prompt: str) -> BERTopic:
         exponential_backoff=True,
         chat=True,
         prompt=prompt,
-        nr_docs=20,
+        nr_docs=30,
     )
     topic_model = BERTopic(
         embedding_model=None,
@@ -235,7 +234,7 @@ def main():
     
     ## For non-refit, process only pending documents.
     if not REFIT:
-        done_codes = db.get_arxiv_id_list(db_params, "topics")
+        done_codes = db.get_arxiv_id_list(pu.db_params, "topics")
         working_codes = list(set(df.arxiv_code) - set(done_codes))
         df = df[df.arxiv_code.isin(working_codes)]
         if len(df) == 0:
@@ -254,7 +253,7 @@ def main():
 
     all_content = df[doc_type].to_dict()
 
-    ## align content and embeddings.
+    ## Align content and embeddings.
     arxiv_codes = list(embeddings_map.keys())
     all_content = [all_content[code] for code in arxiv_codes]
     embeddings = np.array([np.array(embeddings_map[code])for code in arxiv_codes])
