@@ -4,6 +4,7 @@ import datetime
 import os, sys, re
 import time
 import random
+import pandas as pd
 import numpy as np
 from dotenv import load_dotenv
 import base64
@@ -23,15 +24,19 @@ from utils.logging_utils import setup_logger
 import utils.vector_store as vs
 import utils.paper_utils as pu
 import utils.notifications as em
-import utils.db as db
+import utils.db.db_utils as db_utils
+import utils.db.paper_db as paper_db
+import utils.db.tweet_db as tweet_db
 import utils.tweet as tweet
 import utils.app_utils as au
 
 logger = setup_logger(__name__, "z1_generate_tweet.log")
 
+
 @dataclass
 class TweetContent:
     """Container for generated tweet content and metadata."""
+
     content: str
     post_content: str
     tweet_type: str
@@ -40,12 +45,15 @@ class TweetContent:
     selected_image: Optional[str] = None
     selected_table: Optional[str] = None
 
+
 @dataclass
 class TweetImages:
     """Container for tweet image paths."""
+
     tweet_image: Optional[str] = None  # Art image
-    tweet_page: Optional[str] = None   # First page or selected figure
+    tweet_page: Optional[str] = None  # First page or selected figure
     analyzed_image: Optional[str] = None  # Additional analyzed figure
+
 
 def bold(input_text, extra_str):
     """Format text with bold and italic characters."""
@@ -80,95 +88,124 @@ def bold(input_text, extra_str):
         input_text,
     )
     output = output.replace("[[", "").replace("]]", "")
-    
+
     ## Regex to find text in double asterisks and apply the bold_italicize function to them
     output = re.sub(r"\*\*([^*]*)\*\*", lambda m: bold_italicize(m.group(1)), output)
-    
+
     ## Italicize "Moral:" but not the moral itself
     output = output.replace("Moral:", bold_italicize("Moral:"))
 
     return output.strip()
 
-def select_paper(logger: logging.Logger) -> Tuple[str, dict]:
-    """Select paper and gather its details."""
+
+## New function to fetch candidate papers from S3, excluding those already reviewed.
+def fetch_candidate_papers(logger: logging.Logger) -> List[str]:
+    """Fetch candidates from S3 excluding already reviewed papers."""
     ## Get list of papers not yet reviewed.
     arxiv_codes = pu.list_s3_files("arxiv-art", strip_extension=True)
-    done_codes = db.get_arxiv_id_list(db.db_params, "tweet_reviews")
-    arxiv_codes = list(set(arxiv_codes) - set(done_codes))
-    arxiv_codes = sorted(arxiv_codes)[-250:]
-    logger.info(f"Found {len(arxiv_codes)} recent papers")
+    done_codes = db_utils.get_arxiv_id_list("tweet_reviews")
+    candidates = list(set(arxiv_codes) - set(done_codes))
+    # Limit to the most recent 250 papers.
+    candidates = sorted(candidates)[-250:]
+    logger.info(f"Found {len(candidates)} recent papers to consider")
+    return candidates
 
-    ## Select candidate papers based on citations.
-    citations_df = db.load_citations()
-    citations_df = citations_df[citations_df.index.isin(arxiv_codes)]
+
+## New function to choose the most interesting paper from candidates.
+def choose_interesting_paper(candidates: List[str], logger: logging.Logger) -> str:
+    """Select the most interesting candidate paper based on citations."""
+    citations_df = paper_db.load_citations()
+    citations_df = citations_df[citations_df.index.isin(candidates)]
     citations_df["citation_count"] = citations_df["citation_count"].fillna(1) + 1
-    citations_df["weight"] = citations_df["citation_count"] / citations_df["citation_count"].sum()
+    citations_df["weight"] = (
+        citations_df["citation_count"] / citations_df["citation_count"].sum()
+    )
     citations_df["weight"] = citations_df["weight"] ** 0.5
     citations_df["weight"] = citations_df["weight"] / citations_df["weight"].sum()
-    
+
     candidate_arxiv_codes = np.random.choice(
         citations_df.index,
         size=25,
         replace=False,
         p=citations_df["weight"] / citations_df["weight"].sum(),
     )
-    logger.info(f"Selected {len(candidate_arxiv_codes)} candidate papers based on citations")
-
-    ## Prepare abstracts for selection (only for candidates).
-    candidate_abstracts = db.get_recursive_summary(candidate_arxiv_codes)
-    abstracts_str = "\n".join(
-        [f"<{code}>\n{abstract}\n</{code}>\n"
-        for code, abstract in candidate_abstracts.items()]
+    logger.info(
+        f"Selected {len(candidate_arxiv_codes)} candidate papers based on citations"
     )
 
-    ## Select most interesting paper.
+    candidate_abstracts = paper_db.get_recursive_summary(candidate_arxiv_codes)
+    abstracts_str = "\n".join(
+        [
+            f"<{code}>\n{abstract}\n</{code}>\n"
+            for code, abstract in candidate_abstracts.items()
+        ]
+    )
     logger.info("Selecting most interesting paper...")
     arxiv_code = vs.select_most_interesting_paper(
         abstracts_str, model="claude-3-5-sonnet-20241022"
     )
-    
-    ## Gather paper details.
-    paper_details = db.load_arxiv(arxiv_code)
-    
-    return arxiv_code, paper_details
+    logger.info(f"Candidate selected: {arxiv_code}")
+    return arxiv_code
 
-def prepare_tweet_facts(arxiv_code: str, paper_details: dict, tweet_type: str, logger: logging.Logger) -> Tuple[str, str, str]:
-    """Prepare basic tweet information with content based on tweet type."""
+
+def select_paper(logger: logging.Logger) -> str:
+    """Select a paper to tweet about."""
+    candidates = fetch_candidate_papers(logger)
+    arxiv_code = choose_interesting_paper(candidates, logger)
+    logger.info(f"Selected paper: {arxiv_code}")
+    return arxiv_code
+
+
+def prepare_tweet_facts(
+    arxiv_code: str, tweet_type: str, logger: logging.Logger
+) -> Tuple[str, str, str]:
+    """Prepare basic tweet information and content based on tweet type."""
+    ## Load paper details
+    paper_details = paper_db.load_arxiv(arxiv_code)
+    title_map = db_utils.get_arxiv_title_dict()
+    paper_title = title_map[arxiv_code]
+
+    ## Extract metadata
     publish_date_full = paper_details["published"].iloc[0].strftime("%b %d, %Y")
     author = paper_details["authors"].iloc[0]
-    title_map = db.get_arxiv_title_dict()
-    paper_title = title_map[arxiv_code]
-    
+
     ## Get content based on tweet type
     if tweet_type == "punchline":
-        logger.info("Loading markdown content for punchline")
         markdown_content, success = au.get_paper_markdown(arxiv_code)
         if not success:
             raise Exception(f"Could not load markdown content for {arxiv_code}")
         content = markdown_content
     else:
-        logger.info("Loading extended notes")
-        content = db.get_extended_notes(arxiv_code, expected_tokens=4500)
-    
-    tweet_facts = f"```**Title: {paper_title}**\n**Authors: {author}**\n{content}```"
+        content = paper_db.get_extended_notes(arxiv_code, expected_tokens=4500)
+
+    tweet_facts = f"**Title: {paper_title}**\n**Authors: {author}**\n{content}"
     post_tweet = f"arxiv link: https://arxiv.org/abs/{arxiv_code}\nllmpedia link: https://llmpedia.streamlit.app/?arxiv_code={arxiv_code}"
 
     ## Add repository link if available.
-    repo_df = db.load_repositories(arxiv_code)
+    repo_df = paper_db.load_repositories(arxiv_code)
     if not repo_df.empty and repo_df["repo_url"].values[0]:
         repo_url = repo_df["repo_url"].values[0]
         post_tweet += f"\nrepo: {repo_url}"
-        logger.info(f"Added repository link: {repo_url}")
-        
+        logger.info(f"Added repository link for: {arxiv_code} - '{paper_title}'")
+
     return tweet_facts, post_tweet, publish_date_full
 
-def generate_tweet_content(tweet_type: str, tweet_facts: str, arxiv_code: str, publish_date: str, logger: logging.Logger) -> TweetContent:
+
+def generate_tweet_content(
+    tweet_type: str,
+    tweet_facts: str,
+    arxiv_code: str,
+    publish_date: str,
+    logger: logging.Logger,
+) -> TweetContent:
     """Generate tweet content based on type."""
+    paper_title = db_utils.get_arxiv_title_dict()[arxiv_code]
+
     if tweet_type == "fable":
-        logger.info("Generating fable-style tweet")
+        logger.info(f"Generating fable tweet: {arxiv_code} - '{paper_title}'")
         with open(f"{IMG_PATH}/{arxiv_code}.png", "rb") as img_file:
             b64_image = base64.b64encode(img_file.read()).decode("utf-8")
-        
+
         content = vs.write_fable(
             tweet_facts=tweet_facts,
             image_data=b64_image,
@@ -180,12 +217,11 @@ def generate_tweet_content(tweet_type: str, tweet_facts: str, arxiv_code: str, p
             post_content=tweet_facts,
             tweet_type=tweet_type,
             arxiv_code=arxiv_code,
-            publish_date=publish_date
+            publish_date=publish_date,
         )
-        
+
     elif tweet_type == "punchline":
-        logger.info("Generating punchline-style tweet")
-        paper_title = db.get_arxiv_title_dict()[arxiv_code]
+        logger.info(f"Generating punchline tweet: {arxiv_code} - '{paper_title}'")
         punchline_obj = vs.write_punchline_tweet(
             markdown_content=tweet_facts,  # Already contains markdown content
             paper_title=paper_title,
@@ -200,58 +236,72 @@ def generate_tweet_content(tweet_type: str, tweet_facts: str, arxiv_code: str, p
             arxiv_code=arxiv_code,
             publish_date=publish_date,
             selected_image=punchline_obj.image,
-            selected_table=punchline_obj.table
+            selected_table=punchline_obj.table,
         )
-        
+
     else:  # insight_v5
-        logger.info("Generating insight-style tweet")
-        recent_llm_tweets = []
-        for batch in tweet.collect_llm_tweets(logger, max_tweets=10):
-            recent_llm_tweets.extend(batch)
-        recent_llm_tweets_str = "\n".join(
-            [f"COMMUNITY TWEET {i+1}:\n{tweet['text']}"
-             for i, tweet in enumerate(recent_llm_tweets)]
+        logger.info(f"Generating insight tweet: {arxiv_code} - '{paper_title}'")
+        recent_analyses = tweet_db.read_last_n_tweet_analyses(5)
+        recent_analyses_str = ""
+        if not recent_analyses.empty:
+            entries = []
+            for _, row in recent_analyses.iterrows():
+                timestamp = pd.to_datetime(row["tstp"]).strftime("%Y-%m-%d %H:%M")
+                entries.append(f"[{timestamp}] {row['response'].strip()}")
+            recent_analyses_str = "\n".join(entries)
+
+        most_recent_tweets = (
+            tweet_db.load_tweet_insights(drop_rejected=True)
+            .head(7)["tweet_insight"]
+            .values
         )
-        
-        most_recent_tweets = db.load_tweet_insights(drop_rejected=True).head(7)["tweet_insight"].values
         most_recent_tweets_str = "\n".join(
-            [f"- {tweet.replace('Insight from ', 'From ')}" for tweet in most_recent_tweets]
+            [
+                f"- {tweet.replace('Insight from ', 'From ')}"
+                for tweet in most_recent_tweets
+            ]
         )
-        
+
         tweet_obj = vs.write_tweet(
             tweet_facts=tweet_facts,
             tweet_type=tweet_type,
             most_recent_tweets=most_recent_tweets_str,
-            recent_llm_tweets=recent_llm_tweets_str,
+            recent_llm_tweets=recent_analyses_str,
             model="claude-3-5-sonnet-20241022",
             temperature=0.9,
         )
         content = tweet_obj.edited_tweet
-    
+
         return TweetContent(
             content=bold(content, publish_date),
             post_content=tweet_facts,
             tweet_type=tweet_type,
             arxiv_code=arxiv_code,
-            publish_date=publish_date
+            publish_date=publish_date,
         )
 
-def prepare_tweet_images(tweet_content: TweetContent, logger: logging.Logger) -> TweetImages:
+
+def prepare_tweet_images(
+    tweet_content: TweetContent, logger: logging.Logger
+) -> TweetImages:
     """Prepare images based on tweet type."""
+    paper_title = db_utils.get_arxiv_title_dict()[tweet_content.arxiv_code]
     images = TweetImages()
-    
+
     if tweet_content.tweet_type in ["insight_v5", "fable"]:
         ## Download art image if needed
         images.tweet_image = f"{IMG_PATH}/{tweet_content.arxiv_code}.png"
         if not os.path.exists(images.tweet_image):
-            logger.info(f"Downloading art image for {tweet_content.arxiv_code}")
+            logger.info(
+                f"Downloading art image: {tweet_content.arxiv_code} - '{paper_title}'"
+            )
             pu.download_s3_file(
                 tweet_content.arxiv_code,
                 bucket_name="arxiv-art",
                 prefix="data",
-                format="png"
+                format="png",
             )
-    
+
     if tweet_content.tweet_type == "insight_v5":
         ## Download first page if needed
         images.tweet_page = f"{PAGE_PATH}/{tweet_content.arxiv_code}.png"
@@ -261,22 +311,30 @@ def prepare_tweet_images(tweet_content: TweetContent, logger: logging.Logger) ->
                 tweet_content.arxiv_code,
                 bucket_name="arxiv-first-page",
                 prefix="data",
-                format="png"
+                format="png",
             )
-            
+
         ## Get analyzed image if available
-        analyzed_image = vs.analyze_paper_images(tweet_content.arxiv_code, model="claude-3-5-sonnet-20241022")
+        analyzed_image = vs.analyze_paper_images(
+            tweet_content.arxiv_code, model="claude-3-5-sonnet-20241022"
+        )
         if analyzed_image:
-            images.analyzed_image = os.path.join(DATA_PATH, "arxiv_md", tweet_content.arxiv_code, analyzed_image)
+            images.analyzed_image = os.path.join(
+                DATA_PATH, "arxiv_md", tweet_content.arxiv_code, analyzed_image
+            )
             if not os.path.exists(images.analyzed_image):
                 logger.warning(f"Selected image {analyzed_image} not found")
                 images.analyzed_image = None
-                
+
     elif tweet_content.tweet_type == "punchline" and tweet_content.selected_image:
         ## Use selected image for punchlines
-        image_path = os.path.join(DATA_PATH, "arxiv_md", tweet_content.arxiv_code, 
-                                tweet_content.selected_image.split("/")[-1])
-        
+        image_path = os.path.join(
+            DATA_PATH,
+            "arxiv_md",
+            tweet_content.arxiv_code,
+            tweet_content.selected_image.split("/")[-1],
+        )
+
         if os.path.exists(image_path):
             images.tweet_page = image_path
             logger.info(f"Using selected image: {image_path}")
@@ -288,38 +346,40 @@ def prepare_tweet_images(tweet_content: TweetContent, logger: logging.Logger) ->
                     tweet_content.arxiv_code,
                     bucket_name="arxiv-first-page",
                     prefix="data",
-                    format="png"
+                    format="png",
                 )
-    
+
     return images
+
 
 def main():
     """Generate a weekly review of highlights and takeaways from papers."""
     logger.info("Starting tweet generation process.")
-    
+
     ## Select tweet type
     rand_val = random.random()
     tweet_type = (
-        "fable" if rand_val < 0.05
-        else "punchline" if rand_val < 0.3
-        else "insight_v5"
+        "fable" if rand_val < 0.0 else "punchline" if rand_val < 0.5 else "insight_v5"
     )
     logger.info(f"Selected tweet type: {tweet_type}")
 
-    ## Select paper and gather details
-    arxiv_code, paper_details = select_paper(logger)
-    logger.info(f"Selected paper: {arxiv_code}")
+    ## Select paper
+    arxiv_code = select_paper(logger)
 
-    ## Prepare basic tweet information with appropriate content
-    tweet_facts, post_tweet, publish_date = prepare_tweet_facts(arxiv_code, paper_details, tweet_type, logger)
+    ## Prepare tweet facts and content
+    tweet_facts, post_tweet, publish_date = prepare_tweet_facts(
+        arxiv_code, tweet_type, logger
+    )
 
     ## Generate tweet content based on type
-    tweet_content = generate_tweet_content(tweet_type, tweet_facts, arxiv_code, publish_date, logger)
+    tweet_content = generate_tweet_content(
+        tweet_type, tweet_facts, arxiv_code, publish_date, logger
+    )
     logger.info(f"Generated content: {tweet_content.content}")
 
     ## Prepare images based on tweet type
     images = prepare_tweet_images(tweet_content, logger)
-    
+
     ## Log image paths
     logger.info("Sending tweet with the following images:")
     logger.info(f"- tweet_image_path: {images.tweet_image}")
@@ -327,9 +387,13 @@ def main():
     logger.info(f"- analyzed_image_path: {images.analyzed_image}")
 
     ## Check for author's tweet
-    author_tweet = tweet.find_paper_author_tweet(arxiv_code, logger)
-    if author_tweet:
-        logger.info(f"Found author tweet: {author_tweet['text']}")
+    author_tweet = None
+    try:
+        author_tweet = tweet.find_paper_author_tweet(arxiv_code, logger)
+        if author_tweet:
+            logger.info(f"Found author tweet: {author_tweet['text']}")
+    except Exception as e:
+        logger.warning(f"Failed to fetch author tweet: {str(e)}")
 
     ## Send tweet
     tweet_success = tweet.send_tweet(
@@ -339,12 +403,13 @@ def main():
         logger=logger,
         author_tweet=author_tweet,
         tweet_page_path=images.tweet_page,
-        analyzed_image_path=images.analyzed_image
+        analyzed_image_path=images.analyzed_image,
+        verify=True,
     )
 
     ## Store results
     if tweet_success:
-        db.insert_tweet_review(
+        tweet_db.insert_tweet_review(
             arxiv_code,
             tweet_content.content,
             datetime.datetime.now(),
@@ -355,6 +420,7 @@ def main():
         logger.info("Tweet stored in database and email alert sent.")
     else:
         logger.error("Failed to send tweet.")
+
 
 if __name__ == "__main__":
     main()

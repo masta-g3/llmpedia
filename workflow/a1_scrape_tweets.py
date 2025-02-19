@@ -81,7 +81,6 @@ def extract_tweets(browser: webdriver.Firefox) -> List[dict]:
 
 def scrape_tweets(browser: webdriver.Firefox, max_tweets: int = 100) -> List[dict]:
     """Scrape tweets from a profile."""
-    logger.info(f"Scraping tweets from {browser.current_url}")
     all_tweets = []
     last_height = browser.execute_script("return document.body.scrollHeight")
 
@@ -122,11 +121,12 @@ def main():
     tweet.login_twitter(browser, logger)
 
     try:
-        for account in tweet_accounts:
+        total_accounts = len(tweet_accounts)
+        for idx, account in enumerate(tweet_accounts, 1):
             browser.get(f"https://x.com/{account}")
             tweets = scrape_tweets(browser, max_tweets=30)
             all_tweets.extend(tweets)
-            logger.info(f"Successfully scraped and saved {len(tweets)} tweets from {account}.")
+            logger.info(f"[{idx}/{total_accounts}] Scraped account: @{account} ({len(tweets)} tweets)")
 
         new_codes = extract_codes_from_tweets([tweet["text"] for tweet in all_tweets])
 
@@ -140,9 +140,9 @@ def main():
         done_codes = pu.list_s3_files("arxiv-text", strip_extension=True)
         nonllm_codes = pu.list_s3_files("nonllm-arxiv-text", strip_extension=True)
 
-        logger.info(f"Total papers: {len(paper_list)}")
+        logger.info(f"Found {len(paper_list)} total papers in queue")
         paper_list = list(set(paper_list) - set(done_codes) - set(nonllm_codes))
-        logger.info(f"New papers: {len(paper_list)}")
+        logger.info(f"Found {len(paper_list)} new papers to process")
 
         if len(paper_list) == 0:
             logger.info("No new papers found. Exiting...")

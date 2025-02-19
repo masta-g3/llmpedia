@@ -16,7 +16,7 @@ sys.path.append(PROJECT_PATH)
 os.chdir(PROJECT_PATH)
 
 import utils.paper_utils as pu
-import utils.db as db
+import utils.db.db_utils as db_utils
 from utils.logging_utils import setup_logger
 
 logger = setup_logger(__name__, "j0_doc_chunker.log")
@@ -130,7 +130,7 @@ def main():
 
     ## Child chunks.
     logger.info("Creating child chunks.")
-    child_done = db.get_arxiv_id_list(pu.db_params, "arxiv_chunks")
+    child_done = db_utils.get_arxiv_id_list("arxiv_chunks")
     child_codes = list(set(arxiv_codes) - set(child_done))
     logger.info(f"Found {len(child_codes)} child papers pending.")
 
@@ -146,7 +146,7 @@ def main():
         doc_chunks_df["arxiv_code"] = arxiv_code
         doc_chunks_df["chunk_id"] = doc_chunks_df.index
         doc_chunks_df.columns = ["text", "arxiv_code", "chunk_id"]
-        db.upload_df_to_db(doc_chunks_df, "arxiv_chunks", pu.db_params)
+        db_utils.upload_dataframe(doc_chunks_df, "arxiv_chunks", pu.db_params)
 
         ## Store document chunks in JSON.
         doc_chunks_list = doc_chunks_df.to_dict(orient="records")
@@ -156,7 +156,7 @@ def main():
     ## Parent chunks.
     logger.info("Creating parent chunks.")
     parent_table_name = version_name_map[VERSION_NAME]
-    parent_done = db.get_arxiv_id_list(pu.db_params, parent_table_name)
+    parent_done = db_utils.get_arxiv_id_list(pu.db_params, parent_table_name)
     parent_codes = list(set(arxiv_codes) - set(parent_done))
     logger.info(f"Found {len(parent_codes)} parent papers pending.")
 
@@ -171,7 +171,7 @@ def main():
         doc_chunks_df["arxiv_code"] = arxiv_code
         doc_chunks_df["chunk_id"] = doc_chunks_df.index
         doc_chunks_df.columns = ["text", "arxiv_code", "chunk_id"]
-        db.upload_df_to_db(doc_chunks_df, parent_table_name, pu.db_params)
+        db_utils.upload_dataframe(doc_chunks_df, parent_table_name, pu.db_params)
 
         ## Store document chunks in JSON.
         doc_chunks_list = doc_chunks_df.to_dict(orient="records")
@@ -181,13 +181,13 @@ def main():
     ## Mapping of child-to-parent.
     logger.info("Mapping child-to-parent.")
     ## ToDo: Allow version param here.
-    mapping_done = db.get_arxiv_id_list(pu.db_params, "arxiv_chunk_map")
+    mapping_done = db_utils.get_arxiv_id_list(pu.db_params, "arxiv_chunk_map")
     mapping_codes = list(set(arxiv_codes) - set(mapping_done))
     logger.info(f"Found {len(mapping_codes)} mapping papers pending.")
 
     mapping_df = parallel_process_mapping(mapping_codes, child_path, parent_path)
     mapping_df["version"] = VERSION_NAME
-    db.upload_df_to_db(mapping_df, "arxiv_chunk_map", pu.db_params)
+    db_utils.upload_dataframe(mapping_df, "arxiv_chunk_map", pu.db_params)
 
 
 if __name__ == "__main__":

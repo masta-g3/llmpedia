@@ -13,7 +13,7 @@ sys.path.append(PROJECT_PATH)
 os.chdir(PROJECT_PATH)
 
 import utils.paper_utils as pu
-import utils.db as db
+import utils.db.db_utils as db_utils
 from utils.logging_utils import setup_logger
 
 # Set up logging
@@ -28,24 +28,31 @@ def main():
     
     # Get papers that need to be processed
     arxiv_codes = list(set(arxiv_codes) - set(done_markdowns))
-    arxiv_codes = sorted(arxiv_codes)[::-1][:50]
+    arxiv_codes = sorted(arxiv_codes)[::-1]
     
-    logger.info(f"Found {len(arxiv_codes)} papers to process")
+    total_papers = len(arxiv_codes)
+    logger.info(f"Found {total_papers} papers to process")
+    
+    title_map = db_utils.get_arxiv_title_dict()
 
     ## Iterate through papers
-    for arxiv_code in arxiv_codes:
+    for idx, arxiv_code in enumerate(arxiv_codes, 1):
+        paper_title = title_map.get(arxiv_code, "Unknown Title")
         
         # Ensure PDF exists locally and in S3
         pdf_path = os.path.join(PROJECT_PATH, "data/arxiv_pdfs", f"{arxiv_code}.pdf")
         if not pu.ensure_pdf_exists(arxiv_code, pdf_path, logger):
+            logger.warning(f"[{idx}/{total_papers}] Failed to fetch PDF: {arxiv_code} - '{paper_title}'")
             continue
 
+        logger.info(f"[{idx}/{total_papers}] Converting to markdown: {arxiv_code} - '{paper_title}'")
+        
         # Convert to markdown
         # try:
         markdown_text, images = pu.convert_pdf_to_markdown(pdf_path)
 
         if markdown_text is None:
-            logger.error(f"Failed to convert {arxiv_code} to markdown")
+            logger.error(f"[{idx}/{total_papers}] Failed markdown conversion: {arxiv_code} - '{paper_title}'")
             continue
         
         # Create paper directory if it doesn't exist (both locally and on S3)
@@ -70,8 +77,7 @@ def main():
             key=arxiv_code,
             recursive=True
         )
-        logger.info(f"Uploaded paper directory for {arxiv_code} to S3")
-        logger.info(f"Successfully processed '{arxiv_code}'")
+        logger.info(f"[{idx}/{total_papers}] Processed paper: {arxiv_code} - '{paper_title}'")
 
         # except pypdfium2._helpers.misc.PdfiumError as e:
         #     logger.error(f"Failed to convert {arxiv_code} to markdown: {str(e)}")

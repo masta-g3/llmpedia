@@ -13,7 +13,8 @@ from tqdm import tqdm
 
 import utils.paper_utils as pu
 import utils.vector_store as vs
-import utils.db as db
+import utils.db.db_utils as db_utils
+import utils.db.paper_db as paper_db
 from utils.logging_utils import setup_logger
 
 # Set up logging
@@ -29,29 +30,34 @@ def main():
     vs.validate_openai_env()
 
     ## Get paper list.
-    arxiv_codes = db.get_arxiv_id_list(pu.db_params, "summary_notes")
-    existing_papers = db.get_arxiv_id_list(pu.db_params, "summaries")
+    arxiv_codes = db_utils.get_arxiv_id_list("summary_notes")
+    existing_papers = db_utils.get_arxiv_id_list("summaries")
     arxiv_codes = list(set(arxiv_codes) - set(existing_papers))
 
     arxiv_codes = sorted(arxiv_codes)[::-1]
-    logger.info(f"Found {len(arxiv_codes)} papers to review")
+    total_papers = len(arxiv_codes)
+    logger.info(f"Found {total_papers} papers to review")
+    
+    title_map = db_utils.get_arxiv_title_dict()
 
-    for arxiv_code in arxiv_codes:
-        new_content = db.get_extended_notes(arxiv_code, expected_tokens=1200)
+    for idx, arxiv_code in enumerate(arxiv_codes, 1):
+        paper_title = title_map.get(arxiv_code, "Unknown Title")
+        new_content = paper_db.get_extended_notes(arxiv_code, expected_tokens=1200)
 
         ## Try to run LLM process up to 3 times.
         success = False
         for i in range(RETRIES):
             try:
+                logger.info(f"[{idx}/{total_papers}] Reviewing: {arxiv_code} - '{paper_title}' (attempt {i+1}/{RETRIES})")
                 summary = vs.review_llm_paper(new_content, model="claude-3-5-sonnet-20241022")
                 success = True
                 break
             except Exception as e:
-                logger.error(f"Failed to run LLM for '{arxiv_code}'. Attempt {i+1}/{RETRIES}.")
+                logger.error(f"[{idx}/{total_papers}] Failed review: {arxiv_code} - '{paper_title}' (attempt {i+1}/{RETRIES})")
                 logger.error(str(e))
                 continue
         if not success:
-            logger.warning(f"Failed to run LLM for '{arxiv_code}' after {RETRIES} attempts. Skipping...")
+            logger.warning(f"[{idx}/{total_papers}] Skipping: {arxiv_code} - '{paper_title}' (failed after {RETRIES} attempts)")
             continue
 
         ## Extract and combine results.
@@ -69,8 +75,9 @@ def main():
         )
         flat_entries["arxiv_code"] = arxiv_code
         flat_entries["tstp"] = pd.Timestamp.now()
-        logger.info(f"Uploading review for {arxiv_code} to database")
-        db.upload_to_db(flat_entries, pu.db_params, "summaries")
+        logger.info(f"[{idx}/{total_papers}] Storing review: {arxiv_code} - '{paper_title}'")
+        df = pd.DataFrame([flat_entries])
+        db_utils.upload_dataframe(df, "summaries")
 
     logger.info("Paper review process completed")
 

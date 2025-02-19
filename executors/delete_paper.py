@@ -10,8 +10,8 @@ PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
 sys.path.append(PROJECT_PATH)
 os.chdir(PROJECT_PATH)
 
-import utils.db as db
-
+import utils.db.db_utils as db_utils
+import utils.db.logging_db as logging_db
 table_names = [
     "arxiv_chunks",
     "arxiv_details",
@@ -78,7 +78,7 @@ def delete_from_s3(arxiv_code: str):
 def delete_from_vector_store(arxiv_code: str):
     """Delete paper embeddings from vector store."""
     try:
-        with psycopg2.connect(**db.db_params) as conn:
+        with psycopg2.connect(**db_utils.db_params) as conn:
             with conn.cursor() as cur:
                 ## Delete from langchain embeddings
                 cur.execute("""
@@ -92,7 +92,7 @@ def delete_from_vector_store(arxiv_code: str):
 
 def delete_from_db(arxiv_code: str):
     """Delete paper from all database tables."""
-    with psycopg2.connect(**db.db_params) as conn:
+    with psycopg2.connect(**db_utils.db_params) as conn:
         with conn.cursor() as cur:
             for table_name in table_names:
                 cur.execute(
@@ -226,10 +226,10 @@ def main(arxiv_code):
     if arxiv_code:
         delete_paper(arxiv_code)
     else:
-        arxiv_codes = db.get_reported_non_llm_papers()
+        arxiv_codes = logging_db.get_reported_non_llm_papers()
         for arxiv_code in arxiv_codes:
             delete_paper(arxiv_code)
-            db.update_reported_status(arxiv_code, "non_llm")
+            logging_db.update_reported_status(arxiv_code, "non_llm")
 
 
 if __name__ == "__main__":

@@ -96,9 +96,8 @@ class TopicCategory(str, Enum):
     TRANSFORMER_ALTERNATIVES = "Transformer Alternatives and Efficiency Improvements"
     EFFICIENT_LLM_TRAINING = "Efficient LLM Training and Inference Optimization"
     RETRIEVAL_AUGMENTED_GENERATION = "Retrieval-Augmented Generation for NLP Tasks"
-    ADVANCED_PROMPT_TECHNIQUES = (
-        "Enhancing LLM Performance with Advanced Prompt Techniques"
-    )
+    ADVANCED_PROMPT_TECHNIQUES = "Enhancing LLM Performance with Advanced Prompt Techniques"
+    
     INSTRUCTION_TUNING_TECHNIQUES = "Instruction Tuning Techniques for LLMs"
     BIAS_HATE_SPEECH_DETECTION = "Mitigating Bias and Hate Speech Detection"
     MATHEMATICAL_PROBLEM_SOLVING = "Enhancing Mathematical Problem Solving with AI"
@@ -237,12 +236,9 @@ class TweetRelevanceInfo(BaseModel):
 
 
 class TweetScratchpad(BaseModel):
-    content: str = Field(..., description="Content of the tweet.")
-    structure: str = Field(..., description="Structure of the tweet.")
-    broader_discussion: str = Field(
-        ..., description="How to connect to broader discussions?"
-    )
-
+    ideas: str = Field(..., description="List of ideas for the tweet.")
+    content: str = Field(..., description="Discussion on content of the tweet.")
+    structure: str = Field(..., description="Discussion on structure of the tweet.")
 
 class TweetEditScratchpad(BaseModel):
     review_analysis: str = Field(
@@ -334,3 +330,9 @@ class ResolveQuery(BaseModel):
         ...,
         description="The final response following the style guidelines and length requirements, incorporating all planned elements."
     )
+
+
+class GeneratedQuestion(BaseModel):
+    """Container for generated LLM question and analysis."""
+    sketchpad: str = Field(description="Brainstorm multiple ideas for interesting questions about LLMs")
+    question: str = Field(description="The generated question about LLMs")

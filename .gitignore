@@ -15,3 +15,4 @@ arxiv_first_page/
 eval_apps/
 .vscode/
 *.log
+*.pyc

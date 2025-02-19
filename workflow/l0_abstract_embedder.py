@@ -17,7 +17,7 @@ PROJECT_PATH = os.getenv('PROJECT_PATH', '/app')
 sys.path.append(PROJECT_PATH)
 
 import utils.paper_utils as pu
-import utils.db as db
+import utils.db.db as db
 from utils.logging_utils import setup_logger
 
 logger = setup_logger(__name__, "l0_abstract_embedder.log")

@@ -9,7 +9,8 @@ import markdown2
 
 import utils.app_utils as au
 import utils.data_cards as dc
-import utils.db as db
+import utils.db.paper_db as paper_db
+import utils.db.logging_db as logging_db
 
 
 def create_sidebar(full_papers_df: pd.DataFrame) -> Tuple[pd.DataFrame, int]:
@@ -193,22 +194,22 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         report_log_space = meta_col.empty()
         report_btn = action_btn_cols[0].popover("⚠️ Report")
         if report_btn.checkbox("Report bad image", key=f"report_v1_{paper_code}_{name}"):
-            db.report_issue(paper_code, "bad_image")
+            logging_db.report_issue(paper_code, "bad_image")
             report_log_space.success("Reported bad image. Thanks!")
             time.sleep(3)
             report_log_space.empty()
         if report_btn.checkbox("Report bad summary", key=f"report_v2_{paper_code}_{name}"):
-            db.report_issue(paper_code, "bad_summary")
+            logging_db.report_issue(paper_code, "bad_summary")
             report_log_space.success("Reported bad summary. Thanks!")
             time.sleep(3)
             report_log_space.empty()
         if report_btn.checkbox("Report non-LLM paper", key=f"report_v3_{paper_code}_{name}"):
-            db.report_issue(paper_code, "non_llm")
+            logging_db.report_issue(paper_code, "non_llm")
             report_log_space.success("Reported non-LLM paper. Thanks!")
             time.sleep(3)
             report_log_space.empty()
         if report_btn.checkbox("Report bad data card", key=f"report_v4_{paper_code}_{name}"):
-            db.report_issue(paper_code, "bad_datacard")
+            logging_db.report_issue(paper_code, "bad_datacard")
             report_log_space.success("Reported bad data-card. Thanks!")
             time.sleep(3)
             report_log_space.empty()
@@ -351,7 +352,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             # Get notes based on selected level
             try:
                 selected_level = level_map[level_select]
-                detailed_notes = db.get_extended_notes(paper["arxiv_code"], level=selected_level)
+                detailed_notes = paper_db.get_extended_notes(paper["arxiv_code"], level=selected_level)
                 
                 if detailed_notes is None:
                     # If we're trying to get more detailed notes (lower level numbers)

@@ -13,7 +13,8 @@ sys.path.append(PROJECT_PATH)
 os.chdir(PROJECT_PATH)
 
 import utils.vector_store as vs
-import utils.db as db
+import utils.db.db_utils as db_utils
+import utils.db.paper_db as paper_db
 from utils.logging_utils import setup_logger
 
 # Set up logging
@@ -23,25 +24,26 @@ def main():
     logger.info("Starting bullet list narration process")
     vs.validate_openai_env()
 
-    arxiv_codes = db.get_arxiv_id_list(db.db_params, "summary_notes")
-    title_map = db.get_arxiv_title_dict(db.db_params)
-    done_codes = db.get_arxiv_id_list(db.db_params, "bullet_list_summaries")
+    arxiv_codes = db_utils.get_arxiv_id_list("summary_notes")
+    title_map = db_utils.get_arxiv_title_dict()
+    done_codes = db_utils.get_arxiv_id_list("bullet_list_summaries")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
 
-    logger.info(f"Found {len(arxiv_codes)} papers to process for bullet list summaries")
+    total_papers = len(arxiv_codes)
+    logger.info(f"Found {total_papers} papers to process for bullet list summaries")
 
-    for arxiv_code in arxiv_codes:
-        paper_notes = db.get_extended_notes(arxiv_code, expected_tokens=500)
+    for idx, arxiv_code in enumerate(arxiv_codes, 1):
+        paper_notes = paper_db.get_extended_notes(arxiv_code, expected_tokens=500)
         paper_title = title_map[arxiv_code]
 
-        logger.info(f"Generating bullet list for: {arxiv_code} - '{paper_title}'")
         bullet_list = vs.convert_notes_to_bullets(
             paper_title, paper_notes, model="claude-3-5-sonnet-20241022"
         )
         bullet_list = bullet_list.replace("\n\n", "\n")
         
-        db.insert_bullet_list_summary(arxiv_code, bullet_list)
+        paper_db.insert_bullet_list_summary(arxiv_code, bullet_list)
+        logger.info(f"[{idx}/{total_papers}] Stored bullet list: {arxiv_code} - '{paper_title}'")
 
     logger.info("Bullet list narration process completed")
 

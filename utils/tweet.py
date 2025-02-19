@@ -1,7 +1,7 @@
 import os, sys
 import time
 import random
-from typing import Tuple, List, Iterator
+from typing import Tuple, List, Iterator, Optional
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -14,7 +14,8 @@ from selenium.common.exceptions import TimeoutException
 import logging
 from urllib.parse import quote
 import utils.vector_store as vs
-import utils.db as db
+import utils.db.paper_db as paper_db
+from utils.logging_utils import get_console_logger
 
 load_dotenv()
 
@@ -277,6 +278,7 @@ def send_tweet(
     author_tweet: dict | None = None,
     tweet_page_path: str | None = None,
     analyzed_image_path: str | None = None,
+    verify: bool = True,
 ) -> bool:
     """Send a tweet with content and images using Selenium."""
     
@@ -410,12 +412,13 @@ def send_tweet(
         tweet_box.send_keys(f"related discussion: {author_tweet['link']}")
 
     # Verify tweet elements
-    elements_verified, verification_message = verify_tweet_elements(
-        driver, tweet_content, expected_image_count=expected_image_count, logger=logger
-    )
-    if not elements_verified:
-        logger.error(f"Tweet verification failed: {verification_message}")
-        return False
+    if verify:
+        elements_verified, verification_message = verify_tweet_elements(
+            driver, tweet_content, expected_image_count=expected_image_count, logger=logger
+        )
+        if not elements_verified:
+            logger.error(f"Tweet verification failed: {verification_message}")
+            return False
 
     # Send tweet
     time.sleep(5)
@@ -452,8 +455,9 @@ def send_tweet(
     return True
 
 
-def extract_author_tweet_data(tweet_elem, paper_title, paper_authors, logger):
+def extract_author_tweet_data(tweet_elem, paper_title, paper_authors, logger: Optional[logging.Logger] = None) -> Optional[dict]:
     """Extract tweet data if it's from a paper author."""
+    logger = logger or get_console_logger()
     try:
         # Extract tweet text
         tweet_text = tweet_elem.find_element(
@@ -475,8 +479,9 @@ def extract_author_tweet_data(tweet_elem, paper_title, paper_authors, logger):
 
     return None
 
-def extract_tweet_data(tweet_elem, logger: logging.Logger) -> dict:
+def extract_tweet_data(tweet_elem, logger: Optional[logging.Logger] = None) -> Optional[dict]:
     """Extract all relevant data from a tweet element."""
+    logger = logger or get_console_logger()
     try:
         ## Get user info.
         user_name_elem = tweet_elem.find_element(
@@ -489,10 +494,12 @@ def extract_tweet_data(tweet_elem, logger: logging.Logger) -> dict:
             By.CSS_SELECTOR, 'div[data-testid="tweetText"]'
         )
         if not tweet_text_elements:
+            logger.warning("No tweet text elements found")
             return None
 
         tweet_text = tweet_text_elements[0].text
         if not tweet_text.strip():
+            logger.warning("Tweet text is empty")
             return None
 
         ## Build base tweet data.
@@ -510,6 +517,7 @@ def extract_tweet_data(tweet_elem, logger: logging.Logger) -> dict:
             tweet_data["tweet_timestamp"] = tweet_elem.find_element(By.TAG_NAME, "time").get_attribute("datetime")
         except Exception as e:
             tweet_data["tweet_timestamp"] = None
+            logger.warning("Error extracting tweet timestamp")
 
         # Get metrics
         metrics = {
@@ -570,102 +578,91 @@ def extract_tweet_data(tweet_elem, logger: logging.Logger) -> dict:
         return None
 
 
-def find_paper_author_tweet(arxiv_code: str, logger) -> dict:
+def find_paper_author_tweet(arxiv_code: str, logger: Optional[logging.Logger] = None) -> Optional[dict]:
     """Find a tweet from a paper's author about their paper."""
+    logger = logger or get_console_logger()
     logger.info(f"Searching for author tweet for {arxiv_code}")
-    try:
-        # Get paper details
-        paper_details = db.load_arxiv(arxiv_code)
-        paper_title = paper_details["title"].iloc[0]
-        paper_authors = paper_details["authors"].iloc[0].split(", ")
+    
+    # Get paper details
+    paper_details = paper_db.load_arxiv(arxiv_code)
+    paper_title = paper_details["title"].iloc[0]
+    paper_authors = paper_details["authors"].iloc[0].split(", ")
+    
+    # Initialize browser
+    browser = setup_browser(logger, headless=False)
+    login_twitter(browser, logger)
+    if not browser:
+        logger.error("Failed to initialize browser")
+        return None
         
-        # Initialize browser
-        browser = setup_browser(logger)
-        if not browser:
-            logger.error("Failed to initialize browser")
-            return None
-            
-        # Search for paper title
-        search_url = f"https://twitter.com/search?q={paper_title}&src=typed_query&f=live"
-        browser.get(search_url)
-        
-        # Initialize variables
-        tweets_checked = 0
-        max_tweets_to_check = 100
-        
-        while tweets_checked < max_tweets_to_check:
-            try:
-                # Wait for and get tweets
-                WebDriverWait(browser, 30).until(
-                    EC.presence_of_element_located(
-                        (By.CSS_SELECTOR, 'article[data-testid="tweet"]')
-                    )
-                )
-                tweet_elements = browser.find_elements(
-                    By.CSS_SELECTOR, 'article[data-testid="tweet"]'
-                )
+    # Search for paper title
+    search_url = f"https://twitter.com/search?q={paper_title}&src=typed_query&f=live"
+    browser.get(search_url)
+    
+    # Initialize variables
+    tweets_checked = 0
+    max_tweets_to_check = 100
+    
+    while tweets_checked < max_tweets_to_check:
+        WebDriverWait(browser, 30).until(
+            EC.presence_of_element_located(
+                (By.CSS_SELECTOR, 'article[data-testid="tweet"]')
+            )
+        )
+        tweet_elements = browser.find_elements(
+            By.CSS_SELECTOR, 'article[data-testid="tweet"]'
+        )
 
-                # Process tweets
-                for tweet_elem in tweet_elements:
-                    tweets_checked += 1
-                    if tweets_checked > max_tweets_to_check:
-                        break
-
-                    tweet_data = extract_author_tweet_data(
-                        tweet_elem, paper_title, paper_authors, logger
-                    )
-                    if tweet_data:
-                        logger.info(f"Found author tweet from: {tweet_data['username']}")
-                        browser.quit()
-                        return tweet_data
-
-                # Scroll and check progress
-                last_height = browser.execute_script(
-                    "return document.documentElement.scrollHeight"
-                )
-                browser.execute_script(
-                    "window.scrollTo(0, document.documentElement.scrollHeight);"
-                )
-                time.sleep(3)  # Wait for content to load
-
-                new_height = browser.execute_script(
-                    "return document.documentElement.scrollHeight"
-                )
-                if new_height == last_height:
-                    logger.info("No new content loaded, breaking loop")
-                    break
-
-            except Exception as e:
-                logger.error(f"Error during tweet collection: {str(e)}")
+        # Process tweets
+        for tweet_elem in tweet_elements:
+            tweets_checked += 1
+            if tweets_checked > max_tweets_to_check:
                 break
 
-        browser.quit()
-        return None
+            tweet_data = extract_author_tweet_data(
+                tweet_elem, paper_title, paper_authors, logger
+            )
+            if tweet_data:
+                logger.info(f"Found author tweet from: {tweet_data['username']}")
+                browser.quit()
+                return tweet_data
 
-    except Exception as e:
-        logger.error(f"Error in find_paper_author_tweet: {str(e)}")
-        if 'browser' in locals():
-            browser.quit()
-        return None
+        # Scroll and check progress
+        last_height = browser.execute_script(
+            "return document.documentElement.scrollHeight"
+        )
+        browser.execute_script(
+            "window.scrollTo(0, document.documentElement.scrollHeight);"
+        )
+        time.sleep(3)  # Wait for content to load
+
+        new_height = browser.execute_script(
+            "return document.documentElement.scrollHeight"
+        )
+        if new_height == last_height:
+            logger.info("No new content loaded, breaking loop")
+            break
+
+    browser.quit()
+    return None
 
 
-def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50, batch_size: int = 100) -> Iterator[List[dict]]:
+def collect_llm_tweets(logger: Optional[logging.Logger] = None, max_tweets: int = 50, batch_size: int = 100) -> Iterator[List[dict]]:
     """Collect tweets about LLMs from the Twitter home feed in batches."""
+    logger = logger or get_console_logger()
     logger.info("Starting collection of LLM-related tweets")
 
     browser = setup_browser(logger)
     current_batch = []
     tweets_checked = 0
 
-    # try:
     ## Login and navigate to home.
     login_twitter(browser, logger)
     browser.get("https://twitter.com/home")
     time.sleep(3) 
 
     while tweets_checked < max_tweets:
-        # try:
-            ## Wait for and get tweets.
+        ## Wait for and get tweets.
         WebDriverWait(browser, 15).until(
             EC.presence_of_element_located(
                 (By.CSS_SELECTOR, 'article[data-testid="tweet"]')
@@ -720,10 +717,6 @@ def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50, batch_size:
             logger.info("No new content loaded, breaking loop")
             break
 
-            # except Exception as e:
-                # logger.error(f"Error during tweet collection: {str(e)}")
-                # break
-
         # Yield any remaining tweets in the final batch
         if current_batch:
             yield current_batch
@@ -732,13 +725,7 @@ def collect_llm_tweets(logger: logging.Logger, max_tweets: int = 50, batch_size:
             f"Checked {tweets_checked} tweets"
         )
 
-    # except Exception as e:
-    #     logger.error(f"An error occurred while collecting LLM tweets: {str(e)}")
-    #     if current_batch:
-    #         yield current_batch
-
-    # finally:
-    #     browser.quit()
+    browser.quit()
 
 
 if __name__ == "__main__":
@@ -747,7 +734,7 @@ if __name__ == "__main__":
     logger = setup_logger(__name__, "tweet_test.log")
     logger.info("Starting browser...")
     send_tweet(
-        "𝗠𝗲𝗻𝘁𝗮𝗹𝗔𝗿𝗲𝗻𝗮: 𝗦𝗲𝗹𝗳-𝗽𝗹𝗮𝘆 𝗧𝗿𝗮𝗶𝗻𝗶𝗻𝗴 𝗼𝗳 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗠𝗼𝗱𝗲𝗹𝘀 𝗳𝗼𝗿 𝗗𝗶𝗮𝗴𝗻𝗼𝘀𝗶𝘀 𝗮𝗻𝗱 𝗧𝗿𝗲𝗮𝘁𝗺𝗲𝗻𝘁 𝗼𝗳 𝗠��𝗻𝘁𝗮𝗹 𝗛𝗲𝗮𝗹𝘁𝗵 𝗗𝗶𝘀𝗼𝗿𝗱𝗲𝗿𝘀 (Oct 09, 2024): MentalArena is a self-play framework that trains language models to simulate both patient and therapist roles in mental health scenarios. Using GPT-3.5-turbo as a base, it outperformed the more advanced GPT-4o by 7.7% on mental health tasks. The framework generated 18,000 high-quality training samples, addressing data scarcity due to privacy concerns in mental health AI. MentalArena showed resilience against catastrophic forgetting, maintaining or improving performance on general benchmarks like BIG-Bench-Hard while excelling in specialized mental health applications. This demonstrates the potential of self-play training in generating domain-specific data and enhancing model performance in sensitive areas.",
+        "𝗠𝗲𝗻𝘁𝗮𝗹𝗔𝗿𝗲𝗻𝗮: 𝗦𝗲𝗹𝗳-𝗽𝗹𝗮𝘆 𝗧𝗿𝗮𝗶𝗻𝗶𝗻𝗴 𝗼𝗳 𝗟𝗮��𝗴𝘂𝗮𝗴𝗲 𝗠𝗼𝗱𝗲𝗹𝘀 𝗳𝗼𝗿 𝗗𝗶𝗮𝗴𝗻𝗼𝘀𝗶𝘀 𝗮𝗻𝗱 𝗧𝗿𝗲𝗮𝘁𝗺𝗲𝗻𝘁 𝗼𝗳 𝗠𝗲𝗻𝘁𝗮𝗹 𝗛𝗲𝗮𝗹𝘁𝗵 𝗗𝗶𝘀𝗼𝗿𝗱𝗲𝗿𝘀 (Oct 09, 2024): MentalArena is a self-play framework that trains language models to simulate both patient and therapist roles in mental health scenarios. Using GPT-3.5-turbo as a base, it outperformed the more advanced GPT-4o by 7.7% on mental health tasks. The framework generated 18,000 high-quality training samples, addressing data scarcity due to privacy concerns in mental health AI. MentalArena showed resilience against catastrophic forgetting, maintaining or improving performance on general benchmarks like BIG-Bench-Hard while excelling in specialized mental health applications. This demonstrates the potential of self-play training in generating domain-specific data and enhancing model performance in sensitive areas.",
         "/Users/manuelrueda/Documents/python/llmpedia/data/arxiv_art/1902.03545.png",
         "/Users/manuelrueda/Documents/python/llmpedia/data/arxiv_art/1902.03545.png",
         "XXX",

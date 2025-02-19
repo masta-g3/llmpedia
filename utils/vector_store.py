@@ -1,23 +1,21 @@
 import pandas as pd
 import os
+import re
+import base64
+import requests
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_cohere import CohereEmbeddings
 from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
 import tiktoken
-from typing import Optional
+from typing import Optional, Tuple
 
-import utils.db as db
 import utils.prompts as ps
 import utils.pydantic_objects as po
 import utils.app_utils as au
-from utils.instruct import run_instructor_query
+from utils.instruct import run_instructor_query, format_vision_messages
 import voyageai
 from sentence_transformers import SentenceTransformer
 
-CONNECTION_STRING = (
-    f"postgresql+psycopg2://{db.db_params['user']}:{db.db_params['password']}"
-    f"@{db.db_params['host']}:{db.db_params['port']}/{db.db_params['dbname']}"
-)
 
 token_encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
@@ -378,7 +376,7 @@ def write_tweet(
 ) -> po.Tweet:
     """Write a tweet about an LLM paper."""
     system_prompt = ps.TWEET_SYSTEM_PROMPT
-    user_prompt = tweet_user_map[tweet_type].format(
+    user_prompt = ps.TWEET_INSIGHT_USER_PROMPT_V5.format(
         tweet_facts=tweet_facts,
         most_recent_tweets=most_recent_tweets,
         recent_llm_tweets=recent_llm_tweets,
@@ -391,6 +389,35 @@ def write_tweet(
         llm_model=model,
         temperature=temperature,
         process_id="write_tweet",
+    )
+    return tweet
+
+
+def write_tweet_reply(
+    paper_summaries: str,
+    recent_llm_tweets: str,
+    tweet_threads: str,
+    # recent_tweet_discussions: str,
+    model: str = "claude-3-5-sonnet-20241022",
+    temperature: float = 0.8,
+) -> po.Tweet:
+    """Write a reply
+      tweet that connects papers with community discussions."""
+    system_prompt = ps.TWEET_SYSTEM_PROMPT
+    user_prompt = ps.TWEET_REPLY_USER_PROMPT.format(
+        paper_summaries=paper_summaries,
+        recent_llm_tweets=recent_llm_tweets,
+        tweet_threads=tweet_threads,
+        # recent_tweet_discussions=recent_tweet_discussions,
+        base_style=ps.TWEET_BASE_STYLE,
+    )
+    tweet = run_instructor_query(
+        system_prompt,
+        user_prompt,
+        llm_model=model,
+        temperature=temperature,
+        process_id="write_tweet_reply",
+        verbose=True
     )
     return tweet
 
@@ -550,11 +577,6 @@ def analyze_paper_images(
     paper_comment: Optional[str] = None,
 ) -> str:
     """Analyze paper images using Claude vision API to select the most suitable one for social media."""
-    import base64
-    import os
-    import re
-    import requests
-
     # Get paper details
     paper_details = db.get_extended_content(arxiv_code)
     if paper_details.empty:
@@ -571,27 +593,18 @@ def analyze_paper_images(
         return None
 
     # Download images and convert to base64
-    images = []
+    base64_images = []
     for url in image_urls:
         try:
             response = requests.get(url)
             if response.status_code == 200:
                 b64_image = base64.b64encode(response.content).decode("utf-8")
-                images.append(
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": "image/png",
-                            "data": b64_image,
-                        },
-                    }
-                )
+                base64_images.append(b64_image)
         except Exception as e:
             print(f"Failed to download image {url}: {str(e)}")
             continue
 
-    if not images:
+    if not base64_images:
         return None
 
     # Prepare paper summary
@@ -608,21 +621,20 @@ Summary: {paper_details['summary'].iloc[0]}"""
         image_descriptions.append(f"Image {i}: {filename}")
     image_descriptions = "\n".join(image_descriptions)
 
-    # Call Claude vision API via instruct
-    content = images + [
-        {
-            "type": "text",
-            "text": ps.IMAGE_ANALYSIS_USER_PROMPT.format(
-                paper_summary=paper_summary, image_descriptions=image_descriptions
-            ),
-        }
-    ]
-
-    messages = [{"role": "user", "content": content}]
+    # Format messages using the new helper function
+    messages = format_vision_messages(
+        images=base64_images,
+        text=ps.IMAGE_ANALYSIS_USER_PROMPT.format(
+            paper_summary=paper_summary,
+            image_descriptions=image_descriptions
+        ),
+        model=model,
+        system_message=ps.IMAGE_ANALYSIS_SYSTEM_PROMPT
+    )
 
     response = run_instructor_query(
-        system_message=ps.IMAGE_ANALYSIS_SYSTEM_PROMPT,
-        user_message="",  # Not used when messages is provided
+        system_message="",  # Not used when messages provided
+        user_message="",    # Not used when messages provided
         llm_model=model,
         model=po.ImageAnalysis,
         process_id="analyze_paper_images",
@@ -638,3 +650,53 @@ Summary: {paper_details['summary'].iloc[0]}"""
         return image_urls[selected_idx].split("/")[-1]
     except:
         return None
+
+
+def generate_llm_question(
+    recent_discussions: str,
+    model: str = "claude-3-5-sonnet-20241022",
+    temperature: float = 0.9,
+) -> po.GeneratedQuestion:
+    """Generate an intriguing question about LLMs based on recent social media discussions."""
+    question_obj = run_instructor_query(
+        ps.TWEET_SYSTEM_PROMPT,
+        ps.TWEET_QUESTION_USER_PROMPT.format(
+            recent_discussions=recent_discussions,
+            base_style=ps.TWEET_BASE_STYLE,
+        ),
+        model=po.GeneratedQuestion,
+        llm_model=model,
+        temperature=temperature,
+        process_id="generate_llm_question",
+    )
+
+    return question_obj
+
+
+def analyze_tweet_patterns(
+    tweets_text: str,
+    previous_entries: str,
+    model: str = "claude-3-5-sonnet-20241022",
+    temperature: float = 0.7,
+    start_date: str = None,
+    end_date: str = None,
+) -> Tuple[str, str]:
+    """Analyze patterns and insights from a collection of tweets."""
+    response = run_instructor_query(
+        ps.TWEET_ANALYSIS_SYSTEM_PROMPT,
+        ps.TWEET_ANALYSIS_USER_PROMPT.format(
+            tweets=tweets_text,
+            start_date=start_date,
+            end_date=end_date,
+            previous_entries=previous_entries
+        ),
+        llm_model=model,
+        temperature=temperature,
+        process_id="analyze_tweet_patterns",
+    )
+
+    ## Extract the response from the XML elements from the string
+    thinking_process = response.split("<think>")[1].split("</think>")[0]
+    response = response.split("<response>")[1].split("</response>")[0]
+    
+    return thinking_process, response

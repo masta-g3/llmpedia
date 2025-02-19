@@ -3,8 +3,6 @@ import sys, os
 import pandas as pd
 import warnings
 from dotenv import load_dotenv
-import numpy as np
-from sqlalchemy import create_engine, Engine
 import voyageai
 
 load_dotenv()
@@ -16,7 +14,9 @@ warnings.filterwarnings("ignore")
 
 from sentence_transformers import SentenceTransformer
 import utils.paper_utils as pu
-import utils.db as db
+import utils.db.embedding_db as embedding_db
+import utils.db.paper_db as paper_db
+import utils.db.db_utils as db_utils
 from utils.logging_utils import setup_logger
 
 logger = setup_logger(__name__, "i0_generate_embeddings.log")
@@ -49,7 +49,6 @@ def initialize_embedding_model(
 def process_and_store_batch(
     batch_df: pd.DataFrame,
     embedding_model: SentenceTransformer | voyageai.Client,
-    engine: Engine,
     all_content: list,
     content_cols: list[str],
     embedding_type: str,
@@ -89,12 +88,11 @@ def process_and_store_batch(
         emb.tolist() if hasattr(emb, "tolist") else emb for emb in batch_embeddings
     ]
 
-    db.store_embeddings_batch(
+    embedding_db.store_embeddings_batch(
         arxiv_codes=list(batch_df.index),
         doc_type=doc_type,
         embedding_type=embedding_type,
         embeddings=embeddings_list,
-        engine=engine,
     )
 
     all_content.extend(batch_content)
@@ -102,11 +100,11 @@ def process_and_store_batch(
 
 def load_content_data(content_cols: list[str]) -> pd.DataFrame:
     """Load and prepare data based on required content columns."""
-    df = db.load_arxiv().reset_index()
+    df = paper_db.load_arxiv().reset_index()
     df.rename(columns={"summary": "abstract"}, inplace=True)
 
     if "recursive_summary" in content_cols:
-        df = df.merge(db.load_recursive_summaries(), on="arxiv_code", how="inner")
+        df = df.merge(paper_db.load_recursive_summaries(), on="arxiv_code", how="inner")
     elif "abstract" in content_cols:
         df = df[df["abstract"].notna()]
 
@@ -119,91 +117,83 @@ def load_content_data(content_cols: list[str]) -> pd.DataFrame:
 def main():
     """Process documents and create embeddings."""
     logger.info("Starting embedding generation process")
-    engine = create_engine(db.database_url)
 
-    try:
-        # Process each embedding type
-        for embedding_type in EMBEDDING_TYPES:
-            logger.info(
-                f"\n{'='*50}\nProcessing embeddings for model: {embedding_type}\n{'='*50}"
-            )
+    for embedding_type in EMBEDDING_TYPES:
+        logger.info(
+            f"\n{'='*50}\nProcessing embeddings for model: {embedding_type}\n{'='*50}"
+        )
 
-            # Initialize model-specific resources
-            embedding_model = initialize_embedding_model(embedding_type)
-            content_by_type = {}  # Store content separately for each doc_type
+        # Initialize model-specific resources
+        embedding_model = initialize_embedding_model(embedding_type)
+        content_by_type = {}  # Store content separately for each doc_type
 
-            # Process each content type for this embedding model
-            for cols in CONTENT_COLS:
-                doc_type = "_".join(cols)
-                logger.info(f"\n{'-'*40}\nProcessing {doc_type} embeddings\n{'-'*40}")
-                content_by_type[doc_type] = (
-                    []
-                )  # Initialize content list for this doc_type
+        # Process each content type for this embedding model
+        for cols in CONTENT_COLS:
+            doc_type = "_".join(cols)
+            logger.info(f"\n{'-'*40}\nProcessing {doc_type} embeddings\n{'-'*40}")
+            content_by_type[doc_type] = (
+                []
+            )  # Initialize content list for this doc_type
 
-                # Load data for current content type
-                df = load_content_data(cols)
-                if len(df) == 0:
-                    logger.info(f"No documents with required content for {doc_type}")
+            # Load data for current content type
+            df = load_content_data(cols)
+            if len(df) == 0:
+                logger.info(f"No documents with required content for {doc_type}")
+                continue
+
+            # Get pending documents
+            if not REFIT:
+                existing_codes = embedding_db.get_pending_embeddings(
+                    doc_type,
+                    embedding_type,
+                )
+                df_to_process = df[~df.index.isin(existing_codes)]
+
+                if len(df_to_process) == 0:
+                    logger.info(f"No new documents to process for {doc_type}")
                     continue
+                logger.info(
+                    f"Found {len(df_to_process)} pending documents for {doc_type}"
+                )
+            else:
+                df_to_process = df
 
-                # Get pending documents
-                if not REFIT:
-                    existing_codes = db.get_pending_embeddings(
-                        doc_type,
+            # Process in batches
+            for i in range(0, len(df_to_process), BATCH_SIZE):
+                batch_df = df_to_process.iloc[i : i + BATCH_SIZE]
+                batch_num = i // BATCH_SIZE + 1
+                total_batches = (len(df_to_process) + BATCH_SIZE - 1) // BATCH_SIZE
+                logger.info(f"Processing batch {batch_num}/{total_batches}")
+
+                try:
+                    process_and_store_batch(
+                        batch_df,
+                        embedding_model,
+                        content_by_type[doc_type],
+                        cols,
                         embedding_type,
-                        engine,
                     )
-                    df_to_process = df[~df.index.isin(existing_codes)]
-
-                    if len(df_to_process) == 0:
-                        logger.info(f"No new documents to process for {doc_type}")
-                        continue
-                    logger.info(
-                        f"Found {len(df_to_process)} pending documents for {doc_type}"
+                except Exception as e:
+                    logger.error(
+                        f"Error processing batch {batch_num} for {cols} with {embedding_type}: {str(e)}"
                     )
-                else:
-                    df_to_process = df
+                    raise
 
-                # Process in batches
-                for i in range(0, len(df_to_process), BATCH_SIZE):
-                    batch_df = df_to_process.iloc[i : i + BATCH_SIZE]
-                    batch_num = i // BATCH_SIZE + 1
-                    total_batches = (len(df_to_process) + BATCH_SIZE - 1) // BATCH_SIZE
-                    logger.info(f"Processing batch {batch_num}/{total_batches}")
+            if content_by_type[doc_type]:
+                content_path = os.path.join(
+                    PROJECT_PATH,
+                    "data",
+                    "bertopic",
+                    f"content_{embedding_type}_{doc_type}.json",
+                )
+                with open(content_path, "w") as f:
+                    json.dump(content_by_type[doc_type], f)
+                logger.info(
+                    f"Stored {doc_type} content for {embedding_type} at {content_path}"
+                )
 
-                    try:
-                        process_and_store_batch(
-                            batch_df,
-                            embedding_model,
-                            engine,
-                            content_by_type[doc_type],
-                            cols,
-                            embedding_type,
-                        )
-                    except Exception as e:
-                        logger.error(
-                            f"Error processing batch {batch_num} for {cols} with {embedding_type}: {str(e)}"
-                        )
-                        raise
-
-                if content_by_type[doc_type]:
-                    content_path = os.path.join(
-                        PROJECT_PATH,
-                        "data",
-                        "bertopic",
-                        f"content_{embedding_type}_{doc_type}.json",
-                    )
-                    with open(content_path, "w") as f:
-                        json.dump(content_by_type[doc_type], f)
-                    logger.info(
-                        f"Stored {doc_type} content for {embedding_type} at {content_path}"
-                    )
-
-            logger.info(f"Completed processing for {embedding_type}")
-            del embedding_model
-
-    finally:
-        engine.dispose()
+        logger.info(f"Completed processing for {embedding_type}")
+        del embedding_model
 
     logger.info("Successfully processed all documents")
 

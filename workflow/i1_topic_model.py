@@ -24,7 +24,9 @@ from nltk.corpus import stopwords
 import nltk
 
 import utils.paper_utils as pu
-import utils.db as db
+import utils.db.db_utils as db_utils
+import utils.db.embedding_db as embedding_db
+import utils.db.paper_db as paper_db
 from utils.logging_utils import setup_logger
 
 # Set up logging
@@ -115,7 +117,7 @@ def extract_topics_and_embeddings(
         topics, _ = topic_model.transform(all_content, embeddings)
         reduced_embeddings = reduced_model.transform(embeddings)
 
-    topic_dists = db.get_topic_embedding_dist()
+    topic_dists = embedding_db.get_topic_embedding_dist()
     reduced_embeddings[:, 0] = (
         reduced_embeddings[:, 0] - topic_dists["dim1"]["mean"]
     ) / topic_dists["dim1"]["std"]
@@ -159,10 +161,9 @@ def store_topics_and_embeddings(
     df.index.name = "arxiv_code"
     df.reset_index(inplace=True)
     if_exists_policy = "replace" if refit else "append"
-    db.upload_df_to_db(
+    db_utils.upload_dataframe(
         df[["arxiv_code", "topic", "dim1", "dim2"]],
         "topics",
-        pu.db_params,
         if_exists=if_exists_policy,
     )
 
@@ -228,13 +229,13 @@ def main():
     logger.info("Starting topic model generation")
     
     ## Load data with recursive summaries.
-    df = db.load_arxiv().reset_index()
+    df = paper_db.load_arxiv().reset_index()
     df.rename(columns={"summary": "abstract"}, inplace=True)
-    df = df.merge(db.load_recursive_summaries(), on="arxiv_code", how="inner")
+    df = df.merge(paper_db.load_recursive_summaries(), on="arxiv_code", how="inner")
     
     ## For non-refit, process only pending documents.
     if not REFIT:
-        done_codes = db.get_arxiv_id_list(pu.db_params, "topics")
+        done_codes = db_utils.get_arxiv_id_list("topics")
         working_codes = list(set(df.arxiv_code) - set(done_codes))
         df = df[df.arxiv_code.isin(working_codes)]
         if len(df) == 0:
@@ -245,7 +246,7 @@ def main():
     df.set_index("arxiv_code", inplace=True)
     
     ## Load embeddings and generate content.
-    embeddings_map = db.load_embeddings(
+    embeddings_map = embedding_db.load_embeddings(
         arxiv_codes=list(df.index),
         doc_type=doc_type,
         embedding_type=embedding_type,

@@ -5,6 +5,7 @@ import torch
 import base64
 import requests
 import boto3
+import time
 import os, sys
 import warnings
 from dotenv import load_dotenv
@@ -18,7 +19,7 @@ warnings.filterwarnings("ignore")
 
 import utils.paper_utils as pu
 import utils.vector_store as vs
-import utils.db as db
+import utils.db.db_utils as db_utils
 from utils.logging_utils import setup_logger
 
 # Set up logging
@@ -96,17 +97,25 @@ def get_value_at_index(obj: Union[Sequence, Mapping], index: int) -> Any:
 
 
 def generate_image(title: str, img_file: str) -> None:
-    logger.info(f"--> Title: {title}")
+    """Generate a thumbnail image for a paper."""
     title = vs.rephrase_title(title, model="claude-3-5-sonnet-20241022")
     caption = (
         f'"{title}", "tarot and computers collection", stunning award-winning classic pixel art'
     )
-    logger.info(f"--> Caption: {caption}")
+    logger.info(f"--> Generated caption: {caption}")
+    for attempt in range(3):
+        try:
+            result = call_rd_api(
+                api_token=os.getenv("RD_API_KEY"),
+                prompt=caption,
+            )
+            break
+        except requests.exceptions.HTTPError as e:
+            if attempt == 2:
+                raise
+            logger.warning(f"API call failed (attempt {attempt + 1}/3), retrying...")
+            time.sleep(10)
 
-    result = call_rd_api(
-        api_token=os.getenv("RD_API_KEY"),
-        prompt=caption,
-    )
     b64_img = result['base64_images'][0]
     
     with open(img_file, "wb") as f:
@@ -198,22 +207,24 @@ def main():
     logger.info("Starting thumbnail creation process")
     ## Load the mapping files.
     vs.validate_openai_env()
-    arxiv_codes = db.get_arxiv_id_list(pu.db_params, "summaries")
-    title_dict = db.get_arxiv_title_dict(pu.db_params)
+    arxiv_codes = db_utils.get_arxiv_id_list("summaries")
+    title_dict = db_utils.get_arxiv_title_dict()
     img_dir = os.path.join(PROJECT_PATH, "data", "arxiv_art/")
 
     done_imgs = pu.list_s3_files("arxiv-art", strip_extension=True)
     arxiv_codes = list(set(arxiv_codes) - set(done_imgs))
     arxiv_codes = sorted(arxiv_codes)[::-1]
 
-    logger.info(f"Found {len(arxiv_codes)} papers to process for thumbnails.")
+    total_papers = len(arxiv_codes)
+    logger.info(f"Found {total_papers} papers to process for thumbnails.")
 
-    for idx, arxiv_code in enumerate(arxiv_codes):
-        logger.info(f"Processing paper [{idx+1}/{len(arxiv_codes)}]: {arxiv_code}")
-        name = title_dict[arxiv_code]
+    for idx, arxiv_code in enumerate(arxiv_codes, 1):
+        paper_title = title_dict[arxiv_code]
+        logger.info(f"[{idx}/{total_papers}] Creating thumbnail: {arxiv_code} - '{paper_title}'")
+        
         img_file = img_dir + arxiv_code + ".png"
         clean_name = (
-            name.replace("Transformer", "Machine")
+            paper_title.replace("Transformer", "Machine")
             .replace("Large Language Model", "LLM")
             .replace("LLM", "Model")
         )
@@ -221,7 +232,7 @@ def main():
 
         ## Upload to s3.
         s3.upload_file(img_file, "arxiv-art", arxiv_code + ".png")
-        logger.info(f"--> Uploaded to S3.")
+        logger.info(f"[{idx}/{total_papers}] Uploaded thumbnail: {arxiv_code} - '{paper_title}'")
 
     logger.info("Thumbnail creation process completed.")
 

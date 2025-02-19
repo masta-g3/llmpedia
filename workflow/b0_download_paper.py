@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 import utils.paper_utils as pu
 import utils.vector_store as vs
-import utils.db as db
+import utils.db.db_utils as db_utils
 from utils.logging_utils import setup_logger
 
 # Set up logging
@@ -42,6 +42,8 @@ def main():
     gist_id = "1dd189493c1890df6e04aaea6d049643"
     gist_filename = "llm_queue.txt"
     paper_list = pu.fetch_queue_gist(gist_id, gist_filename)
+    x_paper_list = list(set(db_utils.get_arxiv_id_list(table_name="llm_tweets")))
+    paper_list = list(set(paper_list) - set(x_paper_list))
     logger.info(f"Fetched {len(paper_list)} papers from gist.")
 
     ## Check local files.
@@ -54,15 +56,16 @@ def main():
     ## Remove duplicates.
     paper_list = list(set(paper_list) - set(done_codes) - set(nonllm_codes))
     paper_list_iter = sorted(paper_list[:])[::-1]
-    logger.info(f"{len(paper_list_iter)} papers to process after removing duplicates.")
+    total_papers = len(paper_list_iter)
+    logger.info(f"{total_papers} papers to process after removing duplicates.")
 
-    arxiv_map = db.get_arxiv_title_dict()
+    arxiv_map = db_utils.get_arxiv_title_dict()
     existing_paper_names = list(arxiv_map.values())
     existing_paper_ids = list(arxiv_map.keys())
 
     ## Iterate.
     gist_url = None
-    for idx, paper_name in enumerate(paper_list_iter):
+    for idx, paper_name in enumerate(paper_list_iter, 1):
         time.sleep(3)
         existing = pu.check_if_exists(
             paper_name, existing_paper_names, existing_paper_ids
@@ -71,7 +74,7 @@ def main():
         ## Check if we already have the document.
         if existing:
             logger.info(
-                f" [{idx}/{len(paper_list_iter)}] Skipping '{paper_name}' as it is already in the database."
+                f"[{idx}/{total_papers}] Skipping: '{paper_name}' (already in database)"
             )
             ## Update gist.
             parsed_list.append(paper_name)
@@ -84,13 +87,13 @@ def main():
             new_doc = pu.search_arxiv_doc(paper_name)
         except Exception as e:
             logger.error(
-                f" [{idx}/{len(paper_list_iter)}] Failed to search for '{paper_name}': {str(e)}"
+                f"[{idx}/{total_papers}] Failed to search: '{paper_name}' - {str(e)}"
             )
             continue
 
         if new_doc is None:
             logger.warning(
-                f" [{idx}/{len(paper_list_iter)}] Could not find '{paper_name}' in Arxiv."
+                f"[{idx}/{total_papers}] Not found in ArXiv: '{paper_name}'"
             )
             continue
 
@@ -107,7 +110,7 @@ def main():
         )
         if not is_llm_paper["is_related"]:
             logger.info(
-                f" [{idx}/{len(paper_list_iter)}] '{paper_name}' - '{title}' is not a LLM paper."
+                f"[{idx}/{total_papers}] Not LLM paper: {arxiv_code} - '{title}'"
             )
             parsed_list.append(paper_name)
             paper_list = list(set(paper_list) - set(parsed_list))
@@ -127,7 +130,7 @@ def main():
         if arxiv_code in local_paper_codes:
             ## Update gist.
             logger.info(
-                f" [{idx}/{len(paper_list_iter)}] Found '{paper_name}' - '{title}' locally."
+                f"[{idx}/{total_papers}] Found locally: {arxiv_code} - '{title}'"
             )
             parsed_list.append(paper_name)
             paper_list = list(set(paper_list) - set(parsed_list))
@@ -138,7 +141,7 @@ def main():
         pu.store_local(new_content, arxiv_code, "arxiv_text", format="txt")
         pu.upload_s3_file(arxiv_code, "arxiv-text", prefix="data", format="txt")
         logger.info(
-            f" [{idx}/{len(paper_list_iter)}] '{paper_name}' - '{title}' stored."
+            f"[{idx}/{total_papers}] Stored paper: {arxiv_code} - '{title}'"
         )
 
         ## Update gist.

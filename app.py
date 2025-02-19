@@ -9,7 +9,10 @@ import pandas as pd
 import utils.streamlit_utils as su
 import utils.app_utils as au
 import utils.plots as pt
-import utils.db as db
+import utils.db.db_utils as db_utils
+import utils.db.paper_db as paper_db
+import utils.db.logging_db as logging_db
+import utils.db.tweet_db as tweet_db
 import utils.styling as styling
 import time
 
@@ -89,16 +92,16 @@ st.markdown(
 
 
 def combine_input_data():
-    arxiv_df = db.load_arxiv()
-    summaries_df = db.load_summaries()
-    topics_df = db.load_topics()
-    citations_df = db.load_citations()
-    recursive_summaries_df = db.load_recursive_summaries()
-    bullet_list_df = db.load_bullet_list_summaries()
-    markdown_summaries = db.load_summary_markdown()
-    tweets = db.load_tweet_insights()
-    similar_docs_df = db.load_similar_documents()
-    punchlines_df = db.load_punchlines()
+    arxiv_df = paper_db.load_arxiv()
+    summaries_df = paper_db.load_summaries()
+    topics_df = paper_db.load_topics()
+    citations_df = paper_db.load_citations()
+    recursive_summaries_df = paper_db.load_recursive_summaries()
+    bullet_list_df = paper_db.load_bullet_list_summaries()
+    markdown_summaries = paper_db.load_summary_markdown()
+    tweets = tweet_db.load_tweet_insights()
+    similar_docs_df = paper_db.load_similar_documents()
+    punchlines_df = paper_db.load_punchlines()
 
     papers_df = summaries_df.join(arxiv_df, how="left")
     papers_df = papers_df.join(topics_df, how="left")
@@ -148,14 +151,15 @@ def load_data():
 
 @st.cache_data
 def load_repositories(year: int, filter_by_year=True):
-    repos_df = db.load_repositories()
-    topics_df = db.load_topics()
-    meta_df = db.load_arxiv()
+    repos_df = paper_db.load_repositories()
+    topics_df = paper_db.load_topics()
+    meta_df = paper_db.load_arxiv()
     topics_df.drop(columns=["dim1", "dim2"], inplace=True)
     repos_df = repos_df.join(topics_df, how="left")
     repos_df = repos_df.join(meta_df[["published"]], how="left")
+    repos_df["repo_url"].fillna("", inplace=True)
     repos_df["domain"] = repos_df["repo_url"].apply(
-        lambda x: x.split("/")[2].split(".")[-2]
+        lambda x: x.split("/")[2].split(".")[-2] if len(x.split("/")) > 2 else ""
     )
     if filter_by_year:
         repos_df = repos_df[repos_df["published"].dt.year == year]
@@ -191,10 +195,7 @@ def initialize_weekly_summary(date_report: str):
 
 @st.cache_data
 def get_max_report_date():
-    max_date = db.get_max_table_date(
-        db.db_params,
-        "weekly_content",
-    )
+    max_date = db_utils.get_max_table_date("weekly_content")
     if max_date.weekday() != 6:
         max_date = max_date + pd.Timedelta(days=6 - max_date.weekday())
     return max_date
@@ -311,7 +312,7 @@ def main():
             "🧮 Release Feed",
             "🗺️ Statistics & Topics",
             "🔍 Paper Details",
-            "🤖 Research Assistant",
+            "🤖 Online Research",
             "⚙️  Links & Repositories",
             "🗞 Weekly Report",
         ]
@@ -373,8 +374,8 @@ def main():
         report_log_space = st.empty()
         report_btn = st.popover("⚠️ Report Cluster Map Issue")
         if report_btn.checkbox("Report cluster map not showing"):
-            db.report_issue("cluster_map", "not_showing")
-            report_log_space.success("Reported cluster map issue. Thanks!")
+            logging_db.report_issue("cluster_map", "not_showing")
+            report_log_space.success("Reported cluster map issue. Thanks! Try refreshing the page, we will look into it.")
             time.sleep(3)
             report_log_space.empty()
 
@@ -382,7 +383,7 @@ def main():
     url_query = st.query_params
     if "arxiv_code" in url_query and len(st.session_state.arxiv_code) == 0:
         paper_code = url_query["arxiv_code"]
-        db.log_visit(paper_code)
+        logging_db.log_visit(paper_code)
         st.session_state.arxiv_code = paper_code
         su.click_tab(2)
 
@@ -411,15 +412,15 @@ def main():
             with settings_cols[0]:
                 response_length = st.select_slider(
                     "Response Length (words)",
-                    options=[250, 1000, 3000],
-                    value=250,
+                    options=[250, 500, 1000, 3000],
+                    value=500,
                     format_func=lambda x: f"{x} words"
                 )
             with settings_cols[1]:
                 max_sources = st.select_slider(
                     "Maximum Sources",
                     options=[1, 3, 5, 7, 10, 15, 20, 25, 30],
-                    value=7
+                    value=10
                 )
             
             custom_instructions = st.text_area(
@@ -470,7 +471,7 @@ def main():
                 st.session_state.referenced_codes = referenced_codes
                 st.session_state.relevant_codes = relevant_codes
                 
-                db.log_qna_db(user_question, response)
+                logging_db.log_qna_db(user_question, response)
 
         # Display results if they exist in session state
         if st.session_state.chat_response:
@@ -643,5 +644,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        db.log_error_db(e)
+        logging_db.log_error_db(e)
         st.error("Something went wrong. Please refresh the app and try again, we will look into it.")

@@ -12,7 +12,7 @@ os.chdir(PROJECT_PATH)
 
 import utils.paper_utils as pu
 import utils.vector_store as vs
-import utils.db as db
+import utils.db.db as db
 from utils.logging_utils import setup_logger
 
 # Set up logging
@@ -114,7 +114,7 @@ def main(date_str: str):
     ## Generate summary.
     logger.info("Generating weekly report and highlight")
     weekly_summary_obj = vs.generate_weekly_report(
-        weekly_content_md, model="o1-preview"
+        weekly_content_md, model="claude-3-5-sonnet-20241022"
     )
     weekly_summary_obj = (
         weekly_summary_obj.replace("<new_developments_findings>", "")
@@ -162,5 +162,5 @@ def main(date_str: str):
 
 if __name__ == "__main__":
     ## Use provided date or default to 2024-10-07
-    date_str = sys.argv[1] if len(sys.argv) == 2 else "2024-11-25"
+    date_str = sys.argv[1] if len(sys.argv) == 2 else "2024-12-30"
     main(date_str)

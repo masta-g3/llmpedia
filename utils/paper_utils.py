@@ -154,6 +154,25 @@ def classify_llm_paper(paper_content):
     return result
 
 
+def extract_tagged_content(text: str, tags: list[str]) -> dict[str, str]:
+    """Extract content between specified tags from a text chunk."""
+    result = {}
+    
+    for tag in tags:
+        start_tag = f"<{tag}>"
+        end_tag = f"</{tag}>"
+        
+        try:
+            start_idx = text.index(start_tag) + len(start_tag)
+            end_idx = text.index(end_tag)
+            content = text[start_idx:end_idx].strip()
+            result[tag] = content
+        except ValueError:
+            result[tag] = ""
+            
+    return result 
+
+
 #####################
 ## LOCAL DATA MGMT ##
 #####################

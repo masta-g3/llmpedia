@@ -16,15 +16,19 @@ from langchain.prompts.chat import ChatPromptTemplate
 from langchain.chains import LLMChain
 
 from utils.custom_langchain import NewCohereEmbeddings, NewPGVector
-from utils.models import llm_map
+# from utils.models import llm_map
 from utils.instruct import run_instructor_query
 import utils.pydantic_objects as po
 import utils.prompts as ps
-import utils.db as db
+from utils.db import (
+    db_utils,
+    paper_db,
+    embedding_db,
+)
 
 CONNECTION_STRING = (
-    f"postgresql+psycopg2://{db.db_params['user']}:{db.db_params['password']}"
-    f"@{db.db_params['host']}:{db.db_params['port']}/{db.db_params['dbname']}"
+    f"postgresql+psycopg2://{db_utils.db_params['user']}:{db_utils.db_params['password']}"
+    f"@{db_utils.db_params['host']}:{db_utils.db_params['port']}/{db_utils.db_params['dbname']}"
 )
 
 VS_EMBEDDING_MODEL = "voyage"
@@ -56,16 +60,16 @@ def prepare_calendar_data(df: pd.DataFrame, year: int) -> pd.DataFrame:
 
 def get_weekly_summary(date_str: str):
     try:
-        weekly_content = db.get_weekly_content(date_str, content_type="content")
+        weekly_content = paper_db.get_weekly_content(date_str, content_type="content")
         weekly_content = add_links_to_text_blob(weekly_content)
-        weekly_highlight = db.get_weekly_content(date_str, content_type="highlight")
+        weekly_highlight = paper_db.get_weekly_content(date_str, content_type="highlight")
         weekly_highlight = add_links_to_text_blob(weekly_highlight)
         ## ToDo: Remove this.
         ## ---------------------
         if "\n" in weekly_highlight:
             weekly_highlight = "#### " + weekly_highlight.replace("###", "")
         ## ---------------------
-        weekly_repos_df = db.get_weekly_repos(date_str)
+        weekly_repos_df = paper_db.get_weekly_repos(date_str)
 
         ## Process repo content.
         weekly_repos_df["repo_link"] = weekly_repos_df.apply(
@@ -96,7 +100,7 @@ def get_weekly_summary(date_str: str):
             repos_section += "\n"
 
     except:
-        weekly_content = db.get_weekly_summary_old(date_str)
+        weekly_content = paper_db.get_weekly_summary_old(date_str)
         weekly_highlight = ""
         repos_section = ""
 
@@ -236,8 +240,8 @@ def query_llmpedia(question: str, collection_name: str, model: str = "GPT-3.5-Tu
         ## Map to parent chunk (for longer context).
         child_docs = [doc.metadata for doc in child_docs]
         child_ids = [(doc["arxiv_code"], doc["chunk_id"]) for doc in child_docs]
-        parent_ids = db.get_arxiv_parent_chunk_ids(child_ids)
-        parent_docs = db.get_arxiv_chunks(parent_ids, source="parent")
+        parent_ids = paper_db.get_arxiv_parent_chunk_ids(child_ids)
+        parent_docs = paper_db.get_arxiv_chunks(parent_ids, source="parent")
         if len(parent_docs) == 0:
             continue
         parent_docs["published"] = pd.to_datetime(parent_docs["published"]).dt.year
@@ -297,7 +301,7 @@ query_config = json.loads(query_config_json)
 
 def interrogate_paper(question: str, arxiv_code: str, model="gpt-4o") -> str:
     """Ask a question about a paper."""
-    context = db.get_extended_notes(arxiv_code, expected_tokens=2000)
+    context = paper_db.get_extended_notes(arxiv_code, expected_tokens=2000)
     user_message = ps.create_interrogate_user_prompt(
         context=context, user_question=question
     )
@@ -372,10 +376,10 @@ def resolve_query(
         user_message=user_message,
         model=po.ResolveQuery,
         llm_model=llm_model,
-        temperature=0.2,
+        temperature=0.8,
         process_id="resolve_query",
     )
-    return response.response
+    return response
 
 
 def resolve_query_other(user_question: str) -> str:
@@ -545,9 +549,9 @@ def query_llmpedia_new(
         ## Fetch results.
         query_obj.topic_categories = None
         criteria_dict = query_obj.model_dump(exclude_none=True)
-        sql = db.generate_semantic_search_query(criteria_dict, query_config, embedding_model=VS_EMBEDDING_MODEL)
+        sql = embedding_db.generate_semantic_search_query(criteria_dict, query_config, embedding_model=VS_EMBEDDING_MODEL)
         
-        documents = db.execute_query(sql, limit=max_sources*2)
+        documents = db_utils.execute_read_query(sql, limit=max_sources*2)
         documents = [
             Document(**dict(zip(Document.__fields__.keys(), d))) for d in documents
         ]
@@ -578,21 +582,34 @@ def query_llmpedia_new(
                 log_debug(f"Analysis: {doc_analysis.analysis}", indent_level=4)
 
         ## First get high relevance docs (1.0), then medium (0.5), preserving original order.
-        high_relevance_ids = [
-            int(d.document_id) for d in reranked_documents.documents if d.selected == 1.0
+        ## Sort within each relevance group by published date.
+        high_relevance_docs = [
+            (i, d) for i, d in enumerate(documents) 
+            if i in [int(d.document_id) for d in reranked_documents.documents if d.selected == 1.0]
         ]
-        medium_relevance_ids = [
-            int(d.document_id) for d in reranked_documents.documents if d.selected == 0.5
+
+        high_relevance_docs.sort(key=lambda x: x[1].published_date, reverse=True)
+        high_relevance_ids = [i for i, _ in high_relevance_docs]
+
+        medium_relevance_docs = [
+            (i, d) for i, d in enumerate(documents)
+            if i in [int(d.document_id) for d in reranked_documents.documents if d.selected == 0.5]
         ]
+
+        medium_relevance_docs.sort(key=lambda x: x[1].published_date, reverse=True)
+        medium_relevance_ids = [i for i, _ in medium_relevance_docs]
+
         filtered_document_ids = (high_relevance_ids + medium_relevance_ids)[:max_sources]
         
-        filtered_documents = [
-            d for i, d in enumerate(documents) if i in filtered_document_ids
-        ]
+        ## Create filtered documents list maintaining the sorted order
+        filtered_documents = []
+        for idx in filtered_document_ids:
+            filtered_documents.append(documents[idx])
+        
         if debug:
             log_debug(f"Selected {len(filtered_documents)} documents after reranking:", indent_level=2)
             for doc in filtered_documents:
-                log_debug(f"- {doc.title} (arxiv:{doc.arxiv_code}, citations: {doc.citations})", indent_level=3)
+                log_debug(f"- {doc.title} (arxiv:{doc.arxiv_code}, citations: {doc.citations}, date: {doc.published_date})", indent_level=3)
         
         if len(filtered_documents) == 0:
             if debug:
@@ -609,13 +626,16 @@ def query_llmpedia_new(
         if progress_callback:
             progress_callback("Generating response...")
             
-        answer = resolve_query(
+        answer_obj = resolve_query(
             user_question,
             filtered_documents,
             response_length,
             llm_model=response_llm_model,
             custom_instructions=custom_instructions
         )
+        if debug:
+            log_debug("Resolved query:", answer_obj.model_dump(), 2)
+        answer = answer_obj.response
         answer_augment = add_links_to_text_blob(answer)
         referenced_arxiv_codes = extract_arxiv_codes(answer_augment)
         filtered_arxiv_codes = [d.arxiv_code for d in filtered_documents]

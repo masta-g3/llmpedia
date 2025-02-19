@@ -21,7 +21,7 @@ sys.path.append(PROJECT_PATH)
 chunk_path = os.path.join(os.environ.get("PROJECT_PATH"), "data", "arxiv_chunks")
 
 import utils.paper_utils as pu
-import utils.db as db
+import utils.db.db as db
 from utils.logging_utils import setup_logger
 
 logger = setup_logger(__name__, "k0_rag_embedder.log")

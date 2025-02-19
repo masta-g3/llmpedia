@@ -15,20 +15,20 @@ os.chdir(PROJECT_PATH)
 
 import utils.vector_store as vs
 import utils.paper_utils as pu
-import utils.db as db
-
+import utils.db.db_utils as db_utils
+import utils.db.paper_db as paper_db
 
 def main():
     vs.validate_openai_env()
-    title_map = db.get_arxiv_title_dict(db.db_params)
-    arxiv_codes = db.get_arxiv_id_list(db.db_params, "summary_notes")
-    done_codes = db.get_arxiv_id_list(db.db_params, "summary_markdown")
+    title_map = db_utils.get_arxiv_title_dict()
+    arxiv_codes = db_utils.get_arxiv_id_list("summary_notes")
+    done_codes = db_utils.get_arxiv_id_list("summary_markdown")
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
     # arxiv_codes = ["2404.05961"]
 
     for arxiv_code in tqdm(arxiv_codes):
-        paper_notes = db.get_extended_notes(
+        paper_notes = paper_db.get_extended_notes(
             arxiv_code=arxiv_code, expected_tokens=3000
         )
         paper_title = title_map[arxiv_code]
@@ -49,7 +49,7 @@ def main():
                 "tstp": [pd.Timestamp.now()],
             }
         )
-        db.upload_df_to_db(markdown_df, "summary_markdown", db.db_params)
+        db_utils.upload_df_to_db(markdown_df, "summary_markdown")
 
     print("Done!")
 

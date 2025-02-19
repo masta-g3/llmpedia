@@ -18,7 +18,7 @@ import seaborn as sns
 from matplotlib.colors import rgb2hex
 from pathlib import Path
 
-import utils.db as db
+import utils.db.paper_db as paper_db
 from utils.logging_utils import setup_logger
 
 # Set up logging
@@ -140,9 +140,9 @@ def main():
         
         # Load data
         logger.info("Loading required data from database")
-        topics_df = db.load_topics()
-        citations_df = db.load_citations()
-        arxiv_df = db.load_arxiv()
+        topics_df = paper_db.load_topics()
+        citations_df = paper_db.load_citations()
+        arxiv_df = paper_db.load_arxiv()
         
         # Create visualization
         plot = create_topic_map(topics_df, citations_df, arxiv_df)

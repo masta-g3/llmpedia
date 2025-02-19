@@ -49,14 +49,14 @@ function run_step() {
     if [ $exit_status -ne 0 ]; then
         ## If the script failed, log the error.
         local error_msg=$(cat "$temp_error_file")
-        python -c "from utils.db import log_workflow_run; log_workflow_run('$step_name', '$script', 'error', '''$error_msg''')"
+        python -c "from utils.db.logging_db import log_workflow_run; log_workflow_run('$step_name', '$script', 'error', '''$error_msg''')"
         rm -f "$temp_error_file"
         echo ">> [$step_name] Failed at $(date)" | tee -a "$LOG_FILE"
         return 1
     fi
     
     ## Log successful run.
-    python -c "from utils.db import log_workflow_run; log_workflow_run('$step_name', '$script', 'success')"
+    python -c "from utils.db.logging_db import log_workflow_run; log_workflow_run('$step_name', '$script', 'success')"
     rm -f "$temp_error_file"
     echo ">> [$step_name] Completed at $(date)" | tee -a "$LOG_FILE"
     return 0

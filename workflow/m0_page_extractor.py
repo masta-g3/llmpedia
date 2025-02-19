@@ -12,13 +12,15 @@ sys.path.append(PROJECT_PATH)
 os.chdir(PROJECT_PATH)
 
 import utils.paper_utils as pu
+import utils.db.db_utils as db_utils
 from utils.logging_utils import setup_logger
 
 # Set up logging
 logger = setup_logger(__name__, "m0_page_extractor.log")
 
 
-def process_arxiv_code(arxiv_code, page_dir):
+def process_arxiv_code(arxiv_code: str, page_dir: str, idx: int, total: int, title: str) -> None:
+    """Process a single arxiv code to extract its first page."""
     pdf_url = f"https://arxiv.org/pdf/{arxiv_code}.pdf"
     try:
         response = requests.get(pdf_url, timeout=30)
@@ -40,14 +42,15 @@ def process_arxiv_code(arxiv_code, page_dir):
             pu.upload_s3_file(
                 arxiv_code, "arxiv-first-page", prefix="data", format="png"
             )
+            logger.info(f"[{idx}/{total}] Extracted first page: {arxiv_code} - '{title}'")
         else:
             logger.warning(
-                f"Could not extract the first page of '{arxiv_code}'. Skipping."
+                f"[{idx}/{total}] Failed to extract page: {arxiv_code} - '{title}'"
             )
     except Exception as e:
-        logger.error(f"Error processing '{arxiv_code}': {str(e)}. Skipping.")
+        logger.error(f"[{idx}/{total}] Error processing: {arxiv_code} - '{title}' - {str(e)}")
     finally:
-        gc.collect()  # Force garbage collection
+        gc.collect()
 
 
 def main():
@@ -61,12 +64,15 @@ def main():
     # Find the difference between all arxiv codes and the done codes
     arxiv_codes = list(set(arxiv_codes) - set(done_codes))
     arxiv_codes = sorted(arxiv_codes)[::-1]
+    
+    total_papers = len(arxiv_codes)
+    logger.info(f"Found {total_papers} papers to process for page extraction.")
+    
+    title_map = db_utils.get_arxiv_title_dict()
 
-    logger.info(f"Found {len(arxiv_codes)} papers to process for page extraction.")
-
-    for idx, arxiv_code in enumerate(arxiv_codes):
-        logger.info(f" [{idx}/{len(arxiv_codes)}] Processing {arxiv_code}.")
-        process_arxiv_code(arxiv_code, page_dir)
+    for idx, arxiv_code in enumerate(arxiv_codes, 1):
+        paper_title = title_map.get(arxiv_code, "Unknown Title")
+        process_arxiv_code(arxiv_code, page_dir, idx, total_papers, paper_title)
         gc.collect()  # Force garbage collection after each iteration
 
     logger.info("Page extraction process completed.")

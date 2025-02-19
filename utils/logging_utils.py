@@ -27,3 +27,13 @@ def setup_logger(logger_name, log_file, level=logging.INFO):
     logger.addHandler(stream_handler)
 
     return logger
+
+def get_console_logger() -> logging.Logger:
+    """Create a simple console logger for when no logger is provided."""
+    console_logger = logging.getLogger("console_logger")
+    if not console_logger.handlers:  # Only add handler if none exists
+        console_logger.setLevel(logging.INFO)
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+        console_logger.addHandler(handler)
+    return console_logger
