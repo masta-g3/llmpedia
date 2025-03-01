@@ -19,6 +19,7 @@ langchain-text-splitters==0.2.0
 langchain-together==0.0.2.post1
 langchain==0.2.1
 langchainhub==0.1.13
+litellm==1.60.0
 matplotlib==3.10.0
 nltk~=3.8.1
 numba==0.58.1
