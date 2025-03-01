@@ -92,7 +92,7 @@ while true; do
     run_step "12: Page Extractor" "workflow/m0_page_extractor.py"
     run_step "13:  Repo Extractor" "workflow/n0_repo_extractor.py"
     run_step "14: GIST Updater" "workflow/z0_update_gist.py"
-    run_step "15: Generate tweet" "workflow/z1_generate_tweet.py"
+    run_step "15: Generate tweet" "workflow/z2_generate_tweet.py"
 
     echo "Cycle completed at $(date)" | tee -a "$LOG_FILE"
     echo "Starting next cycle..."

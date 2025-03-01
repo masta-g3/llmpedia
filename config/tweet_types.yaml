@@ -1,0 +1,68 @@
+# Tweet Types Configuration
+# This file defines the structure and generation rules for different types of tweet threads
+
+tweet_types:
+  insight_v5:
+    name: "Insight Thread"
+    description: "A thread with paper insights, first page, and links"
+    tweets:
+      - position: 0
+        content:
+          content_type: "function"
+          content: "generate_insight_content"
+          description: "Main insight about the paper"
+        images:
+          - source_type: "path"
+            source: "data/arxiv_art/{arxiv_code}.png"
+            description: "Paper art image"
+          - source_type: "path"
+            source: "data/arxiv_first_page/{arxiv_code}.png"
+            description: "Paper first page"
+      - position: 1
+        content:
+          content_type: "function"
+          content: "generate_links_content"
+          description: "Links to paper and resources"
+  
+  punchline:
+    name: "Punchline Tweet"
+    description: "A concise tweet with paper punchline and selected figure"
+    tweets:
+      - position: 0
+        content:
+          content_type: "function"
+          content: "generate_punchline_content"
+          description: "Paper punchline"
+        images:
+          - source_type: "function"
+            source: "select_punchline_image"
+            description: "Selected figure from paper"
+      - position: 1
+        content:
+          content_type: "function"
+          content: "generate_links_content"
+          description: "Links to paper and resources"
+
+  fable:
+    name: "Fable Tweet"
+    description: "A creative fable-style tweet about the paper"
+    tweets:
+      - position: 0
+        content:
+          content_type: "function"
+          content: "generate_fable_content"
+          description: "Paper fable"
+        images:
+          - source_type: "path"
+            source: "data/arxiv_art/{arxiv_code}.png"
+            description: "Paper art image"
+      - position: 1
+        content:
+          content_type: "function"
+          content: "generate_links_content"
+          description: "Links to paper and resources"
+      - position: 2
+        content:
+          content_type: "function"
+          content: "generate_author_tweet"
+          description: "Related discussion from paper authors" 

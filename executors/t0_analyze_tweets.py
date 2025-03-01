@@ -68,7 +68,7 @@ def process_tweets(start_time: Optional[str] = None, time_span_hours: int = 6) -
     unique_count = tweets_df["text"].nunique()
     
     # Get previous analyses and format as diary entries
-    previous_analyses = db.read_last_n_tweet_analyses(10)
+    previous_analyses = tweet_db.read_last_n_tweet_analyses(10)
     previous_entries = ""
     if not previous_analyses.empty:
         entries = []

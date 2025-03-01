@@ -27,6 +27,7 @@ import utils.notifications as em
 import utils.db.db_utils as db_utils
 import utils.db.paper_db as paper_db
 import utils.db.tweet_db as tweet_db
+from utils.tweet import bold
 import utils.tweet as tweet
 import utils.app_utils as au
 
@@ -53,49 +54,6 @@ class TweetImages:
     tweet_image: Optional[str] = None  # Art image
     tweet_page: Optional[str] = None  # First page or selected figure
     analyzed_image: Optional[str] = None  # Additional analyzed figure
-
-
-def bold(input_text, extra_str):
-    """Format text with bold and italic characters."""
-    chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    bold_chars = "𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵"
-    bold_italic_chars = "𝘼𝘽𝘾𝘿𝙀𝙁𝙂𝙃𝙄𝙅𝙆𝙇𝙈𝙉𝙊𝙋𝙌𝙍𝙎𝙏𝙐𝙑𝙒𝙓𝙔𝙕𝙖𝙗𝙘𝙙𝙚𝙛𝙜𝙝𝙞𝙟𝙠𝙡𝙢𝙣𝙤𝙥𝙦𝙧𝙨𝙩𝙪𝙫𝙬𝙭𝙮𝙯𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵"
-
-    ## Helper function to bold the characters within quotes
-    def boldify(text):
-        bolded_text = ""
-        for character in text:
-            if character in chars:
-                bolded_text += bold_chars[chars.index(character)]
-            else:
-                bolded_text += character
-        return bolded_text
-
-    ## Helper function to bold and italicize the characters within asterisks
-    def bold_italicize(text):
-        bold_italic_text = ""
-        for character in text:
-            if character in chars:
-                bold_italic_text += bold_italic_chars[chars.index(character)]
-            else:
-                bold_italic_text += character
-        return bold_italic_text
-
-    ## Regex to find text in double brackets and apply the boldify function to them.
-    output = re.sub(
-        r"\[\[([^]]*)\]\]",
-        lambda m: "[[" + boldify(m.group(1)) + "]] (" + extra_str + ")",
-        input_text,
-    )
-    output = output.replace("[[", "").replace("]]", "")
-
-    ## Regex to find text in double asterisks and apply the bold_italicize function to them
-    output = re.sub(r"\*\*([^*]*)\*\*", lambda m: bold_italicize(m.group(1)), output)
-
-    ## Italicize "Moral:" but not the moral itself
-    output = output.replace("Moral:", bold_italicize("Moral:"))
-
-    return output.strip()
 
 
 ## New function to fetch candidate papers from S3, excluding those already reviewed.

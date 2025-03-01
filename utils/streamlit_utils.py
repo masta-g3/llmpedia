@@ -126,7 +126,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         try:
             img_cols[0].image(
                 f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png", 
-                use_column_width=True
+                use_container_width=True
             )
         except:
             pass
@@ -483,7 +483,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             response = au.interrogate_paper(
                 paper_question, paper_code, model="claude-3-5-sonnet-20241022"
             )
-            db.log_qna_db(f"[{paper_code}] ::: {paper_question}", response)
+            logging_db.log_qna_db(f"[{paper_code}] ::: {paper_question}", response)
             st.chat_message("assistant").write(response)
             
     with tabs[tab_index + 1]:  # Similar Papers

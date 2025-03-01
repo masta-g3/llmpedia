@@ -272,6 +272,5 @@ def load_tweet_insights(arxiv_code: Optional[str] = None, drop_rejected: bool = 
     
     if not df.empty:
         df.rename(columns={"review": "tweet_insight"}, inplace=True)
-        df.set_index("arxiv_code", inplace=True)
         
     return df

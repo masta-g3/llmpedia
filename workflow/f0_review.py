@@ -75,7 +75,6 @@ def main():
         )
         flat_entries["arxiv_code"] = arxiv_code
         flat_entries["tstp"] = pd.Timestamp.now()
-        logger.info(f"[{idx}/{total_papers}] Storing review: {arxiv_code} - '{paper_title}'")
         df = pd.DataFrame([flat_entries])
         db_utils.upload_dataframe(df, "summaries")
 

@@ -2,7 +2,7 @@
 anthropic==0.40.0
 arxiv~=2.1.0
 bertopic~=0.16.3
-cohere==5.5.4
+cohere==5.13.12
 colorcet==3.0.1
 datamapplot~=0.5.0
 einops~=0.6.1
@@ -40,7 +40,7 @@ selenium~=4.16.0
 sentence-transformers==2.7.0
 setuptools~=57.5.0
 streamlit-plotly-events==0.0.6
-streamlit==1.37.1
+streamlit==1.42.2
 tokencost>=0.1.12
 torch~=2.4.0
 torchdiffeq~=0.2.3

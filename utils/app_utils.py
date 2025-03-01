@@ -16,7 +16,6 @@ from langchain.prompts.chat import ChatPromptTemplate
 from langchain.chains import LLMChain
 
 from utils.custom_langchain import NewCohereEmbeddings, NewPGVector
-# from utils.models import llm_map
 from utils.instruct import run_instructor_query
 import utils.pydantic_objects as po
 import utils.prompts as ps
@@ -205,69 +204,6 @@ def create_rag_context(parent_docs: pd.DataFrame) -> str:
         rag_context += "---\n\n"
 
     return rag_context
-
-
-def question_to_query(question: str, model: str = "GPT-3.5-Turbo"):
-    """Convert notes to narrative via LLMChain."""
-    query_prompt = ChatPromptTemplate.from_messages(
-        [("system", ps.QUESTION_TO_QUERY_PROMPT)]
-    )
-    query_chain = LLMChain(llm=llm_map[model], prompt=query_prompt)
-    query = query_chain.invoke(dict(question=question))["text"]
-    query = "[ " + query
-    return query
-
-
-def query_llmpedia(question: str, collection_name: str, model: str = "GPT-3.5-Turbo"):
-    """Query LLMpedia via LLMChain."""
-    rag_prompt_custom = ChatPromptTemplate.from_messages(
-        [
-            ("system", ps.VS_SYSTEM_TEMPLATE),
-            ("human", "{question}"),
-        ]
-    )
-
-    rag_llm_chain = LLMChain(
-        llm=llm_map[model], prompt=rag_prompt_custom, verbose=False
-    )
-    compression_retriever = initialize_retriever(collection_name)
-    queries = question_to_query(question, model=model)
-    queries_list = json.loads(queries)
-    all_parent_docs = []
-    for query in queries_list:
-        child_docs = compression_retriever.invoke(query)
-
-        ## Map to parent chunk (for longer context).
-        child_docs = [doc.metadata for doc in child_docs]
-        child_ids = [(doc["arxiv_code"], doc["chunk_id"]) for doc in child_docs]
-        parent_ids = paper_db.get_arxiv_parent_chunk_ids(child_ids)
-        parent_docs = paper_db.get_arxiv_chunks(parent_ids, source="parent")
-        if len(parent_docs) == 0:
-            continue
-        parent_docs["published"] = pd.to_datetime(parent_docs["published"]).dt.year
-        parent_docs.sort_values(
-            by=["published", "citation_count"], ascending=False, inplace=True
-        )
-        parent_docs.reset_index(drop=True, inplace=True)
-        parent_docs["subject"] = query
-        parent_docs = parent_docs.head(3)
-        all_parent_docs.append(parent_docs)
-
-    all_parent_docs = pd.concat(all_parent_docs, ignore_index=True)
-    if len(all_parent_docs) == 0:
-        return "No results found."
-
-    ## Create custom prompt.
-    all_parent_docs.drop_duplicates(subset=["text"], inplace=True)
-    rag_context = create_rag_context(all_parent_docs)
-    res = rag_llm_chain.invoke(dict(context=rag_context, question=question))["text"]
-    if "Response" in res:
-        res_response = res.split("Response\n")[1].split("###")[0].strip()
-        content = add_links_to_text_blob(res_response)
-    else:
-        content = res[:]
-
-    return content
 
 
 ######################
@@ -495,11 +431,11 @@ def get_paper_markdown(arxiv_code: str) -> Tuple[str, bool]:
 
 def query_llmpedia_new(
     user_question: str,
-    response_length: int,
-    query_llm_model: str,
-    rerank_llm_model: str,
-    response_llm_model: str,
-    max_sources: int = 7,
+    response_length: int = 500,
+    query_llm_model: str = "claude-3-5-sonnet-20241022",
+    rerank_llm_model: str = "gpt-4o-mini", 
+    response_llm_model: str = "claude-3-5-sonnet-20241022",
+    max_sources: int = 25,
     debug: bool = False,
     progress_callback: Optional[Callable[[str], None]] = None,
     custom_instructions: Optional[str] = None,
@@ -549,11 +485,22 @@ def query_llmpedia_new(
         ## Fetch results.
         query_obj.topic_categories = None
         criteria_dict = query_obj.model_dump(exclude_none=True)
+        criteria_dict['limit'] = max_sources * 2
         sql = embedding_db.generate_semantic_search_query(criteria_dict, query_config, embedding_model=VS_EMBEDDING_MODEL)
         
-        documents = db_utils.execute_read_query(sql, limit=max_sources*2)
+        documents = db_utils.execute_read_query(sql)
+
+        documents = documents.to_dict(orient="records")
         documents = [
-            Document(**dict(zip(Document.__fields__.keys(), d))) for d in documents
+            Document(
+                arxiv_code=d['arxiv_code'],
+                title=d['title'],
+                published_date=d['published_date'].to_pydatetime(),
+                citations=int(d['citations']),
+                abstract=d['abstract'],
+                notes=d['notes'],
+                distance=float(d['similarity_score'])
+            ) for d in documents
         ]
 
         if progress_callback:

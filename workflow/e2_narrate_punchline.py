@@ -14,6 +14,7 @@ os.chdir(PROJECT_PATH)
 
 import utils.vector_store as vs
 import utils.db.db_utils as db_utils
+import utils.db.paper_db as paper_db
 from utils.logging_utils import setup_logger
 
 # Set up logging
@@ -33,7 +34,7 @@ def main():
     logger.info(f"Found {len(arxiv_codes)} papers to process for punchline summaries")
 
     for arxiv_code in arxiv_codes:
-        paper_notes = db_utils.get_extended_notes(arxiv_code, expected_tokens=500)
+        paper_notes = paper_db.get_extended_notes(arxiv_code, expected_tokens=500)
         paper_title = title_map[arxiv_code]
 
         logger.info(f"Generating punchline for: {arxiv_code} - '{paper_title}'")

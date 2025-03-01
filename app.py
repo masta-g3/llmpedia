@@ -459,7 +459,7 @@ def main():
                     rerank_llm_model="gpt-4o-mini",
                     response_llm_model="claude-3-5-sonnet-20241022",
                     max_sources=max_sources,
-                    debug=False,
+                    debug=True,
                     progress_callback=update_progress,
                     custom_instructions=custom_instructions if custom_instructions.strip() else None,
                     show_only_sources=show_only_sources
@@ -538,6 +538,8 @@ def main():
             topic_filter: List[str],
             domain_filter: List[str],
         ):
+            df.dropna(subset=["repo_url"], inplace=True)
+            df = df[df["repo_url"].map(lambda x: len(x) > 0)]
             if len(search_term) > 0:
                 df = df[df["title"].str.contains(search_term, case=False)]
             if len(topic_filter) > 0:
@@ -635,7 +637,7 @@ def main():
             st.write(weekly_report)
             report_highlights_cols = st.columns((1, 2.5))
             highlight_img = au.get_img_link_for_blob(weekly_highlight)
-            report_highlights_cols[0].image(highlight_img, use_column_width=True)
+            report_highlights_cols[0].image(highlight_img, use_container_width=True)
             report_highlights_cols[1].markdown(weekly_highlight)
             st.markdown(weekly_repos)
 

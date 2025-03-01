@@ -4,54 +4,23 @@ import re
 import base64
 import requests
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_cohere import CohereEmbeddings
-from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
 import tiktoken
 from typing import Optional, Tuple
 
 import utils.prompts as ps
 import utils.pydantic_objects as po
 import utils.app_utils as au
+import utils.db.paper_db as paper_db
 from utils.instruct import run_instructor_query, format_vision_messages
-import voyageai
-from sentence_transformers import SentenceTransformer
-
 
 token_encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
 
-def validate_openai_env():
+def validate_openai_env() -> None:
     """Validate that the API base is not set to local."""
     api_base = os.environ.get("OPENAI_API_BASE", "")
     false_base = "http://localhost:1234/v1"
     assert api_base != false_base, "API base is not set to local."
-
-
-def convert_query_to_vector(query: str, model_name: str) -> list[float]:
-    """Convert a text query into a vector using the specified embedding model."""
-    if "embed-english" in model_name:
-        embeddings = CohereEmbeddings(
-            cohere_api_key=os.getenv("COHERE_API_KEY"), model=model_name
-        )
-    elif model_name == "voyage":
-        client = voyageai.Client()
-        return client.embed(
-            [query], model="voyage-3-large", input_type="document"
-        ).embeddings[0]
-    elif model_name == "nvidia/NV-Embed-v2":
-        model = SentenceTransformer(model_name, trust_remote_code=True)
-        model.max_seq_length = 32768
-        model.tokenizer.padding_side = "right"
-        query_prefix = "Instruct: Identify the topic or theme of the following AI & Large Language Model document\nQuery: "
-        return model.encode(
-            query + model.tokenizer.eos_token,
-            prompt=query_prefix,
-            normalize_embeddings=True,
-        ).tolist()
-    else:
-        embeddings = HuggingFaceEmbeddings(model_name=model_name)
-
-    return embeddings.embed_query(query)
 
 
 ###################
@@ -325,24 +294,14 @@ def generate_weekly_highlight(weekly_content_md: str, model="gpt-4o"):
 def extract_document_repo(paper_content: str, model="gpt-4o"):
     """Extract weekly repos."""
     weekly_repos = run_instructor_query(
-        ps.WEEKLY_SYSTEM_PROMPT,
-        ps.WEEKLY_REPO_USER_PROMPT.format(content=paper_content),
+        ps.REPO_EXTRACTOR_SYSTEM_PROMPT,
+        ps.REPO_EXTRACTOR_USER_PROMPT.format(content=paper_content),
         llm_model=model,
         model=po.ExternalResources,
         temperature=0.0,
         process_id="extract_document_repo",
     )
     return weekly_repos
-
-
-tweet_user_map = {
-    "insight_v5": ps.TWEET_INSIGHT_USER_PROMPT_V5,
-}
-
-tweet_edit_user_map = {
-    "review": ps.TWEET_INSIGHT_EDIT_USER_PROMPT,
-}
-
 
 def select_most_interesting_paper(
     arxiv_abstracts: str,
@@ -376,7 +335,7 @@ def write_tweet(
 ) -> po.Tweet:
     """Write a tweet about an LLM paper."""
     system_prompt = ps.TWEET_SYSTEM_PROMPT
-    user_prompt = ps.TWEET_INSIGHT_USER_PROMPT_V5.format(
+    user_prompt = ps.TWEET_INSIGHT_USER_PROMPT.format(
         tweet_facts=tweet_facts,
         most_recent_tweets=most_recent_tweets,
         recent_llm_tweets=recent_llm_tweets,
@@ -422,6 +381,31 @@ def write_tweet_reply(
     return tweet
 
 
+def write_paper_matcher(
+    tweet_text: str,
+    paper_summaries: str,
+    previous_responses: str,
+    model: str = "claude-3-5-sonnet-20241022",
+    temperature: float = 0.8,
+) -> str:
+    """Write a paper matcher."""
+    system_prompt = ps.TWEET_SYSTEM_PROMPT
+    user_prompt = ps.TWEET_PAPER_MATCHER_USER_PROMPT.format(
+        tweet_text=tweet_text,
+        paper_summaries=paper_summaries,
+        base_style=ps.TWEET_BASE_STYLE,
+        previous_responses=previous_responses
+    )
+    response = run_instructor_query(
+        system_prompt,
+        user_prompt,
+        llm_model=model,
+        temperature=temperature,
+        process_id="write_paper_matcher",
+    )
+    return response
+
+
 def write_fable(
     tweet_facts: str,
     image_data: Optional[str] = None,
@@ -430,7 +414,7 @@ def write_fable(
 ) -> str:
     """Generate an Aesop-style fable from a paper summary and optionally its thumbnail image."""
     system_prompt = ps.TWEET_SYSTEM_PROMPT
-    user_prompt = ps.TWEET_FABLE_USER_PROMPT_V1.format(tweet_facts=tweet_facts)
+    user_prompt = ps.TWEET_FABLE_USER_PROMPT.format(tweet_facts=tweet_facts)
 
     if image_data:
         # If image is provided, use vision API format
@@ -479,7 +463,7 @@ def write_punchline_tweet(
     """Generate a punchline summary and select a relevant image from a paper's markdown content."""
     punchline = run_instructor_query(
         ps.TWEET_SYSTEM_PROMPT,
-        ps.PUNCHLINE_TWEET_USER_PROMPT.format(
+        ps.TWEET_PUNCHLINE_USER_PROMPT.format(
             paper_title=paper_title,
             markdown_content=markdown_content,
             base_style=ps.TWEET_BASE_STYLE,
@@ -542,8 +526,8 @@ def assess_llm_relevance(
 ) -> po.TweetRelevanceInfo:
     """Assess if a tweet is related to LLMs and extract any arxiv code if present."""
     relevance_info = run_instructor_query(
-        ps.LLM_RELEVANCE_SYSTEM_PROMPT,
-        ps.LLM_RELEVANCE_USER_PROMPT.format(tweet_text=tweet_text),
+        ps.LLM_TWEET_RELEVANCE_SYSTEM_PROMPT,
+        ps.LLM_TWEET_RELEVANCE_USER_PROMPT.format(tweet_text=tweet_text),
         llm_model=model,
         model=po.TweetRelevanceInfo,
         process_id="assess_llm_relevance",
@@ -578,11 +562,13 @@ def analyze_paper_images(
 ) -> str:
     """Analyze paper images using Claude vision API to select the most suitable one for social media."""
     # Get paper details
-    paper_details = db.get_extended_content(arxiv_code)
+    ##ToDo: Move out of this script.
+    paper_details = paper_db.get_extended_content(arxiv_code)
     if paper_details.empty:
         return None
 
     # Get paper markdown and images
+    ##ToDo: Move out of this script.
     markdown_content, success = au.get_paper_markdown(arxiv_code)
     if not success:
         return None

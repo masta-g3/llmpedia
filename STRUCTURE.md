@@ -11,6 +11,9 @@ llmpedia/
 ├── tweet_collector.sh       # Tweet collection script
 ├── update_and_restart.sh    # Deployment update script
 │
+├── config/                  # Configuration files
+│   └── tweet_types.yaml        # Tweet generation configuration
+│
 ├── workflow/                # Core processing pipeline modules
 │   ├── a0_scrape_lists.py      # Twitter list scraping
 │   ├── a1_scrape_tweets.py     # Tweet scraping
@@ -35,7 +38,7 @@ llmpedia/
 │   ├── n0_repo_extractor.py    # Repository extraction
 │   ├── t0_analyze_tweets.py    # Tweet analysis
 │   ├── z0_daily_update.py      # Daily update workflow
-│   └── z1_generate_tweet.py    # Tweet generation
+│   └── z2_generate_tweet.py    # Configuration-driven tweet generation
 │
 ├── utils/                   # Utility modules and helpers
 │   ├── app_utils.py           # Application utilities
@@ -78,7 +81,7 @@ llmpedia/
 
 ### Core Components
 - `app.py`: Main Streamlit application serving the web interface
-- `workflow/`: Contains the sequential processing pipeline modules (a0 → z1)
+- `workflow/`: Contains the sequential processing pipeline modules (a0 → z2)
 - `utils/`: Shared utility functions and helper modules
 - `executors/`: Task execution and scheduling modules
 

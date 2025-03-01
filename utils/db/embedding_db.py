@@ -5,6 +5,8 @@ import logging
 from datetime import datetime
 
 from .db_utils import execute_read_query, execute_write_query
+from utils.embeddings import convert_query_to_vector
+
 
 ## Constants for embedding dimensions
 EMBEDDING_DIMENSIONS = {
@@ -126,3 +128,80 @@ def get_topic_embedding_dist() -> Dict[str, Dict[str, float]]:
     except Exception as e:
         logging.error(f"Error getting topic embedding distribution: {str(e)}")
         return {} 
+    
+
+def format_query_condition(field_name: str, template: str, value: str, embedding_model: str):
+    """Format query conditions for semantic search, handling both vector and regular conditions."""
+    if isinstance(value, list) and "semantic_search_queries" in field_name:
+        distance_scores = []
+        for query in value:
+            vector = convert_query_to_vector(query, embedding_model)
+            vector_str = ", ".join(map(str, vector))
+            ## Using pgvector's cosine similarity operator <=> and converting to similarity score.
+            condition = f"1 - (e.embedding <=> ARRAY[{vector_str}]::vector) "
+            distance_scores.append(condition)
+        if distance_scores:
+            max_similarity = f"GREATEST({', '.join(distance_scores)})"
+            return (
+                f"({' OR '.join([c + ' > 0.6' for c in distance_scores])})",  # Threshold of 0.6 for similarity
+                max_similarity,
+            )
+        else:
+            return "AND TRUE", "0 as max_similarity"
+    elif isinstance(value, list):
+        value_str = "', '".join(value)
+        return template % value_str, "0 as max_similarity"
+    else:
+        return template % value, "0 as max_similarity"
+
+
+def generate_semantic_search_query(criteria: dict, config: dict, embedding_model: str = "embed-english-v3.0") -> str:
+    """Generate SQL query for semantic search using pgvector."""
+    query_parts = [
+        ## Select basic paper info and notes.
+        """SELECT 
+            a.arxiv_code, 
+            a.title, 
+            a.published as published_date, 
+            s.citation_count as citations, 
+            a.summary AS abstract,
+            n.notes""",
+        ## From tables.
+        """FROM arxiv_details a, 
+             semantic_details s, 
+             topics t, 
+             arxiv_embeddings_1024 e,
+             (SELECT DISTINCT ON (arxiv_code) arxiv_code, summary as notes, tokens 
+              FROM summary_notes 
+              ORDER BY arxiv_code, ABS(tokens - %d) ASC) n""" % (criteria.get('response_length', 1000) * 3),
+        ## Join conditions.
+        """WHERE a.arxiv_code = s.arxiv_code
+        AND a.arxiv_code = t.arxiv_code 
+        AND a.arxiv_code = n.arxiv_code 
+        AND a.arxiv_code = e.arxiv_code 
+        AND e.doc_type = 'abstract'
+        AND e.embedding_type = '%s'""" % embedding_model,
+    ]
+
+    ## Add similarity conditions if present.
+    similarity_scores = []
+    for field, value in criteria.items():
+        if value is not None and field in config and field not in ["response_length", "limit"]:
+            condition_str, similarity_expr = format_query_condition(
+                field, config[field], value, embedding_model
+            )
+            query_parts.append(f"AND {condition_str}")
+            if similarity_expr != "0 as max_similarity":
+                similarity_scores.append(similarity_expr)
+
+    # Add similarity score to SELECT if we have any
+    if similarity_scores:
+        similarity_select = f"GREATEST({', '.join(similarity_scores)}) as similarity_score"
+        query_parts[0] = query_parts[0].rstrip(",") + f", {similarity_select}"
+        query_parts.append("ORDER BY similarity_score DESC")
+    
+    # Add LIMIT if specified in criteria
+    if 'limit' in criteria and criteria['limit'] is not None:
+        query_parts.append(f"LIMIT {criteria['limit']}")
+    
+    return "\n".join(query_parts)
