@@ -13,7 +13,7 @@ litellm==1.60.0
 markdown2==2.5.2
 numpy==1.24.4
 sentence-transformers==2.7.0
-streamlit==1.37.1
+streamlit==1.42.2
 streamlit-plotly-events==0.0.6
 plotly==5.18.0
 pandas==2.0.3
