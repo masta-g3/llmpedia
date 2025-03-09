@@ -16,6 +16,10 @@ import utils.db.tweet_db as tweet_db
 import utils.styling as styling
 import time
 
+if hasattr(st, '_is_running_with_streamlit'):
+    import streamlit.watcher.path_watcher
+    streamlit.watcher.path_watcher.IGNORE_MODULES.add('torch')
+
 ## Page config.
 st.set_page_config(
     layout="wide",
