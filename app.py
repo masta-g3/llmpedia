@@ -25,7 +25,7 @@ st.set_page_config(
     layout="wide",
     page_title="📚 LLMpedia",
     page_icon="📚",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # Apply styling
