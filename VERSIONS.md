@@ -61,3 +61,12 @@
 - [x] Better topic model visualization.
 - [x] Punchline.
 - [x] Markdown reader.
+
+
+## v.1.5.0
+- [x] Deeper social media integration.
+- [x] YAML configurable post types.
+- [x] Better plot interactions.
+- [x] Auto-weekly report.
+- [x] Utils refactor.
+- [x] Auto-daily updates.
