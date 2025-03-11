@@ -10,6 +10,8 @@ llmpedia/
 ├── workflow.sh              # Main workflow execution script
 ├── tweet_collector.sh       # Tweet collection script
 ├── update_and_restart.sh    # Deployment update script
+├── daily_update.sh          # Daily update automation script
+├── weekly_review.sh         # Weekly review automation script
 │
 ├── config/                  # Configuration files
 │   └── tweet_types.yaml        # Tweet generation configuration
@@ -110,6 +112,7 @@ llmpedia/
 - `workflow.sh`: Main workflow execution script
 - `tweet_collector.sh`: Tweet collection automation
 - `daily_update.sh`: Shell script that runs daily updates at 7 PM PST/PDT, with progress tracking and logging functionality
+- `weekly_review.sh`: Shell script that runs weekly reviews every Monday at 2:00 PM PST/PDT, using the previous Monday's date as input
 
 ## Utils Directory (`utils/`)
 
@@ -133,4 +136,18 @@ llmpedia/
   - Token usage tracking
   - Error logging
   - Q&A and visit logging
-  - Workflow execution logging 
+  - Workflow execution logging
+
+### Vector Store Operations (`utils/vector_store.py`)
+- `vector_store.py`: Vector storage operations
+  - Connection management
+  - Embedding operations
+  - LLM query functions
+  - Tweet generation and reply functions:
+    - `select_tweet_reply`: Selects a tweet to reply to and determines the appropriate response type
+    - `write_tweet_reply_academic`: Generates a technical response based on academic papers
+    - `write_tweet_reply_funny`: Generates a humorous, light-hearted response
+    - `write_tweet_reply_commonsense`: Generates a response based on common-sense insights
+
+### Paper Processing (`utils/paper_utils.py`)
+- `paper_utils.py`: Paper processing utilities

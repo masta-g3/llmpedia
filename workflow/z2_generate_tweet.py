@@ -39,6 +39,7 @@ import utils.app_utils as au
 
 logger = setup_logger(__name__, "z2_generate_tweet.log")
 
+
 def bold(input_text, extra_str):
     """Format text with bold and italic characters."""
     chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
@@ -80,6 +81,7 @@ def bold(input_text, extra_str):
     output = output.replace("Moral:", bold_italicize("Moral:"))
 
     return output.strip()
+
 
 ####################
 ## DATA MODELS    ##
@@ -268,31 +270,33 @@ def get_first_page(arxiv_code: str, paper_details: dict) -> str:
 
 def select_punchline_image(arxiv_code: str, paper_details: dict) -> str:
     """Select the most relevant image for a punchline tweet."""
+    image_path = None
+    
+    # Get markdown content
     markdown_content, success = au.get_paper_markdown(arxiv_code)
-    if not success:
-        logger.warning(
-            f"Could not load markdown content for {arxiv_code}, falling back to first page"
-        )
-        return get_first_page(arxiv_code, paper_details)
-
-    punchline_obj = vs.write_punchline_tweet(
-        markdown_content=markdown_content,
-        paper_title=paper_details["title"],
-        model="claude-3-5-sonnet-20241022",
-        temperature=0.9,
-    )
-
-    if punchline_obj.image:
-        image_path = os.path.join(
-            DATA_PATH, "arxiv_md", arxiv_code, punchline_obj.image
-        )
-        if os.path.exists(image_path):
-            return image_path
-        logger.warning(
-            f"Selected image {punchline_obj.image} not found, falling back to first page"
+    if success:
+        # Get punchline object with image selection
+        punchline_obj = vs.write_punchline_tweet(
+            markdown_content=markdown_content,
+            paper_title=paper_details["title"],
+            model="claude-3-5-sonnet-20241022", 
+            temperature=0.9,
         )
 
-    return get_first_page(arxiv_code, paper_details)
+        if punchline_obj.image:
+            # Build image path
+            image_path = os.path.join(
+                DATA_PATH, "arxiv_md", arxiv_code, punchline_obj.image
+            )
+            
+            # Verify image exists
+            if not os.path.exists(image_path):
+                logger.warning(f"Selected image {punchline_obj.image} not found")
+                image_path = None
+    else:
+        logger.warning(f"Could not load markdown content for {arxiv_code}")
+
+    return image_path
 
 
 def get_analyzed_image(arxiv_code: str, paper_details: dict) -> Optional[str]:
@@ -446,27 +450,16 @@ class TweetGenerator:
                                 )
 
     def generate_tweet_thread(self, tweet_type: str, arxiv_code: str) -> TweetThread:
-        """Generate a complete tweet thread based on configuration.
-
-        Args:
-            tweet_type: Type of tweet thread to generate (must exist in config)
-            arxiv_code: Arxiv code of the paper to tweet about
-
-        Returns:
-            TweetThread object containing all generated tweets
-
-        Raises:
-            ValueError: If tweet type doesn't exist or configuration is invalid
-        """
+        """Generate a complete tweet thread based on configuration."""
         if tweet_type not in self.configs:
             raise ValueError(f"Unknown tweet type: {tweet_type}")
 
-        config = self.configs[tweet_type]  # Now a TweetThreadConfig object
+        config = self.configs[tweet_type]
         paper_details = paper_db.load_arxiv(arxiv_code).iloc[0].to_dict()
         tweets = []
 
-        for tweet_config in config.tweets:  # Now accessing validated config objects
-            # Generate content
+        for tweet_config in config.tweets:
+            ## Generate content
             content_config = tweet_config.content
             if content_config.content_type == "function":
                 func = self.content_generators[content_config.content]
@@ -474,11 +467,11 @@ class TweetGenerator:
             else:
                 content = content_config.content
 
-            # Skip empty tweets (like optional author tweets)
+            ## Skip empty tweets (like optional author tweets)
             if not content:
                 continue
 
-            # Generate images
+            ## Generate images
             images = None
             if tweet_config.images:
                 images = []
@@ -489,10 +482,10 @@ class TweetGenerator:
                     else:
                         img_path = img_config.source.format(arxiv_code=arxiv_code)
 
-                    if img_path:  # Only add if path exists
+                    if img_path:
                         images.append(img_path)
 
-                if not images:  # If no images were successfully generated
+                if not images:
                     images = None
 
             tweets.append(

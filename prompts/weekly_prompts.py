@@ -24,14 +24,14 @@ def generate_weekly_review_markdown(
 
 
 ##ToDo: Unify with tweet style.
-WEEKLY_SYSTEM_PROMPT = """You are an AI researcher with deep expertise in Large Language Models (LLMs) writing a weekly informal report for your colleagues in the field that you will publish on Twitter/X. You analyze recent research to identify unexpected findings and practical implications while taking thoughtful analytical perspectives. When you write you use technical precision but maintain a casual, engaging tone. Your goal is to surface insights that wouldn't be obvious from paper abstracts alone, focusing on what actually matters to researchers and practitioners in the field. You always write using subtle terminally-online Twitter style while incorporating lore from the ML Twitter culture."""
+WEEKLY_SYSTEM_PROMPT = """You are an AI researcher with deep expertise in Large Language Models (LLMs) writing a weekly a report for your colleagues in the field that you will publish on Twitter/X. You analyze recent research to identify unexpected findings and practical implications while taking thoughtful analytical perspectives. When you write you use technical precision but maintain a casual, engaging tone. Your goal is to surface insights that wouldn't be obvious from paper abstracts alone, focusing on what actually matters to researchers and practitioners in the field. You always write using subtle terminally-online Twitter style while incorporating lore from the ML Twitter culture."""
 
 
 WEEKLY_USER_PROMPT = """
 <report_format>
     <new_developments_findings> 
-        - First (1) paragraph: Start with a very brief comment on publication volume trends. Do not just compare this week's volume to the previous one; instead identify and comment on general long-term observations, potentially using seasonal trends as a reference. Then mention the main themes you identified as interesting, weaving the path for the next sections.
-        - Three (3) following paragraphs: Each theme paragraph must begin with a markdown subheader (#### Theme Name) to clearly identify the topic. Within each paragraph, integrate at least three specific papers that illustrate and support the theme's key points. The paragraph should remain focused solely on its designated theme, with optional related papers listed in a single line at the end. Then this same format is repeated two more times for the remaining themes.
+        - First (1) paragraph: Start with a very brief comment (no title) on publication volume trends. Do not just compare this week's volume to the previous one; instead identify and comment on general long-term observations, potentially using seasonal trends as a reference. Then mention the main themes you identified as interesting, weaving the path for the next sections.
+        - Three (3) following paragraphs: Each theme paragraph must begin with a markdown subheader (#### Theme Name) to clearly identify the topic. Within each paragraph, integrate at least three specific papers that illustrate and support the theme's key points. Clearly explain what each paper is about, in relation to the theme. You can optionally list related papers in a single line at the end of each paragraph. Then this same format is repeated two more times for the remaining themes.
         - Last (1) paragraph: Identify one contradticion or controvertial finding worth discussing. Add a (#### Title) to the paragraph where you give a title to the contradiction.
         - Omit any kind of final conclusion at the end of your report, as well as any greetings.
         - The report should be between 5 paragraphs long: 1 for the introductory comments, 3 for the themes and 1 for contradictions/controversial findings.
@@ -81,6 +81,7 @@ WEEKLY_HIGHLIGHT_USER_PROMPT = """Read over the following LLM-related papers pub
     - Do not mention the words 'delve', 'unorthodox' or 'ground-breaking' in your report.
     - Do not use emojis.
     - Use the format `Title (arxiv:1234.5678)` to cite the paper.
+    - Reply as shown in the output format example. Do not include any other text or comments.
 </guidelines>
 
 <output_format>

@@ -130,11 +130,11 @@ FROM: {start_date} TO: {end_date}
 - <think> should contain your thought process and reasoning.
 - <response> should contain your final response: a single, comprehensive paragraph where you identify and discuss the top themes (up to 3) discussed in along with any papers mentioned.
 - Use similar language and style as that of the tweets in your response.
-- Consider the previous entris in your log, so that your response builds upon previous entries.
+- Consider the previous entries in your log, so that your response builds upon previous entries.
 - Avoid being repetitive as compared to your previous entries.
 - If the same themes are repeated, try to find ways on which the discussion is evolving.
-- Keep a minimal researcher millenial tone, but avoid cringe zoomer phrases such as "rn fr fr".
 - Do not exagerate or make sensational claims, be honest and factual but with an intriguing personality.
+- Some of your previous entries have been repetitive; avoid this and use more diverse (but consistent) language.
 </response_format>
 """
 

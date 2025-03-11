@@ -316,13 +316,15 @@ def main():
 
     ## Select tweet type
     rand_val = random.random()
-    tweet_type = (
-        "fable" if rand_val < 0.0 else "punchline" if rand_val < 0.5 else "insight_v5"
-    )
+    # tweet_type = (
+    #     "fable" if rand_val < 0.0 else "punchline" if rand_val < 0.5 else "insight_v5"
+    # )
+    tweet_type = "insight_v5"
     logger.info(f"Selected tweet type: {tweet_type}")
 
     ## Select paper
-    arxiv_code = select_paper(logger)
+    # arxiv_code = select_paper(logger)
+    arxiv_code = "2502.17535"
 
     ## Prepare tweet facts and content
     tweet_facts, post_tweet, publish_date = prepare_tweet_facts(
@@ -363,6 +365,7 @@ def main():
         tweet_page_path=images.tweet_page,
         analyzed_image_path=images.analyzed_image,
         verify=True,
+        headless=False,
     )
 
     ## Store results

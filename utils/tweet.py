@@ -425,13 +425,14 @@ def send_tweet(
     tweet_page_path: str | None = None,
     analyzed_image_path: str | None = None,
     verify: bool = True,
+    headless: bool = True,
 ) -> bool:
     """Send a tweet with content and images using Selenium."""
 
     logger = logger or get_console_logger()
     
     logger.info("Starting tweet sending process")
-    driver = setup_browser(logger, headless=True)
+    driver = setup_browser(logger, headless=headless)
     login_twitter(driver, logger)
 
     logger.info("Composing tweet")
@@ -595,6 +596,7 @@ def send_tweet(
     # Sleep before sending the tweet
     sleep_duration = 5
     logger.info(f"Sleeping for {sleep_duration} seconds before sending the tweet...")
+
     time.sleep(sleep_duration)
     tweet_all_button.click()
     time.sleep(5)
@@ -1308,7 +1310,7 @@ def send_tweet2(
                 EC.element_to_be_clickable(
                     (
                         By.XPATH,
-                        "//button[@data-testid='tweetButton']//span[contains(text(), 'Post all')]",
+                        "//button[@data-testid='tweetButton']//span[contains(text(), 'Post') or contains(text(), 'Post all')]",
                     )
                 )
             )

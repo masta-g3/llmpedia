@@ -35,15 +35,30 @@ def plot_publication_counts(df: pd.DataFrame, cumulative=False) -> go.Figure:
             color_discrete_sequence=["#b31b1b"],
         )
     fig.update_xaxes(title=None, tickfont=dict(size=17))
-    fig.update_yaxes(titlefont=dict(size=18), tickfont=dict(size=17))
+    fig.update_yaxes(title_font=dict(size=18), tickfont=dict(size=17))
 
     return fig
 
 
 def plot_activity_map(df_year: pd.DataFrame) -> Tuple[go.Figure, pd.DataFrame]:
-    """Creates a calendar heatmap plot along with corresponding map of dates in a DF."""
-    colors = ["#b31b1b", "#c93232", "#e04848", "#e87070", "#f09898", "#f8c0c0"]
-
+    """Creates a calendar heatmap plot using scatter markers instead of a heatmap."""
+    colors = ["#f8c0c0", "#f09898", "#e87070", "#e04848", "#c93232", "#b31b1b"]
+    
+    # Create a colorscale function to map values to colors
+    max_count = df_year["Count"].max() if not df_year.empty else 1
+    min_count = df_year[df_year["Count"] > 0]["Count"].min() if not df_year.empty else 0
+    
+    def get_color(count):
+        if count == 0:
+            return "rgba(240, 240, 240, 0.5)"  # Light gray for zero values
+        
+        log_count = np.log1p(count - min_count + 1)
+        log_max = np.log1p(max_count - min_count + 1)
+        
+        normalized = (log_count / log_max) ** 2
+        color_idx = int(normalized * (len(colors) - 1))
+        return colors[color_idx]
+    
     week_max_dates = (
         df_year.groupby(df_year["published"].dt.isocalendar().week)["published"]
         .max()
@@ -51,30 +66,53 @@ def plot_activity_map(df_year: pd.DataFrame) -> Tuple[go.Figure, pd.DataFrame]:
         .tolist()
     )
 
+    # Create pivot tables for counts and dates
     padded_count = df_year.pivot_table(
         index="weekday", columns="week", values="Count", aggfunc="sum"
     ).fillna(0)
     padded_date = df_year.pivot_table(
         index="weekday", columns="week", values="published", aggfunc="last"
     ).fillna(pd.NaT)
+    
+    # Convert dates to string format
     padded_date = padded_date.applymap(
         lambda x: x.strftime("%b %d") if pd.notna(x) else ""
     )
-    padded_count = padded_count.iloc[::-1]
-    padded_date = padded_date.iloc[::-1]
-
-    fig = go.Figure(
-        data=go.Heatmap(
-            z=padded_count.values,
-            x=padded_date.iloc[0].values,
-            y=["Sun", "Sat", "Fri", "Thu", "Wed", "Tue", "Mon"],
-            hoverongaps=False,
-            hovertext=padded_date.values,
-            hovertemplate="%{hovertext}<extra>Count: %{z}</extra>",
-            colorscale=colors,
-            showscale=False,
-        )
-    )
+    
+    # Days of the week in display order (top to bottom)
+    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    
+    # Create figure
+    fig = go.Figure()
+    
+    # Add scatter markers to simulate heatmap
+    for y_idx, y_val in enumerate(days):
+        for x_idx, x_val in enumerate(padded_date.iloc[0].values):
+            if x_val:  # Only add points for non-empty dates
+                count = int(padded_count.values[y_idx, x_idx])
+                date_str = padded_date.values[y_idx, x_idx]
+                
+                # Store coordinates for selection handling
+                coords = f"{y_idx},{x_idx}"
+                
+                fig.add_trace(
+                    go.Scatter(
+                        x=[x_val],
+                        y=[y_val],
+                        mode="markers",
+                        marker=dict(
+                            size=22,
+                            color=get_color(count),
+                            symbol="square",
+                            line=dict(width=1, color="white"),
+                        ),
+                        name="",
+                        showlegend=False,
+                        hovertemplate=f"{date_str}<br>Count: {count}<extra></extra>",
+                        text=[coords],
+                    )
+                )
+    
     fig.update_layout(
         height=210,
         margin=dict(t=0, b=0, l=0, r=0),
@@ -83,7 +121,6 @@ def plot_activity_map(df_year: pd.DataFrame) -> Tuple[go.Figure, pd.DataFrame]:
     )
     fig.update_xaxes(tickfont=dict(color="grey"), showgrid=False, zeroline=False)
     fig.update_yaxes(tickfont=dict(color="grey"), showgrid=False, zeroline=False)
-    padded_date = padded_date.iloc[::-1]
 
     return fig, padded_date
 
@@ -113,7 +150,7 @@ def plot_weekly_activity_ts(
         color_discrete_sequence=["#b31b1b"],
     )
     fig.update_xaxes(title=None, tickfont=dict(size=17))
-    fig.update_yaxes(titlefont=dict(size=18), tickfont=dict(size=17))
+    fig.update_yaxes(title_font=dict(size=18), tickfont=dict(size=17))
     fig.add_vline(x=highlight_date_str, line_width=2, line_dash="dash", line_color="#c93232")
     fig.update_layout(
         margin=dict(t=0, b=0, l=0, r=0),
@@ -143,36 +180,62 @@ def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
     """Creates a scatter plot of the UMAP embeddings of the papers."""
     # Calculate marker size based on number of points
     n_points = len(df)
-    marker_size = min(20, max(4, int(400 / n_points)))  # Size between 4 and 20, inverse to number of points
+    marker_size = min(20, max(6, int(400 / n_points)))  # Size between 4 and 20, inverse to number of points
     
     # Create base contour plot
     fig = go.Figure()
     
-    ## Add density contours.
+    ## Add density contours - lines only, no fill
     fig.add_trace(go.Histogram2dContour(
         x=df["dim1"],
         y=df["dim2"],
-        colorscale="Blues",
+        colorscale=[[0, "rgba(200,200,255,0.3)"], [1, "rgba(100,100,255,0.3)"]],
         showscale=False,
-        ncontours=20,
-        contours=dict(coloring="fill"),
-        opacity=0.2,
+        ncontours=15,
+        contours=dict(
+            coloring="lines",
+            showlabels=False,
+            start=0,
+            end=1,
+            size=0.1,
+        ),
+        line=dict(width=1),
+        opacity=0.4,
     ))
     
     ## Add scatter points on top.
     for topic in df["topic"].unique():
         mask = df["topic"] == topic
+        topic_df = df[mask]
+        
+        # Prepare customdata including title, arxiv_code, published date, topic, and punchline
+        customdata = []
+        for _, row in topic_df.iterrows():
+            custom_item = [
+                row["title"],
+                row.get("arxiv_code", ""),
+                row.get("published", "").strftime("%b %d, %Y") if pd.notna(row.get("published", "")) else "",
+                row.get("topic", ""),
+                row.get("punchline", "")[:150] + "..." if len(str(row.get("punchline", ""))) > 150 else row.get("punchline", "")
+            ]
+            customdata.append(custom_item)
+        
         fig.add_trace(go.Scatter(
-            x=df[mask]["dim1"],
-            y=df[mask]["dim2"],
+            x=topic_df["dim1"],
+            y=topic_df["dim2"],
             mode="markers",
             name=topic,
             marker=dict(
                 size=marker_size,
                 line=dict(width=0.5, color="Black"),
             ),
-            hovertemplate="<b>%{customdata}</b><extra></extra>",
-            customdata=df[mask]["title"],
+            hovertemplate=(
+                "<b>%{customdata[0]}</b><br><br>" +
+                "<b>Topic:</b> %{customdata[3]}<br>" +
+                "<b>Published:</b> %{customdata[2]}<br>" +
+                "<b>Summary:</b> %{customdata[4]}<extra></extra>"
+            ),
+            customdata=customdata,
         ))
     
     fig.update_layout(
@@ -181,8 +244,10 @@ def plot_cluster_map(df: pd.DataFrame) -> go.Figure:
             font=dict(size=14),
         ),
         margin=dict(t=0, b=0, l=0, r=0),
-        xaxis=dict(showgrid=True, gridwidth=0.1),
-        yaxis=dict(showgrid=True, gridwidth=0.1)
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(showgrid=True, gridwidth=0.1, gridcolor="rgba(128,128,128,0.1)"),
+        yaxis=dict(showgrid=True, gridwidth=0.1, gridcolor="rgba(128,128,128,0.1)")
     )
     fig.update_xaxes(title_text=None)
     fig.update_yaxes(title_text=None)
@@ -217,6 +282,6 @@ def plot_repos_by_feature(
 
     fig = px.bar(count_df, x=plot_by, y="repo_title", title=None, hover_data=[plot_by])
     fig.update_xaxes(title=None, tickfont=dict(size=13), tickangle=75)
-    fig.update_yaxes(titlefont=dict(size=14), title="# Resources")
+    fig.update_yaxes(title_font=dict(size=14), title="# Resources")
     fig.update_traces(marker_color="#b31b1b", marker_line_color="#c93232")
     return fig

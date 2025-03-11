@@ -12,11 +12,11 @@ tweet_types:
           content: "generate_insight_content"
           description: "Main insight about the paper"
         images:
-          - source_type: "path"
-            source: "data/arxiv_art/{arxiv_code}.png"
+          - source_type: "function"
+            source: "get_art_image"
             description: "Paper art image"
-          - source_type: "path"
-            source: "data/arxiv_first_page/{arxiv_code}.png"
+          - source_type: "function"
+            source: "get_first_page"
             description: "Paper first page"
       - position: 1
         content:
@@ -53,8 +53,8 @@ tweet_types:
           content: "generate_fable_content"
           description: "Paper fable"
         images:
-          - source_type: "path"
-            source: "data/arxiv_art/{arxiv_code}.png"
+          - source_type: "function"
+            source: "get_art_image"
             description: "Paper art image"
       - position: 1
         content:

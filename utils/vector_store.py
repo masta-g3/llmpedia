@@ -266,20 +266,22 @@ def rephrase_title(title, model="gpt-4o"):
     return phrase
 
 
-def generate_weekly_report(weekly_content_md: str, model="gpt-4o"):
+def generate_weekly_report(weekly_content_md: str, model="claude-3-5-sonnet-20250222"):
     """Generate weekly report."""
     weekly_report = run_instructor_query(
         ps.WEEKLY_SYSTEM_PROMPT,
         ps.WEEKLY_USER_PROMPT.format(weekly_content=weekly_content_md),
         # model=po.WeeklyReview,
         llm_model=model,
-        temperature=0.8,
+        temperature=1,
         process_id="generate_weekly_report",
+        thinking={"type": "enabled", "budget_tokens": 8192},
+        max_tokens=50000,
     )
     return weekly_report
 
 
-def generate_weekly_highlight(weekly_content_md: str, model="gpt-4o"):
+def generate_weekly_highlight(weekly_content_md: str, model="claude-3-5-sonnet-20250222"):
     """Generate weekly highlight."""
     weekly_highlight = run_instructor_query(
         ps.WEEKLY_SYSTEM_PROMPT,
@@ -356,29 +358,130 @@ def write_tweet_reply(
     paper_summaries: str,
     recent_llm_tweets: str,
     tweet_threads: str,
-    # recent_tweet_discussions: str,
-    model: str = "claude-3-5-sonnet-20241022",
+    recent_tweet_discussions: str,
+    model: str = "claude-3-7-sonnet-20250219",
     temperature: float = 0.8,
+    thinking: bool = True,
 ) -> po.Tweet:
-    """Write a reply
-      tweet that connects papers with community discussions."""
+    """Write a reply tweet that connects papers with community discussions."""
     system_prompt = ps.TWEET_SYSTEM_PROMPT
     user_prompt = ps.TWEET_REPLY_USER_PROMPT.format(
         paper_summaries=paper_summaries,
         recent_llm_tweets=recent_llm_tweets,
         tweet_threads=tweet_threads,
-        # recent_tweet_discussions=recent_tweet_discussions,
+        recent_tweet_discussions=recent_tweet_discussions,
         base_style=ps.TWEET_BASE_STYLE,
     )
+    kwargs = {}
+    if thinking:
+        kwargs["thinking"] = {"type": "enabled", "budget_tokens": 1024}
+    
     tweet = run_instructor_query(
         system_prompt,
         user_prompt,
         llm_model=model,
-        temperature=temperature,
+        temperature=temperature if not thinking else 1.0,
         process_id="write_tweet_reply",
-        verbose=True
+        verbose=True,
+        **kwargs
     )
     return tweet
+
+
+def select_tweet_reply(recent_llm_tweets: str,  
+                       recent_tweet_discussions: str,
+                       model: str = "claude-3-7-sonnet-20250219"):
+    """Select a tweet reply."""
+    system_prompt = ps.TWEET_SYSTEM_PROMPT
+    user_prompt = ps.TWEET_SELECTOR_USER_PROMPT.format(
+        recent_llm_tweets=recent_llm_tweets,
+        recent_tweet_discussions=recent_tweet_discussions,
+    )
+    response = run_instructor_query(
+        system_prompt,
+        user_prompt,
+        llm_model=model,
+        temperature=1,
+        process_id="select_tweet_reply",
+    )
+    return response
+
+
+def write_tweet_reply_academic(
+    selected_post: str,
+    context: str,
+    summary_of_recent_discussions: str,
+    previous_posts: str,
+    model: str = "claude-3-7-sonnet-20250219",
+    temperature: float = 0.8,
+) -> str:
+    """Write a reply tweet that connects papers with community discussions."""
+    system_prompt = ps.TWEET_SYSTEM_PROMPT
+    user_prompt = ps.TWEET_REPLY_ACADEMIC_USER_PROMPT.format(
+        summary_of_recent_discussions=summary_of_recent_discussions,
+        selected_post=selected_post,
+        context=context,
+        base_style=ps.TWEET_BASE_STYLE,
+        previous_posts=previous_posts,
+    )
+    response = run_instructor_query(
+        system_prompt,
+        user_prompt,
+        llm_model=model,
+        temperature=temperature,
+        process_id="write_tweet_reply_academic",
+    )
+    return response
+
+
+def write_tweet_reply_funny(
+    selected_post: str,
+    summary_of_recent_discussions: str,
+    previous_posts: str,
+    model: str = "claude-3-7-sonnet-20250219",
+    temperature: float = 0.9,
+) -> str:
+    """Write a humorous, light-hearted reply tweet."""
+    system_prompt = ps.TWEET_SYSTEM_PROMPT
+    user_prompt = ps.TWEET_REPLY_FUNNY_USER_PROMPT.format(
+        summary_of_recent_discussions=summary_of_recent_discussions,
+        selected_post=selected_post,
+        base_style=ps.TWEET_BASE_STYLE,
+        previous_posts=previous_posts,
+    )
+    response = run_instructor_query(
+        system_prompt,
+        user_prompt,
+        llm_model=model,
+        temperature=temperature,
+        process_id="write_tweet_reply_funny",
+    )
+    return response
+
+
+def write_tweet_reply_commonsense(
+    selected_post: str,
+    summary_of_recent_discussions: str,
+    previous_posts: str,
+    model: str = "claude-3-7-sonnet-20250219",
+    temperature: float = 0.8,
+) -> str:
+    """Write a reply tweet based on common-sense insights."""
+    system_prompt = ps.TWEET_SYSTEM_PROMPT
+    user_prompt = ps.TWEET_REPLY_COMMONSENSE_USER_PROMPT.format(
+        summary_of_recent_discussions=summary_of_recent_discussions,
+        selected_post=selected_post,
+        base_style=ps.TWEET_BASE_STYLE,
+        previous_posts=previous_posts,
+    )
+    response = run_instructor_query(
+        system_prompt,
+        user_prompt,
+        llm_model=model,
+        temperature=temperature,
+        process_id="write_tweet_reply_commonsense",
+    )
+    return response
 
 
 def write_paper_matcher(

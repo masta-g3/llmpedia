@@ -2,7 +2,6 @@ import streamlit as st
 from datetime import timedelta
 from pathlib import Path
 
-from streamlit_plotly_events import plotly_events
 from typing import List, Tuple
 import pandas as pd
 
@@ -258,25 +257,33 @@ def main():
         heatmap_data = au.prepare_calendar_data(published_df, year)
         release_calendar, padded_date = pt.plot_activity_map(heatmap_data)
         st.markdown(f"### 📅 {year} Release Calendar")
-        calendar_select = plotly_events(release_calendar, override_height=220)
+        
+        # Use native Streamlit plotly_chart with on_select
+        calendar_event = st.plotly_chart(release_calendar, 
+                                         key="calendar_heatmap", 
+                                         on_select="rerun", 
+                                         use_container_width=True,
+                                         height=220)
 
-        # Published date.
-        if len(calendar_select) > 0:
-            ## Select from padded dates.
-            x_coord = 6 - calendar_select[0]["pointNumber"][0]
-            y_coord = calendar_select[0]["pointNumber"][1]
-            publish_date = pd.to_datetime(
-                padded_date.loc[x_coord, y_coord] + f" {year}"
-            )
+        if calendar_event.selection and calendar_event.selection.get("points"):
+            # Get the first selected point's data
+            point = calendar_event.selection["points"][0]
+            coords_text = point.get("text")
+            
+            if coords_text:
+                y_coord, x_coord = map(int, coords_text.split(","))
+                publish_date = pd.to_datetime(
+                    padded_date.loc[y_coord, x_coord] + f" {year}"
+                )
 
-            if len(papers_df[papers_df["published"] == publish_date]) > 0:
-                papers_df = papers_df[papers_df["published"] == publish_date]
-                ## Add option to clear filter on sidebar.
-                if st.sidebar.button(
-                    f"📅 **Publish Date Filter:** {publish_date.strftime('%B %d, %Y')}",
-                    help="Double click on calendar chart to remove date filter.",
-                ):
-                    pass
+                if len(papers_df[papers_df["published"] == publish_date]) > 0:
+                    papers_df = papers_df[papers_df["published"] == publish_date]
+                    ## Add option to clear filter on sidebar.
+                    if st.sidebar.button(
+                        f"📅 **Publish Date Filter:** {publish_date.strftime('%B %d, %Y')}",
+                        help="Double click on calendar chart to remove date filter.",
+                    ):
+                        pass
 
     st.sidebar.markdown(
         """
@@ -352,36 +359,31 @@ def main():
 
         ## Cluster map.
         st.markdown(f"### Topic Model Map")
+
+        cluster_map = pt.plot_cluster_map(papers_df)
         
-        def show_topic_map():
-            import requests
-            time.sleep(2)
-            
-            github_url = "https://raw.githubusercontent.com/masta-g3/llmpedia/refs/heads/main/artifacts/arxiv_cluster_map.html"
-            try:
-                response = requests.get(github_url)
-                if response.status_code == 200:
-                    cluster_map_html = response.text
-                    st.components.v1.html(
-                        cluster_map_html,
-                        height=800,
-                        scrolling=True
-                    )
-                else:
-                    st.warning(f"Could not fetch topic model map (Status code: {response.status_code})")
-            except Exception as e:
-                st.warning(f"Error loading topic model map: {str(e)}")
+        # Use native Streamlit plotly_chart with on_select
+        cluster_event = st.plotly_chart(cluster_map, 
+                                        key="cluster_map", 
+                                        on_select="rerun", 
+                                        use_container_width=True,
+                                        height=800)
         
-        show_topic_map()
-        
-        ## Report button for cluster map
-        report_log_space = st.empty()
-        report_btn = st.popover("⚠️ Report Cluster Map Issue")
-        if report_btn.checkbox("Report cluster map not showing"):
-            logging_db.report_issue("cluster_map", "not_showing")
-            report_log_space.success("Reported cluster map issue. Thanks! Try refreshing the page, we will look into it.")
-            time.sleep(3)
-            report_log_space.empty()
+        # Handle cluster map selection
+        if cluster_event.selection and cluster_event.selection.get("points"):
+            # Only proceed if exactly one point is selected
+            if len(cluster_event.selection["points"]) == 1:
+                point = cluster_event.selection["points"][0]
+                custom_data = point.get("customdata", [])
+                
+                # Custom data is an array with [title, arxiv_code]
+                if len(custom_data) > 1:
+                    arxiv_code = custom_data[1]  # The second element is the arxiv_code
+                    if arxiv_code:
+                        # Redirect to the paper details
+                        st.query_params["arxiv_code"] = arxiv_code
+                        st.session_state.arxiv_code = arxiv_code
+                        su.click_tab(2)
 
     ## URL info extraction.
     url_query = st.query_params

@@ -24,18 +24,18 @@ function sleep_until_target() {
     ## Get current time in seconds since epoch.
     current_time=$(date +%s)
     
-    ## Calculate target time (19:00 PST) for today.
-    target_time=$(TZ=PST8PDT date -v19H -v00M -v00S +%s)
+    ## Calculate target time (18:30 PST) for today.
+    target_time=$(TZ=PST8PDT date -v18H -v30M -v00S +%s)
     
     ## If current time is past target time, set target to tomorrow.
     if [ $current_time -gt $target_time ]; then
-        target_time=$(TZ=PST8PDT date -v+1d -v19H -v00M -v00S +%s)
+        target_time=$(TZ=PST8PDT date -v+1d -v18H -v30M -v00S +%s)
     fi
     
     ## Calculate seconds until target.
     seconds_to_wait=$((target_time - current_time))
     
-    echo "Waiting until 7:00 PM PST..." | tee -a "$LOG_FILE"
+    echo "Waiting until 6:30 PM PST..." | tee -a "$LOG_FILE"
     echo "Current time: $(date)" | tee -a "$LOG_FILE"
     echo "Target time: $(date -r $target_time)" | tee -a "$LOG_FILE"
     

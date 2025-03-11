@@ -55,6 +55,7 @@ def run_instructor_query(
     process_id: str = None,
     messages: Optional[List[Dict]] = None,
     verbose: bool = False,
+    **kwargs
 ) -> Union[BaseModel, str]:
     """Run a query with the instructor API and get a structured response using LiteLLM as unified interface."""
     # Use provided messages if available (for image content), otherwise construct from user_message
@@ -78,7 +79,8 @@ def run_instructor_query(
                 response = completion(
                     model=llm_model,
                     temperature=temperature,
-                    messages=messages
+                    messages=messages,
+                    **kwargs
                 )
                 answer = response.choices[0].message.content.strip()
                 usage = response.usage
@@ -89,6 +91,7 @@ def run_instructor_query(
                     temperature=temperature,
                     messages=messages,
                     response_model=model,
+                    **kwargs
                 )
                 answer = response
                 usage = completion_obj.usage
@@ -120,7 +123,7 @@ def run_instructor_query(
         print(f"  • Completion tokens:  {usage.completion_tokens:,}")
         print(f"  • Total tokens:       {total_tokens:,}")
         print("\nCost Breakdown:")
-        print(f"  •P crompt cost:        ${prompt_cost:.4f}" if prompt_cost else "  • Prompt cost:        N/A")
+        print(f"  • Prompt cost:        ${prompt_cost:.4f}" if prompt_cost else "  • Prompt cost:        N/A")
         print(f"  • Completion cost:    ${completion_cost:.4f}" if completion_cost else "  • Completion cost:    N/A")
         print(f"  • Total cost:         ${total_cost:.4f}" if prompt_cost and completion_cost else "  • Total cost:         N/A")
         print("========================\n")

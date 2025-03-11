@@ -97,6 +97,6 @@ while true; do
     echo "Cycle completed at $(date)" | tee -a "$LOG_FILE"
     echo "Starting next cycle..."
 
-    sleep_minutes=$(( (RANDOM % 151) + 150 ))
+    sleep_minutes=$(( (RANDOM % 151) + 90 ))
     sleep_with_progress $sleep_minutes
 done

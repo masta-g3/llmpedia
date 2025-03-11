@@ -11,11 +11,12 @@ from .db_utils import (
     list_to_pg_array,
 )
 
-def load_arxiv(arxiv_code: Optional[str] = None) -> pd.DataFrame:
+def load_arxiv(arxiv_code: Optional[str] = None, **kwargs) -> pd.DataFrame:
     """Load paper details from arxiv_details table."""
     return simple_select_query(
         table="arxiv_details",
-        conditions={"arxiv_code": arxiv_code} if arxiv_code else None
+        conditions={"arxiv_code": arxiv_code} if arxiv_code else None,
+        **kwargs
     )
 
 def load_summaries() -> pd.DataFrame:
@@ -25,10 +26,11 @@ def load_summaries() -> pd.DataFrame:
         drop_cols=["tstp"]
     )
 
-def load_recursive_summaries(drop_tstp: bool = True) -> pd.DataFrame:
+def load_recursive_summaries(arxiv_code: Optional[str] = None, drop_tstp: bool = True) -> pd.DataFrame:
     """Load narrated summaries from recursive_summaries table."""
     return simple_select_query(
         table="recursive_summaries",
+        conditions={"arxiv_code": arxiv_code} if arxiv_code else None,
         drop_cols=["tstp"] if drop_tstp else None,
         rename_cols={"summary": "recursive_summary"}
     )
