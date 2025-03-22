@@ -1,10 +1,10 @@
-"""Database operations for embedding-related functionality."""
+"""Database operations for embedding-related functionality (READ-ONLY version)."""
 
 from typing import List, Dict
 import logging
 from datetime import datetime
 
-from .db_utils import execute_read_query, execute_write_query
+from .db_utils import execute_read_query
 from utils.embeddings import convert_query_to_vector
 
 
@@ -15,38 +15,16 @@ EMBEDDING_DIMENSIONS = {
     "voyage": 1024
 }
 
+# READ-ONLY VERSION: Write operations are disabled
 def store_embeddings_batch(
     arxiv_codes: List[str],
     doc_type: str,
     embedding_type: str,
     embeddings: List[List[float]],
 ) -> bool:
-    """Store multiple document embeddings in the appropriate arxiv_embeddings table based on dimension."""
-    try:
-        dimension = EMBEDDING_DIMENSIONS[embedding_type]
-        query = f"""
-            INSERT INTO arxiv_embeddings_{dimension} (arxiv_code, doc_type, embedding_type, embedding, tstp)
-            VALUES (:arxiv_code, :doc_type, :embedding_type, :embedding, :tstp)
-            ON CONFLICT (arxiv_code, doc_type, embedding_type) 
-            DO UPDATE SET embedding = EXCLUDED.embedding, tstp = EXCLUDED.tstp
-        """
-
-        now = datetime.now()
-        params = [
-            {
-                "arxiv_code": code,
-                "doc_type": doc_type,
-                "embedding_type": embedding_type,
-                "embedding": str(emb),  # Convert embedding list to string
-                "tstp": now,
-            }
-            for code, emb in zip(arxiv_codes, embeddings)
-        ]
-        
-        return execute_write_query(query, params)
-    except Exception as e:
-        logging.error(f"Error storing embeddings batch: {str(e)}")
-        return False
+    """This function is disabled in the read-only version of the app."""
+    logging.warning("Attempted to use write operation in read-only mode")
+    return False
 
 def load_embeddings(
     arxiv_codes: List[str],

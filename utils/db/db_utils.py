@@ -1,4 +1,4 @@
-"""Core database utilities for managing connections and executing queries."""
+"""Core database utilities for managing connections and executing queries (READ-ONLY version)."""
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
@@ -8,13 +8,14 @@ import os
 import streamlit as st
 from typing import Any, Union, Optional, Dict, List, Generator
 import psycopg2
+import logging
 
 ## Get database parameters from environment or streamlit secrets
 try:
     db_params = {
         "dbname": os.environ["DB_NAME"],
         "user": os.environ["DB_USER"],
-        "password": os.environ["DB_PASS"],
+        "password": os.environ["DB_PASSWORD"],
         "host": os.environ["DB_HOST"],
         "port": os.environ["DB_PORT"],
     }
@@ -34,6 +35,12 @@ def get_db_engine() -> Generator[Engine, None, None]:
 
 def execute_read_query(query_string: str, params: Optional[dict] = None, as_dataframe: bool = True) -> Union[pd.DataFrame, Any]:
     """Execute a read query and return results as DataFrame or raw data."""
+    # Safety check to prevent write operations
+    query_lower = query_string.lower().strip()
+    if any(query_lower.startswith(op) for op in ["insert", "update", "delete", "drop", "alter", "create"]):
+        logging.error("Attempted write operation in read-only mode: %s", query_string)
+        raise PermissionError("This application has read-only access to the database. Write operations are not permitted.")
+    
     with get_db_engine() as engine:
         with engine.begin() as conn:
             if as_dataframe:
@@ -43,14 +50,9 @@ def execute_read_query(query_string: str, params: Optional[dict] = None, as_data
                 return result.fetchall()
 
 def execute_write_query(query_string: str, params: Optional[dict] = None) -> bool:
-    """Execute a write query (INSERT/UPDATE/DELETE) and return success status."""
-    try:
-        with get_db_engine() as engine:
-            with engine.begin() as conn:
-                conn.execute(text(query_string), params or {})
-        return True
-    except Exception as e:
-        raise e
+    """Execute a write query - DISABLED in read-only mode."""
+    logging.error("Attempted write operation in read-only mode: %s", query_string)
+    raise PermissionError("This application has read-only access to the database. Write operations are not permitted.")
 
 def batch_list(lst: list, batch_size: int = 1000) -> list[list]:
     """Split a list into batches of specified size."""
@@ -132,6 +134,7 @@ def simple_select_query(
         
         return df
     except Exception as e:
+        logging.error("Error in simple_select_query: %s", str(e))
         raise e
 
 def get_arxiv_id_list(table_name: str = "arxiv_details") -> List[str]:
@@ -142,8 +145,8 @@ def get_arxiv_id_list(table_name: str = "arxiv_details") -> List[str]:
                 cur.execute(f"SELECT DISTINCT arxiv_code FROM {table_name}")
                 return [row[0] for row in cur.fetchall()]
     except Exception as e:
+        logging.error("Error in get_arxiv_id_list: %s", str(e))
         raise e
-    
 
 def get_arxiv_title_dict() -> Dict[str, str]:
     """Get a mapping of arxiv codes to their titles."""
@@ -154,14 +157,6 @@ def get_arxiv_title_dict() -> Dict[str, str]:
     )
     return df["title"].to_dict() if not df.empty else {} 
 
-def remove_by_arxiv_code(arxiv_code: str, table: str) -> bool:
-    """Delete entries from a table based on arxiv_code."""
-    return execute_write_query(
-        f"DELETE FROM {table} WHERE arxiv_code = :arxiv_code",
-        {"arxiv_code": arxiv_code}
-    )
-
-
 def get_max_table_date(table_name: str, date_col: str = "date") -> Optional[pd.Timestamp]:
     """Get the max date in a table."""
     df = simple_select_query(
@@ -170,30 +165,8 @@ def get_max_table_date(table_name: str, date_col: str = "date") -> Optional[pd.T
     )
     return df["max_date"].iloc[0] if not df.empty else None
 
-
-def upload_dataframe(
-    df: pd.DataFrame,
-    table: str,
-    if_exists: str = "append",
-    index: bool = False,
-    chunk_size: Optional[int] = None
-) -> bool:
-    """ Upload a pandas DataFrame to the specified database table. """
-    try:
-        with get_db_engine() as engine:
-            df.to_sql(
-                name=table,
-                con=engine,
-                if_exists=if_exists,
-                index=index,
-                chunksize=chunk_size
-            )
-        return True
-    except Exception as e:
-        raise e
-
-
 def list_to_pg_array(lst):
+    """Convert a list to a PostgreSQL array string format."""
     lst = [str(x).replace("arxiv_code:", "") for x in lst]
     lst = [x.replace("arxiv:", "") for x in lst]
     return "{" + ",".join(lst) + "}"

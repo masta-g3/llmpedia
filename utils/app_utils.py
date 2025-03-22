@@ -253,12 +253,12 @@ def interrogate_paper(question: str, arxiv_code: str, model="gpt-4o") -> str:
     return response
 
 
-def decide_query_action(user_question: str) -> po.QueryDecision:
+def decide_query_action(user_question: str, llm_model: str = "gpt-4o-mini") -> po.QueryDecision:
     """Decide the query action based on the user question."""
     system_message = "Please analyze the following user query and answer the question."
     user_message = ps.create_decision_user_prompt(user_question)
     response = run_instructor_query(
-        system_message, user_message, po.QueryDecision, process_id="decide_query_action"
+        system_message, user_message, po.QueryDecision, llm_model=llm_model, process_id="decide_query_action"
     )
     return response
 
@@ -432,9 +432,9 @@ def get_paper_markdown(arxiv_code: str) -> Tuple[str, bool]:
 def query_llmpedia_new(
     user_question: str,
     response_length: int = 500,
-    query_llm_model: str = "claude-3-5-sonnet-20241022",
-    rerank_llm_model: str = "gpt-4o-mini", 
-    response_llm_model: str = "claude-3-5-sonnet-20241022",
+    query_llm_model: str = "claude-3-7-sonnet-20250219",
+    rerank_llm_model: str = "gemini/gemini-2.0-flash", 
+    response_llm_model: str = "claude-3-7-sonnet-20250219",
     max_sources: int = 25,
     debug: bool = False,
     progress_callback: Optional[Callable[[str], None]] = None,
@@ -453,7 +453,7 @@ def query_llmpedia_new(
             "show_only_sources": show_only_sources
         })
 
-    action = decide_query_action(user_question)
+    action = decide_query_action(user_question, llm_model=query_llm_model)
     if debug:
         log_debug("Query action decision:", action.model_dump(), 1)
 

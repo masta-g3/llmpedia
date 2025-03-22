@@ -1,2 +1,0 @@
-PATH=/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin
-0 */4 * * * /bin/bash /app/workflow.sh >> /app/cron.log 2>&1

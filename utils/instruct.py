@@ -1,17 +1,18 @@
-from tokencost import calculate_cost_by_tokens
 from typing import Type, Optional, List, Dict, Union
 from pydantic import BaseModel
 import warnings
+import logging
+import time
 
 # Filter out specific Pydantic warning about config keys
 warnings.filterwarnings('ignore', message='Valid config keys have changed in V2:*')
 
 from litellm import completion, InternalServerError
 import instructor
-import time
 
 import utils.db.logging_db as logging_db
 
+logger = logging.getLogger("llmpedia_app")
 
 def format_vision_messages(
     images: List[str],  # base64 encoded images or URLs
@@ -102,39 +103,20 @@ def run_instructor_query(
                 time.sleep(retry_delay * (attempt + 1))
                 continue
             else:
+                logger.error(f"Error in LLM query: {str(e)}")
                 raise e
 
-    ## Log usage.
-    try:
-        prompt_cost = calculate_cost_by_tokens(usage.prompt_tokens, llm_model, "input")
-        completion_cost = calculate_cost_by_tokens(usage.completion_tokens, llm_model, "output")
-    except Exception as e:
-        prompt_cost = None
-        completion_cost = None
-
+    # Log usage information
     if verbose:
-        total_tokens = usage.prompt_tokens + usage.completion_tokens
-        total_cost = (prompt_cost or 0) + (completion_cost or 0)
-        
-        print("\n=== LLM Query Statistics ===")
-        print(f"Model: {llm_model}")
-        print("\nToken Usage:")
-        print(f"  • Prompt tokens:      {usage.prompt_tokens:,}")
-        print(f"  • Completion tokens:  {usage.completion_tokens:,}")
-        print(f"  • Total tokens:       {total_tokens:,}")
-        print("\nCost Breakdown:")
-        print(f"  • Prompt cost:        ${prompt_cost:.4f}" if prompt_cost else "  • Prompt cost:        N/A")
-        print(f"  • Completion cost:    ${completion_cost:.4f}" if completion_cost else "  • Completion cost:    N/A")
-        print(f"  • Total cost:         ${total_cost:.4f}" if prompt_cost and completion_cost else "  • Total cost:         N/A")
-        print("========================\n")
+        logger.info(f"LLM Query ({llm_model}): Prompt tokens={usage.prompt_tokens}, Completion tokens={usage.completion_tokens}")
 
-    logging_db.log_instructor_query(
-        model_name=llm_model,
-        process_id=process_id,
-        prompt_tokens=usage.prompt_tokens,
-        completion_tokens=usage.completion_tokens,
-        prompt_cost=prompt_cost,
-        completion_cost=completion_cost
-    )
+    # Log to API if available
+    try:
+        logging_db.log_qna_db(
+            user_question=f"[API CALL] {process_id or 'unknown_process'}",
+            response=f"Model: {llm_model}, Tokens: {usage.prompt_tokens + usage.completion_tokens}"
+        )
+    except Exception as log_error:
+        logger.warning(f"Failed to log API usage: {str(log_error)}")
 
     return answer

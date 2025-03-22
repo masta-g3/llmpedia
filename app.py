@@ -462,7 +462,7 @@ def main():
                     user_question=user_question,
                     response_length=response_length,
                     query_llm_model="claude-3-5-sonnet-20241022",
-                    rerank_llm_model="gpt-4o-mini",
+                    rerank_llm_model="gemini/gemini-2.0-flash",
                     response_llm_model="claude-3-5-sonnet-20241022",
                     max_sources=max_sources,
                     debug=True,
@@ -649,8 +649,8 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
+    # try:
         main()
-    except Exception as e:
-        logging_db.log_error_db(e)
-        st.error("Something went wrong. Please refresh the app and try again, we will look into it.")
+    # except Exception as e:
+    #     logging_db.log_error_db(e)
+    #     st.error("Something went wrong. Please refresh the app and try again, we will look into it.")

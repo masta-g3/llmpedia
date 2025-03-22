@@ -152,21 +152,16 @@ def read_last_n_tweet_analyses(n: int = 10) -> pd.DataFrame:
 
 
 def store_tweet_reply(
-    selected_tweet: str, response: str, meta_data: Optional[Dict] = None
+    selected_tweet: str, response: str, meta_data: Optional[Dict] = None, 
+    approval_status: str = "pending"
 ) -> bool:
-    """Store tweet reply data in the database.
-
-    Args:
-        selected_tweet: The original tweet being replied to
-        response: The generated reply content
-        meta_data: Optional dictionary containing additional metadata about the reply
-    """
+    """Store tweet reply data in the database."""
     try:
         query = """
             INSERT INTO tweet_replies 
-            (selected_tweet, response, meta_data)
+            (selected_tweet, response, meta_data, approval_status)
             VALUES 
-            (:selected_tweet, :response, :meta_data)
+            (:selected_tweet, :response, :meta_data, :approval_status)
         """
 
         # Convert meta_data dict to JSON string for PostgreSQL JSONB
@@ -176,6 +171,7 @@ def store_tweet_reply(
             "selected_tweet": selected_tweet,
             "response": response,
             "meta_data": meta_data_json,
+            "approval_status": approval_status,
         }
 
         success = execute_write_query(query, params)
@@ -244,7 +240,7 @@ def insert_tweet_review(
 
         success = execute_write_query(query, params)
         if success:
-            logging.info(f"Successfully stored tweet review for {arxiv_code}")
+            logging.info(f"Successfully stored tweet review for {arxiv_code}.")
         return success
     except Exception as e:
         logging.error(f"Error inserting tweet review: {str(e)}")
@@ -274,3 +270,43 @@ def load_tweet_insights(arxiv_code: Optional[str] = None, drop_rejected: bool = 
         df.rename(columns={"review": "tweet_insight"}, inplace=True)
         
     return df
+
+def update_tweet_reply_status(reply_id: int, approval_status: str) -> bool:
+    """ Update the approval status of a tweet reply. """
+    try:
+        query = """
+            UPDATE tweet_replies
+            SET approval_status = :approval_status
+            WHERE id = :reply_id
+        """
+        
+        params = {
+            "reply_id": reply_id,
+            "approval_status": approval_status,
+        }
+        
+        success = execute_write_query(query, params)
+        if success:
+            logging.info(f"Successfully updated approval status for tweet reply {reply_id} to {approval_status}.")
+        return success
+    except Exception as e:
+        logging.error(f"Error updating tweet reply status: {str(e)}")
+        return False
+
+
+def get_pending_tweet_replies(limit: int = 10) -> pd.DataFrame:
+    """ Get pending tweet replies from the database. """
+    try:
+        query = f"""
+            SELECT id, tstp, selected_tweet, response, meta_data, approval_status
+            FROM tweet_replies
+            WHERE approval_status = 'pending'
+            ORDER BY tstp DESC
+            LIMIT {limit}
+        """
+        
+        df = execute_read_query(query)
+        return df
+    except Exception as e:
+        logging.error(f"Error getting pending tweet replies: {str(e)}")
+        return pd.DataFrame()

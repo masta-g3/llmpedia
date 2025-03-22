@@ -1,30 +1,6 @@
 from langchain_community.vectorstores import PGVector
 from langchain_community.embeddings import CohereEmbeddings
 from typing import List, Iterable, Optional, Any
-from langchain.output_parsers.openai_functions import PydanticOutputFunctionsParser
-# import demjson3 as demjson
-import copy
-
-
-# def clean_fnc_call(json_str):
-#     """Parse and re-encode the JSON string using demjson."""
-#     decoded_json = demjson.decode(json_str, strict=False)["output"]
-#     corrected_json_str = demjson.encode(decoded_json)
-#     return corrected_json_str
-
-
-# class CustomFixParser(PydanticOutputFunctionsParser):
-#     """Custom output parser."""
-
-#     def parse_result(self, result):
-#         generation = result[0]
-#         message = generation.message
-#         func_call = copy.deepcopy(message.additional_kwargs["function_call"])
-#         _result = func_call["arguments"]
-
-#         pydantic_args = self.pydantic_schema.parse_raw(clean_fnc_call(_result))
-#         return pydantic_args
-
 
 class NewCohereEmbeddings(CohereEmbeddings):
     def embed_documents(self, texts: List[str], input_type: str) -> List[List[float]]:
