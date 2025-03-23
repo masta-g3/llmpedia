@@ -47,7 +47,3 @@ AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY
 AWS_REGION
 ```
-
-## Development
-
-See the `notebooks/` directory for analysis and development notebooks related to app visualizations.
