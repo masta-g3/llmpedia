@@ -15,15 +15,15 @@ def plot_publication_counts(df: pd.DataFrame, cumulative=False) -> go.Figure:
     df["published"] = pd.to_datetime(df["published"])
     df["published"] = df["published"].dt.date
     df = df.groupby("published")["title"].nunique().reset_index()
-    df.columns = ["published", "Count"]
+    df.columns = ["published", "# Papers Published"]
     df["published"] = pd.to_datetime(df["published"])
     df.sort_values("published", inplace=True)
-    df["Cumulative Count"] = df["Count"].cumsum()
+    df["# Papers Published (Cumulative)"] = df["# Papers Published"].cumsum()
     if cumulative:
         fig = px.area(
             df,
             x="published",
-            y="Cumulative Count",
+            y="# Papers Published (Cumulative)",
             title=None,
             color_discrete_sequence=["#b31b1b"],
         )
@@ -31,7 +31,7 @@ def plot_publication_counts(df: pd.DataFrame, cumulative=False) -> go.Figure:
         fig = px.bar(
             df,
             x="published",
-            y="Count",
+            y="# Papers Published",
             color_discrete_sequence=["#b31b1b"],
         )
     fig.update_xaxes(title=None, tickfont=dict(size=17))
@@ -139,7 +139,6 @@ def plot_weekly_activity_ts(
     df["publish_str"] = df["week_start"].dt.strftime(date_format)
 
     highlight_date_str = date_report.strftime(date_format)
-
     fig = px.area(
         df,
         x="publish_str",
@@ -148,6 +147,7 @@ def plot_weekly_activity_ts(
         labels={"title": "Papers Published"},
         height=250,
         color_discrete_sequence=["#b31b1b"],
+        # line_shape="hv"
     )
     fig.update_xaxes(title=None, tickfont=dict(size=17))
     fig.update_yaxes(title_font=dict(size=18), tickfont=dict(size=17))
