@@ -391,17 +391,30 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             
             with col:
                 # Convert markdown to HTML
-                html_content = markdown2.markdown(
-                    markdown_content,
-                    extras=[
-                        'fenced-code-blocks',
-                        'tables',
-                        'header-ids',
-                        'break-on-newline',
-                        'latex',  # Add support for LaTeX conversion
-                        'math',   # Additional math support
-                    ]
-                )
+                try:
+                    html_content = markdown2.markdown(
+                        markdown_content,
+                        extras=[
+                            'fenced-code-blocks',
+                            'tables',
+                            'header-ids',
+                            'break-on-newline',
+                            'latex',  # Add support for LaTeX conversion
+                            'math',   # Additional math support
+                        ]
+                    )
+                except Exception as e:
+                    st.warning(f"⚠️ LaTeX rendering failed. Falling back to plain text. Error: {str(e)}")
+                    # Fallback to basic conversion without LaTeX support
+                    html_content = markdown2.markdown(
+                        markdown_content,
+                        extras=[
+                            'fenced-code-blocks',
+                            'tables',
+                            'header-ids',
+                            'break-on-newline',
+                        ]
+                    )
                 
                 # Create an HTML string with styling
                 full_html = f"""
