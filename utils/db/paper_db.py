@@ -35,32 +35,36 @@ def load_recursive_summaries(arxiv_code: Optional[str] = None, drop_tstp: bool =
         rename_cols={"summary": "recursive_summary"}
     )
 
-def load_bullet_list_summaries() -> pd.DataFrame:
+def load_bullet_list_summaries(arxiv_code: Optional[str] = None, drop_tstp: bool = True) -> pd.DataFrame:
     """Load bullet list summaries from bullet_list_summaries table."""
     return simple_select_query(
         table="bullet_list_summaries",
-        drop_cols=["tstp"],
+        conditions={"arxiv_code": arxiv_code} if arxiv_code else None,
+        drop_cols=["tstp"] if drop_tstp else None,
         rename_cols={"summary": "bullet_list_summary"}
     )
 
-def load_summary_notes() -> pd.DataFrame:
+def load_summary_notes(arxiv_code: Optional[str] = None) -> pd.DataFrame:
     """Load summary notes from summary_notes table."""
     return simple_select_query(
-        table="summary_notes"
+        table="summary_notes",
+        conditions={"arxiv_code": arxiv_code} if arxiv_code else None
     )
 
-def load_summary_markdown() -> pd.DataFrame:
+def load_summary_markdown(arxiv_code: Optional[str] = None, drop_tstp: bool = True) -> pd.DataFrame:
     """Load summary markdown from summary_markdown table."""
     return simple_select_query(
         table="summary_markdown",
-        drop_cols=["tstp"],
+        conditions={"arxiv_code": arxiv_code} if arxiv_code else None,
+        drop_cols=["tstp"] if drop_tstp else None,
         rename_cols={"summary": "markdown_notes"}
     )
 
-def load_topics() -> pd.DataFrame:
+def load_topics(arxiv_code: Optional[str] = None) -> pd.DataFrame:
     """Load paper topics from topics table."""
     return simple_select_query(
-        table="topics"
+        table="topics",
+        conditions={"arxiv_code": arxiv_code} if arxiv_code else None
     )
 
 def load_similar_documents() -> pd.DataFrame:

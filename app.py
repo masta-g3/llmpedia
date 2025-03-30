@@ -330,14 +330,32 @@ def main():
     )
 
     with content_tabs[0]:
-        ## Gried view.
+        ## Grid view or Table view
         if "page_number" not in st.session_state:
             st.session_state.page_number = 0
-
+            
+        # Add view selector with radio buttons
+        if "view_mode" not in st.session_state:
+            st.session_state.view_mode = "Grid View"
+            
+        view_mode = st.radio(
+            "Display Mode",
+            options=["Grid View", "Table View"],
+            horizontal=True,
+            key="view_selector"
+        )
+        
+        # Get paginated data
         papers_df_subset = su.create_pagination(
             papers_df, items_per_page=25, label="grid", year=year
         )
-        su.generate_grid_gallery(papers_df_subset)
+        
+        # Display content based on selected view
+        if view_mode == "Grid View":
+            su.generate_grid_gallery(papers_df_subset)
+        else:
+            su.generate_paper_table(papers_df_subset)
+            
         su.create_bottom_navigation(label="grid")
 
     with content_tabs[1]:
@@ -349,7 +367,7 @@ def main():
         plot_type = st.radio(
             label="Plot Type",
             options=["Daily", "Cumulative"],
-            index=1,
+            index=0,
             label_visibility="collapsed",
             horizontal=True,
         )
@@ -358,7 +376,10 @@ def main():
         st.plotly_chart(ts_plot, use_container_width=True)
 
         ## Cluster map.
-        st.markdown(f"### Topic Model Map")
+        if not st.session_state.all_years:
+            st.markdown(f"### Topic Model Map ({year})")
+        else:
+            st.markdown(f"### Topic Model Map")
 
         cluster_map = pt.plot_cluster_map(papers_df)
         
@@ -596,11 +617,11 @@ def main():
             st.plotly_chart(plot_repos, use_container_width=True)
 
     with content_tabs[5]:
-        weekly_plot_container = st.empty()
 
         report_top_cols = st.columns((5, 2))
         with report_top_cols[0]:
             st.markdown("# 📰 LLM Weekly Review")
+
         with report_top_cols[1]:
             ## ToDo: Make dynamic?
             if year == 2025:
@@ -616,10 +637,6 @@ def main():
             ## Convert selection to previous monday.
             date_report = week_select - pd.Timedelta(days=week_select.weekday())
 
-            ## Plot.
-            weekly_ts_plot = pt.plot_weekly_activity_ts(published_df, date_report)
-            weekly_plot_container.plotly_chart(weekly_ts_plot, use_container_width=True)
-
         if year < 2023:
             st.error("Weekly reports are available from 2023 onwards.")
             return
@@ -634,12 +651,18 @@ def main():
 
             else:
                 weekly_report = (
-                    f"##### ({date_report.strftime('%B %d, %Y')} to "
-                    f"{(date_report + pd.Timedelta(days=6)).strftime('%B %d, %Y')})\n\n"
                     f"## 🔬 New Developments & Findings\n\n{weekly_content}\n\n"
                     f"## 🌟 Highlight of the Week\n\n"
                 )
 
+            ## Plot.
+            st.write(f"##### ({date_report.strftime('%B %d, %Y')} to "
+                     
+                    f"{(date_report + pd.Timedelta(days=6)).strftime('%B %d, %Y')})\n\n")
+            weekly_ts_plot = pt.plot_weekly_activity_ts(published_df, date_report)
+            st.plotly_chart(weekly_ts_plot, use_container_width=True)
+
+            ## Report.
             st.write(weekly_report)
             report_highlights_cols = st.columns((1, 2.5))
             highlight_img = au.get_img_link_for_blob(weekly_highlight)

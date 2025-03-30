@@ -10,6 +10,7 @@ def apply_arxiv_theme():
                 --arxiv-red-light: #c93232;
                 --text-light: #fafafa;
                 --text-dark: #000000;
+                --main-color-rgb: 179, 27, 27;
             }
 
             /* Buttons */

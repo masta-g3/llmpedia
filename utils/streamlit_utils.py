@@ -365,6 +365,8 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
                     st.warning("Notes currently unavailable at this level")
                 else:
                     detailed_notes = detailed_notes.replace("#", "###")
+                    detailed_notes = detailed_notes.replace("<summary>", "")
+                    detailed_notes = detailed_notes.replace("</summary>", "")
                     # Add word count indicator
                     word_count = len(detailed_notes.split())
                     st.caption(f"📝 {word_count:,} words")
@@ -615,6 +617,148 @@ def generate_citations_list(df: pd.DataFrame) -> None:
         if paper_code == st.session_state.get("arxiv_code"):
             click_tab(2)
             st.session_state.pop("arxiv_code", None)  # Clear it after use
+
+
+def generate_paper_table(df, extra_key=""):
+    """Create a stylized table view of papers with key information."""
+    # Add custom styling for the table
+    st.markdown("""
+    <style>
+    .paper-row {
+        border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+        padding: 8px 0;
+        margin-bottom: 8px;
+    }
+    .paper-row:hover {
+        background-color: rgba(179, 27, 27, 0.05);
+    }
+    .paper-header {
+        font-weight: bold;
+        border-bottom: 2px solid rgba(179, 27, 27, 0.3);
+        padding-bottom: 10px;
+        margin-bottom: 12px;
+    }
+    .title-link {
+        font-weight: bold;
+        text-decoration: none;
+        display: block;
+        margin-bottom: 4px;
+    }
+    .title-link:hover {
+        text-decoration: underline;
+    }
+    .paper-cell {
+        padding: 4px 0;
+    }
+    .read-more-btn {
+        background-color: var(--arxiv-red, #b31b1b);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        white-space: nowrap;
+    }
+    .read-more-btn:hover {
+        background-color: var(--arxiv-red-light, #c93232);
+    }
+    
+    /* Button width constraint */
+    [data-testid="stHorizontalBlock"] button {
+        max-width: 120px !important;
+        margin: 0 auto !important;
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        .paper-row:hover {
+            background-color: rgba(179, 27, 27, 0.1);
+        }
+        .paper-header {
+            border-bottom-color: rgba(179, 27, 27, 0.4);
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Create a header row with styled headers
+    header_cols = st.columns([3, 0.8, 0.8, 1.2, 1])
+    st.markdown("<div class='paper-header'>", unsafe_allow_html=True)
+    header_cols[0].markdown("**Title**")
+    header_cols[1].markdown("**Citations**")
+    header_cols[2].markdown("**Influential Citations**")
+    header_cols[3].markdown("**Published**")
+    header_cols[4].markdown("") # Empty header for action column
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Format function for titles
+    def format_title(row):
+        title = row['title'].replace("\n", "")
+        star = "⭐️ " if row.get('influential_citation_count', 0) > 0 else ""
+        return f"{star}{title}"
+    
+    # Create a simple table with all papers
+    for i, paper in df.iterrows():
+        paper_code = paper['arxiv_code']
+        title = format_title(paper)
+        citations = int(paper.get('citation_count', 0))
+        influential = int(paper.get('influential_citation_count', 0))
+        published = pd.to_datetime(paper['published']).strftime("%b %d, %Y")
+        
+        # Create a container for the row
+        st.markdown("<div class='paper-row'>", unsafe_allow_html=True)
+        
+        # Create a row for each paper
+        cols = st.columns([3, 0.8, 0.8, 1.2, 1])
+        
+        # Get punchline for tooltip if available
+        punchline = paper.get("punchline", "")
+        if isinstance(punchline, str) and punchline:
+            # Escape HTML and quotes in punchline to avoid breaking the HTML
+            punchline = punchline.replace("'", "&#39;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+            punchline_text = f" title=\"{punchline}\""
+        else:
+            punchline_text = ""
+        
+        # Add URL to title
+        paper_url = paper.get("url", "")
+        title_html = f"<a href='{paper_url}' target='_blank' class='title-link' style='color: var(--arxiv-red);'{punchline_text}>{title}</a>"
+        
+        # Add authors truncated
+        authors = paper.get("authors", "")
+        if len(authors) > 70:
+            authors = authors[:70] + "..."
+        authors_html = f"<div style='font-size: 0.85em; color: var(--text-color, #666);'>{authors}</div>"
+        
+        # Combine title and authors
+        cols[0].markdown(f"{title_html}{authors_html}", unsafe_allow_html=True)
+        
+        # Format counts with nice styling and SVG icons
+        cols[1].markdown(f"""<div class='paper-cell' style='text-align: center;'>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; opacity: 0.7; margin-right: 3px;"><path d="M17 6.1H3M21 12.1H3M21 18.1H3"></path></svg>
+            {citations}
+        </div>""", unsafe_allow_html=True)
+        
+        cols[2].markdown(f"""<div class='paper-cell' style='text-align: center;'>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; opacity: 0.7; margin-right: 3px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            {influential}
+        </div>""", unsafe_allow_html=True)
+        
+        # Date with nice styling and calendar icon
+        cols[3].markdown(f"""<div class='paper-cell'>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; opacity: 0.7; margin-right: 3px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            {published}
+        </div>""", unsafe_allow_html=True)
+        
+        # Button styled as HTML but triggered by Streamlit button with width constraint (set in CSS)
+        if cols[4].button("Read More", key=f"btn_{paper_code}_{extra_key}", use_container_width=True):
+            st.session_state.arxiv_code = paper_code
+            click_tab(2)
+            st.rerun()
+            
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def create_pagination(items, items_per_page, label="summaries", year=None):
