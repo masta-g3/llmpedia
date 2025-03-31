@@ -303,7 +303,7 @@ def main():
         }
     </style>
     <div class="footer">
-        <a href="https://github.com/masta-g3/llmpedia/blob/main/VERSIONS.md" target="_blank">v1.5.0</a>
+        <a href="https://github.com/masta-g3/llmpedia/blob/main/VERSIONS.md" target="_blank">v1.6.0</a>
     </div>
 
     <div style="font-size: 0.7em; font-style: italic; text-align: center; position: relative; top: 20px; left: 0; right: 0; color: #888;">
@@ -320,6 +320,7 @@ def main():
     ## Content tabs.
     content_tabs = st.tabs(
         [
+            "📰 News",
             "🧮 Release Feed",
             "🗺️ Statistics & Topics",
             "🔍 Paper Details",
@@ -330,6 +331,91 @@ def main():
     )
 
     with content_tabs[0]:
+        
+        # Calculate recent papers (1 day and 7 days)
+        today = pd.Timestamp.now().date()
+        yesterday = today - pd.Timedelta(days=1)
+        last_week = today - pd.Timedelta(days=7)
+        
+        # Filter dataframes for recent papers - convert datetime64[ns] to date for comparison
+        papers_1d = papers_df[papers_df["published"].dt.date >= yesterday]
+        papers_7d = papers_df[papers_df["published"].dt.date >= last_week]
+        
+        # Display all metrics in a single row of 4 columns
+        metric_cols = st.columns(4)
+        with metric_cols[0]:
+            st.metric(
+                label="Total Papers in Archive", 
+                value=f"{len(full_papers_df):,d}",
+            )
+        with metric_cols[1]:
+            if not st.session_state.all_years:
+                value = f"{len(papers_df[papers_df['published'].dt.year == year]):,d}"
+                st.metric(
+                    label=f"Published in {year}", 
+                    value=value,
+                )
+        with metric_cols[2]:
+            st.metric(
+                label="Last 7 days", 
+                value=len(papers_7d)
+            )
+        with metric_cols[3]:
+            st.metric(
+                label="Last 24 hours", 
+                value=len(papers_1d)
+            )
+        
+        # Display interesting facts section
+        with st.expander("**💡 Recent Findings**", expanded=True):
+            # Cache the facts retrieval to avoid unnecessary DB calls
+            @st.cache_data(ttl=timedelta(hours=6))
+            def get_cached_facts(n=8, days=14):
+                return db_utils.get_random_interesting_facts(n=n, recency_days=days)
+            
+            facts = get_cached_facts(n=8, days=14)
+            su.display_interesting_facts(facts, n_cols=2, papers_df=full_papers_df)
+        
+        # Create a 4-panel layout (2 rows, 2 columns)
+        st.write("### Recent Activity (~7 days)")
+        row1_cols = st.columns([3, 2])
+        row2_cols = st.columns([4, 2])
+        
+        # Panel 1.1: Trending Topics (Left)
+        with row1_cols[0]:
+            ## Get trending topics from the most recent papers.
+            if len(papers_7d) > 0:
+                # Use utility function to extract trending topics
+                trending_terms = au.get_trending_topics_from_papers(
+                    papers_df=papers_7d,
+                    time_window_days=7,
+                    n=15
+                )
+                if trending_terms:
+                    trend_chart = pt.plot_trending_words(trending_terms)
+                    st.plotly_chart(trend_chart, use_container_width=True)
+                else:
+                    st.info("Not enough data to identify trending topics.")
+        
+        # Panel 1.2: Topic Distribution (Right)
+        with row1_cols[1]:
+            topic_chart = pt.plot_top_topics(papers_7d, n=5)
+            st.plotly_chart(topic_chart, use_container_width=True)
+        
+        # Panel 2.1: Top Cited Papers (Left)
+        with row2_cols[0]:
+            citation_window = 30
+            st.markdown(f"### Top Cited Papers (Last {citation_window} days)")
+            top_papers = au.get_top_cited_papers(papers_df, n=5, time_window_days=citation_window)
+            su.generate_mini_paper_table(top_papers, n=5, extra_key="_dashboard")
+        
+        # Panel 2.2: Featured Paper (Right)
+        with row2_cols[1]:
+            arxiv_code = au.get_latest_weekly_highlight()
+            highlight_paper = papers_df[papers_df["arxiv_code"] == arxiv_code].iloc[0].to_dict()
+            su.create_featured_paper_card(highlight_paper)
+
+    with content_tabs[1]:
         ## Grid view or Table view
         if "page_number" not in st.session_state:
             st.session_state.page_number = 0
@@ -358,7 +444,7 @@ def main():
             
         su.create_bottom_navigation(label="grid")
 
-    with content_tabs[1]:
+    with content_tabs[2]:
         total_papers = len(papers_df)
         if not st.session_state.all_years:
             st.markdown(f"### 📈 {year} Publication Counts: {total_papers}")
@@ -404,7 +490,7 @@ def main():
                         # Redirect to the paper details
                         st.query_params["arxiv_code"] = arxiv_code
                         st.session_state.arxiv_code = arxiv_code
-                        su.click_tab(2)
+                        su.click_tab(3)
 
     ## URL info extraction.
     url_query = st.query_params
@@ -412,9 +498,9 @@ def main():
         paper_code = url_query["arxiv_code"]
         logging_db.log_visit(paper_code)
         st.session_state.arxiv_code = paper_code
-        su.click_tab(2)
+        su.click_tab(3)
 
-    with content_tabs[2]:
+    with content_tabs[3]:
         ## Focus on a paper.
         arxiv_code = st.text_input("arXiv Code", st.session_state.arxiv_code)
         st.session_state.arxiv_code = arxiv_code
@@ -425,7 +511,7 @@ def main():
             else:
                 st.error("Paper not found.")
 
-    with content_tabs[3]:
+    with content_tabs[4]:
         st.markdown("##### 🤖 Chat with the GPT maestro.")
         user_question = st.text_area(
             label="Ask any question about LLMs or the arxiv papers.", value=""
@@ -541,7 +627,7 @@ def main():
                     else:
                         su.generate_citations_list(relevant_df)
 
-    with content_tabs[4]:
+    with content_tabs[5]:
         ## Repositories.
         repos_df = st.session_state["repos"]
         repos_search_cols = st.columns((1, 1, 1))
@@ -616,7 +702,7 @@ def main():
             plot_repos = pt.plot_repos_by_feature(filtered_repos, plot_by)
             st.plotly_chart(plot_repos, use_container_width=True)
 
-    with content_tabs[5]:
+    with content_tabs[6]:
 
         report_top_cols = st.columns((5, 2))
         with report_top_cols[0]:

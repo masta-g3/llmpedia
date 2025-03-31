@@ -12,10 +12,12 @@ langchain-openai==0.1.8
 latex2mathml==3.5.0
 litellm==1.60.0
 markdown2==2.5.2
+nltk==3.8.1
 numpy==1.24.4
+scikit-learn==1.2.2
 sentence-transformers==2.7.0
 streamlit==1.42.2
-streamlit-plotly-events==0.0.6
+streamlit-nested-layout==0.1.4
 plotly==6.0.0
 pandas==2.0.3
 psycopg2-binary==2.9.7

@@ -836,3 +836,148 @@ def click_tab(tab_num):
     </script>
     """
     st.components.v1.html(js)
+
+
+def generate_mini_paper_table(df, n=5, extra_key=""):
+    """ Create a compact table of top papers for dashboard display. """
+    # Add custom styling for the mini table
+    st.markdown("""
+    <style>
+    .mini-paper-row {
+        border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+        padding: 4px 0;
+        margin-bottom: 4px;
+        font-size: 0.9em;
+    }
+    .mini-paper-row:hover {
+        background-color: rgba(179, 27, 27, 0.05);
+    }
+    .mini-paper-header {
+        font-weight: bold;
+        border-bottom: 2px solid rgba(179, 27, 27, 0.3);
+        padding-bottom: 5px;
+        margin-bottom: 8px;
+        font-size: 0.9em;
+    }
+    .mini-title-link {
+        font-weight: bold;
+        text-decoration: none;
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .mini-title-link:hover {
+        text-decoration: underline;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Only take the top n papers
+    display_df = df.head(n) if len(df) > n else df
+    
+    # Create a header row with styled headers
+    header_cols = st.columns([3, 1])
+    st.markdown("<div class='mini-paper-header'>", unsafe_allow_html=True)
+    header_cols[0].markdown("**Title**")
+    header_cols[1].markdown("**Citations**")
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Create a simple table with top papers
+    for _, paper in display_df.iterrows():
+        paper_code = paper['arxiv_code']
+        title = paper['title'].replace("\n", "")
+        if len(title) > 50:  # Truncate long titles
+            title = title[:50] + "..."
+        
+        citations = int(paper.get('citation_count', 0))
+        
+        # Create a container for the row
+        st.markdown("<div class='mini-paper-row'>", unsafe_allow_html=True)
+        
+        # Create a row for each paper
+        cols = st.columns([3, 1])
+        
+        # Add URL to title
+        paper_url = paper.get("url", "")
+        title_html = f"<a href='{paper_url}' target='_blank' class='mini-title-link' style='color: var(--arxiv-red);'>{title}</a>"
+        
+        # Display the title and citations
+        cols[0].markdown(title_html, unsafe_allow_html=True)
+        cols[1].markdown(f"<div style='text-align: center;'>{citations}</div>", unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    if len(df) > n:
+        st.caption(f"Showing top {n} of {len(df)} papers")
+
+
+def create_featured_paper_card(paper: Dict) -> None:
+    """Creates a featured paper card using the weekly highlight. """
+    st.markdown("### Featured Paper")
+    paper_code = paper.get("arxiv_code", "")
+    punchline = paper.get("punchline", "")
+    st.markdown(f"#### *{paper.get('title', 'Featured Paper')}*")
+    st.image(
+        f"https://arxiv-art.s3.amazonaws.com/{paper_code}.png",
+        use_container_width=True
+    )    
+    st.markdown(f"*{punchline}*")
+    if st.button("Read More", key=f"featured_{paper_code}", use_container_width=True):
+        st.session_state.arxiv_code = paper_code
+        click_tab(3)
+
+
+def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
+    """ Displays a grid of interesting facts from papers. """
+    if not facts_list:
+        st.info("No interesting facts found.")
+        return
+        
+    # Create a multi-column layout
+    cols = st.columns(n_cols)
+    
+    # Distribute facts among columns
+    for i, fact in enumerate(facts_list):
+        col_idx = i % n_cols
+        
+        # Get topic if papers_df is provided
+        topic = None
+        topic_full = None
+        if papers_df is not None and 'arxiv_code' in fact:
+            arxiv_code = fact['arxiv_code']
+            if arxiv_code in papers_df.index and 'topic' in papers_df.columns:
+                topic_full = papers_df.loc[arxiv_code, 'topic']
+                topic = topic_full[:25] + "..." if len(topic_full) > 25 else topic_full
+
+        
+        with cols[col_idx]:
+            # Create a container with padding and subtle border
+            with st.container():
+                st.markdown(
+                    f"""<div style="
+                        padding: 1em;
+                        margin-bottom: 1em;
+                        background-color: var(--background-color, #f9f9f9);
+                        border-left: 3px solid var(--primary-color, #FF4B4B);
+                        border-radius: 5px;
+                    ">
+                    <p style="font-size: 0.95em; margin-bottom: 0.5em;">{fact['fact']}</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                        {"<span style='background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.1)); padding: 3px 8px; border-radius: 12px; font-size: 0.8em;' title='" + topic_full + "'>" + topic + "</span>" if topic else ""}
+                        <p style="
+                            font-size: 0.8em;
+                            font-style: italic;
+                            color: var(--text-color, #888);
+                            margin: 0;
+                            text-align: right;
+                            flex-grow: 1;
+                        ">
+                        <a href="https://arxiv.org/abs/{fact['arxiv_code']}" target="_blank" style="text-decoration: none;">
+                            {fact['paper_title'][:75] + ('...' if len(fact['paper_title']) > 75 else '')}
+                        </a>
+                        </p>
+                    </div>
+                    </div>""",
+                    unsafe_allow_html=True
+                )

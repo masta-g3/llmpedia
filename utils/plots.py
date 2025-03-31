@@ -285,3 +285,153 @@ def plot_repos_by_feature(
     fig.update_yaxes(title_font=dict(size=14), title="# Resources")
     fig.update_traces(marker_color="#b31b1b", marker_line_color="#c93232")
     return fig
+
+
+def plot_category_distribution(categories: pd.Series) -> go.Figure:
+    """Creates a horizontal bar chart of paper categories."""
+    # Sort by count
+    categories = categories.sort_values(ascending=True)
+    
+    # Create horizontal bar chart
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            y=categories.index,
+            x=categories.values,
+            orientation='h',
+            marker_color='#b31b1b',
+            hovertemplate='%{y}: %{x} papers<extra></extra>'
+        )
+    )
+    
+    fig.update_layout(
+        height=300,
+        margin=dict(t=0, b=0, l=0, r=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        xaxis_title="Number of Papers",
+        yaxis=dict(
+            title=None,
+            tickfont=dict(size=14)
+        )
+    )
+    
+    return fig
+
+
+def plot_trending_words(trending_words: list) -> go.Figure:
+    """Creates a horizontal bar chart of trending words/phrases in paper titles.
+    
+    The input is expected to be a list of tuples (word/phrase, score) where 
+    score can be either a count or a TF-IDF score.
+    """
+    words = [word for word, score in trending_words]
+    scores = [score for word, score in trending_words]
+    
+    # Capitalize each term for better readability
+    formatted_words = [' '.join(word.split()).title() for word in words]
+    
+    # Create a gradient color scale based on scores
+    colors = []
+    max_score = max(scores)
+    for score in scores:
+        # Normalize score between 0.5 and 1.0 for color intensity
+        intensity = 0.5 + 0.5 * (score / max_score)
+        # Create a shade of red with varying intensity
+        colors.append(f'rgba(179, 27, 27, {intensity})')
+    
+    # Create hover text based on the score type
+    if any(isinstance(score, float) and score < 1.0 for _, score in trending_words):
+        # This is likely TF-IDF data
+        hover_template = '%{y}: TF-IDF Score: %{x:.3f}<extra></extra>'
+    else:
+        # This is likely count data
+        hover_template = '%{y}: %{x} occurrences<extra></extra>'
+    
+    # Create horizontal bar chart
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            y=formatted_words,
+            x=scores,
+            orientation='h',
+            marker_color=colors,
+            hovertemplate=hover_template
+        )
+    )
+    
+    # Determine an appropriate title based on the data
+    title = "Trending Phrases (TF-IDF)" if len(words[0].split()) > 1 else "Trending Words"
+    
+    fig.update_layout(
+        height=350,
+        margin=dict(t=30, b=0, l=0, r=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        xaxis_title="Relevance Score",
+        yaxis=dict(
+            title=None,
+            autorange="reversed",  # Show highest score at the top
+            tickfont=dict(size=14)
+        ),
+        title=dict(
+            text=title,
+            font=dict(size=14),
+            x=0.5,
+            xanchor='center'
+        )
+    )
+    
+    return fig
+
+
+def plot_top_topics(df: pd.DataFrame, n: int = 5) -> go.Figure:
+    """ Creates a pie chart of the top n topics in the dataset. """
+    
+    topic_counts = df["topic"].value_counts()
+    
+    if len(topic_counts) > n:
+        top_topics = topic_counts.iloc[:n]
+        other_count = topic_counts.iloc[n:].sum()
+        
+        plot_data = pd.Series({**top_topics.to_dict(), "Other": other_count})
+    else:
+        plot_data = topic_counts
+    
+    ## Truncate long topic names for display.
+    max_label_length = 40
+    display_labels = [label[:max_label_length] + "..." if len(label) > max_label_length else label 
+                     for label in plot_data.index]
+    
+    colors = ["#b31b1b", "#c93232", "#e04848", "#e87070", "#f09898", "#f8c0c0"]
+    
+    fig = go.Figure(data=[go.Pie(
+        labels=display_labels,
+        values=plot_data.values,
+        hole=0.4,  # Create a donut chart
+        marker_colors=colors[:len(plot_data)],
+        textinfo='label+percent',
+        textposition='outside',
+        textfont=dict(size=12),
+        insidetextorientation='radial',
+        pull=[0.05 if i == 0 else 0 for i in range(len(plot_data))],  # Pull out the largest segment slightly
+        hoverinfo='label+value',
+        hovertemplate='%{label}: %{value} papers<extra></extra>'
+    )])
+    
+    fig.update_layout(
+        height=350,
+        margin=dict(t=55, b=0, l=0, r=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        showlegend=False,
+        title=dict(
+            text="Popular Topics",
+            font=dict(size=14),
+            x=0.5,
+            xanchor='center',
+            y=0.95
+        )
+    )
+    
+    return fig
