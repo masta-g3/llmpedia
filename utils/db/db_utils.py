@@ -218,46 +218,59 @@ def query_db(query_string: str, params: Optional[dict] = None) -> List[Dict]:
 
 def get_random_interesting_facts(n=10, recency_days=7) -> List[Dict]:
     """Get random interesting facts with bias toward recent ones."""
-    # Get recent facts with higher probability
+    # Calculate the cutoff date for recent facts
     recent_cutoff = datetime.now() - timedelta(days=recency_days)
     recent_cutoff_str = recent_cutoff.strftime("%Y-%m-%d")
 
-    # First try to get facts from the recent period
-    recent_facts_query = f"""
-        SELECT id, arxiv_code, fact, tstp
+    # Get both recent and older facts in a single query
+    # UNION ensures no duplicates of exact same rows
+    query = f"""
+        (SELECT id, arxiv_code, fact, tstp, 
+               1 as is_recent
         FROM summary_interesting_facts
         WHERE tstp >= '{recent_cutoff_str}'
         ORDER BY RANDOM()
-        LIMIT {min(n*2, 50)}
+        LIMIT {min(n*2, 50)})
+        
+        UNION ALL
+        
+        (SELECT id, arxiv_code, fact, tstp,
+               0 as is_recent
+        FROM summary_interesting_facts
+        WHERE tstp < '{recent_cutoff_str}'
+        ORDER BY RANDOM()
+        LIMIT {n*2})
     """
-
-    recent_facts = query_db(recent_facts_query)
-
-    # If we don't have enough recent facts, get some older ones too
-    if len(recent_facts) < n:
-        older_facts_query = f"""
-            SELECT id, arxiv_code, fact, tstp
-            FROM summary_interesting_facts
-            WHERE tstp < '{recent_cutoff_str}'
-            ORDER BY RANDOM()
-            LIMIT {n - len(recent_facts)}
-        """
-        older_facts = query_db(older_facts_query)
-        all_facts = recent_facts + older_facts
-    else:
-        # If we have more than enough recent facts, randomly sample from them
-        # with probability biased toward more recent ones
-        all_facts = sorted(recent_facts, key=lambda x: x["tstp"], reverse=True)
-
-        # Use weighted random sampling
-        weights = [
-            1.0 - (i / len(all_facts)) * 0.5 for i in range(len(all_facts))
-        ]  # Linearly decreasing weights
-        all_facts = random.choices(all_facts, weights=weights, k=min(n, len(all_facts)))
-
-    # Enhance facts with paper title for context
+    
+    # Get facts and deduplicate based on content
+    all_facts = query_db(query)
+    unique_facts = []
+    seen_content = set()
+    
+    # First prioritize recent facts (they come first in the results)
     for fact in all_facts:
-        # Get paper title from arXiv code
+        if fact['fact'] not in seen_content and len(unique_facts) < n:
+            seen_content.add(fact['fact'])
+            unique_facts.append(fact)
+    
+    # Ensure at least 70% recent facts if possible (recency bias)
+    if len(unique_facts) > n:
+        recent_facts = [f for f in unique_facts if f['is_recent'] == 1]
+        older_facts = [f for f in unique_facts if f['is_recent'] == 0]
+        
+        # Try to keep at least 70% recent facts if we have enough
+        recent_target = min(int(n * 0.7), len(recent_facts))
+        older_target = n - recent_target
+        
+        # Combine with preference for recent facts
+        final_facts = (
+            sorted(recent_facts, key=lambda x: x['tstp'], reverse=True)[:recent_target] + 
+            sorted(older_facts, key=lambda x: x['tstp'], reverse=True)[:older_target]
+        )
+        unique_facts = final_facts
+    
+    # Enhance facts with paper title for context
+    for fact in unique_facts:
         title_query = f"""
             SELECT title 
             FROM arxiv_details 
@@ -269,4 +282,4 @@ def get_random_interesting_facts(n=10, recency_days=7) -> List[Dict]:
         else:
             fact["paper_title"] = "Unknown paper"
 
-    return all_facts
+    return unique_facts
