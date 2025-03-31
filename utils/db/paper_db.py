@@ -257,7 +257,11 @@ def get_extended_notes(
             limit=1
         )
     
-    return df["summary"].iloc[0] if not df.empty else None
+    summary = df["summary"].iloc[0] if not df.empty else None
+    ##ToDo: Make use of this.
+    summary = summary.replace("<original>", "").replace("</original>", "")
+    summary = summary.replace("<new>", "").replace("</new>", "")
+    return summary
 
 def get_arxiv_parent_chunk_ids(chunk_ids: List[Tuple[str, int]]) -> List[Tuple[str, int]]:
     """Get parent chunk IDs for a list of (arxiv_code, child_id) tuples."""

@@ -343,10 +343,10 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             
             # Map selection to level values (level 1 is most detailed)
             level_map = {
-                "Most Detailed": 1,  # First summary iteration (most detailed)
-                "Detailed": 2,       # Second iteration
-                "Concise": 3,        # Third iteration
-                "Very Concise": 4    # Fourth iteration (most concise)
+                "Most Detailed": 5,  # First summary iteration (most detailed)
+                "Detailed": 3,       # Second iteration
+                "Concise": 2,        # Third iteration
+                "Very Concise": 1    # Fourth iteration (most concise)
             }
             
             # Get notes based on selected level
@@ -568,7 +568,7 @@ def generate_grid_gallery(df, n_cols=5, extra_key=""):
                     )
                     if focus_btn:
                         st.session_state.arxiv_code = paper_code
-                        click_tab(2)
+                        click_tab(3)
 
                     st.markdown(
                         f'<p style="text-align: center"><strong><a href="{paper_url}" style="color: #FF4B4B;">{paper_title}</a></strong></p>',
@@ -630,7 +630,7 @@ def generate_citations_list(df: pd.DataFrame) -> None:
         
         # Hidden button to handle tab switching after state is set
         if paper_code == st.session_state.get("arxiv_code"):
-            click_tab(2)
+            click_tab(3)
             st.session_state.pop("arxiv_code", None)  # Clear it after use
 
 
@@ -770,7 +770,7 @@ def generate_paper_table(df, extra_key=""):
         # Button styled as HTML but triggered by Streamlit button with width constraint (set in CSS)
         if cols[4].button("Read More", key=f"btn_{paper_code}_{extra_key}", use_container_width=True):
             st.session_state.arxiv_code = paper_code
-            click_tab(2)
+            click_tab(3)
             st.rerun()
             
         st.markdown("</div>", unsafe_allow_html=True)
@@ -870,6 +870,27 @@ def generate_mini_paper_table(df, n=5, extra_key=""):
     .mini-title-link:hover {
         text-decoration: underline;
     }
+    .mini-read-more-btn {
+        background-color: var(--arxiv-red, #b31b1b);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        white-space: nowrap;
+    }
+    .mini-read-more-btn:hover {
+        background-color: var(--arxiv-red-light, #c93232);
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        .mini-paper-row:hover {
+            background-color: rgba(179, 27, 27, 0.1);
+        }
+    }
     </style>
     """, unsafe_allow_html=True)
     
@@ -877,34 +898,55 @@ def generate_mini_paper_table(df, n=5, extra_key=""):
     display_df = df.head(n) if len(df) > n else df
     
     # Create a header row with styled headers
-    header_cols = st.columns([3, 1])
+    header_cols = st.columns([3, 0.8, 0.7])
     st.markdown("<div class='mini-paper-header'>", unsafe_allow_html=True)
     header_cols[0].markdown("**Title**")
     header_cols[1].markdown("**Citations**")
+    header_cols[2].markdown("") # Empty header for action column
     st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Format function for titles, reused from generate_paper_table
+    def format_title(row):
+        title = row['title'].replace("\n", "")
+        star = "⭐️ " if row.get('influential_citation_count', 0) > 0 else ""
+        return f"{star}{title}"
     
     # Create a simple table with top papers
     for _, paper in display_df.iterrows():
         paper_code = paper['arxiv_code']
-        title = paper['title'].replace("\n", "")
-        if len(title) > 50:  # Truncate long titles
-            title = title[:50] + "..."
-        
+        title = format_title(paper)
         citations = int(paper.get('citation_count', 0))
         
         # Create a container for the row
         st.markdown("<div class='mini-paper-row'>", unsafe_allow_html=True)
         
         # Create a row for each paper
-        cols = st.columns([3, 1])
+        cols = st.columns([3, 0.8, 0.7])
         
         # Add URL to title
         paper_url = paper.get("url", "")
         title_html = f"<a href='{paper_url}' target='_blank' class='mini-title-link' style='color: var(--arxiv-red);'>{title}</a>"
         
-        # Display the title and citations
-        cols[0].markdown(title_html, unsafe_allow_html=True)
-        cols[1].markdown(f"<div style='text-align: center;'>{citations}</div>", unsafe_allow_html=True)
+        # Add authors truncated
+        authors = paper.get("authors", "")
+        if len(authors) > 50:  # Shorter than in generate_paper_table for mini view
+            authors = authors[:50] + "..."
+        authors_html = f"<div style='font-size: 0.8em; color: var(--text-color, #666);'>{authors}</div>"
+        
+        # Combine title and authors
+        cols[0].markdown(f"{title_html}{authors_html}", unsafe_allow_html=True)
+        
+        # Format citation count with icon
+        cols[1].markdown(f"""<div style='text-align: center;'>
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; opacity: 0.7; margin-right: 3px;"><path d="M17 6.1H3M21 12.1H3M21 18.1H3"></path></svg>
+            {citations}
+        </div>""", unsafe_allow_html=True)
+        
+        # Button styled with width constraint
+        if cols[2].button("Read More", key=f"mini_btn_{paper_code}_{extra_key}", use_container_width=True):
+            st.session_state.arxiv_code = paper_code
+            click_tab(3)
+            st.rerun()
         
         st.markdown("</div>", unsafe_allow_html=True)
     

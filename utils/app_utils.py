@@ -740,7 +740,6 @@ def get_domain_stopwords():
 
 def preprocess_text(text):
     """Basic text preprocessing with lemmatization."""
-    
     try:
         lemmatizer = WordNetLemmatizer()
         lemmatizer.lemmatize("test")
@@ -764,7 +763,7 @@ def preprocess_text(text):
 
 def extract_trending_topics(documents, n=15, ngram_range=(2, 3), min_df=2, max_df=0.8):
     """Extract trending topics from a list of documents using TF-IDF vectorization."""
- 
+
     try:
         nltk_stop = stopwords.words("english")
     except:
@@ -795,16 +794,22 @@ def extract_trending_topics(documents, n=15, ngram_range=(2, 3), min_df=2, max_d
 
         ## Sum TF-IDF scores for each term across all documents.
         tfidf_scores = tfidf_matrix.sum(axis=0).A1
-        term_scores = {
-            term: score for term, score in zip(feature_names, tfidf_scores)
-        }
+        term_scores = {term: score for term, score in zip(feature_names, tfidf_scores)}
 
-        ## Get top n terms.
-        trending_terms = sorted(
-            term_scores.items(), key=lambda x: x[1], reverse=True
-        )[:n]
+        ## Get all terms sorted by score
+        all_sorted_terms = sorted(term_scores.items(), key=lambda x: x[1], reverse=True)
 
-        return trending_terms
+        ## Extract trigrams
+        trigrams = {term for term, _ in all_sorted_terms if len(term.split()) == 3}
+
+        ## Filter out bigrams that are subsets of trigrams
+        filtered_terms = [
+            (term, score)
+            for term, score in all_sorted_terms
+            if len(term.split()) != 2 or not any(term in tri for tri in trigrams)
+        ]
+
+        return filtered_terms[:n]
     else:
         return []
 
@@ -836,23 +841,23 @@ def get_trending_topics_from_papers(papers_df, time_window_days=7, n=15):
 
 
 def get_top_cited_papers(papers_df, n=5, time_window_days=None):
-    """ Get the top cited papers, optionally filtering by recency. """
+    """Get the top cited papers, optionally filtering by recency."""
     df = papers_df.copy()
-    
+
     if time_window_days is not None:
         today = pd.Timestamp.now().date()
         cutoff_date = today - pd.Timedelta(days=time_window_days)
         df = df[df["published"].dt.date >= cutoff_date]
-    
+
     return df.sort_values("citation_count", ascending=False).head(n)
 
 
 def get_latest_weekly_highlight():
-    """Get the most recent weekly highlight for the featured content section. """
+    """Get the most recent weekly highlight for the featured content section."""
     ## Get the most recent weekly content date.
     max_date = db_utils.get_max_table_date("weekly_content")
     date_str = max_date.strftime("%Y-%m-%d")
-    
+
     ## Get the highlight content.
     highlight_text = paper_db.get_weekly_content(date_str, content_type="highlight")
     arxiv_code = re.findall(r"arxiv(?:_code)?:(\d{4}\.\d{4,5})", highlight_text)[0]

@@ -2,7 +2,7 @@ import streamlit as st
 from datetime import timedelta
 from pathlib import Path
 
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 import pandas as pd
 
 import utils.streamlit_utils as su
@@ -15,9 +15,10 @@ import utils.db.tweet_db as tweet_db
 import utils.styling as styling
 import time
 
-if hasattr(st, '_is_running_with_streamlit'):
+if hasattr(st, "_is_running_with_streamlit"):
     import streamlit.watcher.path_watcher
-    streamlit.watcher.path_watcher.IGNORE_MODULES.add('torch')
+
+    streamlit.watcher.path_watcher.IGNORE_MODULES.add("torch")
 
 ## Page config.
 st.set_page_config(
@@ -196,6 +197,12 @@ def initialize_weekly_summary(date_report: str):
     return weekly_content, weekly_highlight, weekly_repos
 
 
+@st.cache_data(ttl=timedelta(hours=6))
+def get_random_interesting_facts(n=10, recency_days=7) -> List[Dict]:
+    """Get random interesting facts from the database with caching."""
+    return db_utils.get_random_interesting_facts(n=n, recency_days=recency_days)
+
+
 @st.cache_data
 def get_max_report_date():
     max_date = db_utils.get_max_table_date("weekly_content")
@@ -257,19 +264,21 @@ def main():
         heatmap_data = au.prepare_calendar_data(published_df, year)
         release_calendar, padded_date = pt.plot_activity_map(heatmap_data)
         st.markdown(f"### 📅 {year} Release Calendar")
-        
+
         # Use native Streamlit plotly_chart with on_select
-        calendar_event = st.plotly_chart(release_calendar, 
-                                         key="calendar_heatmap", 
-                                         on_select="rerun", 
-                                         use_container_width=True,
-                                         height=220)
+        calendar_event = st.plotly_chart(
+            release_calendar,
+            key="calendar_heatmap",
+            on_select="rerun",
+            use_container_width=True,
+            height=220,
+        )
 
         if calendar_event.selection and calendar_event.selection.get("points"):
             # Get the first selected point's data
             point = calendar_event.selection["points"][0]
             coords_text = point.get("text")
-            
+
             if coords_text:
                 y_coord, x_coord = map(int, coords_text.split(","))
                 publish_date = pd.to_datetime(
@@ -331,117 +340,109 @@ def main():
     )
 
     with content_tabs[0]:
-        
         # Calculate recent papers (1 day and 7 days)
         today = pd.Timestamp.now().date()
         yesterday = today - pd.Timedelta(days=1)
         last_week = today - pd.Timedelta(days=7)
-        
+
         # Filter dataframes for recent papers - convert datetime64[ns] to date for comparison
         papers_1d = papers_df[papers_df["published"].dt.date >= yesterday]
         papers_7d = papers_df[papers_df["published"].dt.date >= last_week]
-        
+
         # Display all metrics in a single row of 4 columns
         metric_cols = st.columns(4)
         with metric_cols[0]:
             st.metric(
-                label="Total Papers in Archive", 
+                label="Total Papers in Archive",
                 value=f"{len(full_papers_df):,d}",
             )
         with metric_cols[1]:
             if not st.session_state.all_years:
                 value = f"{len(papers_df[papers_df['published'].dt.year == year]):,d}"
                 st.metric(
-                    label=f"Published in {year}", 
+                    label=f"Published in {year}",
                     value=value,
                 )
         with metric_cols[2]:
-            st.metric(
-                label="Last 7 days", 
-                value=len(papers_7d)
-            )
+            st.metric(label="Last 7 days", value=len(papers_7d))
         with metric_cols[3]:
-            st.metric(
-                label="Last 24 hours", 
-                value=len(papers_1d)
-            )
-        
+            st.metric(label="Last 24 hours", value=len(papers_1d))
+
         # Display interesting facts section
         with st.expander("**💡 Recent Findings**", expanded=True):
-            # Cache the facts retrieval to avoid unnecessary DB calls
-            @st.cache_data(ttl=timedelta(hours=6))
-            def get_cached_facts(n=8, days=14):
-                return db_utils.get_random_interesting_facts(n=n, recency_days=days)
-            
-            facts = get_cached_facts(n=8, days=14)
+            # Use the cached function directly
+            facts = get_random_interesting_facts(n=8, recency_days=14)
             su.display_interesting_facts(facts, n_cols=2, papers_df=full_papers_df)
-        
+
         # Create a 4-panel layout (2 rows, 2 columns)
         st.write("### Recent Activity (~7 days)")
         row1_cols = st.columns([3, 2])
         row2_cols = st.columns([4, 2])
-        
+
         # Panel 1.1: Trending Topics (Left)
         with row1_cols[0]:
             ## Get trending topics from the most recent papers.
             if len(papers_7d) > 0:
                 # Use utility function to extract trending topics
                 trending_terms = au.get_trending_topics_from_papers(
-                    papers_df=papers_7d,
-                    time_window_days=7,
-                    n=15
+                    papers_df=papers_7d, time_window_days=7, n=15
                 )
                 if trending_terms:
                     trend_chart = pt.plot_trending_words(trending_terms)
                     st.plotly_chart(trend_chart, use_container_width=True)
                 else:
                     st.info("Not enough data to identify trending topics.")
-        
+
         # Panel 1.2: Topic Distribution (Right)
         with row1_cols[1]:
             topic_chart = pt.plot_top_topics(papers_7d, n=5)
             st.plotly_chart(topic_chart, use_container_width=True)
-        
+
         # Panel 2.1: Top Cited Papers (Left)
         with row2_cols[0]:
-            citation_window = 30
+            citation_window = 90
+            citation_top_n = 5
             st.markdown(f"### Top Cited Papers (Last {citation_window} days)")
-            top_papers = au.get_top_cited_papers(papers_df, n=5, time_window_days=citation_window)
-            su.generate_mini_paper_table(top_papers, n=5, extra_key="_dashboard")
-        
+            top_papers = au.get_top_cited_papers(
+                papers_df, n=citation_top_n, time_window_days=citation_window
+            )
+            su.generate_mini_paper_table(top_papers, n=citation_top_n, extra_key="_dashboard")
+
         # Panel 2.2: Featured Paper (Right)
         with row2_cols[1]:
             arxiv_code = au.get_latest_weekly_highlight()
-            highlight_paper = papers_df[papers_df["arxiv_code"] == arxiv_code].iloc[0].to_dict()
+            highlight_paper = (
+                papers_df[papers_df["arxiv_code"] == arxiv_code].iloc[0].to_dict()
+            )
             su.create_featured_paper_card(highlight_paper)
 
     with content_tabs[1]:
         ## Grid view or Table view
         if "page_number" not in st.session_state:
             st.session_state.page_number = 0
-            
+
         # Add view selector with radio buttons
         if "view_mode" not in st.session_state:
             st.session_state.view_mode = "Grid View"
-            
+
         view_mode = st.radio(
             "Display Mode",
             options=["Grid View", "Table View"],
             horizontal=True,
-            key="view_selector"
+            key="view_selector",
         )
-        
+
         # Get paginated data
         papers_df_subset = su.create_pagination(
             papers_df, items_per_page=25, label="grid", year=year
         )
-        
+
         # Display content based on selected view
         if view_mode == "Grid View":
             su.generate_grid_gallery(papers_df_subset)
         else:
             su.generate_paper_table(papers_df_subset)
-            
+
         su.create_bottom_navigation(label="grid")
 
     with content_tabs[2]:
@@ -468,21 +469,23 @@ def main():
             st.markdown(f"### Topic Model Map")
 
         cluster_map = pt.plot_cluster_map(papers_df)
-        
+
         # Use native Streamlit plotly_chart with on_select
-        cluster_event = st.plotly_chart(cluster_map, 
-                                        key="cluster_map", 
-                                        on_select="rerun", 
-                                        use_container_width=True,
-                                        height=800)
-        
+        cluster_event = st.plotly_chart(
+            cluster_map,
+            key="cluster_map",
+            on_select="rerun",
+            use_container_width=True,
+            height=800,
+        )
+
         # Handle cluster map selection
         if cluster_event.selection and cluster_event.selection.get("points"):
             # Only proceed if exactly one point is selected
             if len(cluster_event.selection["points"]) == 1:
                 point = cluster_event.selection["points"][0]
                 custom_data = point.get("customdata", [])
-                
+
                 # Custom data is an array with [title, arxiv_code]
                 if len(custom_data) > 1:
                     arxiv_code = custom_data[1]  # The second element is the arxiv_code
@@ -521,35 +524,35 @@ def main():
         ## Advanced response settings in an expander
         with st.expander("⚙️ Response Settings", expanded=False):
             settings_cols = st.columns(2)
-            
+
             with settings_cols[0]:
                 response_length = st.select_slider(
                     "Response Length (words)",
                     options=[250, 500, 1000, 3000],
                     value=500,
-                    format_func=lambda x: f"{x} words"
+                    format_func=lambda x: f"{x} words",
                 )
             with settings_cols[1]:
                 max_sources = st.select_slider(
                     "Maximum Sources",
                     options=[1, 3, 5, 7, 10, 15, 20, 25, 30],
-                    value=10
+                    value=10,
                 )
-            
+
             custom_instructions = st.text_area(
                 "Custom Instructions (Optional)",
                 placeholder="Add any specific instructions for how you would like the response to be structured or formatted...",
-                help="Provide custom style guidelines, instructions on what to focus on, etc."
+                help="Provide custom style guidelines, instructions on what to focus on, etc.",
             )
 
             show_only_sources = st.checkbox(
                 "Show me only the sources",
-                help="Skip generating a response and just show the most relevant papers for this query."
+                help="Skip generating a response and just show the most relevant papers for this query.",
             )
 
         chat_cols = st.columns((1, 1, 1))
         chat_btn = chat_cols[0].button("Send", disabled=chat_btn_disabled)
-        
+
         # Show clear button only when we have a response
         if st.session_state.chat_response:
             if chat_cols[1].button("Clear", type="secondary"):
@@ -561,10 +564,11 @@ def main():
         if chat_btn:
             if user_question != "":
                 progress_placeholder = st.empty()
+
                 def update_progress(message: str):
                     with progress_placeholder:
                         st.info(message)
-                        
+
                 response, referenced_codes, relevant_codes = au.query_llmpedia_new(
                     user_question=user_question,
                     response_length=response_length,
@@ -574,52 +578,54 @@ def main():
                     max_sources=max_sources,
                     debug=True,
                     progress_callback=update_progress,
-                    custom_instructions=custom_instructions if custom_instructions.strip() else None,
-                    show_only_sources=show_only_sources
+                    custom_instructions=(
+                        custom_instructions if custom_instructions.strip() else None
+                    ),
+                    show_only_sources=show_only_sources,
                 )
                 progress_placeholder.empty()
-                
+
                 # Store results in session state
                 st.session_state.chat_response = response
                 st.session_state.referenced_codes = referenced_codes
                 st.session_state.relevant_codes = relevant_codes
-                
+
                 logging_db.log_qna_db(user_question, response)
 
         # Display results if they exist in session state
         if st.session_state.chat_response:
             st.divider()
             st.markdown(st.session_state.chat_response)
-            
+
             if len(st.session_state.referenced_codes) > 0:
                 st.divider()
-                
+
                 # View selector for paper display format
                 display_format = st.radio(
                     "Display Format",
                     options=["Grid View", "Citation List"],
                     horizontal=True,
                     label_visibility="collapsed",
-                    key="papers_display_format"
+                    key="papers_display_format",
                 )
-                
-                st.markdown(
-                    "<h4>Referenced Papers:</h4>", unsafe_allow_html=True
-                )
-                reference_df = st.session_state["papers"].loc[st.session_state.referenced_codes]
+
+                st.markdown("<h4>Referenced Papers:</h4>", unsafe_allow_html=True)
+                reference_df = st.session_state["papers"].loc[
+                    st.session_state.referenced_codes
+                ]
                 if display_format == "Grid View":
-                    su.generate_grid_gallery(
-                        reference_df, n_cols=5, extra_key="_chat"
-                    )
+                    su.generate_grid_gallery(reference_df, n_cols=5, extra_key="_chat")
                 else:
                     su.generate_citations_list(reference_df)
-                    
+
                 if len(st.session_state.relevant_codes) > 0:
                     st.divider()
                     st.markdown(
                         "<h4>Other Relevant Papers:</h4>", unsafe_allow_html=True
                     )
-                    relevant_df = st.session_state["papers"].loc[st.session_state.relevant_codes]
+                    relevant_df = st.session_state["papers"].loc[
+                        st.session_state.relevant_codes
+                    ]
                     if display_format == "Grid View":
                         su.generate_grid_gallery(
                             relevant_df, n_cols=5, extra_key="_chat"
@@ -711,7 +717,9 @@ def main():
         with report_top_cols[1]:
             ## ToDo: Make dynamic?
             if year == 2025:
-                max_date = max(get_max_report_date(), pd.to_datetime(f"{year}-01-01").date())
+                max_date = max(
+                    get_max_report_date(), pd.to_datetime(f"{year}-01-01").date()
+                )
             else:
                 max_date = get_max_report_date()
             week_select = st.date_input(
@@ -742,9 +750,10 @@ def main():
                 )
 
             ## Plot.
-            st.write(f"##### ({date_report.strftime('%B %d, %Y')} to "
-                     
-                    f"{(date_report + pd.Timedelta(days=6)).strftime('%B %d, %Y')})\n\n")
+            st.write(
+                f"##### ({date_report.strftime('%B %d, %Y')} to "
+                f"{(date_report + pd.Timedelta(days=6)).strftime('%B %d, %Y')})\n\n"
+            )
             weekly_ts_plot = pt.plot_weekly_activity_ts(published_df, date_report)
             st.plotly_chart(weekly_ts_plot, use_container_width=True)
 
@@ -758,8 +767,8 @@ def main():
 
 
 if __name__ == "__main__":
-    # try:
+    try:
         main()
-    # except Exception as e:
-    #     logging_db.log_error_db(e)
-    #     st.error("Something went wrong. Please refresh the app and try again, we will look into it.")
+    except Exception as e:
+        logging_db.log_error_db(e)
+        st.error("Something went wrong. Please refresh the app and try again, we will look into it.")
