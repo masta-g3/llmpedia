@@ -773,6 +773,7 @@ def extract_trending_topics(documents, n=15, ngram_range=(2, 3), min_df=2, max_d
 
     domain_stopwords = get_domain_stopwords()
     all_stopwords = list(set(nltk_stop + domain_stopwords))
+    all_stopwords = [preprocess_text(word) for word in all_stopwords]
 
     # Create TF-IDF vectorizer for bi and trigrams with optimized parameters
     tfidf_vectorizer = TfidfVectorizer(
