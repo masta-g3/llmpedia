@@ -933,6 +933,25 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
     if not facts_list:
         st.info("No interesting facts found.")
         return
+    
+    # Add custom styling for dark mode compatibility
+    st.markdown("""
+    <style>
+    /* Dark mode support for fact cards */
+    @media (prefers-color-scheme: dark) {
+        .fact-card {
+            background-color: var(--background-color, rgba(49, 51, 63, 0.4)) !important;
+            border-left-color: var(--primary-color, #FF4B4B) !important;
+        }
+        .fact-card a {
+            color: var(--link-color, #8ab4f8) !important;
+        }
+        .fact-topic {
+            background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.2)) !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
         
     # Create a multi-column layout
     cols = st.columns(n_cols)
@@ -955,7 +974,7 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
             # Create a container with padding and subtle border
             with st.container():
                 st.markdown(
-                    f"""<div style="
+                    f"""<div class="fact-card" style="
                         padding: 1em;
                         margin-bottom: 1em;
                         background-color: var(--background-color, #f9f9f9);
@@ -964,7 +983,7 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
                     ">
                     <p style="font-size: 0.95em; margin-bottom: 0.5em;">{fact['fact']}</p>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                        {"<span style='background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.1)); padding: 3px 8px; border-radius: 12px; font-size: 0.8em;' title='" + topic_full + "'>" + topic + "</span>" if topic else ""}
+                        {"<span class='fact-topic' style='background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.1)); padding: 3px 8px; border-radius: 12px; font-size: 0.8em;' title='" + topic_full + "'>" + topic + "</span>" if topic else ""}
                         <p style="
                             font-size: 0.8em;
                             font-style: italic;
