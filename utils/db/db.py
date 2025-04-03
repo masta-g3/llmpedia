@@ -1,20 +1,19 @@
 """Consolidated database operations for specific functionalities."""
 
-from typing import Optional, Union, Dict, List, Tuple
-from datetime import datetime
+from typing import Optional, Dict, List
+from datetime import datetime, timedelta
 import pandas as pd
-import logging
 
 from .db_utils import (
     execute_read_query,
     simple_select_query,
-    list_to_pg_array,  # Note: list_to_pg_array is imported but not used by the functions moved here
+    query_db
 )
 from utils.embeddings import convert_query_to_vector
 
-###############
+############
 ## PAPERS ##
-###############
+############
 
 
 def load_arxiv(arxiv_code: Optional[str] = None, **kwargs) -> pd.DataFrame:
@@ -339,3 +338,61 @@ def load_tweet_insights(
         df.rename(columns={"review": "tweet_insight"}, inplace=True)
 
     return df
+
+
+
+def get_random_interesting_facts(n=10, recency_days=7) -> List[Dict]:
+    """Get random interesting facts with bias toward recent and highly cited papers."""
+    # Calculate the cutoff date for recent facts
+    recent_cutoff = datetime.now() - timedelta(days=recency_days)
+    recent_cutoff_str = recent_cutoff.strftime("%Y-%m-%d")
+
+    # Query that includes citation information and recency
+    query = f"""
+        SELECT f.id, f.arxiv_code, f.fact, f.tstp, 
+               CASE WHEN f.tstp >= '{recent_cutoff_str}' THEN 1 ELSE 0 END as is_recent,
+               COALESCE(c.citation_count, 0) as citation_count
+        FROM summary_interesting_facts f
+        LEFT JOIN semantic_details c ON f.arxiv_code = c.arxiv_code
+        ORDER BY RANDOM()
+        LIMIT {n*3}
+    """
+    
+    # Get facts
+    all_facts = query_db(query)
+    
+    # Score facts based on recency and citations
+    for fact in all_facts:
+        # Recency gets higher weight (0.7) than citations (0.3)
+        recency_score = 0.7 if fact['is_recent'] == 1 else 0
+        
+        # Normalize citation score (higher is better)
+        max_citations = max([f['citation_count'] for f in all_facts]) if all_facts else 1
+        citation_score = 0.3 * (fact['citation_count'] / max_citations) if max_citations > 0 else 0
+        
+        fact['score'] = recency_score + citation_score
+    
+    # Sort by score and deduplicate based on content
+    all_facts.sort(key=lambda x: x['score'], reverse=True)
+    unique_facts = []
+    seen_content = set()
+    
+    for fact in all_facts:
+        if fact['fact'] not in seen_content and len(unique_facts) < n:
+            seen_content.add(fact['fact'])
+            unique_facts.append(fact)
+    
+    # Enhance facts with paper title for context
+    for fact in unique_facts:
+        title_query = f"""
+            SELECT title 
+            FROM arxiv_details 
+            WHERE arxiv_code = '{fact['arxiv_code']}'
+        """
+        title_result = query_db(title_query)
+        if title_result:
+            fact["paper_title"] = title_result[0]["title"]
+        else:
+            fact["paper_title"] = "Unknown paper"
+
+    return unique_facts

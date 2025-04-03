@@ -199,7 +199,7 @@ def initialize_weekly_summary(date_report: str):
 @st.cache_data(ttl=timedelta(hours=6))
 def get_random_interesting_facts(n=10, recency_days=7) -> List[Dict]:
     """Get random interesting facts from the database with caching."""
-    return db_utils.get_random_interesting_facts(n=n, recency_days=recency_days)
+    return db.get_random_interesting_facts(n=n, recency_days=recency_days)
 
 
 @st.cache_data
