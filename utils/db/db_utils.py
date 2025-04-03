@@ -37,21 +37,8 @@ def get_db_engine() -> Generator[Engine, None, None]:
         engine.dispose()
 
 
-def execute_read_query(
-    query_string: str, params: Optional[dict] = None, as_dataframe: bool = True
-) -> Union[pd.DataFrame, Any]:
+def execute_read_query(query_string: str, params: Optional[dict] = None, as_dataframe: bool = True) -> Union[pd.DataFrame, Any]:
     """Execute a read query and return results as DataFrame or raw data."""
-    # Safety check to prevent write operations
-    query_lower = query_string.lower().strip()
-    if any(
-        query_lower.startswith(op)
-        for op in ["insert", "update", "delete", "drop", "alter", "create"]
-    ):
-        logging.error("Attempted write operation in read-only mode: %s", query_string)
-        raise PermissionError(
-            "This application has read-only access to the database. Write operations are not permitted."
-        )
-
     with get_db_engine() as engine:
         with engine.begin() as conn:
             if as_dataframe:
@@ -62,11 +49,11 @@ def execute_read_query(
 
 
 def execute_write_query(query_string: str, params: Optional[dict] = None) -> bool:
-    """Execute a write query - DISABLED in read-only mode."""
-    logging.error("Attempted write operation in read-only mode: %s", query_string)
-    raise PermissionError(
-        "This application has read-only access to the database. Write operations are not permitted."
-    )
+    """Execute a write query (INSERT/UPDATE/DELETE) and return success status."""
+    with get_db_engine() as engine:
+        with engine.begin() as conn:
+            conn.execute(text(query_string), params or {})
+    return True
 
 
 def batch_list(lst: list, batch_size: int = 1000) -> list[list]:
@@ -96,91 +83,84 @@ def simple_select_query(
     select_cols: Optional[List[str]] = None,
 ) -> pd.DataFrame:
     """Execute a simple SELECT query with optional conditions and DataFrame processing."""
-    try:
-        # Build base query
-        query = f"SELECT {', '.join(select_cols) if select_cols else '*'} FROM {table}"
+    # Build base query
+    query = f"SELECT {', '.join(select_cols) if select_cols else '*'} FROM {table}"
 
-        # Add WHERE clause if conditions exist
-        params = {}
-        if conditions:
-            where_clauses = []
-            for key, value in conditions.items():
-                if key == "LIMIT":
-                    continue  # Handle LIMIT separately
+    # Add WHERE clause if conditions exist
+    params = {}
+    if conditions:
+        where_clauses = []
+        for key, value in conditions.items():
+            if key == "LIMIT":
+                continue  # Handle LIMIT separately
 
-                # Convert numpy arrays to regular Python lists
-                if hasattr(value, "dtype") and hasattr(
-                    value, "tolist"
-                ):  # Check if it's a numpy array
-                    value = value.tolist()
+            # Convert numpy arrays to regular Python lists
+            if hasattr(value, "dtype") and hasattr(
+                value, "tolist"
+            ):  # Check if it's a numpy array
+                value = value.tolist()
 
-                if isinstance(value, (list, tuple)):
-                    # Handle list values with IN clause
-                    param_key = key.replace(" ", "_")
-                    where_clauses.append(f"{key} IN :{param_key}")
-                    params[param_key] = tuple(
-                        value
-                    )  # SQLAlchemy requires tuple for IN clause
-                elif " " in key:  # For operators like >=, <=
-                    param_key = (
-                        key.replace(" ", "_")
-                        .replace(">=", "gte")
-                        .replace("<=", "lte")
-                        .replace(">", "gt")
-                        .replace("<", "lt")
-                    )
-                    where_clauses.append(f"{key} :{param_key}")
-                    params[param_key] = value
-                else:
-                    where_clauses.append(f"{key} = :{key}")
-                    params[key] = value
-
-            if where_clauses:
-                query += " WHERE " + " AND ".join(where_clauses)
-
-        # Add ORDER BY if specified
-        if order_by:
-            query += f" ORDER BY {order_by}"
-
-        # Add LIMIT if specified in conditions
-        if conditions and "LIMIT" in conditions:
-            query += f" LIMIT {conditions['LIMIT']}"
-
-        # Execute query
-        with get_db_engine() as engine:
-            df = pd.read_sql(text(query), engine, params=params)
-
-        # Post-process DataFrame
-        if not df.empty:
-            if index_col and index_col in df.columns:
-                df.set_index(index_col, inplace=True)
-            if drop_cols:
-                df.drop(
-                    columns=[col for col in drop_cols if col in df.columns],
-                    inplace=True,
+            if isinstance(value, (list, tuple)):
+                # Handle list values with IN clause
+                param_key = key.replace(" ", "_")
+                where_clauses.append(f"{key} IN :{param_key}")
+                params[param_key] = tuple(
+                    value
+                )  # SQLAlchemy requires tuple for IN clause
+            elif " " in key:  # For operators like >=, <=
+                param_key = (
+                    key.replace(" ", "_")
+                    .replace(">=", "gte")
+                    .replace("<=", "lte")
+                    .replace(">", "gt")
+                    .replace("<", "lt")
                 )
-            if rename_cols:
-                df.rename(
-                    columns={k: v for k, v in rename_cols.items() if k in df.columns},
-                    inplace=True,
-                )
+                where_clauses.append(f"{key} :{param_key}")
+                params[param_key] = value
+            else:
+                where_clauses.append(f"{key} = :{key}")
+                params[key] = value
 
-        return df
-    except Exception as e:
-        logging.error("Error in simple_select_query: %s", str(e))
-        raise e
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
+
+    # Add ORDER BY if specified
+    if order_by:
+        query += f" ORDER BY {order_by}"
+
+    # Add LIMIT if specified in conditions
+    if conditions and "LIMIT" in conditions:
+        query += f" LIMIT {conditions['LIMIT']}"
+
+    # Execute query
+    with get_db_engine() as engine:
+        df = pd.read_sql(text(query), engine, params=params)
+
+    # Post-process DataFrame
+    if not df.empty:
+        if index_col and index_col in df.columns:
+            df.set_index(index_col, inplace=True)
+        if drop_cols:
+            df.drop(
+                columns=[col for col in drop_cols if col in df.columns],
+                inplace=True,
+            )
+        if rename_cols:
+            df.rename(
+                columns={k: v for k, v in rename_cols.items() if k in df.columns},
+                inplace=True,
+            )
+
+    return df
 
 
 def get_arxiv_id_list(table_name: str = "arxiv_details") -> List[str]:
     """Get a list of all arxiv codes in the specified table."""
-    try:
-        with psycopg2.connect(**db_params) as conn:
-            with conn.cursor() as cur:
-                cur.execute(f"SELECT DISTINCT arxiv_code FROM {table_name}")
-                return [row[0] for row in cur.fetchall()]
-    except Exception as e:
-        logging.error("Error in get_arxiv_id_list: %s", str(e))
-        raise e
+    with psycopg2.connect(**db_params) as conn:
+        with conn.cursor() as cur:
+            cur.execute(f"SELECT DISTINCT arxiv_code FROM {table_name}")
+            return [row[0] for row in cur.fetchall()]
+
 
 
 def get_arxiv_title_dict() -> Dict[str, str]:
@@ -214,60 +194,3 @@ def query_db(query_string: str, params: Optional[dict] = None) -> List[Dict]:
     """Execute a query and return results as a list of dictionaries."""
     df = execute_read_query(query_string, params)
     return df.to_dict(orient="records") if not df.empty else []
-
-
-def get_random_interesting_facts(n=10, recency_days=7) -> List[Dict]:
-    """Get random interesting facts with bias toward recent and highly cited papers."""
-    # Calculate the cutoff date for recent facts
-    recent_cutoff = datetime.now() - timedelta(days=recency_days)
-    recent_cutoff_str = recent_cutoff.strftime("%Y-%m-%d")
-
-    # Query that includes citation information and recency
-    query = f"""
-        SELECT f.id, f.arxiv_code, f.fact, f.tstp, 
-               CASE WHEN f.tstp >= '{recent_cutoff_str}' THEN 1 ELSE 0 END as is_recent,
-               COALESCE(c.citation_count, 0) as citation_count
-        FROM summary_interesting_facts f
-        LEFT JOIN semantic_details c ON f.arxiv_code = c.arxiv_code
-        ORDER BY RANDOM()
-        LIMIT {n*3}
-    """
-    
-    # Get facts
-    all_facts = query_db(query)
-    
-    # Score facts based on recency and citations
-    for fact in all_facts:
-        # Recency gets higher weight (0.7) than citations (0.3)
-        recency_score = 0.7 if fact['is_recent'] == 1 else 0
-        
-        # Normalize citation score (higher is better)
-        max_citations = max([f['citation_count'] for f in all_facts]) if all_facts else 1
-        citation_score = 0.3 * (fact['citation_count'] / max_citations) if max_citations > 0 else 0
-        
-        fact['score'] = recency_score + citation_score
-    
-    # Sort by score and deduplicate based on content
-    all_facts.sort(key=lambda x: x['score'], reverse=True)
-    unique_facts = []
-    seen_content = set()
-    
-    for fact in all_facts:
-        if fact['fact'] not in seen_content and len(unique_facts) < n:
-            seen_content.add(fact['fact'])
-            unique_facts.append(fact)
-    
-    # Enhance facts with paper title for context
-    for fact in unique_facts:
-        title_query = f"""
-            SELECT title 
-            FROM arxiv_details 
-            WHERE arxiv_code = '{fact['arxiv_code']}'
-        """
-        title_result = query_db(title_query)
-        if title_result:
-            fact["paper_title"] = title_result[0]["title"]
-        else:
-            fact["paper_title"] = "Unknown paper"
-
-    return unique_facts
