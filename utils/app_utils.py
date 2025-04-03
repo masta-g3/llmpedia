@@ -26,11 +26,7 @@ from utils.custom_langchain import NewCohereEmbeddings, NewPGVector
 from utils.instruct import run_instructor_query
 import utils.pydantic_objects as po
 import utils.prompts as ps
-from utils.db import (
-    db_utils,
-    paper_db,
-    embedding_db,
-)
+from utils.db import db_utils, db
 
 CONNECTION_STRING = (
     f"postgresql+psycopg2://{db_utils.db_params['user']}:{db_utils.db_params['password']}"
@@ -66,18 +62,16 @@ def prepare_calendar_data(df: pd.DataFrame, year: int) -> pd.DataFrame:
 
 def get_weekly_summary(date_str: str):
     try:
-        weekly_content = paper_db.get_weekly_content(date_str, content_type="content")
+        weekly_content = db.get_weekly_content(date_str, content_type="content")
         weekly_content = add_links_to_text_blob(weekly_content)
-        weekly_highlight = paper_db.get_weekly_content(
-            date_str, content_type="highlight"
-        )
+        weekly_highlight = db.get_weekly_content(date_str, content_type="highlight")
         weekly_highlight = add_links_to_text_blob(weekly_highlight)
         ## ToDo: Remove this.
         ## ---------------------
         if "\n" in weekly_highlight:
             weekly_highlight = "#### " + weekly_highlight.replace("###", "")
         ## ---------------------
-        weekly_repos_df = paper_db.get_weekly_repos(date_str)
+        weekly_repos_df = db.get_weekly_repos(date_str)
 
         ## Process repo content.
         weekly_repos_df["repo_link"] = weekly_repos_df.apply(
@@ -108,7 +102,7 @@ def get_weekly_summary(date_str: str):
             repos_section += "\n"
 
     except:
-        weekly_content = paper_db.get_weekly_summary_old(date_str)
+        weekly_content = db.get_weekly_summary_old(date_str)
         weekly_highlight = ""
         repos_section = ""
 
@@ -246,7 +240,7 @@ query_config = json.loads(query_config_json)
 
 def interrogate_paper(question: str, arxiv_code: str, model="gpt-4o") -> str:
     """Ask a question about a paper."""
-    context = paper_db.get_extended_notes(arxiv_code, expected_tokens=2000)
+    context = db.get_extended_notes(arxiv_code, expected_tokens=2000)
     user_message = ps.create_interrogate_user_prompt(
         context=context, user_question=question
     )
@@ -499,7 +493,7 @@ def query_llmpedia_new(
         query_obj.topic_categories = None
         criteria_dict = query_obj.model_dump(exclude_none=True)
         criteria_dict["limit"] = max_sources * 2
-        sql = embedding_db.generate_semantic_search_query(
+        sql = db.generate_semantic_search_query(
             criteria_dict, query_config, embedding_model=VS_EMBEDDING_MODEL
         )
 
@@ -772,7 +766,7 @@ def extract_trending_topics(documents, n=15, ngram_range=(2, 3), min_df=2, max_d
 
     domain_stopwords = get_domain_stopwords()
     all_stopwords = list(set(nltk_stop + domain_stopwords))
-    all_stopwords = [preprocess_text(word) for word in all_stopwords]
+    # all_stopwords = [preprocess_text(word) for word in all_stopwords]
 
     # Create TF-IDF vectorizer for bi and trigrams with optimized parameters
     tfidf_vectorizer = TfidfVectorizer(
@@ -853,12 +847,14 @@ def get_top_cited_papers(papers_df, n=5, time_window_days=None):
 
 
 def get_latest_weekly_highlight():
-    """Get the most recent weekly highlight for the featured content section."""
-    ## Get the most recent weekly content date.
+    """Get the arxiv code for the latest weekly highlight."""
     max_date = db_utils.get_max_table_date("weekly_content")
-    date_str = max_date.strftime("%Y-%m-%d")
+    date_report = max_date - pd.Timedelta(days=max_date.weekday())
 
-    ## Get the highlight content.
-    highlight_text = paper_db.get_weekly_content(date_str, content_type="highlight")
-    arxiv_code = re.findall(r"arxiv(?:_code)?:(\d{4}\.\d{4,5})", highlight_text)[0]
-    return arxiv_code
+    highlight_text = db.get_weekly_content(date_report, content_type="highlight")
+    if highlight_text:
+        match = re.search(r"arxiv:(\d{4}\.\d{4,5})", highlight_text)
+        if match:
+            return match.group(1)
+
+    return None

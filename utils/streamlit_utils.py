@@ -9,7 +9,7 @@ import markdown2
 
 import utils.app_utils as au
 import utils.data_cards as dc
-import utils.db.paper_db as paper_db
+import utils.db.db as db
 import utils.db.logging_db as logging_db
 
 
@@ -352,7 +352,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             # Get notes based on selected level
             try:
                 selected_level = level_map[level_select]
-                detailed_notes = paper_db.get_extended_notes(paper["arxiv_code"], level=selected_level)
+                detailed_notes = db.get_extended_notes(paper["arxiv_code"], level=selected_level)
                 
                 if detailed_notes is None:
                     # If we're trying to get more detailed notes (lower level numbers)

@@ -217,57 +217,45 @@ def query_db(query_string: str, params: Optional[dict] = None) -> List[Dict]:
 
 
 def get_random_interesting_facts(n=10, recency_days=7) -> List[Dict]:
-    """Get random interesting facts with bias toward recent ones."""
+    """Get random interesting facts with bias toward recent and highly cited papers."""
     # Calculate the cutoff date for recent facts
     recent_cutoff = datetime.now() - timedelta(days=recency_days)
     recent_cutoff_str = recent_cutoff.strftime("%Y-%m-%d")
 
-    # Get both recent and older facts in a single query
-    # UNION ensures no duplicates of exact same rows
+    # Query that includes citation information and recency
     query = f"""
-        (SELECT id, arxiv_code, fact, tstp, 
-               1 as is_recent
-        FROM summary_interesting_facts
-        WHERE tstp >= '{recent_cutoff_str}'
+        SELECT f.id, f.arxiv_code, f.fact, f.tstp, 
+               CASE WHEN f.tstp >= '{recent_cutoff_str}' THEN 1 ELSE 0 END as is_recent,
+               COALESCE(c.citation_count, 0) as citation_count
+        FROM summary_interesting_facts f
+        LEFT JOIN semantic_details c ON f.arxiv_code = c.arxiv_code
         ORDER BY RANDOM()
-        LIMIT {min(n*2, 50)})
-        
-        UNION ALL
-        
-        (SELECT id, arxiv_code, fact, tstp,
-               0 as is_recent
-        FROM summary_interesting_facts
-        WHERE tstp < '{recent_cutoff_str}'
-        ORDER BY RANDOM()
-        LIMIT {n*2})
+        LIMIT {n*3}
     """
     
-    # Get facts and deduplicate based on content
+    # Get facts
     all_facts = query_db(query)
+    
+    # Score facts based on recency and citations
+    for fact in all_facts:
+        # Recency gets higher weight (0.7) than citations (0.3)
+        recency_score = 0.7 if fact['is_recent'] == 1 else 0
+        
+        # Normalize citation score (higher is better)
+        max_citations = max([f['citation_count'] for f in all_facts]) if all_facts else 1
+        citation_score = 0.3 * (fact['citation_count'] / max_citations) if max_citations > 0 else 0
+        
+        fact['score'] = recency_score + citation_score
+    
+    # Sort by score and deduplicate based on content
+    all_facts.sort(key=lambda x: x['score'], reverse=True)
     unique_facts = []
     seen_content = set()
     
-    # First prioritize recent facts (they come first in the results)
     for fact in all_facts:
         if fact['fact'] not in seen_content and len(unique_facts) < n:
             seen_content.add(fact['fact'])
             unique_facts.append(fact)
-    
-    # Ensure at least 70% recent facts if possible (recency bias)
-    if len(unique_facts) > n:
-        recent_facts = [f for f in unique_facts if f['is_recent'] == 1]
-        older_facts = [f for f in unique_facts if f['is_recent'] == 0]
-        
-        # Try to keep at least 70% recent facts if we have enough
-        recent_target = min(int(n * 0.7), len(recent_facts))
-        older_target = n - recent_target
-        
-        # Combine with preference for recent facts
-        final_facts = (
-            sorted(recent_facts, key=lambda x: x['tstp'], reverse=True)[:recent_target] + 
-            sorted(older_facts, key=lambda x: x['tstp'], reverse=True)[:older_target]
-        )
-        unique_facts = final_facts
     
     # Enhance facts with paper title for context
     for fact in unique_facts:

@@ -16,9 +16,11 @@
   - `styling.py`: CSS and styling functions
   - `db/`: Database-related utilities
     - `db_utils.py`: General database utilities
-    - `paper_db.py`: Functions for accessing paper data
+    - `db.py`: Consolidated database functions for papers, embeddings, and tweets
     - `logging_db.py`: Functions for logging user activity
-    - `tweet_db.py`: Functions for accessing tweet data
+  - `instruct.py`: LLM instruction/query functions
+  - `pydantic_objects.py`: Pydantic models for data validation
+  - `prompts.py`: Prompt templates for LLM interactions
 - `notebooks/`: Jupyter notebooks for analysis and development
 - `components/`: Custom Streamlit components
 - `.streamlit/`: Streamlit configuration

@@ -1,5 +1,5 @@
 import utils.db.db_utils as db_utils
-import utils.db.paper_db as paper_db
+import utils.db.db as db
 
 html_template = """<!DOCTYPE html>
 <html lang="en">
@@ -172,8 +172,8 @@ def generate_data_card_html(arxiv_code: str):
     """Generate HTML for a data card."""
     title_map = db_utils.get_arxiv_title_dict()
     title = title_map.get(arxiv_code, "")
-    script = paper_db.get_arxiv_dashboard_script(arxiv_code, "script_content")
-    summary = paper_db.get_arxiv_dashboard_script(arxiv_code, "summary")
+    script = db.get_arxiv_dashboard_script(arxiv_code, "script_content")
+    summary = db.get_arxiv_dashboard_script(arxiv_code, "summary")
     if not script:
         html_card = None
     else:

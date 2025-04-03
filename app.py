@@ -9,9 +9,8 @@ import utils.streamlit_utils as su
 import utils.app_utils as au
 import utils.plots as pt
 import utils.db.db_utils as db_utils
-import utils.db.paper_db as paper_db
+import utils.db.db as db
 import utils.db.logging_db as logging_db
-import utils.db.tweet_db as tweet_db
 import utils.styling as styling
 import time
 
@@ -96,16 +95,16 @@ st.markdown(
 
 
 def combine_input_data():
-    arxiv_df = paper_db.load_arxiv()
-    summaries_df = paper_db.load_summaries()
-    topics_df = paper_db.load_topics()
-    citations_df = paper_db.load_citations()
-    recursive_summaries_df = paper_db.load_recursive_summaries()
-    bullet_list_df = paper_db.load_bullet_list_summaries()
-    markdown_summaries = paper_db.load_summary_markdown()
-    tweets = tweet_db.load_tweet_insights()
-    similar_docs_df = paper_db.load_similar_documents()
-    punchlines_df = paper_db.load_punchlines()
+    arxiv_df = db.load_arxiv()
+    summaries_df = db.load_summaries()
+    topics_df = db.load_topics()
+    citations_df = db.load_citations()
+    recursive_summaries_df = db.load_recursive_summaries()
+    bullet_list_df = db.load_bullet_list_summaries()
+    markdown_summaries = db.load_summary_markdown()
+    tweets = db.load_tweet_insights()
+    similar_docs_df = db.load_similar_documents()
+    punchlines_df = db.load_punchlines()
 
     papers_df = summaries_df.join(arxiv_df, how="left")
     papers_df = papers_df.join(topics_df, how="left")
@@ -155,9 +154,9 @@ def load_data():
 
 @st.cache_data
 def load_repositories(year: int, filter_by_year=True):
-    repos_df = paper_db.load_repositories()
-    topics_df = paper_db.load_topics()
-    meta_df = paper_db.load_arxiv()
+    repos_df = db.load_repositories()
+    topics_df = db.load_topics()
+    meta_df = db.load_arxiv()
     topics_df.drop(columns=["dim1", "dim2"], inplace=True)
     repos_df = repos_df.join(topics_df, how="left")
     repos_df = repos_df.join(meta_df[["published"]], how="left")
@@ -347,7 +346,7 @@ def main():
 
         # Filter dataframes for recent papers - convert datetime64[ns] to date for comparison
         papers_1d = papers_df[papers_df["published"].dt.date >= yesterday]
-        papers_7d = papers_df[papers_df["published"].dt.date >= last_week]
+        papers_7d = papers_df[papers_df["tstp"].dt.date >= last_week]
 
         # Display all metrics in a single row of 4 columns
         metric_cols = st.columns(4)
@@ -767,8 +766,8 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
+    # try:
         main()
-    except Exception as e:
-        logging_db.log_error_db(e)
-        st.error("Something went wrong. Please refresh the app and try again, we will look into it.")
+    # except Exception as e:
+        # logging_db.log_error_db(e)
+        # st.error("Something went wrong. Please refresh the app and try again, we will look into it.")
