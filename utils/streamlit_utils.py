@@ -1010,7 +1010,7 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
             arxiv_code = fact['arxiv_code']
             if arxiv_code in papers_df.index and 'topic' in papers_df.columns:
                 topic_full = papers_df.loc[arxiv_code, 'topic']
-                topic = topic_full[:25] + "..." if len(topic_full) > 25 else topic_full
+                topic = topic_full[:30] + "..." if len(topic_full) > 30 else topic_full
 
         
         with cols[col_idx]:
@@ -1026,7 +1026,7 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
                     ">
                     <p style="font-size: 1.0em; margin-bottom: 0.5em;">{fact['fact']}</p>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                        {"<span class='fact-topic' style='background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.1)); padding: 3px 8px; border-radius: 12px; font-size: 0.8em;' title='" + topic_full + "'>" + topic + "</span>" if topic else ""}
+                        {"<span class='fact-topic' style='background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.1)); padding: 3px 8px; border-radius: 12px; font-size: 0.7em;' title='" + topic_full + "'>" + topic + "</span>" if topic else ""}
                         <p style="
                             font-size: 0.8em;
                             font-style: italic;
