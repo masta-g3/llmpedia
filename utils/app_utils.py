@@ -719,6 +719,7 @@ def get_domain_stopwords():
         "novel approach",
         "experimental result",
         "training data",
+        "technical report",
         "empirical study",
         "recent work",
         "experimental evaluation",
@@ -766,11 +767,13 @@ def extract_trending_topics(documents, n=15, ngram_range=(2, 3), min_df=2, max_d
 
     domain_stopwords = get_domain_stopwords()
     all_stopwords = list(set(nltk_stop + domain_stopwords))
-    # all_stopwords = [preprocess_text(word) for word in all_stopwords]
+    all_stopwords = [preprocess_text(word) for word in all_stopwords]
+    all_stopwords = [word for word in all_stopwords if word and len(word) >= 2 and word.isalpha()]
+    all_stopwords = list(set(all_stopwords))
 
     # Create TF-IDF vectorizer for bi and trigrams with optimized parameters
     tfidf_vectorizer = TfidfVectorizer(
-        stop_words=all_stopwords,
+        stop_words=all_stopwords,  # Use the preprocessed list
         ngram_range=ngram_range,
         min_df=min_df,
         max_df=max_df,
