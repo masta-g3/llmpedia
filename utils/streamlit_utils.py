@@ -962,7 +962,8 @@ def create_featured_paper_card(paper: Dict) -> None:
     st.markdown(f"#### *{paper.get('title', 'Featured Paper')}*")
     st.image(
         f"https://arxiv-art.s3.amazonaws.com/{paper_code}.png",
-        use_container_width=True
+        # use_container_width=True,
+        width=450
     )    
     st.markdown(f"*{punchline}*")
     if st.button("Read More", key=f"featured_{paper_code}", use_container_width=True):
@@ -1023,7 +1024,7 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
                         border-left: 3px solid var(--primary-color, #FF4B4B);
                         border-radius: 5px;
                     ">
-                    <p style="font-size: 0.95em; margin-bottom: 0.5em;">{fact['fact']}</p>
+                    <p style="font-size: 1.0em; margin-bottom: 0.5em;">{fact['fact']}</p>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
                         {"<span class='fact-topic' style='background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.1)); padding: 3px 8px; border-radius: 12px; font-size: 0.8em;' title='" + topic_full + "'>" + topic + "</span>" if topic else ""}
                         <p style="

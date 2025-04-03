@@ -95,7 +95,7 @@ st.markdown(
 
 
 def combine_input_data():
-    arxiv_df = db.load_arxiv()
+    arxiv_df = db.load_arxiv(drop_tstp=False)
     summaries_df = db.load_summaries()
     topics_df = db.load_topics()
     citations_df = db.load_citations()
@@ -340,13 +340,13 @@ def main():
 
     with content_tabs[0]:
         # Calculate recent papers (1 day and 7 days)
-        today = pd.Timestamp.now().date()
+        today = pd.Timestamp.now()
         yesterday = today - pd.Timedelta(days=1)
-        last_week = today - pd.Timedelta(days=7)
+        last_week = today.date() - pd.Timedelta(days=7)
 
         # Filter dataframes for recent papers - convert datetime64[ns] to date for comparison
-        papers_1d = papers_df[papers_df["published"].dt.date >= yesterday]
-        papers_7d = papers_df[papers_df["tstp"].dt.date >= last_week]
+        papers_1d = papers_df[papers_df["tstp"] >= yesterday]
+        papers_7d = papers_df[papers_df["published"].dt.date >= last_week]
 
         # Display all metrics in a single row of 4 columns
         metric_cols = st.columns(4)
@@ -365,12 +365,12 @@ def main():
         with metric_cols[2]:
             st.metric(label="Last 7 days", value=len(papers_7d))
         with metric_cols[3]:
-            st.metric(label="Last 24 hours", value=len(papers_1d))
+            st.metric(label="Added in last 24 hours", value=len(papers_1d))
 
         # Display interesting facts section
         with st.expander("**💡 Recent Findings**", expanded=True):
             # Use the cached function directly
-            facts = get_random_interesting_facts(n=8, recency_days=14)
+            facts = get_random_interesting_facts(n=6, recency_days=7)
             su.display_interesting_facts(facts, n_cols=2, papers_df=full_papers_df)
 
         # Create a 4-panel layout (2 rows, 2 columns)
