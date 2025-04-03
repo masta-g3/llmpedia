@@ -504,6 +504,8 @@ def main():
 
     with content_tabs[3]:
         ## Focus on a paper.
+        if len(st.session_state.arxiv_code) == 0:
+            st.markdown("<div style='font-size: 0.9em; opacity: 0.8; margin-bottom: 1.5em;'>💡 <em>Search a paper by its arXiv code, or use the sidebar to search and filter papers by title, author, or other attributes.</em></div>", unsafe_allow_html=True)
         arxiv_code = st.text_input("arXiv Code", st.session_state.arxiv_code)
         st.session_state.arxiv_code = arxiv_code
         if len(arxiv_code) > 0:
