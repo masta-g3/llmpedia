@@ -43,11 +43,20 @@ This guide provides step-by-step instructions to deploy the LLMpedia Streamlit a
     sudo apt update
     sudo apt upgrade -y
     ```
-2.  **Install Python, Pip, Git, and Nginx**:
+2.  **Install Python, Git, Nginx, and PostgreSQL Dev Libraries**:
     ```bash
-    sudo apt install -y python3-pip python3-dev python3-venv git nginx
+    ## libpq-dev is needed for psycopg2-binary build
+    sudo apt install -y python3 python3-dev git nginx curl libpq-dev
     ```
-3.  **Install Certbot (for SSL)**:
+3.  **Install uv (Python Package Manager)**:
+    ```bash
+    curl -sSf https://astral.sh/uv/install.sh | sh
+    ## Add uv to your PATH if the installer doesn't do it automatically
+    export PATH="$HOME/.cargo/bin:$PATH"
+    ## Add this line to your .bashrc or .zshrc to make it permanent
+    echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+    ```
+4.  **Install Certbot (for SSL)**:
     ```bash
     sudo apt install -y certbot python3-certbot-nginx
     ```
@@ -60,14 +69,14 @@ This guide provides step-by-step instructions to deploy the LLMpedia Streamlit a
     git clone <your_repository_url> llmpedia
     cd llmpedia
     ```
-2.  **Create Virtual Environment**: Set up a virtual environment for Python dependencies:
+2.  **Create Virtual Environment**: Set up a virtual environment using uv:
     ```bash
-    python3 -m venv venv
-    source venv/bin/activate
+    uv venv
+    source .venv/bin/activate
     ```
-3.  **Install Dependencies**: Install the required Python packages:
+3.  **Install Dependencies**: Install the required Python packages using uv:
     ```bash
-    pip install -r requirements.txt
+    uv pip install -r requirements.txt
     ```
     *Note: `streamlit` is included in `requirements.txt`.*
 
@@ -150,7 +159,7 @@ This guide provides step-by-step instructions to deploy the LLMpedia Streamlit a
     ```
     - Replace `your_user` and `your_group` with the username and group you created in Step 1.
     - Replace `/path/to/your/llmpedia` with the *absolute path* to your application directory (e.g., `/home/your_user/llmpedia`). Make sure this path is correct for both `WorkingDirectory` and `EnvironmentFile`.
-    - Ensure the path to `streamlit` in `ExecStart` is correct. If you installed it within the virtual environment, the path might be `/home/your_user/llmpedia/venv/bin/streamlit`. You can verify with `which streamlit` *while the venv is active*.
+    - Ensure the path to `streamlit` in `ExecStart` is correct. If you installed it within the virtual environment, the path might be `/home/your_user/llmpedia/.venv/bin/streamlit`. You can verify with `which streamlit` *while the venv is active*.
     *(Save and close)*
 
 3.  **Reload Systemd**: Inform systemd about the new service file:
@@ -181,6 +190,6 @@ Open your web browser and navigate to `https://your_domain.com` (e.g., `https://
 
 ## Maintenance
 
-- **Updating the App**: `cd ~/llmpedia`, `git pull`, `pip install -r requirements.txt` (if needed), `sudo systemctl restart streamlit_app.service`.
+- **Updating the App**: `cd ~/llmpedia`, `git pull`, `source .venv/bin/activate`, `uv pip install -r requirements.txt` (if needed), `sudo systemctl restart streamlit_app.service`.
 - **Renewing SSL**: Certbot should handle this automatically. You can test renewal with `sudo certbot renew --dry-run`.
 - **Viewing Logs**: `sudo journalctl -u streamlit_app.service -f`. 
