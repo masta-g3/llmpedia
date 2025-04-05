@@ -14,7 +14,7 @@ EnvironmentFile=/root/llmpedia/.env
 ## Command to start the Streamlit application
 ## Make sure 'streamlit' is in the system's PATH or provide the full path
 ## Use port 8501 as configured in Nginx
-ExecStart=/root/streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+ExecStart=/root/llmpedia/.venv/bin/streamlit run app.py --server.port=8501 --server.address=0.0.0.0
 
 ## Restart the service if it fails
 Restart=always
