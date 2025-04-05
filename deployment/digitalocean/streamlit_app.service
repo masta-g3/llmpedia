@@ -1,0 +1,29 @@
+[Unit]
+Description=Streamlit App Service for LLMpedia
+After=network.target
+
+[Service]
+## This user should have permissions to the app directory and environment
+User=root
+## Replace 'your_group' with the appropriate group for the user
+Group=0
+
+WorkingDirectory=/root/llmpedia
+EnvironmentFile=/root/llmpedia/.env
+
+## Command to start the Streamlit application
+## Make sure 'streamlit' is in the system's PATH or provide the full path
+## Use port 8501 as configured in Nginx
+ExecStart=/root/streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+
+## Restart the service if it fails
+Restart=always
+RestartSec=5
+
+## Standard output and error logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=streamlit-llmpedia
+
+[Install]
+WantedBy=multi-user.target 

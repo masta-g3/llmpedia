@@ -5,26 +5,33 @@
 - `app.py`: The main Streamlit application file that contains the UI and application logic
 - `README.md`: Project documentation and setup instructions
 - `requirements.txt`: Python dependencies for the project
-- `Procfile`: Configuration for deployment on platforms like Heroku
+- `Procfile`: Configuration for deployment on platforms like Heroku (primarily relevant if deploying outside Streamlit Cloud)
+- `.env.template` & `.env`: Environment variable configuration for local development
+- `STRUCTURE.md`: This file, describing the project layout
+- `PLANNING.md`: Temporary file for planning complex tasks
+- `CHANGES.md`: Log of deviations from initial implementation plans
 
 ## Directories
 
 - `utils/`: Utility functions and modules for the application
-  - `plots.py`: Visualization functions for creating charts and plots
-  - `streamlit_utils.py`: Utility functions for Streamlit UI components
-  - `app_utils.py`: General utility functions for the application
-  - `styling.py`: CSS and styling functions
+  - `plots.py`: Visualization functions for creating charts and plots (e.g., publication trends, topic maps)
+  - `streamlit_utils.py`: Utility functions specific to Streamlit UI components (e.g., custom pagination, styling helpers)
+  - `app_utils.py`: General utility functions for the application logic (e.g., data formatting, helper calculations)
+  - `styling.py`: CSS and styling functions, including custom CSS injection
   - `db/`: Database-related utilities
-    - `db_utils.py`: General database utilities
-    - `db.py`: Consolidated database functions for papers, embeddings, and tweets
-    - `logging_db.py`: Functions for logging user activity
-  - `instruct.py`: LLM instruction/query functions
-  - `pydantic_objects.py`: Pydantic models for data validation
-  - `prompts.py`: Prompt templates for LLM interactions
-- `notebooks/`: Jupyter notebooks for analysis and development
+    - `db_utils.py`: Lower-level database connection and query execution helpers (consider merging or refactoring if overlap with `db.py`)
+    - `db.py`: Consolidated database access functions abstracting queries for papers, embeddings, tweets, repositories, etc. This is the primary interface for fetching data for the UI.
+    - `logging_db.py`: Functions specifically for logging user interactions or application events to the database.
+  - `instruct.py`: Functions for interacting with external LLM APIs (OpenAI, Anthropic, etc.) used in the chat feature.
+  - `pydantic_objects.py`: Pydantic models used for data validation, especially for data fetched from the database or external APIs.
+  - `prompts.py`: Predefined prompt templates used for generating queries or instructions for the LLMs in `instruct.py`.
+- `notebooks/`: Jupyter notebooks used for experimentation, data analysis, or one-off tasks during development. Not part of the core application runtime.
 - `components/`: Custom Streamlit components
-- `.streamlit/`: Streamlit configuration
-- `.vscode/`: VS Code configuration
+- `deployment/`: Configuration files and guides for deployment
+  - `digitalocean/`: Files specific to DigitalOcean deployment
+    - `nginx_streamlit.conf`: Nginx configuration template
+    - `streamlit_app.service`: Systemd service file template
+    - `DEPLOY_DIGITALOCEAN.md`: Step-by-step deployment guide for DigitalOcean
 
 ## Key Features
 
@@ -73,4 +80,26 @@ The application is organized into tabs:
 - `plot_cluster_map()`: Scatter plot of paper topics using UMAP embeddings
 - `plot_repos_by_feature()`: Bar chart of repositories by feature
 - `plot_category_distribution()`: Horizontal bar chart of paper categories
-- `plot_trending_words()`: Horizontal bar chart of trending words in paper titles 
+- `plot_trending_words()`: Horizontal bar chart of trending words in paper titles
+
+## Data Flow Overview
+
+The core data (research papers, metadata) originates from arXiv and is processed by a separate system detailed in the [llmpedia_workflows repository](https://github.com/masta-g3/llmpedia_workflows). This workflow handles:
+- Fetching new papers.
+- Generating AI-derived content (summaries, artwork, insights).
+- Performing topic modeling (e.g., using UMAP) and generating embeddings.
+- Storing the raw and processed data into a PostgreSQL database.
+
+This LLMpedia application primarily reads from that pre-populated database to display information through the Streamlit interface.
+
+## Database Structure (Conceptual)
+
+While the exact schema resides in the database managed by `llmpedia_workflows`, the application primarily interacts with tables representing:
+- **Papers**: Core metadata (title, authors, abstract, arXiv ID, publication date), derived content (summaries, keywords), and links to generated assets (artwork).
+- **Embeddings**: Vector representations of papers used for topic modeling and similarity searches.
+- **Topics**: Clusters or categories derived from paper embeddings.
+- **Repositories**: Information about related code repositories.
+- **Tweets**: Relevant tweets associated with papers or topics (if applicable).
+- **Logs**: Records of user activity or application events.
+
+The `utils/db/db.py` module provides functions to query these conceptual entities.
