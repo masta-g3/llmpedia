@@ -22,10 +22,26 @@ if hasattr(st, "_is_running_with_streamlit"):
 ## Page config.
 st.set_page_config(
     layout="wide",
-    page_title="📚 LLMpedia",
-    page_icon="📚",
+    page_title="LLMpedia - The Illustrated Large Language Model Encyclopedia",
+    page_icon="🤖",
     initial_sidebar_state="collapsed",
+    menu_items={
+        'About': "LLMpedia - The Illustrated Large Language Model Encyclopedia"
+    }
 )
+
+# Custom meta tags
+st.markdown("""
+    <head>
+        <meta name="description" content="A visual guide to LLM research with AI-generated insights from 7,000+ papers. Explore summaries, visualizations, and stay ahead in AI innovation.">
+        <meta name="keywords" content="LLM, AI research, language models, GPT, machine learning, arXiv, NLP, deep learning">
+        <meta property="og:title" content="LLMpedia - The Illustrated Large Language Model Encyclopedia">
+        <meta property="og:description" content="Discover LLM research visually: AI-generated summaries, interactive visualizations, and weekly reviews of cutting-edge AI papers."> 
+        <meta property="og:image" content="https://llmpedia.ai/logo.png">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:creator" content="@GPTMaestro">
+    </head>
+    """, unsafe_allow_html=True)
 
 # Apply styling
 styling.apply_arxiv_theme()
