@@ -91,8 +91,23 @@ This guide provides step-by-step instructions to deploy the LLMpedia Streamlit a
       ```
       *(Save and close: Ctrl+X, then Y, then Enter)*
 
-5.  **Test the App (Optional)**: You can test if the app runs directly:
+5.  **Create Static Directory for Nginx**: Create a directory where Nginx will serve static files like the logo.
     ```bash
+    sudo mkdir -p /var/www/llmpedia/static
+    sudo chown $USER:$USER /var/www/llmpedia/static
+    ```
+
+6.  **Upload Logo**: Upload your `logo.png` from your local machine to the server using `scp`. Replace `path/to/local/logo.png` with the actual path on your computer and `your_user@YOUR_DROPLET_IP` accordingly.
+    ```bash
+    # Run this command from your LOCAL machine, not the server
+    scp path/to/local/logo.png your_user@YOUR_DROPLET_IP:/var/www/llmpedia/static/logo.png
+    ```
+
+7.  **Test the App (Optional)**: You can test if the app runs directly:
+    ```bash
+    # Back on the server SSH session
+    cd ~/llmpedia # Ensure you are in the app directory
+    source .venv/bin/activate
     streamlit run app.py
     ```
     Access it via `http://YOUR_DROPLET_IP:8501` in your browser. Stop it with `Ctrl+C`.
@@ -110,19 +125,25 @@ This guide provides step-by-step instructions to deploy the LLMpedia Streamlit a
     ```
     *(Save and close)*
 
-3.  **Enable Site**: Create a symbolic link to enable the configuration:
+3.  **Set Static File Permissions**: Set the correct ownership and permissions for the static directory so Nginx can read the files.
+    ```bash
+    sudo chown -R www-data:www-data /var/www/llmpedia
+    sudo chmod -R 755 /var/www/llmpedia
+    ```
+
+4.  **Enable Site**: Create a symbolic link to enable the configuration:
     ```bash
     sudo ln -s /etc/nginx/sites-available/llmpedia /etc/nginx/sites-enabled/
     ```
-4.  **Remove Default (Optional but Recommended)**: Remove the default Nginx configuration link if it exists:
+5.  **Remove Default (Optional but Recommended)**: Remove the default Nginx configuration link if it exists:
     ```bash
     sudo rm /etc/nginx/sites-enabled/default
     ```
-5.  **Test Nginx Configuration**: Check for syntax errors:
+6.  **Test Nginx Configuration**: Check for syntax errors:
     ```bash
     sudo nginx -t
     ```
-6.  **Restart Nginx**: Apply the changes:
+7.  **Restart Nginx**: Apply the changes:
     ```bash
     sudo systemctl restart nginx
     ```
