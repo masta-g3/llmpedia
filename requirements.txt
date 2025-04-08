@@ -17,7 +17,7 @@ nltk==3.8.1
 numpy>=1.25.0
 scikit-learn==1.2.2
 sentence-transformers==2.7.0
-streamlit==1.42.2
+streamlit==1.44.1
 streamlit-nested-layout==0.1.4
 plotly==6.0.0
 pandas==2.0.3
