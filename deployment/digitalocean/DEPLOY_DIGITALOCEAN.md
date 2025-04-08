@@ -97,7 +97,7 @@ This guide provides step-by-step instructions to deploy the LLMpedia Streamlit a
     sudo chown $USER:$USER /var/www/llmpedia/static
     ```
 
-6.  **Upload Logo**: Upload your `logo.png` from your local machine to the server using `scp`. Replace `path/to/local/logo.png` with the actual path on your computer and `your_user@YOUR_DROPLET_IP` accordingly.
+6.  **Upload Static Content**: Upload your `logo.png` and other static content from your local machine to the server using `scp`. Replace `path/to/local/logo.png` with the actual path on your computer and `your_user@YOUR_DROPLET_IP` accordingly.
     ```bash
     # Run this command from your LOCAL machine, not the server
     scp path/to/local/logo.png your_user@YOUR_DROPLET_IP:/var/www/llmpedia/static/logo.png

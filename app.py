@@ -33,7 +33,7 @@ st.set_page_config(
 # Custom meta tags
 st.markdown("""
     <head>
-        <meta name="description" content="A visual guide to LLM research with AI-generated insights from 7,000+ papers. Explore summaries, visualizations, and stay ahead in AI innovation.">
+        <meta name="description" content="A visual guide to LLM research with AI-generated insights from 8,000+ papers. Explore summaries, visualizations, and stay ahead in AI innovation.">
         <meta name="keywords" content="LLM, AI research, language models, GPT, machine learning, arXiv, NLP, deep learning">
         <meta property="og:title" content="LLMpedia - The Illustrated Large Language Model Encyclopedia">
         <meta property="og:description" content="Discover LLM research visually: AI-generated summaries, interactive visualizations, and weekly reviews of cutting-edge AI papers."> 
