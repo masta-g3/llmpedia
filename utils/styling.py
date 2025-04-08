@@ -88,3 +88,26 @@ def apply_centered_style():
             }
         </style>
     """, unsafe_allow_html=True)
+
+def apply_meta_tags():
+    """Apply meta tags to the Streamlit app."""
+    st.markdown("""
+        <head>
+            <meta name="description" content="A visual guide to LLM research with AI-generated insights from 8,000+ papers. Explore summaries, visualizations, and stay ahead in AI innovation.">
+            <meta name="keywords" content="LLM, AI research, language models, GPT, machine learning, arXiv, NLP, deep learning">
+            
+            <!-- Open Graph tags -->
+            <meta property="og:title" content="LLMpedia - The Illustrated Large Language Model Encyclopedia">
+            <meta property="og:description" content="Discover LLM research visually: AI-generated summaries, interactive visualizations, and weekly reviews of cutting-edge AI papers."> 
+            <meta property="og:image" content="https://raw.githubusercontent.com/masta-g3/llmpedia/refs/heads/main/logo.png">
+            <meta property="og:url" content="https://llmpedia.ai">
+            <meta property="og:type" content="website">
+            
+            <!-- Twitter/X specific tags -->
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:creator" content="@GPTMaestro">
+            <meta name="twitter:title" content="LLMpedia - The Illustrated Large Language Model Encyclopedia">
+            <meta name="twitter:description" content="Discover LLM research visually: AI-generated summaries, interactive visualizations, and weekly reviews of cutting-edge AI papers.">
+            <meta name="twitter:image" content="https://raw.githubusercontent.com/masta-g3/llmpedia/refs/heads/main/logo.png">
+        </head>
+    """, unsafe_allow_html=True)
