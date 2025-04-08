@@ -37,7 +37,7 @@ st.markdown("""
         <meta name="keywords" content="LLM, AI research, language models, GPT, machine learning, arXiv, NLP, deep learning">
         <meta property="og:title" content="LLMpedia - The Illustrated Large Language Model Encyclopedia">
         <meta property="og:description" content="Discover LLM research visually: AI-generated summaries, interactive visualizations, and weekly reviews of cutting-edge AI papers."> 
-        <meta property="og:image" content="https://llmpedia.ai/logo.png">
+        <meta property="og:image" content="https://github.com/masta-g3/llmpedia/blob/main/logo.png?raw=true">
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:creator" content="@GPTMaestro">
     </head>
