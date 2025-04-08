@@ -13,6 +13,7 @@ import utils.db.db as db
 import utils.db.logging_db as logging_db
 import utils.styling as styling
 import time
+import streamlit.components.v1 as components
 
 if hasattr(st, "_is_running_with_streamlit"):
     import streamlit.watcher.path_watcher
@@ -31,7 +32,7 @@ st.set_page_config(
 )
 
 # Custom meta tags
-st.markdown("""
+components.html("""
     <head>
         <meta name="description" content="A visual guide to LLM research with AI-generated insights from 8,000+ papers. Explore summaries, visualizations, and stay ahead in AI innovation.">
         <meta name="keywords" content="LLM, AI research, language models, GPT, machine learning, arXiv, NLP, deep learning">
@@ -51,7 +52,7 @@ st.markdown("""
         <meta name="twitter:image" content="https://raw.githubusercontent.com/masta-g3/llmpedia/refs/heads/main/logo.png">
         <meta name="twitter:site" content="@GPTMaestro">
     </head>
-    """, unsafe_allow_html=True)
+    """, height=0)
 
 # Apply styling
 styling.apply_arxiv_theme()
