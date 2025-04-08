@@ -60,6 +60,12 @@ This guide provides step-by-step instructions to deploy the LLMpedia Streamlit a
     ```bash
     sudo apt install -y certbot python3-certbot-nginx
     ```
+5.  **Inject Meta Tags**: Run the script to inject Twitter meta tags into Streamlit's core HTML file. Ensure the virtual environment is active.
+    ```bash
+    # Make sure the venv is active: source .venv/bin/activate
+    # Note: Assuming your project root is the current directory
+    python deployment/inject_meta_tags.py
+    ```
 
 ## Step 3: Deploy Application Code
 
