@@ -535,7 +535,8 @@ def generate_grid_gallery(df, n_cols=5, extra_key=""):
                 with cols[j]:
                     try:
                         st.image(
-                            f"https://arxiv-art.s3.us-west-2.amazonaws.com/{df.iloc[i*n_cols+j]['arxiv_code']}.png"
+                            f"https://arxiv-art.s3.us-west-2.amazonaws.com/{df.iloc[i*n_cols+j]['arxiv_code']}.png",
+                            width=450
                         )
                     except:
                         pass

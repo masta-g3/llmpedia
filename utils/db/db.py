@@ -4,7 +4,7 @@ from typing import Optional, Dict, List
 from datetime import datetime, timedelta
 import pandas as pd
 
-from .db_utils import execute_read_query, simple_select_query, query_db
+from .db_utils import execute_read_query, simple_select_query, query_db, get_arxiv_title_dict
 from utils.embeddings import convert_query_to_vector
 
 ############
@@ -391,17 +391,8 @@ def get_random_interesting_facts(n=10, recency_days=7) -> List[Dict]:
             seen_content.add(fact["fact"])
             unique_facts.append(fact)
 
-    # Enhance facts with paper title for context
+    titles_dict = get_arxiv_title_dict()    
     for fact in unique_facts:
-        title_query = f"""
-            SELECT title 
-            FROM arxiv_details 
-            WHERE arxiv_code = '{fact['arxiv_code']}'
-        """
-        title_result = query_db(title_query)
-        if title_result:
-            fact["paper_title"] = title_result[0]["title"]
-        else:
-            fact["paper_title"] = "Unknown paper"
+        fact["paper_title"] = titles_dict.get(fact['arxiv_code'], "Unknown paper")
 
     return unique_facts
