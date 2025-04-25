@@ -24,7 +24,7 @@ pandas==2.0.3
 psycopg2-binary==2.9.7
 pgvector==0.2.3
 pydantic==2.10.5
-openai==1.55.3
+openai==1.76.0
 demjson3==3.0.6
 tokencost>=0.1.12
 voyageai~=0.3.2
