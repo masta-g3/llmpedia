@@ -131,7 +131,7 @@ def combine_input_data():
     return papers_df
 
 
-@st.cache_data(ttl=timedelta(hours=6))
+@st.cache_data(ttl=timedelta(hours=3))
 def load_data():
     """Load data from compiled dataframe."""
     result_df = combine_input_data()
