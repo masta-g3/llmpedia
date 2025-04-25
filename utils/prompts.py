@@ -164,7 +164,7 @@ def create_rerank_user_prompt(user_question: str, documents: list) -> str:
     </documents>
 
     <response_format>
-    - Reply with a list of JSON object according to the provided schema. Each element must contain the document IDs, plus two additional fields: 'analysis' and 'selected'. 
+    - Reply with a list according to the provided schema. Each element must contain the document IDs, plus two additional fields: 'analysis' and 'selected'. 
     - The 'analysis' element should contain a brief analysis of if and why the paper is relevant to the user query. 
     - The 'selected' element should be a float indicating the relevance level:
       * 1.0: Directly relevant and essential for answering the query

@@ -44,10 +44,10 @@ class SearchCriteria(BaseModel):
         None,
         description="Maximum publication date of the paper. Use 'YYYY-MM-DD' format.",
     )
-    topic_categories: Optional[List[TopicCategory]] = Field(
-        None,
-        description="List containing the topic categories of the paper. Use only when the user explicitly asks about one of these topics (not for related topics).",
-    )
+    # topic_categories: Optional[List[TopicCategory]] = Field(
+    #     None,
+    #     description="List containing the topic categories of the paper. Use only when the user explicitly asks about one of these topics (not for related topics).",
+    # )
     semantic_search_queries: Optional[List[str]] = Field(
         None,
         description="List of queries to be used in the semantic search. The system will use these queries to find papers that have abstracts that are semantically similar to the queries. If you use more than one search query make them diverse enough so that each query addresses a different part of what is needed to build up an answer. Consider the language typically used in academic papers when writing the queries; phrase the queries as if they were part of the text that could be found on these abstracts.",

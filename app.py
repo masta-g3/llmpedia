@@ -55,6 +55,9 @@ if "openai_api_key" not in st.session_state:
 if "all_years" not in st.session_state:
     st.session_state.all_years = False
 
+if "facts_refresh_trigger" not in st.session_state:
+    st.session_state.facts_refresh_trigger = 0
+
 # Chat-related state variables
 if "chat_response" not in st.session_state:
     st.session_state.chat_response = None
@@ -201,7 +204,7 @@ def initialize_weekly_summary(date_report: str):
 
 
 @st.cache_data(ttl=timedelta(hours=6))
-def get_random_interesting_facts(n=10, recency_days=7) -> List[Dict]:
+def get_random_interesting_facts(n=10, recency_days=7, _trigger: int = 0) -> List[Dict]:
     """Get random interesting facts from the database with caching."""
     return db.get_random_interesting_facts(n=n, recency_days=recency_days)
 
@@ -233,6 +236,158 @@ def get_similar_docs(
     arxiv_code: str, df: pd.DataFrame, n: int = 5
 ) -> Tuple[List[str], List[str], List[str]]:
     return au.get_similar_docs(arxiv_code, df, n)
+
+
+@st.fragment
+def chat_fragment():
+    """Handles the entire chat interface logic within a Streamlit fragment."""
+    st.markdown("##### 🤖 Chat with the GPT maestro.")
+    user_question = st.text_area(
+        label="Ask any question about LLMs or the arxiv papers.", value=""
+    )
+    chat_btn_disabled = len(user_question) == 0
+
+    ## Advanced response settings in an expander
+    with st.expander("⚙️ Response Settings", expanded=False):
+        settings_cols = st.columns(2)
+
+        with settings_cols[0]:
+            response_length = st.select_slider(
+                "Response Length (words)",
+                options=[250, 500, 1000, 3000],
+                value=250,
+                format_func=lambda x: f"~{x} words",
+            )
+        with settings_cols[1]:
+            max_sources = st.select_slider(
+                "Maximum Sources",
+                options=[1, 3, 5, 7, 10, 15, 20, 25, 30], 
+                value=10,
+            )
+
+        custom_instructions = st.text_area(
+            "Custom Instructions (Optional)",
+            placeholder="Add any specific instructions for how you would like the response to be structured or formatted...",
+            help="Provide custom style guidelines, instructions on what to focus on, etc.",
+        )
+
+        show_only_sources = st.checkbox(
+            "Show me only the sources",
+            help="Skip generating a response and just show the most relevant papers for this query.",
+        )
+
+    status_placeholder = st.empty()
+
+    chat_cols = st.columns((1, 1, 1))
+    chat_btn = chat_cols[0].button("Send", disabled=chat_btn_disabled)
+
+    # Show clear button only when we have a response
+    if st.session_state.chat_response:
+        if chat_cols[1].button("Clear", type="secondary"):
+            st.session_state.chat_response = None
+            st.session_state.referenced_codes = []
+            st.session_state.relevant_codes = []
+            # Rerun to reflect the cleared state
+            st.rerun(scope="fragment")
+
+
+    if chat_btn:
+        if user_question != "":
+            with status_placeholder.container():
+                with st.status("Processing your query...", expanded=True) as status:# Expand initially
+                    def update_progress(message: str):
+                        status.update(label=message)
+
+                    try:
+                        response, referenced_codes, relevant_codes = au.query_llmpedia_new(
+                            user_question=user_question,
+                            response_length=response_length,
+                            query_llm_model="gemini/gemini-2.5-flash-preview-04-17",
+                            rerank_llm_model="gemini/gemini-2.0-flash",
+                            response_llm_model="claude-3-7-sonnet-20250219",
+                            max_sources=max_sources,
+                            debug=True,
+                            progress_callback=update_progress,
+                            custom_instructions=(
+                                custom_instructions if custom_instructions.strip() else None
+                            ),
+                            show_only_sources=show_only_sources,
+                        )
+                        status.update(label="Processing complete!", state="complete", expanded=False)
+                        time.sleep(1)
+                        status_placeholder.empty()
+
+                    except Exception as e:
+                        status.update(label=f"🤖 Error detected. System malfunction. Returning to nebular state.", state="error", expanded=True)
+                        logging_db.log_error_db(e) # Log the error
+                        st.error("Sorry, an error occurred while processing your request.")
+
+            # Store results in session state only if successful
+            if 'response' in locals():
+                st.session_state.chat_response = response
+                st.session_state.referenced_codes = referenced_codes
+                st.session_state.relevant_codes = relevant_codes
+                logging_db.log_qna_db(user_question, response)
+                st.rerun(scope="fragment")
+
+    # Display results if they exist in session state
+    if st.session_state.chat_response:
+        st.divider()
+        st.markdown(st.session_state.chat_response)
+
+        if len(st.session_state.referenced_codes) > 0:
+            st.divider()
+
+            # View selector for paper display format
+            display_format = st.radio(
+                "Display Format",
+                options=["Grid View", "Citation List"],
+                horizontal=True,
+                label_visibility="collapsed",
+                key="papers_display_format",
+            )
+
+            st.markdown("<h4>Referenced Papers:</h4>", unsafe_allow_html=True)
+            # Ensure 'papers' is accessible via session state
+            reference_df = st.session_state["papers"].loc[
+                st.session_state.referenced_codes
+            ]
+            if display_format == "Grid View":
+                su.generate_grid_gallery(reference_df, n_cols=5, extra_key="_chat")
+            else:
+                su.generate_citations_list(reference_df)
+
+            if len(st.session_state.relevant_codes) > 0:
+                st.divider()
+                st.markdown(
+                    "<h4>Other Relevant Papers:</h4>", unsafe_allow_html=True
+                )
+                relevant_df = st.session_state["papers"].loc[
+                    st.session_state.relevant_codes
+                ]
+                if display_format == "Grid View":
+                    su.generate_grid_gallery(
+                        relevant_df, n_cols=5, extra_key="_chat"
+                    )
+                else:
+                    su.generate_citations_list(relevant_df)
+
+
+@st.fragment
+def display_paper_details_fragment(paper_code: str):
+    """Displays the paper details card or an error message within a fragment."""
+    if len(paper_code) > 0:
+        # Access full papers data frame from session state
+        if "papers" in st.session_state:
+            full_papers_df = st.session_state.papers
+            if paper_code in full_papers_df.index:
+                paper = full_papers_df.loc[paper_code].to_dict()
+                su.create_paper_card(paper, mode="open", name="_focus")
+            else:
+                st.error("Paper not found.")
+        else:
+            # Handle case where papers haven't loaded yet (might happen on initial load)
+            st.warning("Paper data is still loading...")
 
 
 def main():
@@ -373,9 +528,12 @@ def main():
 
         # Display interesting facts section
         with st.expander("**💡 Recent Findings**", expanded=True):
-            # Use the cached function directly
-            facts = get_random_interesting_facts(n=6, recency_days=7)
+            # Use the cached function directly, passing the trigger
+            facts = get_random_interesting_facts(n=4, recency_days=7, _trigger=st.session_state.facts_refresh_trigger)
             su.display_interesting_facts(facts, n_cols=2, papers_df=full_papers_df)
+            if st.button("🔄 Get More Recent Findings", key="refresh_facts_button"):
+                st.session_state.facts_refresh_trigger += 1
+                st.rerun()
 
         # Create a 4-panel layout (2 rows, 2 columns)
         st.write("### Recent Activity (~7 days)")
@@ -510,133 +668,16 @@ def main():
         ## Focus on a paper.
         if len(st.session_state.arxiv_code) == 0:
             st.markdown("<div style='font-size: 0.9em; opacity: 0.8; margin-bottom: 1.5em;'>💡 <em>Search a paper by its arXiv code, or use the sidebar to search and filter papers by title, author, or other attributes.</em></div>", unsafe_allow_html=True)
-        arxiv_code = st.text_input("arXiv Code", st.session_state.arxiv_code)
-        st.session_state.arxiv_code = arxiv_code
-        if len(arxiv_code) > 0:
-            if arxiv_code in full_papers_df.index:
-                paper = full_papers_df.loc[arxiv_code].to_dict()
-                su.create_paper_card(paper, mode="open", name="_focus")
-            else:
-                st.error("Paper not found.")
+        
+        # Text input remains outside the fragment to update session state
+        arxiv_code_input = st.text_input("arXiv Code", st.session_state.arxiv_code)
+        # Update session state if input changes
+        if arxiv_code_input != st.session_state.arxiv_code:
+            st.session_state.arxiv_code = arxiv_code_input
+        display_paper_details_fragment(st.session_state.arxiv_code)
 
     with content_tabs[4]:
-        st.markdown("##### 🤖 Chat with the GPT maestro.")
-        user_question = st.text_area(
-            label="Ask any question about LLMs or the arxiv papers.", value=""
-        )
-        chat_btn_disabled = len(user_question) == 0
-
-        ## Advanced response settings in an expander
-        with st.expander("⚙️ Response Settings", expanded=False):
-            settings_cols = st.columns(2)
-
-            with settings_cols[0]:
-                response_length = st.select_slider(
-                    "Response Length (words)",
-                    options=[250, 500, 1000, 3000],
-                    value=500,
-                    format_func=lambda x: f"{x} words",
-                )
-            with settings_cols[1]:
-                max_sources = st.select_slider(
-                    "Maximum Sources",
-                    options=[1, 3, 5, 7, 10, 15, 20, 25, 30],
-                    value=10,
-                )
-
-            custom_instructions = st.text_area(
-                "Custom Instructions (Optional)",
-                placeholder="Add any specific instructions for how you would like the response to be structured or formatted...",
-                help="Provide custom style guidelines, instructions on what to focus on, etc.",
-            )
-
-            show_only_sources = st.checkbox(
-                "Show me only the sources",
-                help="Skip generating a response and just show the most relevant papers for this query.",
-            )
-
-        chat_cols = st.columns((1, 1, 1))
-        chat_btn = chat_cols[0].button("Send", disabled=chat_btn_disabled)
-
-        # Show clear button only when we have a response
-        if st.session_state.chat_response:
-            if chat_cols[1].button("Clear", type="secondary"):
-                st.session_state.chat_response = None
-                st.session_state.referenced_codes = []
-                st.session_state.relevant_codes = []
-                st.rerun()
-
-        if chat_btn:
-            if user_question != "":
-                progress_placeholder = st.empty()
-
-                def update_progress(message: str):
-                    with progress_placeholder:
-                        st.info(message)
-
-                response, referenced_codes, relevant_codes = au.query_llmpedia_new(
-                    user_question=user_question,
-                    response_length=response_length,
-                    query_llm_model="claude-3-5-sonnet-20241022",
-                    rerank_llm_model="gemini/gemini-2.0-flash",
-                    response_llm_model="claude-3-5-sonnet-20241022",
-                    max_sources=max_sources,
-                    debug=True,
-                    progress_callback=update_progress,
-                    custom_instructions=(
-                        custom_instructions if custom_instructions.strip() else None
-                    ),
-                    show_only_sources=show_only_sources,
-                )
-                progress_placeholder.empty()
-
-                # Store results in session state
-                st.session_state.chat_response = response
-                st.session_state.referenced_codes = referenced_codes
-                st.session_state.relevant_codes = relevant_codes
-
-                logging_db.log_qna_db(user_question, response)
-
-        # Display results if they exist in session state
-        if st.session_state.chat_response:
-            st.divider()
-            st.markdown(st.session_state.chat_response)
-
-            if len(st.session_state.referenced_codes) > 0:
-                st.divider()
-
-                # View selector for paper display format
-                display_format = st.radio(
-                    "Display Format",
-                    options=["Grid View", "Citation List"],
-                    horizontal=True,
-                    label_visibility="collapsed",
-                    key="papers_display_format",
-                )
-
-                st.markdown("<h4>Referenced Papers:</h4>", unsafe_allow_html=True)
-                reference_df = st.session_state["papers"].loc[
-                    st.session_state.referenced_codes
-                ]
-                if display_format == "Grid View":
-                    su.generate_grid_gallery(reference_df, n_cols=5, extra_key="_chat")
-                else:
-                    su.generate_citations_list(reference_df)
-
-                if len(st.session_state.relevant_codes) > 0:
-                    st.divider()
-                    st.markdown(
-                        "<h4>Other Relevant Papers:</h4>", unsafe_allow_html=True
-                    )
-                    relevant_df = st.session_state["papers"].loc[
-                        st.session_state.relevant_codes
-                    ]
-                    if display_format == "Grid View":
-                        su.generate_grid_gallery(
-                            relevant_df, n_cols=5, extra_key="_chat"
-                        )
-                    else:
-                        su.generate_citations_list(relevant_df)
+        chat_fragment()
 
     with content_tabs[5]:
         ## Repositories.
@@ -714,7 +755,6 @@ def main():
             st.plotly_chart(plot_repos, use_container_width=True)
 
     with content_tabs[6]:
-
         report_top_cols = st.columns((5, 2))
         with report_top_cols[0]:
             st.markdown("# 📰 LLM Weekly Review")

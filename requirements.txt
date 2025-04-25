@@ -11,7 +11,7 @@ langchain-groq==0.1.4
 langchain-together==0.0.2
 langchain-openai==0.1.8
 latex2mathml==3.5.0
-litellm==1.60.0
+litellm==1.67.2
 markdown2==2.5.2
 nltk==3.8.1
 numpy>=1.25.0

@@ -268,6 +268,7 @@ def decide_query_action(
         po.QueryDecision,
         llm_model=llm_model,
         process_id="decide_query_action",
+        thinking={"type": "enabled", "budget_tokens": 0},
     )
     return response
 
@@ -280,6 +281,7 @@ def generate_query_object(user_question: str, llm_model: str):
         llm_model=llm_model,
         temperature=0.5,
         process_id="generate_query_object",
+        thinking={"type": "enabled", "budget_tokens": 0},
     )
     return query_obj
 
@@ -296,6 +298,7 @@ def rerank_documents_new(
         llm_model=llm_model,
         temperature=temperature,
         process_id="rerank_documents",
+        # thinking={"type": "enabled", "budget_tokens": 0},
     )
     return response
 
@@ -321,6 +324,7 @@ def resolve_query(
         llm_model=llm_model,
         temperature=0.8,
         process_id="resolve_query",
+        # thinking={"type": "enabled", "budget_tokens": 0},
     )
     return response
 
@@ -435,7 +439,7 @@ def query_llmpedia_new(
     user_question: str,
     response_length: int = 500,
     query_llm_model: str = "claude-3-7-sonnet-20250219",
-    rerank_llm_model: str = "gemini/gemini-2.0-flash",
+    rerank_llm_model: str = "claude-3-7-sonnet-20250219",
     response_llm_model: str = "claude-3-7-sonnet-20250219",
     max_sources: int = 25,
     debug: bool = False,
@@ -445,7 +449,7 @@ def query_llmpedia_new(
 ) -> Tuple[str, List[str], List[str]]:
     """Query LLMpedia with customized response parameters."""
     if progress_callback:
-        progress_callback("Generating semantic search query...")
+        progress_callback("🧠 Analyzing your question...")
     if debug:
         log_debug("~~Starting LLMpedia query pipeline~~")
         log_debug(
@@ -463,6 +467,9 @@ def query_llmpedia_new(
         log_debug("Query action decision:", action.model_dump(), 1)
 
     if action.llm_query:
+        if progress_callback:
+            progress_callback("🎯 Understanding search intent...")
+        
         query_obj = generate_query_object(
             user_question=user_question, llm_model=query_llm_model
         )
@@ -470,7 +477,7 @@ def query_llmpedia_new(
             log_debug("Generated search criteria:", query_obj.model_dump(), 2)
 
         if progress_callback:
-            progress_callback("Searching through the LLM research archive...")
+            progress_callback("📜 Formulating search strategy...")
 
         ## Calculate target summary length with roughly 3:1 source-to-summary ratio.
         per_source_words = 0
@@ -490,16 +497,18 @@ def query_llmpedia_new(
             )
 
         ## Fetch results.
-        query_obj.topic_categories = None
+        # query_obj.topic_categories = None
         criteria_dict = query_obj.model_dump(exclude_none=True)
         criteria_dict["limit"] = max_sources * 2
         sql = db.generate_semantic_search_query(
             criteria_dict, query_config, embedding_model=VS_EMBEDDING_MODEL
         )
 
-        documents = db_utils.execute_read_query(sql)
+        if progress_callback:
+            progress_callback("🔍 Searching the archive for relevant papers...")
 
-        documents = documents.to_dict(orient="records")
+        documents_df = db_utils.execute_read_query(sql)
+        documents = documents_df.to_dict(orient="records")
         documents = [
             Document(
                 arxiv_code=d["arxiv_code"],
@@ -513,8 +522,9 @@ def query_llmpedia_new(
             for d in documents
         ]
 
+        num_initial_docs = len(documents)
         if progress_callback:
-            progress_callback("Reranking most relevant documents...")
+            progress_callback(f"📄 Found {num_initial_docs} initial candidate papers.")
 
         if debug:
             log_debug(f"Retrieved {len(documents)} initial documents", indent_level=2)
@@ -532,6 +542,9 @@ def query_llmpedia_new(
                 [],
                 [],
             )
+
+        if progress_callback:
+            progress_callback(f"⚖️ Evaluating relevance of {num_initial_docs} candidates...")
 
         ## Rerank.
         reranked_documents = rerank_documents_new(
@@ -602,6 +615,10 @@ def query_llmpedia_new(
                     indent_level=3,
                 )
 
+        num_filtered_docs = len(filtered_documents)
+        if progress_callback:
+            progress_callback(f"✅ Selected {num_filtered_docs} most relevant papers.")
+
         if len(filtered_documents) == 0:
             if debug:
                 log_debug(
@@ -614,18 +631,8 @@ def query_llmpedia_new(
                 [],
             )
 
-        ## Resolve.
-        if show_only_sources:
-            if debug:
-                log_debug(
-                    "Skipping response generation (show_only_sources=True)",
-                    indent_level=2,
-                )
-            arxiv_codes = [d.arxiv_code for d in filtered_documents]
-            return f"### Documents related to: *{user_question}*", arxiv_codes, []
-
         if progress_callback:
-            progress_callback("Generating response...")
+            progress_callback(f"✍️ Synthesizing response from {num_filtered_docs} papers...")
 
         answer_obj = resolve_query(
             user_question,
@@ -663,6 +670,8 @@ def query_llmpedia_new(
                 "Query classified as non-LLM related, generating simple response",
                 indent_level=1,
             )
+        if progress_callback:
+             progress_callback("💬 Preparing a direct response...")
         answer = resolve_query_other(user_question)
         return answer, [], []
 
