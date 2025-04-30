@@ -525,17 +525,26 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
     st.markdown("---")
 
 
-def generate_grid_gallery(df, n_cols=5, extra_key=""):
-    """Create streamlit grid gallery of paper cards with thumbnail."""
+def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
+    """Create streamlit grid gallery of paper cards using specified image type."""
     n_rows = int(np.ceil(len(df) / n_cols))
     for i in range(n_rows):
         cols = st.columns(n_cols)
         for j in range(n_cols):
             if i * n_cols + j < len(df):
+                paper_code = df.iloc[i * n_cols + j]['arxiv_code']
                 with cols[j]:
                     try:
+                        if image_type == "first_page":
+                            # Corrected region to us-east-1
+                            image_url = f"https://arxiv-first-page.s3.us-east-1.amazonaws.com/{paper_code}.png"
+                        elif image_type == "artwork": # Default to artwork
+                            image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
+                        else: # Handle potential invalid type or default to artwork
+                            image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
+                        
                         st.image(
-                            f"https://arxiv-art.s3.us-west-2.amazonaws.com/{df.iloc[i*n_cols+j]['arxiv_code']}.png",
+                            image_url,
                             width=450
                         )
                     except:
@@ -559,7 +568,6 @@ def generate_grid_gallery(df, n_cols=5, extra_key=""):
                     """
                     st.markdown(centered_code, unsafe_allow_html=True)
 
-                    paper_code = df.iloc[i * n_cols + j]["arxiv_code"]
                     punchline = df.iloc[i * n_cols + j].get("punchline")
                     focus_btn = st.button(
                         "Read More",
@@ -585,7 +593,6 @@ def generate_grid_gallery(df, n_cols=5, extra_key=""):
                         if len(authors_str) > 30
                         else authors_str
                     )
-                    # st.markdown(authors_str)
 
 
 def generate_citations_list(df: pd.DataFrame) -> None:
@@ -839,6 +846,7 @@ def click_tab(tab_num):
     st.components.v1.html(js)
 
 
+@st.fragment
 def generate_mini_paper_table(df, n=5, extra_key=""):
     """ Create a compact table of top papers for dashboard display. """
     # Add custom styling for the mini table
@@ -846,9 +854,11 @@ def generate_mini_paper_table(df, n=5, extra_key=""):
     <style>
     .mini-paper-row {
         border-bottom: 1px solid rgba(128, 128, 128, 0.2);
-        padding: 4px 0;
+        padding: 8px 0; /* Increased padding */
         margin-bottom: 4px;
         font-size: 0.9em;
+        display: flex; /* Use flexbox for row layout */
+        align-items: center; /* Vertically center items */
     }
     .mini-paper-row:hover {
         background-color: rgba(179, 27, 27, 0.05);
@@ -859,14 +869,13 @@ def generate_mini_paper_table(df, n=5, extra_key=""):
         padding-bottom: 5px;
         margin-bottom: 8px;
         font-size: 0.9em;
+        display: flex; /* Use flexbox for header layout */
     }
     .mini-title-link {
         font-weight: bold;
         text-decoration: none;
         display: block;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        /* Removed fixed width properties for better wrapping */
     }
     .mini-title-link:hover {
         text-decoration: underline;
@@ -885,72 +894,123 @@ def generate_mini_paper_table(df, n=5, extra_key=""):
     .mini-read-more-btn:hover {
         background-color: var(--arxiv-red-light, #c93232);
     }
-    
+    .mini-punchline {
+        font-style: italic;
+        font-size: 0.9em;
+        color: var(--text-color, #555);
+        margin-top: 2px;
+        margin-bottom: 2px;
+    }
+    .mini-authors {
+        font-size: 0.8em;
+        color: var(--text-color, #888); /* Made paler */
+        margin-top: 2px;
+    }
+    .mini-image-col {
+        flex: 0 0 60px; /* Fixed width for image column */
+        margin-right: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .mini-content-col {
+        flex: 1; /* Allow content to take remaining space */
+        min-width: 0; /* Prevent overflow */
+    }
+    .mini-citation-col {
+        flex: 0 0 80px; /* Fixed width for citation column */
+        text-align: center;
+        margin-left: 10px;
+    }
+    .mini-action-col {
+        flex: 0 0 80px; /* Fixed width for action column */
+        margin-left: 10px;
+        display: flex;
+        align-items: center; /* Center button vertically */
+    }
+
     /* Dark mode support */
     @media (prefers-color-scheme: dark) {
         .mini-paper-row:hover {
             background-color: rgba(179, 27, 27, 0.1);
         }
+        .mini-punchline {
+             color: var(--text-color, #bbb); /* Adjust color for dark mode */
+        }
+         .mini-authors {
+             color: var(--text-color, #999); /* Made paler for dark mode */
+        }
     }
     </style>
     """, unsafe_allow_html=True)
-    
+
     # Only take the top n papers
     display_df = df.head(n) if len(df) > n else df
-    
-    # Create a header row with styled headers
-    header_cols = st.columns([3, 0.8, 0.7])
-    st.markdown("<div class='mini-paper-header'>", unsafe_allow_html=True)
-    header_cols[0].markdown("**Title**")
-    header_cols[1].markdown("**Citations**")
-    header_cols[2].markdown("") # Empty header for action column
-    st.markdown("</div>", unsafe_allow_html=True)
-    
+
+    # Create a header row using styled divs and flexbox
+    st.markdown("""
+    <div class='mini-paper-header'>
+        <div class='mini-image-col'></div> <!-- Placeholder for image header -->
+        <div class='mini-content-col'><strong>Details</strong></div>
+        <div class='mini-citation-col'><strong>Citations</strong></div>
+        <div class='mini-action-col'></div> <!-- Placeholder for action header -->
+    </div>
+    """, unsafe_allow_html=True)
+
     # Format function for titles, reused from generate_paper_table
     def format_title(row):
         title = row['title'].replace("\n", "")
         star = "⭐️ " if row.get('influential_citation_count', 0) > 0 else ""
         return f"{star}{title}"
-    
+
     # Create a simple table with top papers
     for _, paper in display_df.iterrows():
         paper_code = paper['arxiv_code']
         title = format_title(paper)
         citations = int(paper.get('citation_count', 0))
-        
-        # Create a container for the row
-        st.markdown("<div class='mini-paper-row'>", unsafe_allow_html=True)
-        
-        # Create a row for each paper
-        cols = st.columns([3, 0.8, 0.7])
-        
-        # Add URL to title
-        paper_url = paper.get("url", "")
-        title_html = f"<a href='{paper_url}' target='_blank' class='mini-title-link' style='color: var(--arxiv-red);'>{title}</a>"
-        
-        # Add authors truncated
+        punchline = paper.get("punchline", "")
         authors = paper.get("authors", "")
-        if len(authors) > 50:  # Shorter than in generate_paper_table for mini view
+        if len(authors) > 50: # Truncate authors
             authors = authors[:50] + "..."
-        authors_html = f"<div style='font-size: 0.8em; color: var(--text-color, #666);'>{authors}</div>"
-        
-        # Combine title and authors
-        cols[0].markdown(f"{title_html}{authors_html}", unsafe_allow_html=True)
-        
-        # Format citation count with icon
-        cols[1].markdown(f"""<div style='text-align: center;'>
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; opacity: 0.7; margin-right: 3px;"><path d="M17 6.1H3M21 12.1H3M21 18.1H3"></path></svg>
-            {citations}
-        </div>""", unsafe_allow_html=True)
-        
-        # Button styled with width constraint
-        if cols[2].button("Read More", key=f"mini_btn_{paper_code}_{extra_key}", use_container_width=True):
-            st.session_state.arxiv_code = paper_code
-            click_tab(3)
-            st.rerun()
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-    
+
+        # Image URL
+        image_url = f"https://arxiv-art.s3.amazonaws.com/{paper_code}.png"
+        # Fallback image (optional, e.g., a generic icon or placeholder)
+        fallback_image_url = "https://via.placeholder.com/50x50/eee/ccc?text=?" # Example placeholder
+
+        # Create a container for the row with flexbox
+        row_cols = st.columns([0.8, 4, 0.8, 0.8], gap="small") # Adjust ratios for new layout
+
+        with row_cols[0]: # Image Column
+            # Display image using container width
+            st.image(image_url, use_container_width=True) # Changed width to use_container_width
+
+        with row_cols[1]: # Content Column (Title, Punchline, Authors)
+            paper_url = paper.get("url", "")
+            # Title link
+            title_html = f"<a href='{paper_url}' target='_blank' class='mini-title-link' style='color: var(--arxiv-red);'>{title}</a>"
+            st.markdown(title_html, unsafe_allow_html=True)
+            # Punchline
+            if punchline and pd.notna(punchline):
+                st.markdown(f"<div class='mini-punchline'>{punchline}</div>", unsafe_allow_html=True)
+            # Authors
+            st.markdown(f"<div class='mini-authors'>{authors}</div>", unsafe_allow_html=True)
+
+        with row_cols[2]: # Citation Column
+            # Format citation count with icon - centered
+            st.markdown(f"""<div style='text-align: center; padding-top: 10px;'>
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; opacity: 0.7; margin-right: 3px;"><path d="M17 6.1H3M21 12.1H3M21 18.1H3"></path></svg>
+                {citations}
+            </div>""", unsafe_allow_html=True)
+
+        with row_cols[3]: # Action Column
+             # Use a container to help with centering the button
+             with st.container():
+                if st.button("Read More", key=f"mini_btn_{paper_code}_{extra_key}", use_container_width=True):
+                    st.session_state.arxiv_code = paper_code
+                    click_tab(3)
+                    st.rerun()
+
     if len(df) > n:
         st.caption(f"Showing top {n} of {len(df)} papers")
 

@@ -538,7 +538,7 @@ def main():
         # Create a 4-panel layout (2 rows, 2 columns)
         st.write("### Recent Activity (~7 days)")
         row1_cols = st.columns([3, 2])
-        row2_cols = st.columns([4, 2])
+        row2_cols = st.columns([4, 0.1, 2])
 
         # Panel 1.1: Trending Topics (Left)
         with row1_cols[0]:
@@ -570,7 +570,7 @@ def main():
             su.generate_mini_paper_table(top_papers, n=citation_top_n, extra_key="_dashboard")
 
         # Panel 2.2: Featured Paper (Right)
-        with row2_cols[1]:
+        with row2_cols[2]:
             arxiv_code = au.get_latest_weekly_highlight()
             highlight_paper = (
                 papers_df[papers_df["arxiv_code"] == arxiv_code].iloc[0].to_dict()
@@ -588,9 +588,10 @@ def main():
 
         view_mode = st.radio(
             "Display Mode",
-            options=["Grid View", "Table View"],
+            options=["Artwork Grid", "First Page Grid", "Table View"],
             horizontal=True,
             key="view_selector",
+            index=0,
         )
 
         # Get paginated data
@@ -599,12 +600,15 @@ def main():
         )
 
         # Display content based on selected view
-        if view_mode == "Grid View":
-            su.generate_grid_gallery(papers_df_subset)
-        else:
+        if view_mode == "Artwork Grid":
+            su.generate_grid_gallery(papers_df_subset, image_type="artwork")
+        elif view_mode == "First Page Grid":
+            su.generate_grid_gallery(papers_df_subset, image_type="first_page")
+        elif view_mode == "Table View":
             su.generate_paper_table(papers_df_subset)
 
-        su.create_bottom_navigation(label="grid")
+        # Bottom navigation
+        su.create_bottom_navigation("grid")
 
     with content_tabs[2]:
         total_papers = len(papers_df)
