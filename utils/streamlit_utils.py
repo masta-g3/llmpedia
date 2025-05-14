@@ -644,84 +644,116 @@ def generate_citations_list(df: pd.DataFrame) -> None:
 
 def generate_paper_table(df, extra_key=""):
     """Create a stylized table view of papers with key information."""
-    # Add custom styling for the table
     st.markdown("""
     <style>
-    .paper-row {
-        border-bottom: 1px solid rgba(128, 128, 128, 0.2);
-        padding: 8px 0;
-        margin-bottom: 8px;
-    }
-    .paper-row:hover {
-        background-color: rgba(179, 27, 27, 0.05);
-    }
+    /* ---------- TABLE CONTAINER & HEADER ---------- */
     .paper-header {
-        font-weight: bold;
-        border-bottom: 2px solid rgba(179, 27, 27, 0.3);
-        padding-bottom: 10px;
-        margin-bottom: 12px;
+        display: flex;
+        gap: 0.5rem;
+        font-weight: 600;
+        border-bottom: 2px solid var(--secondary-background-color, rgba(179, 27, 27, 0.3));
+        padding-bottom: 0.75rem;
+        margin-bottom: 0.75rem;
+        font-size: 0.95rem;
     }
-    .title-link {
-        font-weight: bold;
-        text-decoration: none;
-        display: block;
+
+    /* ---------- ROW STYLING ---------- */
+    .paper-row {
+        border-bottom: 1px solid var(--secondary-background-color, rgba(128, 128, 128, 0.2));
+        padding: 12px 0;
         margin-bottom: 4px;
+        transition: background-color 0.15s ease;
     }
+
+    /* Zebra-striping for readability */
+    .paper-row:nth-child(odd) {
+        background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.04));
+    }
+
+    .paper-row:hover {
+        background-color: var(--secondary-background-color, rgba(179, 27, 27, 0.06));
+        border-radius: 6px;
+    }
+
+    /* ---------- TITLE LINK ---------- */
+    .title-link {
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        margin-bottom: 2px;
+        line-height: 1.3;
+    }
+
     .title-link:hover {
         text-decoration: underline;
     }
+
+    /* ---------- GENERIC CELL ---------- */
     .paper-cell {
-        padding: 4px 0;
+        padding: 2px 0;
+        line-height: 1.4;
     }
+
+    /* ---------- READ MORE BUTTON ---------- */
     .read-more-btn {
         background-color: var(--arxiv-red, #b31b1b);
-        color: white;
+        color: #fff;
         border: none;
         border-radius: 4px;
-        padding: 6px 12px;
-        font-size: 14px;
+        padding: 6px 14px;
+        font-size: 0.85rem;
+        font-weight: 500;
         cursor: pointer;
-        transition: background-color 0.2s;
+        transition: background-color 0.15s ease, transform 0.1s ease;
         white-space: nowrap;
     }
+
     .read-more-btn:hover {
         background-color: var(--arxiv-red-light, #c93232);
+        transform: translateY(-1px);
     }
-    
-    /* Button width constraint */
+
+    /* Constrain any Streamlit-generated buttons inside columns */
     [data-testid="stHorizontalBlock"] button {
         max-width: 120px !important;
         margin: 0 auto !important;
     }
-    
-    /* Dark mode support */
+
+    /* ---------- DARK MODE TWEAKS ---------- */
     @media (prefers-color-scheme: dark) {
+        .paper-row:nth-child(odd) {
+            background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.08));
+        }
         .paper-row:hover {
-            background-color: rgba(179, 27, 27, 0.1);
+            background-color: var(--secondary-background-color, rgba(179, 27, 27, 0.14));
         }
         .paper-header {
-            border-bottom-color: rgba(179, 27, 27, 0.4);
+            border-bottom-color: var(--secondary-background-color, rgba(179, 27, 27, 0.4));
         }
     }
     </style>
     """, unsafe_allow_html=True)
-    
+
+    # Updated column width ratios for better spacing
+    col_spec = [3.5, 0.9, 0.9, 1.2, 0.8]
+
     # Create a header row with styled headers
-    header_cols = st.columns([3, 0.8, 0.8, 1.2, 1])
+    header_cols = st.columns(col_spec)
+
     st.markdown("<div class='paper-header'>", unsafe_allow_html=True)
     header_cols[0].markdown("**Title**")
     header_cols[1].markdown("**Citations**")
-    header_cols[2].markdown("**Influential Citations**")
+    header_cols[2].markdown("**Influential**")
     header_cols[3].markdown("**Published**")
-    header_cols[4].markdown("") # Empty header for action column
+    header_cols[4].markdown("")  # Action column placeholder
     st.markdown("</div>", unsafe_allow_html=True)
-    
+
     # Format function for titles
     def format_title(row):
         title = row['title'].replace("\n", "")
         star = "⭐️ " if row.get('influential_citation_count', 0) > 0 else ""
         return f"{star}{title}"
-    
+
     # Create a simple table with all papers
     for i, paper in df.iterrows():
         paper_code = paper['arxiv_code']
@@ -734,7 +766,7 @@ def generate_paper_table(df, extra_key=""):
         st.markdown("<div class='paper-row'>", unsafe_allow_html=True)
         
         # Create a row for each paper
-        cols = st.columns([3, 0.8, 0.8, 1.2, 1])
+        cols = st.columns(col_spec)
         
         # Get punchline for tooltip if available
         punchline = paper.get("punchline", "")
@@ -779,7 +811,6 @@ def generate_paper_table(df, extra_key=""):
         if cols[4].button("Read More", key=f"btn_{paper_code}_{extra_key}", use_container_width=True):
             st.session_state.arxiv_code = paper_code
             click_tab(3)
-            st.rerun()
             
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -847,8 +878,14 @@ def click_tab(tab_num):
 
 
 @st.fragment
-def generate_mini_paper_table(df, n=5, extra_key=""):
-    """ Create a compact table of top papers for dashboard display. """
+def generate_mini_paper_table(
+    df,
+    n: int = 5,
+    extra_key: str = "",
+    metric_name: str = "Citations",
+    metric_col: str = "citation_count",
+):
+    """Create a compact table of top papers for dashboard display with a configurable metric column."""
     # Add custom styling for the mini table
     st.markdown("""
     <style>
@@ -896,7 +933,7 @@ def generate_mini_paper_table(df, n=5, extra_key=""):
     }
     .mini-punchline {
         font-style: italic;
-        font-size: 0.9em;
+        font-size: 0.8em;
         color: var(--text-color, #555);
         margin-top: 2px;
         margin-bottom: 2px;
@@ -905,6 +942,7 @@ def generate_mini_paper_table(df, n=5, extra_key=""):
         font-size: 0.8em;
         color: var(--text-color, #888); /* Made paler */
         margin-top: 2px;
+        margin-bottom: 2px;
     }
     .mini-image-col {
         flex: 0 0 60px; /* Fixed width for image column */
@@ -948,11 +986,11 @@ def generate_mini_paper_table(df, n=5, extra_key=""):
     display_df = df.head(n) if len(df) > n else df
 
     # Create a header row using styled divs and flexbox
-    st.markdown("""
+    st.markdown(f"""
     <div class='mini-paper-header'>
         <div class='mini-image-col'></div> <!-- Placeholder for image header -->
         <div class='mini-content-col'><strong>Details</strong></div>
-        <div class='mini-citation-col'><strong>Citations</strong></div>
+        <div class='mini-citation-col'><strong>{metric_name}</strong></div>
         <div class='mini-action-col'></div> <!-- Placeholder for action header -->
     </div>
     """, unsafe_allow_html=True)
@@ -967,7 +1005,7 @@ def generate_mini_paper_table(df, n=5, extra_key=""):
     for _, paper in display_df.iterrows():
         paper_code = paper['arxiv_code']
         title = format_title(paper)
-        citations = int(paper.get('citation_count', 0))
+        citations = int(paper.get(metric_col, 0))
         punchline = paper.get("punchline", "")
         authors = paper.get("authors", "")
         if len(authors) > 50: # Truncate authors
@@ -1017,15 +1055,15 @@ def generate_mini_paper_table(df, n=5, extra_key=""):
 
 def create_featured_paper_card(paper: Dict) -> None:
     """Creates a featured paper card using the weekly highlight. """
-    st.markdown("### Featured Paper")
+    st.markdown("### ⭐ Featured Paper")
     paper_code = paper.get("arxiv_code", "")
     punchline = paper.get("punchline", "")
-    st.markdown(f"#### *{paper.get('title', 'Featured Paper')}*")
     st.image(
         f"https://arxiv-art.s3.amazonaws.com/{paper_code}.png",
         # use_container_width=True,
         width=450
-    )    
+    )
+    st.markdown(f"##### *{paper.get('title', 'Featured Paper')}*")
     st.markdown(f"*{punchline}*")
     if st.button("Read More", key=f"featured_{paper_code}", use_container_width=True):
         st.session_state.arxiv_code = paper_code

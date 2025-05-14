@@ -27,8 +27,8 @@ st.set_page_config(
     page_icon="🤖",
     initial_sidebar_state="collapsed",
     menu_items={
-        'About': "LLMpedia - The Illustrated Large Language Model Encyclopedia"
-    }
+        "About": "LLMpedia - The Illustrated Large Language Model Encyclopedia"
+    },
 )
 
 # Apply styling
@@ -241,9 +241,17 @@ def get_similar_docs(
 @st.fragment
 def chat_fragment():
     """Handles the entire chat interface logic within a Streamlit fragment."""
+
+    initial_query_value = ""
+    if "query_to_pass_to_chat" in st.session_state:
+        initial_query_value = st.session_state.query_to_pass_to_chat
+        del st.session_state.query_to_pass_to_chat  # Clear after use
+
     st.markdown("##### 🤖 Chat with the GPT maestro.")
     user_question = st.text_area(
-        label="Ask any question about LLMs or the arxiv papers.", value=""
+        label="Ask any question about LLMs or the arxiv papers.",
+        value=initial_query_value,  # Use the passed value here
+        key="chat_user_question_area",  # Added a key for consistent state management
     )
     chat_btn_disabled = len(user_question) == 0
 
@@ -261,7 +269,7 @@ def chat_fragment():
         with settings_cols[1]:
             max_sources = st.select_slider(
                 "Maximum Sources",
-                options=[1, 3, 5, 7, 10, 15, 20, 25, 30], 
+                options=[1, 3, 5, 7, 10, 15, 20, 25, 30],
                 value=10,
             )
 
@@ -290,40 +298,56 @@ def chat_fragment():
             # Rerun to reflect the cleared state
             st.rerun(scope="fragment")
 
-
     if chat_btn:
         if user_question != "":
             with status_placeholder.container():
-                with st.status("Processing your query...", expanded=True) as status:# Expand initially
+                with st.status(
+                    "Processing your query...", expanded=True
+                ) as status:  # Expand initially
+
                     def update_progress(message: str):
                         status.update(label=message)
 
                     try:
-                        response, referenced_codes, relevant_codes = au.query_llmpedia_new(
-                            user_question=user_question,
-                            response_length=response_length,
-                            query_llm_model="gemini/gemini-2.5-flash-preview-04-17",
-                            rerank_llm_model="gemini/gemini-2.0-flash",
-                            response_llm_model="claude-3-7-sonnet-20250219",
-                            max_sources=max_sources,
-                            debug=True,
-                            progress_callback=update_progress,
-                            custom_instructions=(
-                                custom_instructions if custom_instructions.strip() else None
-                            ),
-                            show_only_sources=show_only_sources,
+                        response, referenced_codes, relevant_codes = (
+                            au.query_llmpedia_new(
+                                user_question=user_question,
+                                response_length=response_length,
+                                query_llm_model="gemini/gemini-2.5-flash-preview-04-17",
+                                rerank_llm_model="gemini/gemini-2.0-flash",
+                                response_llm_model="claude-3-7-sonnet-20250219",
+                                max_sources=max_sources,
+                                debug=True,
+                                progress_callback=update_progress,
+                                custom_instructions=(
+                                    custom_instructions
+                                    if custom_instructions.strip()
+                                    else None
+                                ),
+                                show_only_sources=show_only_sources,
+                            )
                         )
-                        status.update(label="Processing complete!", state="complete", expanded=False)
+                        status.update(
+                            label="Processing complete!",
+                            state="complete",
+                            expanded=False,
+                        )
                         time.sleep(1)
                         status_placeholder.empty()
 
                     except Exception as e:
-                        status.update(label=f"🤖 Error detected. System malfunction. Returning to nebular state.", state="error", expanded=True)
-                        logging_db.log_error_db(e) # Log the error
-                        st.error("Sorry, an error occurred while processing your request.")
+                        status.update(
+                            label=f"🤖 Error detected. System malfunction. Returning to nebular state.",
+                            state="error",
+                            expanded=True,
+                        )
+                        logging_db.log_error_db(e)  # Log the error
+                        st.error(
+                            "Sorry, an error occurred while processing your request."
+                        )
 
             # Store results in session state only if successful
-            if 'response' in locals():
+            if "response" in locals():
                 st.session_state.chat_response = response
                 st.session_state.referenced_codes = referenced_codes
                 st.session_state.relevant_codes = relevant_codes
@@ -359,16 +383,12 @@ def chat_fragment():
 
             if len(st.session_state.relevant_codes) > 0:
                 st.divider()
-                st.markdown(
-                    "<h4>Other Relevant Papers:</h4>", unsafe_allow_html=True
-                )
+                st.markdown("<h4>Other Relevant Papers:</h4>", unsafe_allow_html=True)
                 relevant_df = st.session_state["papers"].loc[
                     st.session_state.relevant_codes
                 ]
                 if display_format == "Grid View":
-                    su.generate_grid_gallery(
-                        relevant_df, n_cols=5, extra_key="_chat"
-                    )
+                    su.generate_grid_gallery(relevant_df, n_cols=5, extra_key="_chat")
                 else:
                     su.generate_citations_list(relevant_df)
 
@@ -388,6 +408,96 @@ def display_paper_details_fragment(paper_code: str):
         else:
             # Handle case where papers haven't loaded yet (might happen on initial load)
             st.warning("Paper data is still loading...")
+
+
+@st.fragment
+def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
+    """Displays the Top Cited / Trending Papers panel with toggle and caching."""
+    citation_window = 90
+    trending_window = 7
+    top_n = 5
+
+    # Determine the toggle's state from st.session_state. This is the source of truth.
+    current_actual_toggle_state = st.session_state.get("toggle_trending_papers", False)
+
+    # Display title BEFORE the toggle
+    if current_actual_toggle_state:  # If True, show trending title
+        st.markdown(f"### 📈 Trending Papers (Last {trending_window} days)")
+    else:  # If False, show top cited title
+        st.markdown(f"### 🏆 Top Cited Papers (Last {citation_window} days)")
+
+    # Determine toggle label based on this definitive state
+    toggle_label = (
+        "Switch to: Top Cited"
+        if current_actual_toggle_state
+        else "Switch to: Trending (📈 Likes)"
+    )
+
+    # Render the toggle. It updates st.session_state.toggle_trending_papers upon interaction.
+    st.toggle(toggle_label, key="toggle_trending_papers")
+
+    # Use the definitive state from st.session_state for conditional display logic for the table
+    if current_actual_toggle_state:  # If True, show trending table
+        if (
+            "trending_papers_cache" in st.session_state
+            and st.session_state.trending_papers_cache is not None
+        ):
+            trending_papers = st.session_state.trending_papers_cache
+        else:
+            # Fetch a bit more for joining robustness and in case some papers are not in papers_df_fragment
+            likes_df = db.get_trending_papers(
+                n=top_n + 10, time_window_days=trending_window
+            )
+            if not likes_df.empty:
+                counts_dict = dict(zip(likes_df["arxiv_code"], likes_df["like_count"]))
+
+                trending_papers_intermediate = papers_df_fragment[
+                    papers_df_fragment["arxiv_code"].isin(counts_dict.keys())
+                ].copy()
+
+                if not trending_papers_intermediate.empty:
+                    trending_papers_intermediate["like_count"] = (
+                        trending_papers_intermediate["arxiv_code"].map(counts_dict)
+                    )
+                    trending_papers_intermediate["like_count"] = pd.to_numeric(
+                        trending_papers_intermediate["like_count"], errors="coerce"
+                    ).fillna(0)
+                    trending_papers_intermediate.sort_values(
+                        "like_count", ascending=False, inplace=True
+                    )
+                    trending_papers = trending_papers_intermediate.head(top_n)
+                else:
+                    trending_papers = pd.DataFrame()
+            else:
+                trending_papers = pd.DataFrame()
+            st.session_state.trending_papers_cache = trending_papers
+
+        if not trending_papers.empty:
+            su.generate_mini_paper_table(
+                trending_papers,
+                n=top_n,
+                extra_key="_dashboard_trending",
+                metric_name="Likes",
+                metric_col="like_count",
+            )
+        else:
+            st.info("No trending data found or papers not in current view.")
+    else:  # If False, show top cited table
+        if (
+            "top_cited_papers_cache" in st.session_state
+            and st.session_state.top_cited_papers_cache is not None
+        ):
+            top_papers = st.session_state.top_cited_papers_cache
+        else:
+            top_papers = au.get_top_cited_papers(
+                papers_df_fragment, n=top_n, time_window_days=citation_window
+            )
+            st.session_state.top_cited_papers_cache = top_papers
+
+        if not top_papers.empty:
+            su.generate_mini_paper_table(top_papers, n=top_n, extra_key="_dashboard")
+        else:
+            st.info("No top cited papers found for the current selection.")
 
 
 def main():
@@ -507,67 +617,71 @@ def main():
         papers_1d = papers_df[papers_df["tstp"] >= yesterday]
         papers_7d = papers_df[papers_df["published"].dt.date >= last_week]
 
-        # Display all metrics in a single row of 4 columns
-        metric_cols = st.columns(4)
+        # Display all metrics in a single row of 5 columns
+        metric_cols = st.columns(5)  # Adjusted for 5 metrics
         with metric_cols[0]:
             st.metric(
-                label="Total Papers in Archive",
+                label="🗄️ Total Papers in Archive",
                 value=f"{len(full_papers_df):,d}",
             )
         with metric_cols[1]:
             if not st.session_state.all_years:
                 value = f"{len(papers_df[papers_df['published'].dt.year == year]):,d}"
                 st.metric(
-                    label=f"Published in {year}",
+                    label=f"🔮 Published in {year}",
                     value=value,
                 )
         with metric_cols[2]:
-            st.metric(label="Last 7 days", value=len(papers_7d))
+            st.metric(label="📅 Last 7 days", value=len(papers_7d))
         with metric_cols[3]:
-            st.metric(label="Added in last 24 hours", value=len(papers_1d))
+            st.metric(label="⏰ Added in last 24 hours", value=len(papers_1d))
+
+        with metric_cols[4]:  # New metric for Active Users
+            active_users_count = logging_db.get_active_users_last_24h()
+            st.metric(label="👥 Active Users", value=f"{active_users_count:,d}")
 
         # Display interesting facts section
-        with st.expander("**💡 Recent Findings**", expanded=True):
-            # Use the cached function directly, passing the trigger
-            facts = get_random_interesting_facts(n=4, recency_days=7, _trigger=st.session_state.facts_refresh_trigger)
-            su.display_interesting_facts(facts, n_cols=2, papers_df=full_papers_df)
-            if st.button("🔄 Get More Recent Findings", key="refresh_facts_button"):
-                st.session_state.facts_refresh_trigger += 1
-                st.rerun()
+        # with st.expander("**💡 Recent Findings**", expanded=True):
+        #     # Use the cached function directly, passing the trigger
+        #     facts = get_random_interesting_facts(n=4, recency_days=7, _trigger=st.session_state.facts_refresh_trigger)
+        #     su.display_interesting_facts(facts, n_cols=2, papers_df=full_papers_df)
+        #     if st.button("🔄 Get More Recent Findings", key="refresh_facts_button"):
+        #         st.session_state.facts_refresh_trigger += 1
+        #         st.rerun()
 
         # Create a 4-panel layout (2 rows, 2 columns)
-        st.write("### Recent Activity (~7 days)")
-        row1_cols = st.columns([3, 2])
+        # st.write("### Recent Activity (~7 days)")
+        # row1_cols = st.columns([3, 2])
+        st.divider()
         row2_cols = st.columns([4, 0.1, 2])
 
-        # Panel 1.1: Trending Topics (Left)
-        with row1_cols[0]:
-            ## Get trending topics from the most recent papers.
-            if len(papers_7d) > 0:
-                # Use utility function to extract trending topics
-                trending_terms = au.get_trending_topics_from_papers(
-                    papers_df=papers_7d, time_window_days=7, n=15
-                )
-                if trending_terms:
-                    trend_chart = pt.plot_trending_words(trending_terms)
-                    st.plotly_chart(trend_chart, use_container_width=True)
-                else:
-                    st.info("Not enough data to identify trending topics.")
+        # # Panel 1.1: Trending Topics (Left)
+        # with row1_cols[0]:
+        #     ## Get trending topics from the most recent papers.
+        #     if len(papers_7d) > 0:
+        #         # Use utility function to extract trending topics
+        #         trending_terms = au.get_trending_topics_from_papers(
+        #             papers_df=papers_7d, time_window_days=7, n=15
+        #         )
+        #         if trending_terms:
+        #             trend_chart = pt.plot_trending_words(trending_terms)
+        #             st.plotly_chart(trend_chart, use_container_width=True)
+        #         else:
+        #             st.info("Not enough data to identify trending topics.")
 
-        # Panel 1.2: Topic Distribution (Right)
-        with row1_cols[1]:
-            topic_chart = pt.plot_top_topics(papers_7d, n=5)
-            st.plotly_chart(topic_chart, use_container_width=True)
+        # # Panel 1.2: Topic Distribution (Right)
+        # with row1_cols[1]:
+        #     topic_chart = pt.plot_top_topics(papers_7d, n=5)
+        #     st.plotly_chart(topic_chart, use_container_width=True)
 
-        # Panel 2.1: Top Cited Papers (Left)
+        # Panel 2.1: Top Cited / Trending Papers (Left)
         with row2_cols[0]:
-            citation_window = 90
-            citation_top_n = 5
-            st.markdown(f"### Top Cited Papers (Last {citation_window} days)")
-            top_papers = au.get_top_cited_papers(
-                papers_df, n=citation_top_n, time_window_days=citation_window
-            )
-            su.generate_mini_paper_table(top_papers, n=citation_top_n, extra_key="_dashboard")
+            # Make sure papers_df is available here
+            # If papers_df can be None or empty, handle appropriately before calling
+            if papers_df is not None and not papers_df.empty:
+                display_top_cited_trending_panel(papers_df)
+            else:
+                st.info("Paper data is not available for this panel.")
 
         # Panel 2.2: Featured Paper (Right)
         with row2_cols[2]:
@@ -576,6 +690,147 @@ def main():
                 papers_df[papers_df["arxiv_code"] == arxiv_code].iloc[0].to_dict()
             )
             su.create_featured_paper_card(highlight_paper)
+
+        st.divider()
+        row3_cols = st.columns([1, 1])
+
+        # Column 1: Random Interesting Fact
+        with row3_cols[0]:
+
+            @st.fragment
+            def interesting_fact_display():
+                st.markdown("### 💡 Interesting Fact")
+                # Retrieve a single random fact (cached) and display it
+                fact_list = get_random_interesting_facts(
+                    n=1,
+                    recency_days=30,  # Consider if this window is too narrow or too wide
+                    _trigger=st.session_state.facts_refresh_trigger,
+                )
+                # full_papers_df is defined in the main() scope and should be accessible
+                # If not, it might need to be passed or accessed via st.session_state.papers
+                su.display_interesting_facts(
+                    fact_list, n_cols=1, papers_df=full_papers_df
+                )
+                # Refresh button to get a new fact
+                if st.button("🔄 New Fact", key="refresh_fact_single_fragment"):
+                    st.session_state.facts_refresh_trigger += 1
+                    st.rerun()  # This will rerun only this fragment
+
+            interesting_fact_display()
+
+        # Column 2: Feature Poll
+        with row3_cols[1]:
+
+            @st.fragment
+            def feature_poll_fragment():
+                st.markdown("### 🗳️ Feature Poll")
+                st.write(
+                    "Help us prioritize upcoming LLMpedia features. Select your favourite or suggest a new one!"
+                )
+                default_options = [
+                    "**Aggregate Model Scores**: Get a summary of how different models perform on tests test results presented in papers.",
+                    "**Improved Deep Research**: Support for long running (30 min+) agentic research.",
+                    "**Concept Glossary**: A searchable glossary of key concepts used in papers.",
+                    "**Other**: Please specify.",
+                ]
+                selected_option = st.radio(
+                    "Most desired upcoming feature:",
+                    options=default_options,
+                    key="feature_poll_option",
+                )
+
+                # If user chooses Other, allow a custom input
+                custom_feature = ""
+                if selected_option == "Other (specify)":
+                    custom_feature = st.text_input(
+                        "Your feature suggestion", key="custom_feature_suggestion"
+                    )
+
+                if st.button("Vote", key="vote_feature_poll_button"):
+                    feature_name_to_log = ""
+                    is_custom = False
+
+                    if selected_option == "Other (specify)":
+                        if custom_feature.strip():
+                            feature_name_to_log = custom_feature.strip()
+                            is_custom = True
+                        else:
+                            st.warning("Please provide a feature name before voting.")
+                    else:
+                        feature_name_to_log = selected_option
+                        is_custom = False
+
+                    if feature_name_to_log:
+                        try:
+                            # Placeholder for session_id; implement actual session tracking if needed
+                            current_session_id = st.session_state.get(
+                                "user_session_id", None
+                            )
+
+                            logging_db.log_feature_poll_vote(
+                                feature_name=feature_name_to_log,
+                                is_custom_suggestion=is_custom,
+                                session_id=current_session_id,
+                            )
+
+                            st.success("Thanks for voting!")
+                            # Rerun only this fragment
+                            st.rerun()
+                        except Exception as e:
+                            st.error("Sorry, there was an issue recording your vote.")
+                            # Log the error to your error_logs table
+                            logging_db.log_error_db(
+                                f"Feature poll vote logging error: {e}"
+                            )
+                    elif (
+                        selected_option == "Other (specify)"
+                        and not custom_feature.strip()
+                    ):
+                        # This case is already handled by the warning above, but kept for clarity
+                        pass  # Warning already shown
+
+                # Display current poll results if any votes exist
+                # if st.session_state.poll_votes:
+                #     st.markdown("#### Current Results")
+                #     # Ensure poll_votes is not empty before creating DataFrame
+                #     if st.session_state.poll_votes:
+                #         results_df = (
+                #             pd.DataFrame(
+                #                 {
+                #                     "Feature": list(st.session_state.poll_votes.keys()),
+                #                     "Votes": list(st.session_state.poll_votes.values()),
+                #                 }
+                #             )
+                #             .sort_values("Votes", ascending=False)
+                #         )
+                #         st.bar_chart(
+                #             data=results_df.set_index("Feature"),
+                #             use_container_width=True,
+                #         )
+                #     else:
+                #         st.caption("No votes yet.") # Or some other placeholder
+
+            feature_poll_fragment()
+
+        st.divider()
+        st.markdown("### 🔬 Dive Deeper with Online Research")
+        st.markdown(
+            "Got specific questions about LLMs, arXiv papers, or need to find relevant research? "
+            "Our AI-powered Online Research tool helps you find answers, summarize content, and discover related work with cited sources. "
+            "Ask the GPT maestro!"
+        )
+        shared_query_news_tab = st.text_input(
+            "Ask your question here first:",
+            key="news_tab_shared_query_input",
+            placeholder="E.g., What are the latest advancements in Mixture of Experts?",
+        )
+        if st.button(
+            "Explore Online Research 🤖", key="explore_online_research_news_promo"
+        ):
+            query_to_pass = st.session_state.get("news_tab_shared_query_input", "")
+            if query_to_pass:  # Only pass if there's actual text
+                st.session_state.query_to_pass_to_chat = query_to_pass
+            su.click_tab(4)  # Navigate to the Online Research tab (index 4)
 
     with content_tabs[1]:
         ## Grid view or Table view
@@ -671,8 +926,11 @@ def main():
     with content_tabs[3]:
         ## Focus on a paper.
         if len(st.session_state.arxiv_code) == 0:
-            st.markdown("<div style='font-size: 0.9em; opacity: 0.8; margin-bottom: 1.5em;'>💡 <em>Search a paper by its arXiv code, or use the sidebar to search and filter papers by title, author, or other attributes.</em></div>", unsafe_allow_html=True)
-        
+            st.markdown(
+                "<div style='font-size: 0.9em; opacity: 0.8; margin-bottom: 1.5em;'>💡 <em>Search a paper by its arXiv code, or use the sidebar to search and filter papers by title, author, or other attributes.</em></div>",
+                unsafe_allow_html=True,
+            )
+
         # Text input remains outside the fragment to update session state
         arxiv_code_input = st.text_input("arXiv Code", st.session_state.arxiv_code)
         # Update session state if input changes
@@ -820,4 +1078,6 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         logging_db.log_error_db(e)
-        st.error("Something went wrong. Please refresh the app and try again, we will look into it.")
+        st.error(
+            "Something went wrong. Please refresh the app and try again, we will look into it."
+        )

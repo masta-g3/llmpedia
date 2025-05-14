@@ -1,6 +1,6 @@
 """Consolidated database operations for specific functionalities."""
 
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Set
 from datetime import datetime, timedelta
 import pandas as pd
 
@@ -243,9 +243,12 @@ def format_query_condition(
 
 
 def generate_semantic_search_query(
-    criteria: dict, config: dict, embedding_model: str = "embed-english-v3.0"
+    criteria: dict, 
+    config: dict, 
+    embedding_model: str = "embed-english-v3.0",
+    exclude_arxiv_codes: Optional[Set[str]] = None
 ) -> str:
-    """Generate SQL query for semantic search using pgvector."""
+    """Generate SQL query for semantic search using pgvector, optionally excluding specific arxiv_codes."""
     query_parts = [
         ## Select basic paper info and notes.
         """SELECT 
@@ -274,6 +277,12 @@ def generate_semantic_search_query(
         % embedding_model,
     ]
 
+    # Add exclusion clause if exclude_arxiv_codes is provided
+    if exclude_arxiv_codes and len(exclude_arxiv_codes) > 0:
+        # Format codes for SQL IN clause: ('code1', 'code2')
+        formatted_excluded_codes = ", ".join(f"'{code}'" for code in exclude_arxiv_codes)
+        query_parts.append(f"AND a.arxiv_code NOT IN ({formatted_excluded_codes})")
+
     ## Add similarity conditions if present.
     similarity_scores = []
     for field, value in criteria.items():
@@ -294,8 +303,15 @@ def generate_semantic_search_query(
         similarity_select = (
             f"GREATEST({', '.join(similarity_scores)}) as similarity_score"
         )
-        query_parts[0] = query_parts[0].rstrip(",") + f", {similarity_select}"
-        query_parts.append("ORDER BY similarity_score DESC")
+        # Ensure comma is added if n.notes was the last thing
+        if query_parts[0].endswith("n.notes"):
+             query_parts[0] += f", {similarity_select}"
+        else: # If it already had a comma (e.g. if you add other fields later)
+             query_parts[0] = query_parts[0].rstrip(",") + f", {similarity_select}"
+        
+        # Only add ORDER BY if it's not already present from some other logic
+        if not any("ORDER BY" in part for part in query_parts[1:]): # Check parts after SELECT
+            query_parts.append("ORDER BY similarity_score DESC")
 
     # Add LIMIT if specified in criteria
     if "limit" in criteria and criteria["limit"] is not None:
@@ -347,41 +363,41 @@ def load_tweet_insights(
 
 
 def get_random_interesting_facts(n=10, recency_days=7) -> List[Dict]:
-    """Get random interesting facts with bias toward recent and highly cited papers."""
-    # Calculate the cutoff date for recent facts
+    """Get random interesting facts only after cutoff date, with slight recency weighting."""
+    ## Calculate the cutoff date for recent facts
     recent_cutoff = datetime.now() - timedelta(days=recency_days)
     recent_cutoff_str = recent_cutoff.strftime("%Y-%m-%d")
 
-    # Query that includes citation information and recency
+    ## Query only facts after the cutoff date
     query = f"""
-        SELECT f.id, f.arxiv_code, f.fact, f.tstp, 
-               CASE WHEN f.tstp >= '{recent_cutoff_str}' THEN 1 ELSE 0 END as is_recent,
+        SELECT f.id, f.arxiv_code, f.fact, f.tstp,
                COALESCE(c.citation_count, 0) as citation_count
         FROM summary_interesting_facts f
         LEFT JOIN semantic_details c ON f.arxiv_code = c.arxiv_code
+        WHERE f.tstp >= '{recent_cutoff_str}'
         ORDER BY RANDOM()
-        LIMIT {n*3}
+        LIMIT {n*5}
     """
 
-    # Get facts
     all_facts = query_db(query)
 
-    # Score facts based on recency and citations
+    if not all_facts:
+        return []
+
+    ## Find the most recent and oldest fact in the window for normalization
+    timestamps = [pd.to_datetime(f["tstp"]) for f in all_facts]
+    max_time = max(timestamps)
+    min_time = min(timestamps)
+    time_range = (max_time - min_time).total_seconds() or 1
+    max_citations = max([f["citation_count"] for f in all_facts]) if all_facts else 1
+
     for fact in all_facts:
-        # Recency gets higher weight (0.7) than citations (0.3)
-        recency_score = 0.7 if fact["is_recent"] == 1 else 0
+        ## Recency score: 1 for most recent, 0 for oldest, linear in between
+        recency_score = (pd.to_datetime(fact["tstp"]) - min_time).total_seconds() / time_range
+        ## Weight recency slightly (0.4) and citations more (0.6)
+        citation_score = 0.6 * (fact["citation_count"] / max_citations) if max_citations > 0 else 0
+        fact["score"] = 0.4 * recency_score + citation_score
 
-        # Normalize citation score (higher is better)
-        max_citations = (
-            max([f["citation_count"] for f in all_facts]) if all_facts else 1
-        )
-        citation_score = (
-            0.3 * (fact["citation_count"] / max_citations) if max_citations > 0 else 0
-        )
-
-        fact["score"] = recency_score + citation_score
-
-    # Sort by score and deduplicate based on content
     all_facts.sort(key=lambda x: x["score"], reverse=True)
     unique_facts = []
     seen_content = set()
@@ -391,8 +407,30 @@ def get_random_interesting_facts(n=10, recency_days=7) -> List[Dict]:
             seen_content.add(fact["fact"])
             unique_facts.append(fact)
 
-    titles_dict = get_arxiv_title_dict()    
+    titles_dict = get_arxiv_title_dict()
     for fact in unique_facts:
         fact["paper_title"] = titles_dict.get(fact['arxiv_code'], "Unknown paper")
 
     return unique_facts
+
+
+###############
+## TRENDING PAPERS ##
+###############
+
+
+def get_trending_papers(n: int = 5, time_window_days: int = 7) -> pd.DataFrame:
+    """Return papers with highest total like count on tweets within the given window."""
+    cutoff_date = (datetime.now() - timedelta(days=time_window_days)).strftime("%Y-%m-%d")
+
+    query = f"""
+        SELECT t.arxiv_code, SUM(t.like_count) AS like_count
+        FROM llm_tweets t
+        WHERE t.arxiv_code IS NOT NULL
+          AND t.tstp >= '{cutoff_date}'
+        GROUP BY t.arxiv_code
+        ORDER BY like_count DESC
+        LIMIT {n}
+    """
+
+    return execute_read_query(query)

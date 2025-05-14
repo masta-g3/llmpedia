@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from .db_utils import execute_write_query
+from .db_utils import execute_write_query, execute_read_query
 
 def log_instructor_query(
     model_name: str,
@@ -105,6 +105,35 @@ def report_issue(arxiv_code: str, issue_type: str) -> bool:
             "arxiv_code": arxiv_code,
             "issue_type": issue_type,
             "resolved": False,
+        }
+        
+        return execute_write_query(query, params)
+    except Exception as e:
+        raise e
+
+def get_active_users_last_24h() -> int:
+    """Get the count of unique visitors in the last 24 hours."""
+    query = """
+        SELECT COUNT(DISTINCT visit_id) 
+        FROM visit_logs
+        WHERE tstp > NOW() - INTERVAL '1 days'
+    """        
+    result = execute_read_query(query)
+    return result['count'].iloc[0]
+
+def log_feature_poll_vote(feature_name: str, is_custom_suggestion: bool, session_id: Optional[str] = None) -> bool:
+    """Log a feature poll vote in the database."""
+    try:
+        query = """
+            INSERT INTO feature_poll_votes (tstp, feature_name, is_custom_suggestion, session_id)
+            VALUES (:tstp, :feature_name, :is_custom_suggestion, :session_id)
+        """
+        
+        params = {
+            "tstp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "feature_name": feature_name,
+            "is_custom_suggestion": is_custom_suggestion,
+            "session_id": session_id,
         }
         
         return execute_write_query(query, params)
