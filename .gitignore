@@ -8,5 +8,6 @@
 */.DS_Store
 *.log
 *.pyc
+*.crt
 notebooks/
 PLANNING.md

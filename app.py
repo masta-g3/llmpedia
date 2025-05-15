@@ -422,19 +422,19 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
 
     # Display title BEFORE the toggle
     if current_actual_toggle_state:  # If True, show trending title
-        st.markdown(f"### 📈 Trending Papers (Last {trending_window} days)")
+        st.markdown(f"### 📈 Trending on X.com (Last {trending_window} days)")
     else:  # If False, show top cited title
         st.markdown(f"### 🏆 Top Cited Papers (Last {citation_window} days)")
 
     # Determine toggle label based on this definitive state
     toggle_label = (
-        "Switch to: Top Cited"
+        "Switch to: Top Cited (🏆 Citations)"
         if current_actual_toggle_state
         else "Switch to: Trending (📈 Likes)"
     )
 
     # Render the toggle. It updates st.session_state.toggle_trending_papers upon interaction.
-    st.toggle(toggle_label, key="toggle_trending_papers")
+    st.toggle(toggle_label, value=current_actual_toggle_state, key="toggle_trending_papers")
 
     # Use the definitive state from st.session_state for conditional display logic for the table
     if current_actual_toggle_state:  # If True, show trending table
@@ -640,39 +640,8 @@ def main():
             active_users_count = logging_db.get_active_users_last_24h()
             st.metric(label="👥 Active Users", value=f"{active_users_count:,d}")
 
-        # Display interesting facts section
-        # with st.expander("**💡 Recent Findings**", expanded=True):
-        #     # Use the cached function directly, passing the trigger
-        #     facts = get_random_interesting_facts(n=4, recency_days=7, _trigger=st.session_state.facts_refresh_trigger)
-        #     su.display_interesting_facts(facts, n_cols=2, papers_df=full_papers_df)
-        #     if st.button("🔄 Get More Recent Findings", key="refresh_facts_button"):
-        #         st.session_state.facts_refresh_trigger += 1
-        #         st.rerun()
-
-        # Create a 4-panel layout (2 rows, 2 columns)
-        # st.write("### Recent Activity (~7 days)")
-        # row1_cols = st.columns([3, 2])
         st.divider()
         row2_cols = st.columns([4, 0.1, 2])
-
-        # # Panel 1.1: Trending Topics (Left)
-        # with row1_cols[0]:
-        #     ## Get trending topics from the most recent papers.
-        #     if len(papers_7d) > 0:
-        #         # Use utility function to extract trending topics
-        #         trending_terms = au.get_trending_topics_from_papers(
-        #             papers_df=papers_7d, time_window_days=7, n=15
-        #         )
-        #         if trending_terms:
-        #             trend_chart = pt.plot_trending_words(trending_terms)
-        #             st.plotly_chart(trend_chart, use_container_width=True)
-        #         else:
-        #             st.info("Not enough data to identify trending topics.")
-
-        # # Panel 1.2: Topic Distribution (Right)
-        # with row1_cols[1]:
-        #     topic_chart = pt.plot_top_topics(papers_7d, n=5)
-        #     st.plotly_chart(topic_chart, use_container_width=True)
 
         # Panel 2.1: Top Cited / Trending Papers (Left)
         with row2_cols[0]:
@@ -788,27 +757,6 @@ def main():
                     ):
                         # This case is already handled by the warning above, but kept for clarity
                         pass  # Warning already shown
-
-                # Display current poll results if any votes exist
-                # if st.session_state.poll_votes:
-                #     st.markdown("#### Current Results")
-                #     # Ensure poll_votes is not empty before creating DataFrame
-                #     if st.session_state.poll_votes:
-                #         results_df = (
-                #             pd.DataFrame(
-                #                 {
-                #                     "Feature": list(st.session_state.poll_votes.keys()),
-                #                     "Votes": list(st.session_state.poll_votes.values()),
-                #                 }
-                #             )
-                #             .sort_values("Votes", ascending=False)
-                #         )
-                #         st.bar_chart(
-                #             data=results_df.set_index("Feature"),
-                #             use_container_width=True,
-                #         )
-                #     else:
-                #         st.caption("No votes yet.") # Or some other placeholder
 
             feature_poll_fragment()
 
