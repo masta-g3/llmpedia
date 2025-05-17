@@ -1160,7 +1160,7 @@ def display_tweet_summaries(df, max_entries: int = 8):
     df["tstp"] = pd.to_datetime(df["tstp"])
 
     # Build scrollable HTML block
-    container_open = "<div style='max-height: 400px; overflow-y: auto; padding-right: 8px;'>"
+    container_open = "<div style='max-height: 250px; overflow-y: auto; padding-right: 8px;'>"
     html_blocks = [container_open]
 
     for _, row in df.iterrows():
