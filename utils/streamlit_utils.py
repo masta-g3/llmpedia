@@ -527,73 +527,64 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
 
 
 def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
-    """Create streamlit grid gallery of paper cards using specified image type."""
+    """Create streamlit grid gallery of paper cards with flip effect."""
     n_rows = int(np.ceil(len(df) / n_cols))
     for i in range(n_rows):
         cols = st.columns(n_cols)
         for j in range(n_cols):
             if i * n_cols + j < len(df):
-                paper_code = df.iloc[i * n_cols + j]['arxiv_code']
-                with cols[j]:
-                    try:
-                        if image_type == "first_page":
-                            # Corrected region to us-east-1
-                            image_url = f"https://arxiv-first-page.s3.us-east-1.amazonaws.com/{paper_code}.png"
-                        elif image_type == "artwork": # Default to artwork
-                            image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
-                        else: # Handle potential invalid type or default to artwork
-                            image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
-                        
-                        st.image(
-                            image_url,
-                            width=450
-                        )
-                    except:
-                        pass
-                    paper_url = df.iloc[i * n_cols + j]["url"]
-                    paper_title = df.iloc[i * n_cols + j]["title"].replace("\n", "")
-                    star_count = (
-                        df.iloc[i * n_cols + j]["influential_citation_count"] > 0
-                    )
-                    publish_date = pd.to_datetime(
-                        df.iloc[i * n_cols + j]["published"]
-                    ).strftime("%b %d, %Y")
-                    star = ""
-                    if star_count:
-                        star = "⭐️"
+                paper_data = df.iloc[i * n_cols + j]
+                paper_code = paper_data['arxiv_code']
+                paper_title = paper_data["title"].replace("\n", "")
+                punchline = paper_data.get("punchline", "Summary not available.")
+                
+                # Sanitize for HTML
+                safe_title = html_escape(paper_title)
+                safe_punchline = html_escape(punchline if pd.notna(punchline) else "Summary not available.")
 
+                if image_type == "first_page":
+                    image_url = f"https://arxiv-first-page.s3.us-east-1.amazonaws.com/{paper_code}.png"
+                else: # Default to artwork
+                    image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
+
+                with cols[j]:
+                    card_html = f"""
+                    <div class="flip-card">
+                      <div class="flip-card-inner">
+                        <div class="flip-card-front">
+                          <img src="{image_url}" alt="{safe_title}" onerror="this.style.display='none'; this.parentElement.style.justifyContent='center'; this.parentElement.innerHTML+='<div style=\'font-size:0.8rem;color:grey;padding:1rem;\'>Image not available</div>';">
+                          <div class="flip-title">{safe_title}</div>
+                        </div>
+                        <div class="flip-card-back">
+                          <div class="flip-card-back-content">{safe_punchline}</div>
+                          <!-- Button handled by Streamlit below -->
+                        </div>
+                      </div>
+                    </div>
+                    """
+                    st.markdown(card_html, unsafe_allow_html=True)
+                    
+                    # Star and publish date (remains below the card)
+                    star_count = paper_data["influential_citation_count"] > 0
+                    publish_date = pd.to_datetime(paper_data["published"]).strftime("%b %d, %Y")
+                    star = "⭐️" if star_count else ""
                     centered_code = f"""
-                    <div class="centered">
+                    <div class="centered" style="text-align: center; font-size: 0.85em; margin-top: -0.5rem; margin-bottom: 0.5rem;">
                         <code>{star} {publish_date}</code>
                     </div>
                     """
                     st.markdown(centered_code, unsafe_allow_html=True)
 
-                    punchline = df.iloc[i * n_cols + j].get("punchline")
-                    focus_btn = st.button(
+                    # Read More button remains a Streamlit button
+                    if st.button(
                         "Read More",
-                        key=f"focus_{paper_code}{extra_key}",
-                        help=punchline if type(punchline) == str else None,
+                        key=f"focus_flip_{paper_code}{extra_key}",
+                        help=punchline if isinstance(punchline, str) and pd.notna(punchline) else None,
                         use_container_width=True,
-                    )
-                    if focus_btn:
+                    ):
                         st.session_state.arxiv_code = paper_code
-                        click_tab(3)
-
-                    st.markdown(
-                        f'<p style="text-align: center"><strong><a href="{paper_url}" style="color: #FF4B4B;">{paper_title}</a></strong></p>',
-                        unsafe_allow_html=True,
-                    )
-
-                    last_updated = pd.to_datetime(
-                        df.iloc[i * n_cols + j]["published"]
-                    ).strftime("%b %d, %Y")
-                    authors_str = df.iloc[i * n_cols + j]["authors"]
-                    authors_str = (
-                        authors_str[:30] + "..."
-                        if len(authors_str) > 30
-                        else authors_str
-                    )
+                        click_tab(3) # Assumes tab 3 is the detailed view
+                        st.rerun()
 
 
 def generate_citations_list(df: pd.DataFrame) -> None:
@@ -1048,27 +1039,46 @@ def generate_mini_paper_table(
                 if st.button("Read More", key=f"mini_btn_{paper_code}_{extra_key}", use_container_width=True):
                     st.session_state.arxiv_code = paper_code
                     click_tab(3)
-                    st.rerun()
 
     if len(df) > n:
         st.caption(f"Showing top {n} of {len(df)} papers")
 
 
 def create_featured_paper_card(paper: Dict) -> None:
-    """Creates a featured paper card using the weekly highlight. """
+    """Creates a featured paper card using the weekly highlight with a flip effect."""
     st.markdown("### ⭐ Featured Paper")
     paper_code = paper.get("arxiv_code", "")
-    punchline = paper.get("punchline", "")
-    st.image(
-        f"https://arxiv-art.s3.amazonaws.com/{paper_code}.png",
-        # use_container_width=True,
-        width=450
-    )
-    st.markdown(f"##### *{paper.get('title', 'Featured Paper')}*")
-    st.markdown(f"*{punchline}*")
-    if st.button("Read More", key=f"featured_{paper_code}", use_container_width=True):
-        st.session_state.arxiv_code = paper_code
-        click_tab(3)
+    title = paper.get('title', 'Featured Paper')
+    punchline = paper.get("punchline", "No summary available.")
+    image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
+
+    # Sanitize title and punchline for HTML
+    safe_title = html_escape(title)
+    safe_punchline = html_escape(punchline)
+
+    card_html = f"""
+    <div class="flip-card" style="width: 450px; height: 400px; margin: 0 auto;">  <!-- Centered with fixed width -->
+      <div class="flip-card-inner">
+        <div class="flip-card-front">
+          <img src="{image_url}" alt="{safe_title}" onerror="this.style.display='none';">
+          <div class="flip-title">{safe_title}</div>
+        </div>
+        <div class="flip-card-back">
+          <div class="flip-card-back-content">{safe_punchline}</div>
+          <!-- The button is handled by Streamlit below, so this is a placeholder or can be removed if button is outside -->
+        </div>
+      </div>
+    </div>
+    """
+    st.markdown(card_html, unsafe_allow_html=True)
+
+    # Streamlit button for interaction - placed below the card
+    button_cols = st.columns([1, 2, 1]) # Adjust columns to center the button if needed
+    with button_cols[1]:
+        if st.button("Read More", key=f"featured_flip_{paper_code}", use_container_width=True):
+            st.session_state.arxiv_code = paper_code
+            click_tab(3) # Assumes tab 3 is the detailed view
+            st.rerun()
 
 
 def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
@@ -1177,3 +1187,86 @@ def display_tweet_summaries(df, max_entries: int = 8):
     html_blocks.append("</div>")
 
     st.markdown("\n".join(html_blocks), unsafe_allow_html=True)
+
+
+def inject_flip_card_css():
+    """Injects CSS for the flip card effect."""
+    st.markdown("""
+    <style>
+    .flip-card {
+      background-color: transparent;
+      width: 100%; /* Make it responsive to column width */
+      height: 380px; /* Adjust height as needed */
+      perspective: 1000px;
+      margin-bottom: 1rem; /* Add some space below the card */
+    }
+    .flip-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+    .flip-card:hover .flip-card-inner {
+      transform: rotateY(180deg);
+    }
+    .flip-card-front,
+    .flip-card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      -webkit-backface-visibility: hidden; /* Safari */
+      backface-visibility: hidden;
+      border-radius: 8px;
+      overflow: hidden; /* Ensures content respects border radius */
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between; /* For front card title positioning */
+    }
+    .flip-card-front {
+      background-color: var(--secondary-background-color, #fafafa);
+      /* border: 1px solid var(--secondary-background-color, #eee); */ /* Optional border */
+    }
+    .flip-card-back {
+      background-color: var(--background-color, #fff);
+      color: var(--text-color, #333);
+      transform: rotateY(180deg);
+      padding: 1rem;
+      display: flex; /* For centering content */
+      flex-direction: column;
+      justify-content: center; /* Center content vertically */
+      align-items: center; /* Center content horizontally */
+      /* border: 1px solid var(--secondary-background-color, #ddd); */ /* Optional border */
+    }
+    .flip-card-front img {
+      width: 100%;
+      height: 80%; /* Adjust image height within the card */
+      object-fit: cover; /* Cover ensures the image fills the space well */
+    }
+    .flip-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--arxiv-red, #b31b1b);
+      padding: 0.75rem 0.5rem; /* Padding around the title */
+      text-align: center;
+      height: 20%; /* Remaining space for title */
+      display: flex;
+      align-items: center; /* Vertically center title text */
+      justify-content: center; /* Horizontally center title text */
+      overflow: hidden; /* Prevent long titles from breaking layout */
+      text-overflow: ellipsis;
+      /* white-space: nowrap; */ /* if you want single line title */
+    }
+    .flip-card-back-content {
+        font-size: 0.85rem;
+        line-height: 1.4;
+        margin-bottom: 1rem; /* Space between text and button */
+        max-height: 80%; /* Allow content to scroll if it's too long */
+        overflow-y: auto;
+    }
+    .flip-card-back .read-more-button-container {
+        margin-top: auto; /* Pushes button to the bottom if not enough content */
+    }
+    </style>
+    """, unsafe_allow_html=True)

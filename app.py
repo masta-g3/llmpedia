@@ -35,6 +35,7 @@ st.set_page_config(
 styling.apply_arxiv_theme()
 styling.apply_custom_fonts()
 styling.apply_centered_style()
+su.inject_flip_card_css()
 
 # Initialization of state variables
 if "papers" not in st.session_state:
