@@ -4,13 +4,9 @@ from typing import Any, Union, Optional, Dict, List, Generator
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from contextlib import contextmanager
-from datetime import datetime, timedelta
 import pandas as pd
 import os
-import streamlit as st
 import psycopg2
-import logging
-import random
 
 ## Get database parameters from environment or streamlit secrets
 try:
@@ -22,6 +18,7 @@ try:
         "port": os.environ["DB_PORT"],
     }
 except:
+    import streamlit as st
     db_params = {**st.secrets["postgres"]}
 
 database_url = f"postgresql+psycopg2://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}"

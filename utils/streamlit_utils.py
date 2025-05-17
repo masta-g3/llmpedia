@@ -6,6 +6,7 @@ from typing import Dict, Tuple
 import time
 import re
 import markdown2
+from html import escape as html_escape
 
 import utils.app_utils as au
 import utils.data_cards as dc
@@ -1142,3 +1143,37 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
                     </div>""",
                     unsafe_allow_html=True
                 )
+
+
+def display_tweet_summaries(df, max_entries: int = 8):
+    """Display recent X.com LLM discussion summaries in a scrollable container."""
+    if df is None or df.empty:
+        st.info("No recent discussions found.")
+        return
+
+    # Limit to desired number of entries
+    df = df.head(max_entries)
+
+    st.markdown("### 🐦 Latest LLM Discussions on X", unsafe_allow_html=True)
+
+    # Convert timestamps to readable format
+    df["tstp"] = pd.to_datetime(df["tstp"])
+
+    # Build scrollable HTML block
+    container_open = "<div style='max-height: 400px; overflow-y: auto; padding-right: 8px;'>"
+    html_blocks = [container_open]
+
+    for _, row in df.iterrows():
+        timestamp = row["tstp"].strftime("%b %d, %Y %H:%M")
+        summary = html_escape(str(row["response"]))
+
+        html_blocks.append(
+            f"<div style='margin-bottom: 16px;'>"
+            f"<div style='font-size: 0.75em; color: var(--text-color, #888); margin-bottom: 4px;'>🕑 {timestamp}</div>"
+            f"<div style='font-size: 0.9em; line-height: 1.4;'>{summary}</div>"
+            f"</div>"
+        )
+
+    html_blocks.append("</div>")
+
+    st.markdown("\n".join(html_blocks), unsafe_allow_html=True)

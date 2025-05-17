@@ -49,9 +49,6 @@ if "num_pages" not in st.session_state:
 if "arxiv_code" not in st.session_state:
     st.session_state.arxiv_code = ""
 
-if "openai_api_key" not in st.session_state:
-    st.session_state.openai_api_key = ""
-
 if "all_years" not in st.session_state:
     st.session_state.all_years = False
 
@@ -67,6 +64,7 @@ if "referenced_codes" not in st.session_state:
 
 if "relevant_codes" not in st.session_state:
     st.session_state.relevant_codes = []
+
 
 collection_map = {
     "GTE-Large": "arxiv_vectors",
@@ -236,6 +234,42 @@ def get_similar_docs(
     arxiv_code: str, df: pd.DataFrame, n: int = 5
 ) -> Tuple[List[str], List[str], List[str]]:
     return au.get_similar_docs(arxiv_code, df, n)
+
+
+@st.cache_data
+def get_cached_top_cited_papers_app(
+    papers_df_fragment: pd.DataFrame, n: int, time_window_days: int
+) -> pd.DataFrame:
+    """Cached wrapper in app.py to get top cited papers."""
+    return au.get_top_cited_papers(
+        papers_df_fragment, n=n, time_window_days=time_window_days
+    )
+
+
+@st.cache_data(ttl=timedelta(minutes=30))
+def get_cached_raw_trending_data_app(
+    n_fetch: int, time_window_days_db: int
+) -> pd.DataFrame:
+    """Cached wrapper in app.py to fetch raw trending paper data from DB with TTL."""
+    return db.get_trending_papers(n=n_fetch, time_window_days=time_window_days_db)
+
+
+@st.cache_data
+def get_cached_processed_trending_papers_app(
+    papers_df_fragment: pd.DataFrame,
+    raw_trending_data: pd.DataFrame,
+    top_n_display: int,
+) -> pd.DataFrame:
+    """
+    Cached wrapper in app.py to process raw trending data with current paper selection.
+    Relies on a new utility function in app_utils.py (au.process_trending_data).
+    """
+    if papers_df_fragment.empty or raw_trending_data.empty:
+        return pd.DataFrame()
+    # This will call a new function in app_utils we'll define next.
+    return au.process_trending_data(
+        papers_df_fragment, raw_trending_data, top_n_display
+    )
 
 
 @st.fragment
@@ -414,63 +448,34 @@ def display_paper_details_fragment(paper_code: str):
 def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
     """Displays the Top Cited / Trending Papers panel with toggle and caching."""
     citation_window = 90
-    trending_window = 7
-    top_n = 5
+    trending_window = 7  # For fetching raw data from DB (e.g., last 7 days of tweets)
+    top_n = 5  # Number of papers to display
 
-    # Determine the toggle's state from st.session_state. This is the source of truth.
-    current_actual_toggle_state = st.session_state.get("toggle_trending_papers", False)
+    current_actual_toggle_state = st.session_state.get("toggle_trending_papers", True)
 
-    # Display title BEFORE the toggle
-    if current_actual_toggle_state:  # If True, show trending title
+    if current_actual_toggle_state:
         st.markdown(f"### 📈 Trending on X.com (Last {trending_window} days)")
-    else:  # If False, show top cited title
+    else:
         st.markdown(f"### 🏆 Top Cited Papers (Last {citation_window} days)")
 
-    # Determine toggle label based on this definitive state
     toggle_label = (
         "Switch to: Top Cited (🏆 Citations)"
         if current_actual_toggle_state
         else "Switch to: Trending (📈 Likes)"
     )
-
-    # Render the toggle. It updates st.session_state.toggle_trending_papers upon interaction.
     st.toggle(toggle_label, value=current_actual_toggle_state, key="toggle_trending_papers")
 
-    # Use the definitive state from st.session_state for conditional display logic for the table
-    if current_actual_toggle_state:  # If True, show trending table
-        if (
-            "trending_papers_cache" in st.session_state
-            and st.session_state.trending_papers_cache is not None
-        ):
-            trending_papers = st.session_state.trending_papers_cache
-        else:
-            # Fetch a bit more for joining robustness and in case some papers are not in papers_df_fragment
-            likes_df = db.get_trending_papers(
-                n=top_n + 10, time_window_days=trending_window
-            )
-            if not likes_df.empty:
-                counts_dict = dict(zip(likes_df["arxiv_code"], likes_df["like_count"]))
-
-                trending_papers_intermediate = papers_df_fragment[
-                    papers_df_fragment["arxiv_code"].isin(counts_dict.keys())
-                ].copy()
-
-                if not trending_papers_intermediate.empty:
-                    trending_papers_intermediate["like_count"] = (
-                        trending_papers_intermediate["arxiv_code"].map(counts_dict)
-                    )
-                    trending_papers_intermediate["like_count"] = pd.to_numeric(
-                        trending_papers_intermediate["like_count"], errors="coerce"
-                    ).fillna(0)
-                    trending_papers_intermediate.sort_values(
-                        "like_count", ascending=False, inplace=True
-                    )
-                    trending_papers = trending_papers_intermediate.head(top_n)
-                else:
-                    trending_papers = pd.DataFrame()
-            else:
-                trending_papers = pd.DataFrame()
-            st.session_state.trending_papers_cache = trending_papers
+    if current_actual_toggle_state:  # Show trending table
+        # 1. Fetch raw trending data (cached with TTL in app.py)
+        raw_trending_df = get_cached_raw_trending_data_app(
+            n_fetch=top_n + 10,  # Fetch a bit more for robust joining
+            time_window_days_db=trending_window,
+        )
+        # 2. Process raw data with current papers_df_fragment (cached in app.py)
+        # This processing happens if papers_df_fragment changes or raw_trending_df is refreshed
+        trending_papers = get_cached_processed_trending_papers_app(
+            papers_df_fragment, raw_trending_df, top_n_display=top_n
+        )
 
         if not trending_papers.empty:
             su.generate_mini_paper_table(
@@ -482,17 +487,11 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
             )
         else:
             st.info("No trending data found or papers not in current view.")
-    else:  # If False, show top cited table
-        if (
-            "top_cited_papers_cache" in st.session_state
-            and st.session_state.top_cited_papers_cache is not None
-        ):
-            top_papers = st.session_state.top_cited_papers_cache
-        else:
-            top_papers = au.get_top_cited_papers(
-                papers_df_fragment, n=top_n, time_window_days=citation_window
-            )
-            st.session_state.top_cited_papers_cache = top_papers
+    else:  # Show top cited table
+        # Call the app.py cached wrapper for top cited papers
+        top_papers = get_cached_top_cited_papers_app(
+            papers_df_fragment, n=top_n, time_window_days=citation_window
+        )
 
         if not top_papers.empty:
             su.generate_mini_paper_table(top_papers, n=top_n, extra_key="_dashboard")
@@ -652,8 +651,14 @@ def main():
             else:
                 st.info("Paper data is not available for this panel.")
 
-        # Panel 2.2: Featured Paper (Right)
+        # Panel 2.2: X.com & Featured Paper (Right)
         with row2_cols[2]:
+            tweet_summaries_df = db.read_last_n_tweet_analyses(n=8)
+            tweet_summaries_df = tweet_summaries_df[tweet_summaries_df["tstp"] >= "2025-05-14"]
+            if tweet_summaries_df is not None and not tweet_summaries_df.empty:
+                su.display_tweet_summaries(tweet_summaries_df, max_entries=8)
+                st.divider()
+
             arxiv_code = au.get_latest_weekly_highlight()
             highlight_paper = (
                 papers_df[papers_df["arxiv_code"] == arxiv_code].iloc[0].to_dict()
@@ -693,29 +698,39 @@ def main():
             @st.fragment
             def feature_poll_fragment():
                 st.markdown("### 🗳️ Feature Poll")
-                st.write(
-                    "Help us prioritize upcoming LLMpedia features. Select your favourite or suggest a new one!"
-                )
+
+                has_voted = st.session_state.get("user_has_voted_poll", False)
+
+                if has_voted:
+                    st.info("You have already voted in this session. Thank you for your feedback!")
+                else:
+                    st.write(
+                        "Help us prioritize upcoming LLMpedia features. Select your favourite or suggest a new one!"
+                    )
+
                 default_options = [
                     "**Aggregate Model Scores**: Get a summary of how different models perform on tests test results presented in papers.",
                     "**Improved Deep Research**: Support for long running (30 min+) agentic research.",
                     "**Concept Glossary**: A searchable glossary of key concepts used in papers.",
-                    "**Other**: Please specify.",
+                    "Other (specify)",
                 ]
                 selected_option = st.radio(
                     "Most desired upcoming feature:",
                     options=default_options,
                     key="feature_poll_option",
+                    disabled=has_voted,
                 )
 
                 # If user chooses Other, allow a custom input
                 custom_feature = ""
-                if selected_option == "Other (specify)":
+                if selected_option == "Other (specify)" and not has_voted: # Added 'and not has_voted'
                     custom_feature = st.text_input(
-                        "Your feature suggestion", key="custom_feature_suggestion"
+                        "Your feature suggestion",
+                        key="custom_feature_suggestion",
+                        disabled=has_voted, # Added disabled state
                     )
 
-                if st.button("Vote", key="vote_feature_poll_button"):
+                if st.button("Vote", key="vote_feature_poll_button", disabled=has_voted):
                     feature_name_to_log = ""
                     is_custom = False
 
@@ -741,7 +756,7 @@ def main():
                                 is_custom_suggestion=is_custom,
                                 session_id=current_session_id,
                             )
-
+                            st.session_state.user_has_voted_poll = True  # Set flag after successful vote
                             st.success("Thanks for voting!")
                             # Rerun only this fragment
                             st.rerun()

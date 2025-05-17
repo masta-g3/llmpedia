@@ -414,6 +414,17 @@ def get_random_interesting_facts(n=10, recency_days=7) -> List[Dict]:
     return unique_facts
 
 
+def read_last_n_tweet_analyses(n: int = 10) -> pd.DataFrame:
+    """Read the last N tweet analyses from the database."""
+    return simple_select_query(
+        table="tweet_analysis",
+        select_cols=["tstp", "thinking_process", "response"],
+        order_by="tstp DESC",
+        index_col=None,
+        conditions={"LIMIT": n},
+    )
+
+
 ###############
 ## TRENDING PAPERS ##
 ###############

@@ -849,13 +849,56 @@ def get_trending_topics_from_papers(papers_df, time_window_days=7, n=15):
 def get_top_cited_papers(papers_df, n=5, time_window_days=None):
     """Get the top cited papers, optionally filtering by recency."""
     df = papers_df.copy()
+    # Ensure 'published' column is in datetime format
+    df["published"] = pd.to_datetime(df["published"], errors='coerce')
 
     if time_window_days is not None:
         today = pd.Timestamp.now().date()
         cutoff_date = today - pd.Timedelta(days=time_window_days)
+        # Filter out rows where 'published' is NaT (Not a Time) after coercion
+        df = df.dropna(subset=["published"])
         df = df[df["published"].dt.date >= cutoff_date]
 
     return df.sort_values("citation_count", ascending=False).head(n)
+
+
+def process_trending_data(
+    papers_df_fragment: pd.DataFrame,
+    raw_trending_df: pd.DataFrame,
+    top_n_display: int
+) -> pd.DataFrame:
+    """
+    Processes raw trending data (typically from db.get_trending_papers)
+    by joining with the current papers_df_fragment, calculating like counts,
+    and returning the top N papers.
+    """
+    if papers_df_fragment.empty or raw_trending_df.empty:
+        return pd.DataFrame()
+
+    # Create a dictionary of arxiv_code to like_count from the raw trending data
+    counts_dict = dict(zip(raw_trending_df["arxiv_code"], raw_trending_df["like_count"]))
+
+    # Filter the main papers dataframe for codes present in the trending data
+    # and create a copy to avoid SettingWithCopyWarning
+    trending_papers_intermediate = papers_df_fragment[
+        papers_df_fragment["arxiv_code"].isin(counts_dict.keys())
+    ].copy()
+
+    if trending_papers_intermediate.empty:
+        return pd.DataFrame()
+
+    # Map the like_count to the filtered papers
+    trending_papers_intermediate["like_count"] = trending_papers_intermediate["arxiv_code"].map(counts_dict)
+
+    # Ensure 'like_count' is numeric, coercing errors and filling NaNs with 0
+    trending_papers_intermediate["like_count"] = pd.to_numeric(
+        trending_papers_intermediate["like_count"], errors='coerce'
+    ).fillna(0).astype(int) # Convert to int after fillna
+
+    # Sort by like_count in descending order
+    trending_papers_intermediate.sort_values("like_count", ascending=False, inplace=True)
+
+    return trending_papers_intermediate.head(top_n_display)
 
 
 def get_latest_weekly_highlight():
