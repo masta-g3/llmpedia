@@ -552,7 +552,7 @@ def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
                     <div class="flip-card">
                       <div class="flip-card-inner">
                         <div class="flip-card-front">
-                          <img src="{image_url}" alt="{safe_title}" onerror="this.style.display='none'; this.parentElement.style.justifyContent='center'; this.parentElement.innerHTML+='<div style=\'font-size:0.8rem;color:grey;padding:1rem;\'>Image not available</div>';">
+                          <img src="{image_url}" alt="{safe_title}" onerror="this.style.display='none'; this.parentElement.style.justifyContent='center'; this.parentElement.innerHTML += '<div class=\\'flip-card-image-error-text\\'>Image not available</div>';">
                           <div class="flip-title">{safe_title}</div>
                         </div>
                         <div class="flip-card-back">
@@ -1060,7 +1060,7 @@ def create_featured_paper_card(paper: Dict) -> None:
     <div class="flip-card" style="width: 450px; height: 400px; margin: 0 auto;">  <!-- Centered with fixed width -->
       <div class="flip-card-inner">
         <div class="flip-card-front">
-          <img src="{image_url}" alt="{safe_title}" onerror="this.style.display='none';">
+          <img src="{image_url}" alt="{safe_title}" onerror="this.style.display='none'; this.parentElement.style.justifyContent='center'; this.parentElement.innerHTML += '<div class=\'flip-card-image-error-text\'>Image not available</div>';">
           <div class="flip-title">{safe_title}</div>
         </div>
         <div class="flip-card-back">
@@ -1226,47 +1226,74 @@ def inject_flip_card_css():
     }
     .flip-card-front {
       background-color: var(--secondary-background-color, #fafafa);
-      /* border: 1px solid var(--secondary-background-color, #eee); */ /* Optional border */
     }
     .flip-card-back {
       background-color: var(--background-color, #fff);
       color: var(--text-color, #333);
       transform: rotateY(180deg);
       padding: 1rem;
-      display: flex; /* For centering content */
+      display: flex; 
       flex-direction: column;
-      justify-content: center; /* Center content vertically */
-      align-items: center; /* Center content horizontally */
-      /* border: 1px solid var(--secondary-background-color, #ddd); */ /* Optional border */
+      justify-content: center; 
+      align-items: center; 
     }
     .flip-card-front img {
       width: 100%;
-      height: 80%; /* Adjust image height within the card */
-      object-fit: cover; /* Cover ensures the image fills the space well */
+      height: 80%; 
+      object-fit: cover; 
     }
     .flip-title {
       font-weight: 600;
       font-size: 0.95rem;
-      color: var(--arxiv-red, #b31b1b);
-      padding: 0.75rem 0.5rem; /* Padding around the title */
+      color: var(--arxiv-red, #b31b1b); 
+      padding: 0.75rem 0.5rem; 
       text-align: center;
-      height: 20%; /* Remaining space for title */
+      height: 20%; 
       display: flex;
-      align-items: center; /* Vertically center title text */
-      justify-content: center; /* Horizontally center title text */
-      overflow: hidden; /* Prevent long titles from breaking layout */
+      align-items: center; 
+      justify-content: center; 
+      overflow: hidden; 
       text-overflow: ellipsis;
-      /* white-space: nowrap; */ /* if you want single line title */
     }
     .flip-card-back-content {
         font-size: 0.85rem;
         line-height: 1.4;
-        margin-bottom: 1rem; /* Space between text and button */
-        max-height: 80%; /* Allow content to scroll if it's too long */
+        margin-bottom: 1rem; 
+        max-height: 80%; 
         overflow-y: auto;
+        color: var(--text-color, #333); /* Ensure text color is themed */
     }
     .flip-card-back .read-more-button-container {
-        margin-top: auto; /* Pushes button to the bottom if not enough content */
+        margin-top: auto; 
+    }
+    .flip-card-image-error-text {
+        font-size: 0.8rem;
+        color: var(--text-color, #555555); /* Default slightly muted text */
+        opacity: 0.7;
+        padding: 1rem;
+        box-sizing: border-box; /* Ensure padding is included in dimensions */
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Dark mode specific styles */
+    @media (prefers-color-scheme: dark) {
+        .flip-card-front {
+            background-color: var(--secondary-background-color, #262730); /* Streamlit's dark secondary_background_color */
+        }
+        .flip-card-back {
+            background-color: var(--background-color, #0E1117); /* Streamlit's dark background_color */
+            color: var(--text-color, #FAFAFA); /* Streamlit's dark text_color */
+        }
+        .flip-card-back-content {
+            color: var(--text-color, #FAFAFA); /* Ensure text color is themed for dark mode */
+        }
+        .flip-card-image-error-text {
+            color: var(--text-color, #AAAAAA); /* Lighter gray for dark mode */
+        }
     }
     </style>
     """, unsafe_allow_html=True)
