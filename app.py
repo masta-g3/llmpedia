@@ -455,7 +455,7 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
     current_actual_toggle_state = st.session_state.get("toggle_trending_papers", True)
 
     if current_actual_toggle_state:
-        st.markdown(f"### 📈 Trending on X.com (Last {trending_window} days)")
+        st.markdown(f"### 📈 Trending on *X.com* (Last {trending_window} days)")
     else:
         st.markdown(f"### 🏆 Top Cited Papers (Last {citation_window} days)")
 
