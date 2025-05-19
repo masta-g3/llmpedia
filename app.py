@@ -716,7 +716,7 @@ def main():
                     "Other (specify)",
                 ]
                 selected_option = st.radio(
-                    "Most desired upcoming feature:",
+                    "*Most desired upcoming feature:*",
                     options=default_options,
                     key="feature_poll_option",
                     disabled=has_voted,

@@ -122,19 +122,19 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         if mode == "open":
             expanded = True
         paper_code = paper["arxiv_code"]
-        
+
         # Image column
         try:
             img_cols[0].image(
-                f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png", 
-                use_container_width=True
+                f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png",
+                use_container_width=True,
             )
         except:
             pass
 
         # Metadata column
         meta_col = img_cols[1]
-        
+
         # Title with link
         paper_title = paper["title"]
         paper_url = paper["url"]
@@ -146,21 +146,24 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         # Publication date
         pub_date = pd.to_datetime(paper["published"]).strftime("%d %b %Y")
         meta_col.markdown(
-            f"<p style='margin-bottom: 0.5em; color: #666;'><span style='display: inline-flex; align-items: center;'>📅 <span style='margin-left: 4px;'>{pub_date}</span></span></p>", 
-            unsafe_allow_html=True
+            f"<p style='margin-bottom: 0.5em; color: #666;'><span style='display: inline-flex; align-items: center;'>📅 <span style='margin-left: 4px;'>{pub_date}</span></span></p>",
+            unsafe_allow_html=True,
         )
-        
+
         # Topic with enhanced styling
         if "topic" in paper and not pd.isna(paper["topic"]):
             topic = paper["topic"]
-            meta_col.markdown(f"""<p style='margin-bottom: 0.5em;'>
+            meta_col.markdown(
+                f"""<p style='margin-bottom: 0.5em;'>
                 <span style='
                     background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.1)); 
                     padding: 4px 12px; 
                     border-radius: 12px; 
                     font-size: 0.95em;
                     color: var(--text-color, currentColor);
-                '>{topic}</span></p>""", unsafe_allow_html=True)
+                '>{topic}</span></p>""",
+                unsafe_allow_html=True,
+            )
 
         # Authors and citations in smaller text
         influential_citations = int(paper["influential_citation_count"])
@@ -168,7 +171,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         citation_text = f"{citation_count} citation{'s' if citation_count != 1 else ''}"
         if influential_citations > 0:
             citation_text += f" (⭐️ {influential_citations} influential)"
-            
+
         meta_col.markdown(
             f"""<div style='margin: 0.5em 0;'>
             <p style='color: var(--text-color, #666); font-size: 0.9em; margin-bottom: 0.8em;'>{paper['authors']}</p>
@@ -184,32 +187,40 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             <span style='margin-right: 4px;'>📊</span>
             <span style='font-size: 0.9em;'>{citation_text}</span>
             </span></div></div>""",
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
         # Action buttons in a row with more spacing
         meta_col.markdown("<div style='margin: 1.5em 0;'>", unsafe_allow_html=True)
         action_btn_cols = meta_col.columns((1, 1, 1))
-        
+
         # Report button
         report_log_space = meta_col.empty()
         report_btn = action_btn_cols[0].popover("⚠️ Report")
-        if report_btn.checkbox("Report bad image", key=f"report_v1_{paper_code}_{name}"):
+        if report_btn.checkbox(
+            "Report bad image", key=f"report_v1_{paper_code}_{name}"
+        ):
             logging_db.report_issue(paper_code, "bad_image")
             report_log_space.success("Reported bad image. Thanks!")
             time.sleep(3)
             report_log_space.empty()
-        if report_btn.checkbox("Report bad summary", key=f"report_v2_{paper_code}_{name}"):
+        if report_btn.checkbox(
+            "Report bad summary", key=f"report_v2_{paper_code}_{name}"
+        ):
             logging_db.report_issue(paper_code, "bad_summary")
             report_log_space.success("Reported bad summary. Thanks!")
             time.sleep(3)
             report_log_space.empty()
-        if report_btn.checkbox("Report non-LLM paper", key=f"report_v3_{paper_code}_{name}"):
+        if report_btn.checkbox(
+            "Report non-LLM paper", key=f"report_v3_{paper_code}_{name}"
+        ):
             logging_db.report_issue(paper_code, "non_llm")
             report_log_space.success("Reported non-LLM paper. Thanks!")
             time.sleep(3)
             report_log_space.empty()
-        if report_btn.checkbox("Report bad data card", key=f"report_v4_{paper_code}_{name}"):
+        if report_btn.checkbox(
+            "Report bad data card", key=f"report_v4_{paper_code}_{name}"
+        ):
             logging_db.report_issue(paper_code, "bad_datacard")
             report_log_space.success("Reported bad data-card. Thanks!")
             time.sleep(3)
@@ -234,11 +245,11 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
 
     # Content sections using tabs
     tab_names = [
-        "❗️ Takeaways",     # Start with the most concise overview
+        "❗️ Takeaways",  # Start with the most concise overview
         "📝 Research Notes",  # More detailed analysis
-        "📖 Full Paper",     # Complete in-depth content
+        "📖 Full Paper",  # Complete in-depth content
     ]
-    
+
     # More robust repo check
     has_repos = False
     try:
@@ -250,20 +261,22 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
                 has_repos = True
     except Exception as e:
         st.error(f"Error checking repos: {e}")
-        
+
     if has_repos:
         tab_names.append("💻 Code")
-        
-    tab_names.extend([
-        "💬 Chat",
-        "🔍 Similar Papers",
-    ])
-    
+
+    tab_names.extend(
+        [
+            "💬 Chat",
+            "🔍 Similar Papers",
+        ]
+    )
+
     # Only add Insight tab if we have an insight
     if "tweet_insight" in paper and not pd.isna(paper["tweet_insight"]):
         tab_names.append("🤖 Maestro's Insight")
     tabs = st.tabs(tab_names)
-    
+
     with tabs[0]:
         st.markdown("### ❗️ Takeaways")
         bullet_summary = (
@@ -271,45 +284,45 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             if not pd.isna(paper["bullet_list_summary"])
             else "Not available yet, check back soon!"
         )
-        bullet_summary_lines = bullet_summary.split('\n')
+        bullet_summary_lines = bullet_summary.split("\n")
         numbered_summary = []
         number = 1
-        
+
         # Regex pattern for matching emojis
         emoji_pattern = re.compile(
             "["
-            "\U0001F1E0-\U0001F1FF"  # flags (iOS)
-            "\U0001F300-\U0001F5FF"  # symbols & pictographs
-            "\U0001F600-\U0001F64F"  # emoticons
-            "\U0001F680-\U0001F6FF"  # transport & map symbols
-            "\U0001F700-\U0001F77F"  # alchemical symbols
-            "\U0001F780-\U0001F7FF"  # Geometric Shapes Extended
-            "\U0001F800-\U0001F8FF"  # Supplemental Arrows-C
-            "\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs
-            "\U0001FA00-\U0001FA6F"  # Chess Symbols
-            "\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A
-            "\U00002702-\U000027B0"  # Dingbats
-            "\U000024C2-\U0001F251" 
+            "\U0001f1e0-\U0001f1ff"  # flags (iOS)
+            "\U0001f300-\U0001f5ff"  # symbols & pictographs
+            "\U0001f600-\U0001f64f"  # emoticons
+            "\U0001f680-\U0001f6ff"  # transport & map symbols
+            "\U0001f700-\U0001f77f"  # alchemical symbols
+            "\U0001f780-\U0001f7ff"  # Geometric Shapes Extended
+            "\U0001f800-\U0001f8ff"  # Supplemental Arrows-C
+            "\U0001f900-\U0001f9ff"  # Supplemental Symbols and Pictographs
+            "\U0001fa00-\U0001fa6f"  # Chess Symbols
+            "\U0001fa70-\U0001faff"  # Symbols and Pictographs Extended-A
+            "\U00002702-\U000027b0"  # Dingbats
+            "\U000024c2-\U0001f251"
             "]+",
-            flags=re.UNICODE
+            flags=re.UNICODE,
         )
-        
+
         for line in bullet_summary_lines:
-            if line.strip().startswith('- '):
+            if line.strip().startswith("- "):
                 # Remove the bullet point and clean the line
                 clean_line = line.strip()[2:].strip()
                 # Remove all emojis and extra spaces
-                clean_line = emoji_pattern.sub('', clean_line).strip()
+                clean_line = emoji_pattern.sub("", clean_line).strip()
                 numbered_summary.append(f"{number}. {clean_line}")
                 number += 1
             else:
                 # For non-bullet point lines, still remove emojis
-                clean_line = emoji_pattern.sub('', line).strip()
+                clean_line = emoji_pattern.sub("", line).strip()
                 if clean_line:  # Only add non-empty lines
                     numbered_summary.append(clean_line)
-                    
-        st.markdown('\n'.join(numbered_summary))
-            
+
+        st.markdown("\n".join(numbered_summary))
+
     with tabs[1]:  # Research Notes
         st.markdown("### 📝 Research Notes")
         level_select = st.selectbox(
@@ -339,22 +352,24 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
                 "Summary Level",
                 options=["Most Detailed", "Detailed", "Concise", "Very Concise"],
                 value="Detailed",
-                help="Adjust the level of detail in the research notes"
+                help="Adjust the level of detail in the research notes",
             )
-            
+
             # Map selection to level values (level 1 is most detailed)
             level_map = {
                 "Most Detailed": 5,  # First summary iteration (most detailed)
-                "Detailed": 3,       # Second iteration
-                "Concise": 2,        # Third iteration
-                "Very Concise": 1    # Fourth iteration (most concise)
+                "Detailed": 3,  # Second iteration
+                "Concise": 2,  # Third iteration
+                "Very Concise": 1,  # Fourth iteration (most concise)
             }
-            
+
             # Get notes based on selected level
             try:
                 selected_level = level_map[level_select]
-                detailed_notes = db.get_extended_notes(paper["arxiv_code"], level=selected_level)
-                
+                detailed_notes = db.get_extended_notes(
+                    paper["arxiv_code"], level=selected_level
+                )
+
                 if detailed_notes is None:
                     # If we're trying to get more detailed notes (lower level numbers)
                     if level_map[level_select] <= 2:
@@ -381,42 +396,44 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         if not pd.isna(paper["takeaway_title"]):
             st.markdown(f"#### {paper['takeaway_title']}")
         st.markdown(paper["takeaway_example"])
-            
+
     with tabs[2]:  # Full Paper Content
         # Fetch paper content
         markdown_content, success = au.get_paper_markdown(paper_code)
-        
+
         if success:
             # Create columns to center the content with some margin
             _, col, _ = st.columns([1, 8, 1])
-            
+
             with col:
                 # Convert markdown to HTML
                 try:
                     html_content = markdown2.markdown(
                         markdown_content,
                         extras=[
-                            'fenced-code-blocks',
-                            'tables',
-                            'header-ids',
-                            'break-on-newline',
-                            'latex',  # Add support for LaTeX conversion
-                            'math',   # Additional math support
-                        ]
+                            "fenced-code-blocks",
+                            "tables",
+                            "header-ids",
+                            "break-on-newline",
+                            "latex",  # Add support for LaTeX conversion
+                            "math",  # Additional math support
+                        ],
                     )
                 except Exception as e:
-                    st.warning(f"⚠️ LaTeX rendering failed. Falling back to plain text. Error: {str(e)}")
+                    st.warning(
+                        f"⚠️ LaTeX rendering failed. Falling back to plain text. Error: {str(e)}"
+                    )
                     # Fallback to basic conversion without LaTeX support
                     html_content = markdown2.markdown(
                         markdown_content,
                         extras=[
-                            'fenced-code-blocks',
-                            'tables',
-                            'header-ids',
-                            'break-on-newline',
-                        ]
+                            "fenced-code-blocks",
+                            "tables",
+                            "header-ids",
+                            "break-on-newline",
+                        ],
                     )
-                
+
                 # Create an HTML string with styling
                 full_html = f"""
                     <html>
@@ -462,16 +479,12 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
                         </body>
                     </html>
                 """
-                
+
                 # Use the components.html to create a scrollable iframe
-                components.html(
-                    full_html,
-                    height=800,
-                    scrolling=True
-                )
+                components.html(full_html, height=800, scrolling=True)
         else:
             st.warning(markdown_content)
-            
+
     # Code & Resources tab (shown if repos exist)
     tab_index = 3
     if has_repos:
@@ -479,18 +492,20 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             paper_repos = st.session_state["repos"].loc[paper_code]
             if isinstance(paper_repos, pd.Series):
                 paper_repos = pd.DataFrame([paper_repos])
-            
+
             # Convert to list of dictionaries for easier iteration
-            repos_list = paper_repos.to_dict('records')
+            repos_list = paper_repos.to_dict("records")
             for idx, repo in enumerate(repos_list):
                 st.markdown(f"### {repo['repo_title']}")
-                st.markdown(f"🔗 **Repository:** [{repo['repo_url']}]({repo['repo_url']})")
+                st.markdown(
+                    f"🔗 **Repository:** [{repo['repo_url']}]({repo['repo_url']})"
+                )
                 st.markdown(f"📝 **Description:** {repo['repo_description']}")
                 # Only add separator if it's not the last repo
                 if idx < len(repos_list) - 1:
                     st.markdown("---")
         tab_index += 1
-            
+
     with tabs[tab_index]:  # Chat
         paper_question = st.text_area(
             "Ask GPT Maestro about this paper.",
@@ -503,7 +518,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             )
             logging_db.log_qna_db(f"[{paper_code}] ::: {paper_question}", response)
             st.chat_message("assistant").write(response)
-            
+
     with tabs[tab_index + 1]:  # Similar Papers
         papers_df = st.session_state["papers"]
         if paper_code in papers_df.index:
@@ -534,18 +549,22 @@ def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
         for j in range(n_cols):
             if i * n_cols + j < len(df):
                 paper_data = df.iloc[i * n_cols + j]
-                paper_code = paper_data['arxiv_code']
+                paper_code = paper_data["arxiv_code"]
                 paper_title = paper_data["title"].replace("\n", "")
                 punchline = paper_data.get("punchline", "Summary not available.")
-                
+
                 # Sanitize for HTML
                 safe_title = html_escape(paper_title)
-                safe_punchline = html_escape(punchline if pd.notna(punchline) else "Summary not available.")
+                safe_punchline = html_escape(
+                    punchline if pd.notna(punchline) else "Summary not available."
+                )
 
                 if image_type == "first_page":
                     image_url = f"https://arxiv-first-page.s3.us-east-1.amazonaws.com/{paper_code}.png"
-                else: # Default to artwork
-                    image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
+                else:  # Default to artwork
+                    image_url = (
+                        f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
+                    )
 
                 with cols[j]:
                     card_html = f"""
@@ -563,10 +582,12 @@ def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
                     </div>
                     """
                     st.markdown(card_html, unsafe_allow_html=True)
-                    
+
                     # Star and publish date (remains below the card)
                     star_count = paper_data["influential_citation_count"] > 0
-                    publish_date = pd.to_datetime(paper_data["published"]).strftime("%b %d, %Y")
+                    publish_date = pd.to_datetime(paper_data["published"]).strftime(
+                        "%b %d, %Y"
+                    )
                     star = "⭐️" if star_count else ""
                     centered_code = f"""
                     <div class="centered" style="text-align: center; font-size: 0.85em; margin-top: -0.5rem; margin-bottom: 0.5rem;">
@@ -579,11 +600,15 @@ def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
                     if st.button(
                         "Read More",
                         key=f"focus_flip_{paper_code}{extra_key}",
-                        help=punchline if isinstance(punchline, str) and pd.notna(punchline) else None,
+                        help=(
+                            punchline
+                            if isinstance(punchline, str) and pd.notna(punchline)
+                            else None
+                        ),
                         use_container_width=True,
                     ):
                         st.session_state.arxiv_code = paper_code
-                        click_tab(3) # Assumes tab 3 is the detailed view
+                        click_tab(3)  # Assumes tab 3 is the detailed view
                         st.rerun()
 
 
@@ -603,9 +628,13 @@ def generate_citations_list(df: pd.DataFrame) -> None:
         # Build HTML components separately
         star_badge = " ⭐️" if influential_count > 0 else ""
         citation_text = f"citation{'s' if citation_count != 1 else ''}"
-        punchline_div = f'<div style="margin-top: 12px; font-style: italic; color: var(--text-color, #666);">{punchline}</div>' if punchline else ''
-        
-        citation_html = f'''
+        punchline_div = (
+            f'<div style="margin-top: 12px; font-style: italic; color: var(--text-color, #666);">{punchline}</div>'
+            if punchline
+            else ""
+        )
+
+        citation_html = f"""
         <div style="margin: 20px 0; padding: 20px; border-radius: 8px; border-left: 4px solid var(--arxiv-red);">
             <div style="margin-bottom: 12px;">
                 <span onclick="parent.postMessage({{cmd: 'streamlit:setComponentValue', args: {{value: '{paper_code}', dataType: 'str', key: 'arxiv_code'}}}}, '*')" style="color: var(--arxiv-red); text-decoration: none; font-size: 1.1em; font-weight: bold; cursor: pointer;">{title}</span>{star_badge}
@@ -624,10 +653,10 @@ def generate_citations_list(df: pd.DataFrame) -> None:
             </div>
             {punchline_div}
         </div>
-        '''
-        
+        """
+
         st.markdown(citation_html, unsafe_allow_html=True)
-        
+
         # Hidden button to handle tab switching after state is set
         if paper_code == st.session_state.get("arxiv_code"):
             click_tab(3)
@@ -636,7 +665,8 @@ def generate_citations_list(df: pd.DataFrame) -> None:
 
 def generate_paper_table(df, extra_key=""):
     """Create a stylized table view of papers with key information."""
-    st.markdown("""
+    st.markdown(
+        """
     <style>
     /* ---------- TABLE CONTAINER & HEADER ---------- */
     .paper-header {
@@ -724,7 +754,9 @@ def generate_paper_table(df, extra_key=""):
         }
     }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     # Updated column width ratios for better spacing
     col_spec = [3.5, 0.9, 0.9, 1.2, 0.8]
@@ -742,68 +774,84 @@ def generate_paper_table(df, extra_key=""):
 
     # Format function for titles
     def format_title(row):
-        title = row['title'].replace("\n", "")
-        star = "⭐️ " if row.get('influential_citation_count', 0) > 0 else ""
+        title = row["title"].replace("\n", "")
+        star = "⭐️ " if row.get("influential_citation_count", 0) > 0 else ""
         return f"{star}{title}"
 
     # Create a simple table with all papers
     for i, paper in df.iterrows():
-        paper_code = paper['arxiv_code']
+        paper_code = paper["arxiv_code"]
         title = format_title(paper)
-        citations = int(paper.get('citation_count', 0))
-        influential = int(paper.get('influential_citation_count', 0))
-        published = pd.to_datetime(paper['published']).strftime("%b %d, %Y")
-        
+        citations = int(paper.get("citation_count", 0))
+        influential = int(paper.get("influential_citation_count", 0))
+        published = pd.to_datetime(paper["published"]).strftime("%b %d, %Y")
+
         # Create a container for the row
         st.markdown("<div class='paper-row'>", unsafe_allow_html=True)
-        
+
         # Create a row for each paper
         cols = st.columns(col_spec)
-        
+
         # Get punchline for tooltip if available
         punchline = paper.get("punchline", "")
         if isinstance(punchline, str) and punchline:
             # Escape HTML and quotes in punchline to avoid breaking the HTML
-            punchline = punchline.replace("'", "&#39;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
-            punchline_text = f" title=\"{punchline}\""
+            punchline = (
+                punchline.replace("'", "&#39;")
+                .replace('"', "&quot;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+            )
+            punchline_text = f' title="{punchline}"'
         else:
             punchline_text = ""
-        
+
         # Add URL to title
         paper_url = paper.get("url", "")
         title_html = f"<a href='{paper_url}' target='_blank' class='title-link' style='color: var(--arxiv-red);'{punchline_text}>{title}</a>"
-        
+
         # Add authors truncated
         authors = paper.get("authors", "")
         if len(authors) > 70:
             authors = authors[:70] + "..."
         authors_html = f"<div style='font-size: 0.85em; color: var(--text-color, #666);'>{authors}</div>"
-        
+
         # Combine title and authors
         cols[0].markdown(f"{title_html}{authors_html}", unsafe_allow_html=True)
-        
+
         # Format counts with nice styling and SVG icons
-        cols[1].markdown(f"""<div class='paper-cell' style='text-align: center;'>
+        cols[1].markdown(
+            f"""<div class='paper-cell' style='text-align: center;'>
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; opacity: 0.7; margin-right: 3px;"><path d="M17 6.1H3M21 12.1H3M21 18.1H3"></path></svg>
             {citations}
-        </div>""", unsafe_allow_html=True)
-        
-        cols[2].markdown(f"""<div class='paper-cell' style='text-align: center;'>
+        </div>""",
+            unsafe_allow_html=True,
+        )
+
+        cols[2].markdown(
+            f"""<div class='paper-cell' style='text-align: center;'>
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; opacity: 0.7; margin-right: 3px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
             {influential}
-        </div>""", unsafe_allow_html=True)
-        
+        </div>""",
+            unsafe_allow_html=True,
+        )
+
         # Date with nice styling and calendar icon
-        cols[3].markdown(f"""<div class='paper-cell'>
+        cols[3].markdown(
+            f"""<div class='paper-cell'>
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; opacity: 0.7; margin-right: 3px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
             {published}
-        </div>""", unsafe_allow_html=True)
-        
+        </div>""",
+            unsafe_allow_html=True,
+        )
+
         # Button styled as HTML but triggered by Streamlit button with width constraint (set in CSS)
-        if cols[4].button("Read More", key=f"btn_{paper_code}_{extra_key}", use_container_width=True):
+        if cols[4].button(
+            "Read More", key=f"btn_{paper_code}_{extra_key}", use_container_width=True
+        ):
             st.session_state.arxiv_code = paper_code
             click_tab(3)
-            
+
         st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -879,7 +927,8 @@ def generate_mini_paper_table(
 ):
     """Create a compact table of top papers for dashboard display with a configurable metric column."""
     # Add custom styling for the mini table
-    st.markdown("""
+    st.markdown(
+        """
     <style>
     .mini-paper-row {
         border-bottom: 1px solid rgba(128, 128, 128, 0.2);
@@ -972,71 +1021,94 @@ def generate_mini_paper_table(
         }
     }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     # Only take the top n papers
     display_df = df.head(n) if len(df) > n else df
 
     # Create a header row using styled divs and flexbox
-    st.markdown(f"""
+    st.markdown(
+        f"""
     <div class='mini-paper-header'>
         <div class='mini-image-col'></div> <!-- Placeholder for image header -->
         <div class='mini-content-col'><strong>Details</strong></div>
         <div class='mini-citation-col'><strong>{metric_name}</strong></div>
         <div class='mini-action-col'></div> <!-- Placeholder for action header -->
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     # Format function for titles, reused from generate_paper_table
     def format_title(row):
-        title = row['title'].replace("\n", "")
-        star = "⭐️ " if row.get('influential_citation_count', 0) > 0 else ""
+        title = row["title"].replace("\n", "")
+        star = "⭐️ " if row.get("influential_citation_count", 0) > 0 else ""
         return f"{star}{title}"
 
     # Create a simple table with top papers
     for _, paper in display_df.iterrows():
-        paper_code = paper['arxiv_code']
+        paper_code = paper["arxiv_code"]
         title = format_title(paper)
         citations = int(paper.get(metric_col, 0))
         punchline = paper.get("punchline", "")
         authors = paper.get("authors", "")
-        if len(authors) > 50: # Truncate authors
+        if len(authors) > 50:  # Truncate authors
             authors = authors[:50] + "..."
 
         # Image URL
         image_url = f"https://arxiv-art.s3.amazonaws.com/{paper_code}.png"
         # Fallback image (optional, e.g., a generic icon or placeholder)
-        fallback_image_url = "https://via.placeholder.com/50x50/eee/ccc?text=?" # Example placeholder
+        fallback_image_url = (
+            "https://via.placeholder.com/50x50/eee/ccc?text=?"  # Example placeholder
+        )
 
         # Create a container for the row with flexbox
-        row_cols = st.columns([0.8, 4, 0.8, 0.8], gap="small") # Adjust ratios for new layout
+        row_cols = st.columns(
+            [0.8, 4, 0.8, 0.8], gap="small"
+        )  # Adjust ratios for new layout
 
-        with row_cols[0]: # Image Column
+        with row_cols[0]:  # Image Column
             # Display image using container width
-            st.image(image_url, use_container_width=True) # Changed width to use_container_width
+            st.image(
+                image_url, use_container_width=True
+            )  # Changed width to use_container_width
 
-        with row_cols[1]: # Content Column (Title, Punchline, Authors)
+        with row_cols[1]:  # Content Column (Title, Punchline, Authors)
             paper_url = paper.get("url", "")
             # Title link
             title_html = f"<a href='{paper_url}' target='_blank' class='mini-title-link' style='color: var(--arxiv-red);'>{title}</a>"
             st.markdown(title_html, unsafe_allow_html=True)
             # Punchline
             if punchline and pd.notna(punchline):
-                st.markdown(f"<div class='mini-punchline'>{punchline}</div>", unsafe_allow_html=True)
+                st.markdown(
+                    f"<div class='mini-punchline'>{punchline}</div>",
+                    unsafe_allow_html=True,
+                )
             # Authors
-            st.markdown(f"<div class='mini-authors'>{authors}</div>", unsafe_allow_html=True)
+            st.markdown(
+                f"<div class='mini-authors'>{authors}</div>", unsafe_allow_html=True
+            )
 
-        with row_cols[2]: # Citation Column
+        with row_cols[2]:  # Citation Column
             # Format citation count with icon - centered
-            st.markdown(f"""<div style='text-align: center; padding-top: 10px;'>
+            st.markdown(
+                f"""<div style='text-align: center; padding-top: 10px;'>
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; opacity: 0.7; margin-right: 3px;"><path d="M17 6.1H3M21 12.1H3M21 18.1H3"></path></svg>
                 {citations}
-            </div>""", unsafe_allow_html=True)
+            </div>""",
+                unsafe_allow_html=True,
+            )
 
-        with row_cols[3]: # Action Column
-             # Use a container to help with centering the button
-             with st.container():
-                if st.button("Read More", key=f"mini_btn_{paper_code}_{extra_key}", use_container_width=True):
+        with row_cols[3]:  # Action Column
+            # Use a container to help with centering the button
+            with st.container():
+                if st.button(
+                    "Read More",
+                    key=f"mini_btn_{paper_code}_{extra_key}",
+                    use_container_width=True,
+                ):
                     st.session_state.arxiv_code = paper_code
                     click_tab(3)
 
@@ -1048,7 +1120,7 @@ def create_featured_paper_card(paper: Dict) -> None:
     """Creates a featured paper card using the weekly highlight with a flip effect."""
     st.markdown("### ⭐ Featured Paper")
     paper_code = paper.get("arxiv_code", "")
-    title = paper.get('title', 'Featured Paper')
+    title = paper.get("title", "Featured Paper")
     punchline = paper.get("punchline", "No summary available.")
     image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
 
@@ -1057,7 +1129,7 @@ def create_featured_paper_card(paper: Dict) -> None:
     safe_punchline = html_escape(punchline)
 
     card_html = f"""
-    <div class="flip-card" style="width: 450px; height: 400px; margin: 0 auto;">  <!-- Centered with fixed width -->
+    <div class="flip-card" style="width: 450px; height: 550px; margin: 0 auto;">  <!-- Adjusted height for taller card -->
       <div class="flip-card-inner">
         <div class="flip-card-front">
           <img src="{image_url}" alt="{safe_title}" onerror="this.style.display='none'; this.parentElement.style.justifyContent='center'; this.parentElement.innerHTML += '<div class=\'flip-card-image-error-text\'>Image not available</div>';">
@@ -1073,22 +1145,25 @@ def create_featured_paper_card(paper: Dict) -> None:
     st.markdown(card_html, unsafe_allow_html=True)
 
     # Streamlit button for interaction - placed below the card
-    button_cols = st.columns([1, 2, 1]) # Adjust columns to center the button if needed
+    button_cols = st.columns([1, 2, 1])  # Adjust columns to center the button if needed
     with button_cols[1]:
-        if st.button("Read More", key=f"featured_flip_{paper_code}", use_container_width=True):
+        if st.button(
+            "Read More", key=f"featured_flip_{paper_code}", use_container_width=True
+        ):
             st.session_state.arxiv_code = paper_code
-            click_tab(3) # Assumes tab 3 is the detailed view
+            click_tab(3)  # Assumes tab 3 is the detailed view
             st.rerun()
 
 
 def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
-    """ Displays a grid of interesting facts from papers. """
+    """Displays a grid of interesting facts from papers."""
     if not facts_list:
         st.info("No interesting facts found.")
         return
-    
+
     # Add custom styling for dark mode compatibility
-    st.markdown("""
+    st.markdown(
+        """
     <style>
     /* Dark mode support for fact cards */
     @media (prefers-color-scheme: dark) {
@@ -1104,25 +1179,26 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
         }
     }
     </style>
-    """, unsafe_allow_html=True)
-        
+    """,
+        unsafe_allow_html=True,
+    )
+
     # Create a multi-column layout
     cols = st.columns(n_cols)
-    
+
     # Distribute facts among columns
     for i, fact in enumerate(facts_list):
         col_idx = i % n_cols
-        
+
         # Get topic if papers_df is provided
         topic = None
         topic_full = None
-        if papers_df is not None and 'arxiv_code' in fact:
-            arxiv_code = fact['arxiv_code']
-            if arxiv_code in papers_df.index and 'topic' in papers_df.columns:
-                topic_full = papers_df.loc[arxiv_code, 'topic']
+        if papers_df is not None and "arxiv_code" in fact:
+            arxiv_code = fact["arxiv_code"]
+            if arxiv_code in papers_df.index and "topic" in papers_df.columns:
+                topic_full = papers_df.loc[arxiv_code, "topic"]
                 topic = topic_full[:30] + "..." if len(topic_full) > 30 else topic_full
 
-        
         with cols[col_idx]:
             # Create a container with padding and subtle border
             with st.container():
@@ -1151,7 +1227,7 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
                         </p>
                     </div>
                     </div>""",
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
 
 
@@ -1170,7 +1246,9 @@ def display_tweet_summaries(df, max_entries: int = 8):
     df["tstp"] = pd.to_datetime(df["tstp"])
 
     # Build scrollable HTML block
-    container_open = "<div style='max-height: 250px; overflow-y: auto; padding-right: 8px;'>"
+    container_open = (
+        "<div style='max-height: 250px; overflow-y: auto; padding-right: 8px;'>"
+    )
     html_blocks = [container_open]
 
     for _, row in df.iterrows():
@@ -1191,12 +1269,13 @@ def display_tweet_summaries(df, max_entries: int = 8):
 
 def inject_flip_card_css():
     """Injects CSS for the flip card effect."""
-    st.markdown("""
+    st.markdown(
+        """
     <style>
     .flip-card {
       background-color: transparent;
       width: 100%; /* Make it responsive to column width */
-      height: 380px; /* Adjust height as needed */
+      height: 450px; /* Adjusted height for taller cards */
       perspective: 1000px;
       margin-bottom: 1rem; /* Add some space below the card */
     }
@@ -1296,4 +1375,6 @@ def inject_flip_card_css():
         }
     }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
