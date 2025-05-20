@@ -1111,6 +1111,7 @@ def generate_mini_paper_table(
                 ):
                     st.session_state.arxiv_code = paper_code
                     click_tab(3)
+                    st.rerun()
 
     if len(df) > n:
         st.caption(f"Showing top {n} of {len(df)} papers")
