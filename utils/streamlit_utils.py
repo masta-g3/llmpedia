@@ -346,7 +346,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
 
         # Map selection to level values (level 1 is most detailed)
         level_map = {
-            "Most Detailed": 20,  # Most detailed level
+            # "Most Detailed": 20,  # Most detailed level
             "Detailed": 10,       # Detailed level
             "Concise": 5,         # Concise level
             "Very Concise": 3,    # More concise
