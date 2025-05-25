@@ -343,6 +343,17 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         )
         markdown_summary = paper["markdown_notes"]
 
+
+        # Map selection to level values (level 1 is most detailed)
+        level_map = {
+            "Most Detailed": 20,  # Most detailed level
+            "Detailed": 10,       # Detailed level
+            "Concise": 5,         # Concise level
+            "Very Concise": 3,    # More concise
+            # "Brief": 2,           # Brief level
+            "Minimal": 1,         # Most concise level
+        }
+
         if level_select == "📝 High-Level Overview":
             st.markdown(summary)
 
@@ -350,18 +361,11 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             # Add level selector with predefined values
             level_select = st.select_slider(
                 "Summary Level",
-                options=["Most Detailed", "Detailed", "Concise", "Very Concise"],
+                options=level_map.keys(),
                 value="Detailed",
                 help="Adjust the level of detail in the research notes",
             )
 
-            # Map selection to level values (level 1 is most detailed)
-            level_map = {
-                "Most Detailed": 5,  # First summary iteration (most detailed)
-                "Detailed": 3,  # Second iteration
-                "Concise": 2,  # Third iteration
-                "Very Concise": 1,  # Fourth iteration (most concise)
-            }
 
             # Get notes based on selected level
             try:
