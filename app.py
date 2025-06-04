@@ -53,8 +53,7 @@ if "arxiv_code" not in st.session_state:
 if "all_years" not in st.session_state:
     st.session_state.all_years = False
 
-if "facts_refresh_trigger" not in st.session_state:
-    st.session_state.facts_refresh_trigger = 0
+
 
 # Chat-related state variables
 if "chat_response" not in st.session_state:
@@ -203,7 +202,7 @@ def initialize_weekly_summary(date_report: str):
 
 
 @st.cache_data(ttl=timedelta(hours=6))
-def get_random_interesting_facts(n=10, recency_days=7, _trigger: int = 0) -> List[Dict]:
+def get_random_interesting_facts(n=10, recency_days=7) -> List[Dict]:
     """Get random interesting facts from the database with caching."""
     return db.get_random_interesting_facts(n=n, recency_days=recency_days)
 
@@ -508,6 +507,7 @@ def main():
         help="Welcome to LLMpedia, your curated guide to Large Language Model research, brought to you by GPT Maestro. "
         "Our pixel art illustrations and structured summaries make complex research accessible. "
         "Have questions or interested in LLM research? Chat with the Maestro or follow us [@GPTMaestro](https://twitter.com/GPTMaestro) for the latest updates.\n\n"
+        "Dedicated to every researcher advancing our understanding, one paper at a time 📚✨\n\n"
         "*Buona lettura!*",
     )
     ## Main content.
@@ -676,17 +676,21 @@ def main():
                 fact_list = get_random_interesting_facts(
                     n=1,
                     recency_days=30,  # Consider if this window is too narrow or too wide
-                    _trigger=st.session_state.facts_refresh_trigger,
                 )
                 # full_papers_df is defined in the main() scope and should be accessible
                 # If not, it might need to be passed or accessed via st.session_state.papers
                 su.display_interesting_facts(
                     fact_list, n_cols=1, papers_df=full_papers_df
                 )
-                # Refresh button to get a new fact
-                if st.button("🔄 New Fact", key="refresh_fact_single_fragment"):
-                    st.session_state.facts_refresh_trigger += 1
-                    st.rerun()  # This will rerun only this fragment
+                
+                # Read More button to view the paper details
+                if fact_list and len(fact_list) > 0:
+                    arxiv_code = fact_list[0].get("arxiv_code", "")
+                    if st.button("📖 Read More", key="read_more_fact_fragment"):
+                        if arxiv_code:
+                            st.session_state.arxiv_code = arxiv_code
+                            su.click_tab(3)  # Navigate to paper details tab
+                            st.rerun()
 
             interesting_fact_display()
 
