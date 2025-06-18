@@ -51,7 +51,8 @@ The application is organized into tabs:
    - Paginated navigation
 
 3. **🗺️ Statistics & Topics**: Visualizations of publication trends and topics
-   - Publication count charts (daily and cumulative)
+   - Publication count charts with enhanced views (Total Volume or By Topics)
+   - Dual-mode visualization: Daily vs Cumulative display for both total volume and topic breakdowns
    - Topic model map for exploring paper clusters
 
 4. **🔍 Paper Details**: Detailed view of a specific paper
@@ -74,13 +75,15 @@ The application is organized into tabs:
 
 ### Visualization (utils/plots.py)
 
-- `plot_publication_counts()`: Line/bar chart of papers published
+- `plot_publication_counts()`: Line/bar chart of total papers published over time
+- `plot_publication_counts_by_topics()`: Enhanced chart showing publication counts grouped by research topics with top 10 filtering
 - `plot_activity_map()`: Calendar heatmap of publication activity
 - `plot_weekly_activity_ts()`: Time series of weekly publication activity
 - `plot_cluster_map()`: Scatter plot of paper topics using UMAP embeddings
 - `plot_repos_by_feature()`: Bar chart of repositories by feature
 - `plot_category_distribution()`: Horizontal bar chart of paper categories
 - `plot_trending_words()`: Horizontal bar chart of trending words in paper titles
+- `plot_top_topics()`: Pie chart of the most popular research topics
 
 ## Data Flow Overview
 

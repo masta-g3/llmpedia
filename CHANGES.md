@@ -1,5 +1,30 @@
 # Changes Log
 
+## Enhanced Time Series Visualization (2024-12-XX)
+
+Enhanced the Statistics & Topics tab with improved publication time series visualization:
+
+### Key Improvements
+- Added dual-mode view selector: "Total Volume" vs "By Topics" for publication charts
+- Implemented topic-grouped time series showing the top 10 most popular research topics
+- Maintained existing daily/cumulative toggle functionality for both view modes
+- Added intelligent topic grouping with "Others" category for less common topics
+- Enhanced visual design with consistent color palette and improved legend styling
+
+### Technical Changes
+- Added `plot_publication_counts_by_topics()` function in `utils/plots.py` for topic-based visualization
+- Enhanced UI controls with clear help text and improved user guidance
+- Implemented smart color assignment with theme-consistent palette and distinct "Others" coloring
+- Added proper topic ordering (by popularity) and legend styling for better readability
+- Maintained backward compatibility with existing `plot_publication_counts()` function
+- Added category ordering to ensure consistent topic display across charts
+
+### User Experience Improvements
+- Clean, modern UI controls with helpful tooltips
+- Seamless switching between total volume and topic breakdown views
+- Visual consistency with existing app theme and color scheme
+- Responsive legend placement and styling for optimal chart readability
+
 ## Code Refactoring (2024-06-10)
 
 Refactored the trending topics analysis code for better maintainability:

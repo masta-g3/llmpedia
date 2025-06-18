@@ -40,6 +40,137 @@ def plot_publication_counts(df: pd.DataFrame, cumulative=False) -> go.Figure:
     return fig
 
 
+def plot_publication_counts_by_topics(df: pd.DataFrame, cumulative=False, top_n=10) -> go.Figure:
+    """Plot publication counts grouped by topics over time."""
+    df = df.copy()
+    df["published"] = pd.to_datetime(df["published"])
+    df["published"] = df["published"].dt.date
+    
+    ## Get top N topics by total count
+    topic_counts = df["topic"].value_counts()
+    top_topics = topic_counts.head(top_n).index.tolist()
+    
+    ## Group less common topics as "Others" only if there are more than top_n topics
+    if len(topic_counts) > top_n:
+        df["topic_grouped"] = df["topic"].apply(
+            lambda x: x if x in top_topics else "Others"
+        )
+    else:
+        df["topic_grouped"] = df["topic"]
+    
+    ## Group by date and topic
+    grouped_df = (
+        df.groupby(["published", "topic_grouped"])["title"]
+        .nunique()
+        .reset_index()
+    )
+    grouped_df.columns = ["published", "topic", "count"]
+    grouped_df["published"] = pd.to_datetime(grouped_df["published"])
+    grouped_df = grouped_df.sort_values("published")
+    
+    ## Sort topics by total count (Others always last if present)
+    topic_order = []
+    for topic in topic_counts.head(top_n).index:
+        if topic in grouped_df["topic"].unique():
+            topic_order.append(topic)
+    if "Others" in grouped_df["topic"].unique():
+        topic_order.append("Others")
+    
+    ## Create color palette - use consistent theme colors with variations
+    base_colors = ["#b31b1b", "#c93232", "#e04848", "#e87070", "#f09898", "#f8c0c0"]
+    ## Extend palette if needed
+    colors = []
+    unique_topics = topic_order
+    for i in range(len(unique_topics)):
+        if i < len(base_colors):
+            colors.append(base_colors[i])
+        else:
+            ## Generate variations of the theme colors
+            base_idx = i % len(base_colors)
+            opacity = max(0.4, 0.9 - (i - len(base_colors)) * 0.1)
+            base_color = base_colors[base_idx]
+            ## Convert hex to rgba with opacity
+            r = int(base_color[1:3], 16)
+            g = int(base_color[3:5], 16)
+            b = int(base_color[5:7], 16)
+            colors.append(f"rgba({r}, {g}, {b}, {opacity})")
+    
+    ## Ensure "Others" gets a distinct gray color if present
+    if "Others" in unique_topics:
+        others_idx = unique_topics.index("Others")
+        colors[others_idx] = "#888888"
+    
+    if cumulative:
+        ## Calculate cumulative properly for stacked area chart
+        ## Create a complete date range to ensure proper cumulative calculation
+        all_dates = pd.date_range(
+            start=grouped_df["published"].min(),
+            end=grouped_df["published"].max(),
+            freq="D"
+        )
+        
+        ## Create complete dataframe with all date-topic combinations
+        complete_df = pd.DataFrame()
+        for topic in topic_order:
+            topic_df = pd.DataFrame({"published": all_dates, "topic": topic})
+            complete_df = pd.concat([complete_df, topic_df], ignore_index=True)
+        
+        ## Merge with actual data
+        complete_df = complete_df.merge(
+            grouped_df[["published", "topic", "count"]], 
+            on=["published", "topic"], 
+            how="left"
+        ).fillna({"count": 0})
+        
+        ## Calculate cumulative by topic (each topic's own cumulative sum)
+        complete_df = complete_df.sort_values(["topic", "published"])
+        complete_df["cumulative_count"] = complete_df.groupby("topic")["count"].cumsum()
+        
+        fig = px.area(
+            complete_df,
+            x="published",
+            y="cumulative_count",
+            color="topic",
+            title=None,
+            color_discrete_sequence=colors,
+            labels={"cumulative_count": "# Papers Published (Cumulative)"},
+            category_orders={"topic": topic_order}
+        )
+    else:
+        fig = px.bar(
+            grouped_df,
+            x="published",
+            y="count",
+            color="topic",
+            title=None,
+            color_discrete_sequence=colors,
+            labels={"count": "# Papers Published"},
+            category_orders={"topic": topic_order}
+        )
+    
+    fig.update_xaxes(title=None, tickfont=dict(size=17))
+    fig.update_yaxes(title_font=dict(size=18), tickfont=dict(size=17))
+    fig.update_layout(
+        legend=dict(
+            title="Topics",
+            font=dict(size=12),
+            orientation="v",
+            yanchor="top",
+            y=1,
+            xanchor="left",
+            x=1.02,
+            bgcolor="rgba(0,0,0,0)",  ## Transparent background to adapt to theme
+            bordercolor="rgba(128,128,128,0.3)",
+            borderwidth=1
+        ),
+        margin=dict(r=200),  ## Extra right margin for legend
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)"
+    )
+    
+    return fig
+
+
 def plot_activity_map(df_year: pd.DataFrame) -> Tuple[go.Figure, pd.DataFrame]:
     """Creates a calendar heatmap plot using scatter markers instead of a heatmap."""
     colors = ["#f8c0c0", "#f09898", "#e87070", "#e04848", "#c93232", "#b31b1b"]
