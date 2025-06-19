@@ -929,99 +929,269 @@ def generate_mini_paper_table(
     metric_name: str = "Citations",
     metric_col: str = "citation_count",
 ):
-    """Create a compact table of top papers for dashboard display with a configurable metric column."""
-    # Add custom styling for the mini table
+    """Create an enhanced card-based display of top papers for dashboard display."""
+    # Enhanced CSS styling for modern card-based layout
     st.markdown(
         """
     <style>
-    .mini-paper-row {
-        border-bottom: 1px solid rgba(128, 128, 128, 0.2);
-        padding: 8px 0; /* Increased padding */
-        margin-bottom: 4px;
-        font-size: 0.9em;
-        display: flex; /* Use flexbox for row layout */
-        align-items: center; /* Vertically center items */
+    .trending-container {
+        padding: 0;
+        margin: 0;
     }
-    .mini-paper-row:hover {
-        background-color: rgba(179, 27, 27, 0.05);
+    
+    .trending-card {
+        background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
+        border: 1px solid rgba(179, 27, 27, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     }
-    .mini-paper-header {
-        font-weight: bold;
-        border-bottom: 2px solid rgba(179, 27, 27, 0.3);
-        padding-bottom: 5px;
-        margin-bottom: 8px;
-        font-size: 0.9em;
-        display: flex; /* Use flexbox for header layout */
+    
+    .trending-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(179, 27, 27, 0.12);
+        border-color: rgba(179, 27, 27, 0.2);
     }
-    .mini-title-link {
-        font-weight: bold;
+    
+    .trending-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--arxiv-red, #b31b1b) 0%, var(--arxiv-red-light, #c93232) 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .trending-card:hover::before {
+        opacity: 1;
+    }
+    
+    .trending-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .trending-image {
+        flex-shrink: 0;
+        width: 80px;
+        height: 80px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--secondary-background-color, #f0f0f0);
+        position: relative;
+    }
+    
+    .trending-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+    
+    .trending-card:hover .trending-image img {
+        transform: scale(1.05);
+    }
+    
+    .trending-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .trending-title {
+        font-size: 1.0em;
+        font-weight: 600;
+        line-height: 1.3;
+        margin: 0 0 6px 0;
+        color: var(--text-color, #333);
+    }
+    
+    .trending-title a {
+        color: var(--arxiv-red, #b31b1b);
         text-decoration: none;
-        display: block;
-        /* Removed fixed width properties for better wrapping */
+        transition: color 0.2s ease;
     }
-    .mini-title-link:hover {
+    
+    .trending-title a:hover {
+        color: var(--arxiv-red-light, #c93232);
         text-decoration: underline;
     }
-    .mini-read-more-btn {
-        background-color: var(--arxiv-red, #b31b1b);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 4px 8px;
-        font-size: 12px;
-        cursor: pointer;
-        transition: background-color 0.2s;
+    
+    .trending-punchline {
+        font-size: 0.85em;
+        color: var(--text-color, #666);
+        line-height: 1.4;
+        margin: 0 0 8px 0;
+        font-style: italic;
+        opacity: 0.9;
+    }
+    
+    .trending-metadata {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 12px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(128, 128, 128, 0.1);
+        flex-wrap: wrap;
+    }
+    
+    .trending-authors {
+        font-size: 0.8em;
+        color: var(--text-color, #888);
+        flex: 1;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .trending-metric {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--secondary-background-color, rgba(179, 27, 27, 0.05));
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: 600;
+        color: var(--arxiv-red, #b31b1b);
         white-space: nowrap;
     }
-    .mini-read-more-btn:hover {
-        background-color: var(--arxiv-red-light, #c93232);
+    
+    .trending-metric-icon {
+        font-size: 0.9em;
+        opacity: 0.8;
     }
-    .mini-punchline {
-        font-style: italic;
-        font-size: 0.8em;
-        color: var(--text-color, #555);
-        margin-top: 2px;
-        margin-bottom: 2px;
+    
+    .trending-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 8px;
     }
-    .mini-authors {
-        font-size: 0.8em;
-        color: var(--text-color, #888); /* Made paler */
-        margin-top: 2px;
-        margin-bottom: 2px;
+    
+    .trending-read-btn {
+        background: linear-gradient(135deg, var(--arxiv-red, #b31b1b) 0%, var(--arxiv-red-light, #c93232) 100%);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
-    .mini-image-col {
-        flex: 0 0 60px; /* Fixed width for image column */
-        margin-right: 10px;
+    
+    .trending-read-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(179, 27, 27, 0.3);
+    }
+    
+    .trending-rank {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: linear-gradient(135deg, var(--arxiv-red, #b31b1b) 0%, var(--arxiv-red-light, #c93232) 100%);
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 0.75em;
+        font-weight: bold;
     }
-    .mini-content-col {
-        flex: 1; /* Allow content to take remaining space */
-        min-width: 0; /* Prevent overflow */
-    }
-    .mini-citation-col {
-        flex: 0 0 80px; /* Fixed width for citation column */
+    
+    .trending-summary {
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(128, 128, 128, 0.1);
         text-align: center;
-        margin-left: 10px;
-    }
-    .mini-action-col {
-        flex: 0 0 80px; /* Fixed width for action column */
-        margin-left: 10px;
-        display: flex;
-        align-items: center; /* Center button vertically */
+        font-size: 0.8em;
+        color: var(--text-color, #888);
+        font-style: italic;
     }
 
-    /* Dark mode support */
+    /* Dark mode adaptations */
     @media (prefers-color-scheme: dark) {
-        .mini-paper-row:hover {
-            background-color: rgba(179, 27, 27, 0.1);
+        .trending-card {
+            background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
+            border-color: rgba(179, 27, 27, 0.15);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
-        .mini-punchline {
-             color: var(--text-color, #bbb); /* Adjust color for dark mode */
+        
+        .trending-card:hover {
+            box-shadow: 0 8px 25px rgba(179, 27, 27, 0.25);
+            border-color: rgba(179, 27, 27, 0.3);
         }
-         .mini-authors {
-             color: var(--text-color, #999); /* Made paler for dark mode */
+        
+        .trending-image {
+            background: var(--secondary-background-color, #262730);
+        }
+        
+        .trending-title {
+            color: var(--text-color, #FAFAFA);
+        }
+        
+        .trending-punchline {
+            color: var(--text-color, #CCCCCC);
+        }
+        
+        .trending-authors {
+            color: var(--text-color, #AAAAAA);
+        }
+        
+        .trending-metric {
+            background: rgba(179, 27, 27, 0.15);
+            color: var(--arxiv-red-light, #c93232);
+        }
+        
+        .trending-summary {
+            color: var(--text-color, #AAAAAA);
+        }
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .trending-card {
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .trending-header {
+            gap: 8px;
+        }
+        
+        .trending-image {
+            width: 60px;
+            height: 60px;
+        }
+        
+        .trending-title {
+            font-size: 0.9em;
+        }
+        
+        .trending-metadata {
+            gap: 8px;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .trending-authors {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: unset;
         }
     }
     </style>
@@ -1032,93 +1202,77 @@ def generate_mini_paper_table(
     # Only take the top n papers
     display_df = df.head(n) if len(df) > n else df
 
-    # Create a header row using styled divs and flexbox
-    st.markdown(
-        f"""
-    <div class='mini-paper-header'>
-        <div class='mini-image-col'></div> <!-- Placeholder for image header -->
-        <div class='mini-content-col'><strong>Details</strong></div>
-        <div class='mini-citation-col'><strong>{metric_name}</strong></div>
-        <div class='mini-action-col'></div> <!-- Placeholder for action header -->
-    </div>
-    """,
-        unsafe_allow_html=True,
-    )
-
-    # Format function for titles, reused from generate_paper_table
+    # Format function for titles
     def format_title(row):
         title = row["title"].replace("\n", "")
-        star = "⭐️ " if row.get("influential_citation_count", 0) > 0 else ""
+        star = "⭐ " if row.get("influential_citation_count", 0) > 0 else ""
         return f"{star}{title}"
 
-    # Create a simple table with top papers
-    for _, paper in display_df.iterrows():
+    # Create enhanced card layout
+    for rank, (_, paper) in enumerate(display_df.iterrows(), 1):
         paper_code = paper["arxiv_code"]
         title = format_title(paper)
-        citations = int(paper.get(metric_col, 0))
+        metric_value = int(paper.get(metric_col, 0))
         punchline = paper.get("punchline", "")
         authors = paper.get("authors", "")
-        if len(authors) > 50:  # Truncate authors
-            authors = authors[:50] + "..."
-
-        # Image URL
+        paper_url = paper.get("url", "")
+        
+        # Truncate long author lists
+        if len(authors) > 60:
+            authors = authors[:60] + "..."
+        
+        # Image URL with fallback
         image_url = f"https://arxiv-art.s3.amazonaws.com/{paper_code}.png"
-        # Fallback image (optional, e.g., a generic icon or placeholder)
-        fallback_image_url = (
-            "https://via.placeholder.com/50x50/eee/ccc?text=?"  # Example placeholder
-        )
+        
+        # Use columns to place button to the right of the card
+        card_col, button_col = st.columns([10, 1])
 
-        # Create a container for the row with flexbox
-        row_cols = st.columns(
-            [0.8, 4, 0.8, 0.8], gap="small"
-        )  # Adjust ratios for new layout
+        with card_col:
+            # Create the enhanced card HTML
+            card_html = f"""
+            <div class="trending-card">
+                <div class="trending-rank">{rank}</div>
+                <div class="trending-header">
+                    <div class="trending-image">
+                        <img src="{image_url}" alt="{html_escape(title)}" 
+                             onerror="this.style.display='none'; this.parentElement.style.backgroundColor='var(--secondary-background-color, #f0f0f0)'; this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-size:0.7em;color:var(--text-color,#999);\\'>No Image</div>';">
+                    </div>
+                    <div class="trending-content">
+                        <div class="trending-title">
+                            <a href="{paper_url}" target="_blank">{html_escape(title)}</a>
+                        </div>
+                        {f'<div class="trending-punchline">{html_escape(punchline)}</div>' if punchline and pd.notna(punchline) else ''}
+                    </div>
+                </div>
+                <div class="trending-metadata">
+                    <div class="trending-authors">{html_escape(authors)}</div>
+                    <div class="trending-metric">
+                        <span class="trending-metric-icon">{'📈' if metric_name == 'Likes' else '📊'}</span>
+                        <span>{metric_value:,} {metric_name}</span>
+                    </div>
+                </div>
+            </div>
+            """
+            st.markdown(card_html, unsafe_allow_html=True)
 
-        with row_cols[0]:  # Image Column
-            # Display image using container width
-            st.image(
-                image_url, use_container_width=True
-            )  # Changed width to use_container_width
+        with button_col:
+            # Vertical alignment hack for the button
+            st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)
+            if st.button(
+                "→",
+                key=f"details_btn_{paper_code}_{extra_key}",
+                help=f"View details for: {title[:50]}..."
+            ):
+                st.session_state.arxiv_code = paper_code
+                click_tab(3)
+                st.rerun()
 
-        with row_cols[1]:  # Content Column (Title, Punchline, Authors)
-            paper_url = paper.get("url", "")
-            # Title link
-            title_html = f"<a href='{paper_url}' target='_blank' class='mini-title-link' style='color: var(--arxiv-red);'>{title}</a>"
-            st.markdown(title_html, unsafe_allow_html=True)
-            # Punchline
-            if punchline and pd.notna(punchline):
-                st.markdown(
-                    f"<div class='mini-punchline'>{punchline}</div>",
-                    unsafe_allow_html=True,
-                )
-            # Authors
-            st.markdown(
-                f"<div class='mini-authors'>{authors}</div>", unsafe_allow_html=True
-            )
-
-        with row_cols[2]:  # Citation Column
-            # Format citation count with icon - centered
-            st.markdown(
-                f"""<div style='text-align: center; padding-top: 10px;'>
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; opacity: 0.7; margin-right: 3px;"><path d="M17 6.1H3M21 12.1H3M21 18.1H3"></path></svg>
-                {citations}
-            </div>""",
-                unsafe_allow_html=True,
-            )
-
-        with row_cols[3]:  # Action Column
-            # Use a container to help with centering the button
-            with st.container():
-                if st.button(
-                    "Read More",
-                    key=f"mini_btn_{paper_code}_{extra_key}",
-                    use_container_width=True,
-                ):
-                    st.session_state.arxiv_code = paper_code
-                    click_tab(3)
-                    st.rerun()
-
+    # Summary information
     if len(df) > n:
-        st.caption(f"Showing top {n} of {len(df)} papers")
+        st.markdown(
+            f'<div class="trending-summary">Showing top {n} of {len(df)} papers</div>',
+            unsafe_allow_html=True
+        )
 
 
 def create_featured_paper_card(paper: Dict) -> None:

@@ -1,5 +1,40 @@
 # Changes Log
 
+## Trending/Cited Papers Section Redesign (2025-01-XX)
+
+Completely redesigned the trending and most cited papers section to improve user experience and visual appeal:
+
+### Visual Design Improvements
+- **Card-based Layout**: Replaced cramped table layout with spacious, modern cards
+- **Enhanced Visual Hierarchy**: Improved typography with better sizing, weights, and spacing
+- **Interactive Design**: Added hover effects with subtle animations and micro-interactions
+- **Modern Aesthetics**: Implemented gradients, rounded corners, and subtle shadows
+- **Ranking Indicators**: Added visual ranking badges for clear positioning
+- **Improved Information Architecture**: Better grouping of related elements (title, punchline, metadata)
+
+### Technical Enhancements
+- **Responsive Design**: Mobile-optimized layout with adaptive sizing and spacing
+- **Dark Mode Support**: Full dark theme compatibility with appropriate color adaptations
+- **Performance Optimizations**: Efficient HTML generation and CSS styling
+- **Accessibility Improvements**: Better contrast ratios, focus states, and semantic structure
+- **Enhanced Images**: Larger artwork with zoom effects and graceful fallbacks
+
+### User Experience Features
+- **Enhanced Header Design**: Redesigned panel headers with gradient backgrounds and cleaner typography
+- **Improved Toggle Interface**: More intuitive switching between trending and cited views
+- **Better Visual Feedback**: Clear hover states and interactive elements
+- **Information Density**: Optimized content layout for better scanning and readability
+- **Action Clarity**: Enhanced "Read More" buttons with better styling and positioning
+
+### Design System Documentation
+- **Created VISUAL-PRINCIPLES.md**: Comprehensive design system documentation
+- **Established Design Language**: Documented color palette, typography, spacing, and component guidelines
+- **Accessibility Standards**: Defined contrast requirements and interaction guidelines
+- **Mobile Optimization**: Responsive design patterns and breakpoints
+- **Component Consistency**: Guidelines for maintaining visual consistency across the app
+
+This redesign transforms the trending section from a functional but basic table into an engaging, modern interface that aligns with contemporary design standards while maintaining the app's minimalist zen aesthetic.
+
 ## Enhanced Time Series Visualization (2024-12-XX)
 
 Enhanced the Statistics & Topics tab with improved publication time series visualization:

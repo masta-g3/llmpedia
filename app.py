@@ -454,15 +454,94 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
 
     current_actual_toggle_state = st.session_state.get("toggle_trending_papers", True)
 
-    if current_actual_toggle_state:
-        st.markdown(f"### 📈 Trending on *X.com* (Last {trending_window} days)")
-    else:
-        st.markdown(f"### 🏆 Top Cited Papers (Last {citation_window} days)")
+    # Enhanced header styling
+    st.markdown("""
+    <style>
+    .trending-panel-header {
+        background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
+        padding: 16px 20px;
+        border-radius: 12px;
+        border: 1px solid rgba(179, 27, 27, 0.08);
+        margin-bottom: 20px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .trending-panel-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--arxiv-red, #b31b1b) 0%, var(--arxiv-red-light, #c93232) 100%);
+    }
+    
+    .trending-panel-title {
+        font-size: 1.2em;
+        font-weight: 600;
+        color: var(--text-color, #333);
+        margin: 0 0 8px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .trending-panel-subtitle {
+        font-size: 0.85em;
+        color: var(--text-color, #666);
+        margin: 0;
+        opacity: 0.8;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+        .trending-panel-header {
+            background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
+            border-color: rgba(179, 27, 27, 0.15);
+        }
+        
+        .trending-panel-title {
+            color: var(--text-color, #FAFAFA);
+        }
+        
+        .trending-panel-subtitle {
+            color: var(--text-color, #CCCCCC);
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
+    # Create enhanced header
+    if current_actual_toggle_state:
+        header_html = f"""
+        <div class="trending-panel-header">
+            <div class="trending-panel-title">
+                📈 Trending on X.com
+            </div>
+            <div class="trending-panel-subtitle">
+                Most liked papers in the last {trending_window} days
+            </div>
+        </div>
+        """
+    else:
+        header_html = f"""
+        <div class="trending-panel-header">
+            <div class="trending-panel-title">
+                🏆 Top Cited Papers
+            </div>
+            <div class="trending-panel-subtitle">
+                Most cited papers in the last {citation_window} days
+            </div>
+        </div>
+        """
+    
+    st.markdown(header_html, unsafe_allow_html=True)
+
+    # Toggle with improved styling
     toggle_label = (
-        "Switch to: Top Cited (🏆 Citations)"
+        "🏆 Switch to Citations"
         if current_actual_toggle_state
-        else "Switch to: Trending (📈 Likes)"
+        else "📈 Switch to Trending"
     )
     st.toggle(toggle_label, value=current_actual_toggle_state, key="toggle_trending_papers")
 
