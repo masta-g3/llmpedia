@@ -594,7 +594,7 @@ def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
                     )
                     star = "⭐️" if star_count else ""
                     centered_code = f"""
-                    <div class="centered" style="text-align: center; font-size: 0.85em; margin-top: -0.5rem; margin-bottom: 0.5rem;">
+                    <div class="centered" style="text-align: center; font-size: var(--font-size-sm); margin-top: calc(-1 * var(--space-sm)); margin-bottom: var(--space-sm);">
                         <code>{star} {publish_date}</code>
                     </div>
                     """
@@ -639,19 +639,19 @@ def generate_citations_list(df: pd.DataFrame) -> None:
         )
 
         citation_html = f"""
-        <div style="margin: 20px 0; padding: 20px; border-radius: 8px; border-left: 4px solid var(--arxiv-red);">
-            <div style="margin-bottom: 12px;">
-                <span onclick="parent.postMessage({{cmd: 'streamlit:setComponentValue', args: {{value: '{paper_code}', dataType: 'str', key: 'arxiv_code'}}}}, '*')" style="color: var(--arxiv-red); text-decoration: none; font-size: 1.1em; font-weight: bold; cursor: pointer;">{title}</span>{star_badge}
+        <div style="margin: var(--space-xl) 0; padding: var(--space-xl); border-radius: var(--radius-base); border-left: 4px solid var(--arxiv-red);">
+            <div style="margin-bottom: var(--space-base);">
+                <span onclick="parent.postMessage({{cmd: 'streamlit:setComponentValue', args: {{value: '{paper_code}', dataType: 'str', key: 'arxiv_code'}}}}, '*')" style="color: var(--arxiv-red); text-decoration: none; font-size: var(--font-size-lg); font-weight: bold; cursor: pointer;">{title}</span>{star_badge}
             </div>
-            <div style="color: var(--text-color, #666); font-size: 0.9em; margin-bottom: 8px;">
+            <div style="color: var(--text-color, #666); font-size: var(--font-size-sm); margin-bottom: var(--space-sm);">
                 {authors}
             </div>
-            <div style="display: flex; gap: 12px; margin-top: 8px; font-size: 0.9em;">
-                <span style="background-color: rgba(179, 27, 27, 0.05); padding: 4px 8px; border-radius: 4px;">📅 {publish_date}</span>
-                <span style="background-color: rgba(179, 27, 27, 0.05); padding: 4px 8px; border-radius: 4px;">📊 {citation_count} {citation_text}</span>
+            <div style="display: flex; gap: var(--space-base); margin-top: var(--space-sm); font-size: var(--font-size-sm);">
+                <span style="background-color: rgba(179, 27, 27, 0.05); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm);">📅 {publish_date}</span>
+                <span style="background-color: rgba(179, 27, 27, 0.05); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm);">📊 {citation_count} {citation_text}</span>
                 <a href="{paper_url}" target="_blank" style="text-decoration: none;">
-                    <span style="background-color: rgba(179, 27, 27, 0.05); padding: 4px 8px; border-radius: 4px;">
-                        <span style="color: var(--arxiv-red);">📄</span> arXiv:{paper_code} <span style="font-size: 0.8em;">↗</span>
+                    <span style="background-color: rgba(179, 27, 27, 0.05); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm);">
+                        <span style="color: var(--arxiv-red);">📄</span> arXiv:{paper_code} <span style="font-size: var(--font-size-xs);">↗</span>
                     </span>
                 </a>
             </div>
@@ -669,98 +669,9 @@ def generate_citations_list(df: pd.DataFrame) -> None:
 
 def generate_paper_table(df, extra_key=""):
     """Create a stylized table view of papers with key information."""
-    st.markdown(
-        """
-    <style>
-    /* ---------- TABLE CONTAINER & HEADER ---------- */
-    .paper-header {
-        display: flex;
-        gap: 0.5rem;
-        font-weight: 600;
-        border-bottom: 2px solid var(--secondary-background-color, rgba(179, 27, 27, 0.3));
-        padding-bottom: 0.75rem;
-        margin-bottom: 0.75rem;
-        font-size: 0.95rem;
-    }
-
-    /* ---------- ROW STYLING ---------- */
-    .paper-row {
-        border-bottom: 1px solid var(--secondary-background-color, rgba(128, 128, 128, 0.2));
-        padding: 12px 0;
-        margin-bottom: 4px;
-        transition: background-color 0.15s ease;
-    }
-
-    /* Zebra-striping for readability */
-    .paper-row:nth-child(odd) {
-        background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.04));
-    }
-
-    .paper-row:hover {
-        background-color: var(--secondary-background-color, rgba(179, 27, 27, 0.06));
-        border-radius: 6px;
-    }
-
-    /* ---------- TITLE LINK ---------- */
-    .title-link {
-        font-weight: 600;
-        text-decoration: none;
-        display: inline-block;
-        margin-bottom: 2px;
-        line-height: 1.3;
-    }
-
-    .title-link:hover {
-        text-decoration: underline;
-    }
-
-    /* ---------- GENERIC CELL ---------- */
-    .paper-cell {
-        padding: 2px 0;
-        line-height: 1.4;
-    }
-
-    /* ---------- READ MORE BUTTON ---------- */
-    .read-more-btn {
-        background-color: var(--arxiv-red, #b31b1b);
-        color: #fff;
-        border: none;
-        border-radius: 4px;
-        padding: 6px 14px;
-        font-size: 0.85rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background-color 0.15s ease, transform 0.1s ease;
-        white-space: nowrap;
-    }
-
-    .read-more-btn:hover {
-        background-color: var(--arxiv-red-light, #c93232);
-        transform: translateY(-1px);
-    }
-
-    /* Constrain any Streamlit-generated buttons inside columns */
-    [data-testid="stHorizontalBlock"] button {
-        max-width: 120px !important;
-        margin: 0 auto !important;
-    }
-
-    /* ---------- DARK MODE TWEAKS ---------- */
-    @media (prefers-color-scheme: dark) {
-        .paper-row:nth-child(odd) {
-            background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.08));
-        }
-        .paper-row:hover {
-            background-color: var(--secondary-background-color, rgba(179, 27, 27, 0.14));
-        }
-        .paper-header {
-            border-bottom-color: var(--secondary-background-color, rgba(179, 27, 27, 0.4));
-        }
-    }
-    </style>
-    """,
-        unsafe_allow_html=True,
-    )
+    # Use centralized table styles
+    from . import styling
+    styling.inject_table_css()
 
     # Updated column width ratios for better spacing
     col_spec = [3.5, 0.9, 0.9, 1.2, 0.8]
@@ -930,274 +841,9 @@ def generate_mini_paper_table(
     metric_col: str = "citation_count",
 ):
     """Create an enhanced card-based display of top papers for dashboard display."""
-    # Enhanced CSS styling for modern card-based layout
-    st.markdown(
-        """
-    <style>
-    .trending-container {
-        padding: 0;
-        margin: 0;
-    }
-    
-    .trending-card {
-        background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
-        border: 1px solid rgba(179, 27, 27, 0.08);
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 12px;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    }
-    
-    .trending-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(179, 27, 27, 0.12);
-        border-color: rgba(179, 27, 27, 0.2);
-    }
-    
-    .trending-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--arxiv-red, #b31b1b) 0%, var(--arxiv-red-light, #c93232) 100%);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-    
-    .trending-card:hover::before {
-        opacity: 1;
-    }
-    
-    .trending-header {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        margin-bottom: 12px;
-    }
-    
-    .trending-image {
-        flex-shrink: 0;
-        width: 80px;
-        height: 80px;
-        border-radius: 8px;
-        overflow: hidden;
-        background: var(--secondary-background-color, #f0f0f0);
-        position: relative;
-    }
-    
-    .trending-image img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.3s ease;
-    }
-    
-    .trending-card:hover .trending-image img {
-        transform: scale(1.05);
-    }
-    
-    .trending-content {
-        flex: 1;
-        min-width: 0;
-    }
-    
-    .trending-title {
-        font-size: 1.0em;
-        font-weight: 600;
-        line-height: 1.3;
-        margin: 0 0 6px 0;
-        color: var(--text-color, #333);
-    }
-    
-    .trending-title a {
-        color: var(--arxiv-red, #b31b1b);
-        text-decoration: none;
-        transition: color 0.2s ease;
-    }
-    
-    .trending-title a:hover {
-        color: var(--arxiv-red-light, #c93232);
-        text-decoration: underline;
-    }
-    
-    .trending-punchline {
-        font-size: 0.85em;
-        color: var(--text-color, #666);
-        line-height: 1.4;
-        margin: 0 0 8px 0;
-        font-style: italic;
-        opacity: 0.9;
-    }
-    
-    .trending-metadata {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        margin-top: 12px;
-        padding-top: 8px;
-        border-top: 1px solid rgba(128, 128, 128, 0.1);
-        flex-wrap: wrap;
-    }
-    
-    .trending-authors {
-        font-size: 0.8em;
-        color: var(--text-color, #888);
-        flex: 1;
-        min-width: 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    
-    .trending-metric {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        background: var(--secondary-background-color, rgba(179, 27, 27, 0.05));
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.85em;
-        font-weight: 600;
-        color: var(--arxiv-red, #b31b1b);
-        white-space: nowrap;
-    }
-    
-    .trending-metric-icon {
-        font-size: 0.9em;
-        opacity: 0.8;
-    }
-    
-    .trending-actions {
-        display: flex;
-        justify-content: flex-end;
-        margin-top: 8px;
-    }
-    
-    .trending-read-btn {
-        background: linear-gradient(135deg, var(--arxiv-red, #b31b1b) 0%, var(--arxiv-red-light, #c93232) 100%);
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-size: 0.85em;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .trending-read-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(179, 27, 27, 0.3);
-    }
-    
-    .trending-rank {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        background: linear-gradient(135deg, var(--arxiv-red, #b31b1b) 0%, var(--arxiv-red-light, #c93232) 100%);
-        color: white;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.75em;
-        font-weight: bold;
-    }
-    
-    .trending-summary {
-        margin-top: 16px;
-        padding-top: 12px;
-        border-top: 1px solid rgba(128, 128, 128, 0.1);
-        text-align: center;
-        font-size: 0.8em;
-        color: var(--text-color, #888);
-        font-style: italic;
-    }
-
-    /* Dark mode adaptations */
-    @media (prefers-color-scheme: dark) {
-        .trending-card {
-            background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
-            border-color: rgba(179, 27, 27, 0.15);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-        
-        .trending-card:hover {
-            box-shadow: 0 8px 25px rgba(179, 27, 27, 0.25);
-            border-color: rgba(179, 27, 27, 0.3);
-        }
-        
-        .trending-image {
-            background: var(--secondary-background-color, #262730);
-        }
-        
-        .trending-title {
-            color: var(--text-color, #FAFAFA);
-        }
-        
-        .trending-punchline {
-            color: var(--text-color, #CCCCCC);
-        }
-        
-        .trending-authors {
-            color: var(--text-color, #AAAAAA);
-        }
-        
-        .trending-metric {
-            background: rgba(179, 27, 27, 0.15);
-            color: var(--arxiv-red-light, #c93232);
-        }
-        
-        .trending-summary {
-            color: var(--text-color, #AAAAAA);
-        }
-    }
-    
-    /* Mobile responsiveness */
-    @media (max-width: 768px) {
-        .trending-card {
-            padding: 12px;
-            margin-bottom: 8px;
-        }
-        
-        .trending-header {
-            gap: 8px;
-        }
-        
-        .trending-image {
-            width: 60px;
-            height: 60px;
-        }
-        
-        .trending-title {
-            font-size: 0.9em;
-        }
-        
-        .trending-metadata {
-            gap: 8px;
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        
-        .trending-authors {
-            white-space: normal;
-            overflow: visible;
-            text-overflow: unset;
-        }
-    }
-    </style>
-    """,
-        unsafe_allow_html=True,
-    )
+    # Use centralized trending card styles
+    from . import styling
+    styling.inject_trending_card_css()
 
     # Only take the top n papers
     display_df = df.head(n) if len(df) > n else df
@@ -1257,7 +903,7 @@ def generate_mini_paper_table(
 
         with button_col:
             # Vertical alignment hack for the button
-            st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height: calc(3 * var(--space-base));'></div>", unsafe_allow_html=True)
             if st.button(
                 "→",
                 key=f"details_btn_{paper_code}_{extra_key}",
@@ -1320,27 +966,9 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
         st.info("No interesting facts found.")
         return
 
-    # Add custom styling for dark mode compatibility
-    st.markdown(
-        """
-    <style>
-    /* Dark mode support for fact cards */
-    @media (prefers-color-scheme: dark) {
-        .fact-card {
-            background-color: var(--background-color, rgba(49, 51, 63, 0.4)) !important;
-            border-left-color: var(--primary-color, #FF4B4B) !important;
-        }
-        .fact-card a {
-            color: var(--link-color, #8ab4f8) !important;
-        }
-        .fact-topic {
-            background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.2)) !important;
-        }
-    }
-    </style>
-    """,
-        unsafe_allow_html=True,
-    )
+    # Use centralized interesting facts styles
+    from . import styling
+    styling.inject_interesting_facts_css()
 
     # Create a multi-column layout
     cols = st.columns(n_cols)
@@ -1362,28 +990,15 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
             # Create a container with padding and subtle border
             with st.container():
                 st.markdown(
-                    f"""<div class="fact-card" style="
-                        padding: 1em;
-                        margin-bottom: 1em;
-                        background-color: var(--background-color, #f9f9f9);
-                        border-left: 3px solid var(--primary-color, #FF4B4B);
-                        border-radius: 5px;
-                    ">
-                    <p style="font-size: 1.0em; margin-bottom: 0.5em;">{fact['fact']}</p>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                        {"<span class='fact-topic' style='background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.1)); padding: 3px 8px; border-radius: 12px; font-size: 0.7em;' title='" + topic_full + "'>" + topic + "</span>" if topic else ""}
-                        <p style="
-                            font-size: 0.8em;
-                            font-style: italic;
-                            color: var(--text-color, #888);
-                            margin: 0;
-                            text-align: right;
-                            flex-grow: 1;
-                        ">
-                        <a href="https://arxiv.org/abs/{fact['arxiv_code']}" target="_blank" style="text-decoration: none;">
+                    f"""<div class="fact-card">
+                    <div class="fact-content">{fact['fact']}</div>
+                    <div class="fact-metadata">
+                        {"<span class='fact-topic' title='" + topic_full + "'>" + topic + "</span>" if topic else ""}
+                        <div class="fact-paper-link">
+                        <a href="https://arxiv.org/abs/{fact['arxiv_code']}" target="_blank">
                             {fact['paper_title'][:75] + ('...' if len(fact['paper_title']) > 75 else '')}
                         </a>
-                        </p>
+                        </div>
                     </div>
                     </div>""",
                     unsafe_allow_html=True,
@@ -1406,7 +1021,7 @@ def display_tweet_summaries(df, max_entries: int = 8):
 
     # Build scrollable HTML block
     container_open = (
-        "<div style='max-height: 250px; overflow-y: auto; padding-right: 8px;'>"
+        "<div style='max-height: 250px; overflow-y: auto; padding-right: var(--space-sm);'>"
     )
     html_blocks = [container_open]
 
@@ -1415,9 +1030,9 @@ def display_tweet_summaries(df, max_entries: int = 8):
         summary = html_escape(str(row["response"]))
 
         html_blocks.append(
-            f"<div style='margin-bottom: 16px;'>"
-            f"<div style='font-size: 0.75em; color: var(--text-color, #888); margin-bottom: 4px;'>🕑 {timestamp}</div>"
-            f"<div style='font-size: 0.9em; line-height: 1.4;'>{summary}</div>"
+            f"<div style='margin-bottom: var(--space-base);'>"
+            f"<div style='font-size: var(--font-size-xs); color: var(--text-color, #888); margin-bottom: var(--space-xs);'>🕑 {timestamp}</div>"
+            f"<div style='font-size: var(--font-size-sm); line-height: 1.4;'>{summary}</div>"
             f"</div>"
         )
 
@@ -1428,112 +1043,6 @@ def display_tweet_summaries(df, max_entries: int = 8):
 
 def inject_flip_card_css():
     """Injects CSS for the flip card effect."""
-    st.markdown(
-        """
-    <style>
-    .flip-card {
-      background-color: transparent;
-      width: 100%; /* Make it responsive to column width */
-      height: 450px; /* Adjusted height for taller cards */
-      perspective: 1000px;
-      margin-bottom: 1rem; /* Add some space below the card */
-    }
-    .flip-card-inner {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      text-align: center;
-      transition: transform 0.6s;
-      transform-style: preserve-3d;
-    }
-    .flip-card:hover .flip-card-inner {
-      transform: rotateY(180deg);
-    }
-    .flip-card-front,
-    .flip-card-back {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      -webkit-backface-visibility: hidden; /* Safari */
-      backface-visibility: hidden;
-      border-radius: 8px;
-      overflow: hidden; /* Ensures content respects border radius */
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between; /* For front card title positioning */
-    }
-    .flip-card-front {
-      background-color: var(--secondary-background-color, #fafafa);
-    }
-    .flip-card-back {
-      background-color: var(--background-color, #fff);
-      color: var(--text-color, #333);
-      transform: rotateY(180deg);
-      padding: 1rem;
-      display: flex; 
-      flex-direction: column;
-      justify-content: center; 
-      align-items: center; 
-    }
-    .flip-card-front img {
-      width: 100%;
-      height: 80%; 
-      object-fit: cover; 
-    }
-    .flip-title {
-      font-weight: 600;
-      font-size: 0.95rem;
-      color: var(--arxiv-red, #b31b1b); 
-      padding: 0.75rem 0.5rem; 
-      text-align: center;
-      height: 20%; 
-      display: flex;
-      align-items: center; 
-      justify-content: center; 
-      overflow: hidden; 
-      text-overflow: ellipsis;
-    }
-    .flip-card-back-content {
-        font-size: 0.85rem;
-        line-height: 1.4;
-        margin-bottom: 1rem; 
-        max-height: 80%; 
-        overflow-y: auto;
-        color: var(--text-color, #333); /* Ensure text color is themed */
-    }
-    .flip-card-back .read-more-button-container {
-        margin-top: auto; 
-    }
-    .flip-card-image-error-text {
-        font-size: 0.8rem;
-        color: var(--text-color, #555555); /* Default slightly muted text */
-        opacity: 0.7;
-        padding: 1rem;
-        box-sizing: border-box; /* Ensure padding is included in dimensions */
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    /* Dark mode specific styles */
-    @media (prefers-color-scheme: dark) {
-        .flip-card-front {
-            background-color: var(--secondary-background-color, #262730); /* Streamlit's dark secondary_background_color */
-        }
-        .flip-card-back {
-            background-color: var(--background-color, #0E1117); /* Streamlit's dark background_color */
-            color: var(--text-color, #FAFAFA); /* Streamlit's dark text_color */
-        }
-        .flip-card-back-content {
-            color: var(--text-color, #FAFAFA); /* Ensure text color is themed for dark mode */
-        }
-        .flip-card-image-error-text {
-            color: var(--text-color, #AAAAAA); /* Lighter gray for dark mode */
-        }
-    }
-    </style>
-    """,
-        unsafe_allow_html=True,
-    )
+    # Import the centralized flip card styles
+    from . import styling
+    styling.inject_flip_card_css()

@@ -31,11 +31,10 @@ st.set_page_config(
     },
 )
 
-# Apply styling
-styling.apply_arxiv_theme()
-styling.apply_custom_fonts()
-styling.apply_centered_style()
-su.inject_flip_card_css()
+# Apply styling using the new design system approach
+styling.apply_design_system()  # This includes all base styles and design tokens
+styling.apply_arxiv_theme()    # For Streamlit-specific overrides
+su.inject_flip_card_css()      # Component-specific styles
 
 # Initialization of state variables
 if "papers" not in st.session_state:
