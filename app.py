@@ -31,10 +31,8 @@ st.set_page_config(
     },
 )
 
-# Apply styling using the new design system approach
-styling.apply_design_system()  # This includes all base styles and design tokens
-styling.apply_arxiv_theme()    # For Streamlit-specific overrides
-su.inject_flip_card_css()      # Component-specific styles
+# Apply all styling through single master function
+styling.apply_complete_app_styles()
 
 # Initialization of state variables
 if "papers" not in st.session_state:
@@ -71,32 +69,6 @@ collection_map = {
     "🆕 Cohere V3": "arxiv_vectors_cv3",
 }
 
-st.markdown(
-    """
-    <style>
-        @import 'https://fonts.googleapis.com/css2?family=Orbitron&display=swap';
-        .pixel-font {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 32px;
-            margin-bottom: 1rem;
-        }
-    </style>
-""",
-    unsafe_allow_html=True,
-)
-
-st.markdown(
-    """
-    <style>
-        .centered {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 10px;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 
 def combine_input_data():
@@ -453,62 +425,6 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
 
     current_actual_toggle_state = st.session_state.get("toggle_trending_papers", True)
 
-    # Enhanced header styling
-    st.markdown("""
-    <style>
-    .trending-panel-header {
-        background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
-        padding: 16px 20px;
-        border-radius: 12px;
-        border: 1px solid rgba(179, 27, 27, 0.08);
-        margin-bottom: 20px;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .trending-panel-header::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--arxiv-red, #b31b1b) 0%, var(--arxiv-red-light, #c93232) 100%);
-    }
-    
-    .trending-panel-title {
-        font-size: 1.2em;
-        font-weight: 600;
-        color: var(--text-color, #333);
-        margin: 0 0 8px 0;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    .trending-panel-subtitle {
-        font-size: 0.85em;
-        color: var(--text-color, #666);
-        margin: 0;
-        opacity: 0.8;
-    }
-    
-    @media (prefers-color-scheme: dark) {
-        .trending-panel-header {
-            background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
-            border-color: rgba(179, 27, 27, 0.15);
-        }
-        
-        .trending-panel-title {
-            color: var(--text-color, #FAFAFA);
-        }
-        
-        .trending-panel-subtitle {
-            color: var(--text-color, #CCCCCC);
-        }
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
     # Create enhanced header
     if current_actual_toggle_state:
@@ -639,26 +555,11 @@ def main():
 
     st.sidebar.markdown(
         """
-    <style>
-        .reportview-container .main footer {visibility: hidden;}
-        .footer {
-            position: fixed;
-            bottom: 0;
-            width: 0%;
-            text-align: center;
-            color: #888;
-            font-size: 0.75rem;
-        }
-        .footer a {
-            color: inherit;
-            text-decoration: none;
-        }
-    </style>
-    <div class="footer">
+    <div class="llmp-sidebar-footer">
         <a href="https://github.com/masta-g3/llmpedia/blob/main/VERSIONS.md" target="_blank">v1.6.0</a>
     </div>
 
-    <div style="font-size: 0.7em; font-style: italic; text-align: center; position: relative; top: 20px; left: 0; right: 0; color: #888;">
+    <div class="llmp-acknowledgment">
         🖤 Thanks to Anthropic for supporting this project.
     </div>
     """,

@@ -438,45 +438,11 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
                         ],
                     )
 
-                # Create an HTML string with styling
+                # Create an HTML string with GitHub markdown CSS (styling handled globally)
                 full_html = f"""
                     <html>
                         <head>
                             <link href="https://cdn.jsdelivr.net/npm/github-markdown-css/github-markdown.min.css" rel="stylesheet">
-                            <style>
-                                .markdown-body {{
-                                    box-sizing: border-box;
-                                    min-width: 200px;
-                                    max-width: 100%;
-                                    margin: 0 auto;
-                                    padding: 1rem;
-                                }}
-                                body {{
-                                    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
-                                }}
-                                img {{
-                                    max-width: 100%;
-                                    height: auto;
-                                    display: block;
-                                    margin: 1.5rem auto;
-                                    border-radius: 4px;
-                                }}
-                                pre {{
-                                    background-color: #f6f8fa;
-                                    border-radius: 6px;
-                                    padding: 16px;
-                                    overflow: auto;
-                                }}
-                                code {{
-                                    background-color: rgba(175,184,193,0.2);
-                                    padding: .2em .4em;
-                                    border-radius: 6px;
-                                }}
-                                pre code {{
-                                    background-color: transparent;
-                                    padding: 0;
-                                }}
-                            </style>
                         </head>
                         <body class="markdown-body">
                             {html_content}
@@ -669,9 +635,7 @@ def generate_citations_list(df: pd.DataFrame) -> None:
 
 def generate_paper_table(df, extra_key=""):
     """Create a stylized table view of papers with key information."""
-    # Use centralized table styles
-    from . import styling
-    styling.inject_table_css()
+    # Table styles are now applied globally via apply_complete_app_styles()
 
     # Updated column width ratios for better spacing
     col_spec = [3.5, 0.9, 0.9, 1.2, 0.8]
@@ -841,9 +805,7 @@ def generate_mini_paper_table(
     metric_col: str = "citation_count",
 ):
     """Create an enhanced card-based display of top papers for dashboard display."""
-    # Use centralized trending card styles
-    from . import styling
-    styling.inject_trending_card_css()
+    # Trending card styles are now applied globally via apply_complete_app_styles()
 
     # Only take the top n papers
     display_df = df.head(n) if len(df) > n else df
@@ -966,9 +928,7 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
         st.info("No interesting facts found.")
         return
 
-    # Use centralized interesting facts styles
-    from . import styling
-    styling.inject_interesting_facts_css()
+    # Interesting facts styles are now applied globally via apply_complete_app_styles()
 
     # Create a multi-column layout
     cols = st.columns(n_cols)
@@ -1043,6 +1003,4 @@ def display_tweet_summaries(df, max_entries: int = 8):
 
 def inject_flip_card_css():
     """Injects CSS for the flip card effect."""
-    # Import the centralized flip card styles
-    from . import styling
-    styling.inject_flip_card_css()
+    # Flip card styles are now applied globally via apply_complete_app_styles()

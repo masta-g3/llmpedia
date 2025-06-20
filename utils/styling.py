@@ -168,6 +168,12 @@ def get_base_component_styles():
             font-size: var(--font-size-sm);
         }
         
+        .pixel-font {
+            font-family: var(--font-family-display);
+            font-size: var(--font-size-3xl);
+            margin-bottom: var(--space-base);
+        }
+        
         /* =============================================================================
            LAYOUT UTILITIES
            ============================================================================= */
@@ -176,6 +182,12 @@ def get_base_component_styles():
             display: flex;
             justify-content: center;
             margin-bottom: var(--space-base);
+        }
+        
+        .centered {
+            display: flex;
+            justify-content: center;
+            margin-bottom: var(--space-sm);
         }
         
         .flex-between {
@@ -460,6 +472,234 @@ def apply_design_system():
         </style>
     """
     st.markdown(css, unsafe_allow_html=True)
+
+def apply_complete_app_styles():
+    """Single point of truth for all app styling - Master function."""
+    css = f"""
+        <style>
+            @import 'https://fonts.googleapis.com/css2?family=Orbitron&display=swap';
+            
+            {get_css_variables()}
+            {get_base_component_styles()}
+            {get_flip_card_styles()}
+            {generate_table_styles()}
+            {get_advanced_trending_card_styles()}
+            {get_interesting_facts_styles()}
+            {get_trending_panel_styles()}
+            {get_sidebar_footer_styles()}
+            {get_markdown_viewer_styles()}
+            {get_streamlit_overrides()}
+        </style>
+        
+        <script>
+            // Function to set background color based on theme
+            function setBackgroundColor() {{
+                const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const containers = document.querySelectorAll('[data-testid="stAppViewContainer"], [data-testid="stSidebarContent"]');
+                containers.forEach(container => {{
+                    container.style.backgroundColor = isDark ? '#0e1117' : '#ffffff';
+                }});
+            }}
+
+            // Run on load
+            setBackgroundColor();
+
+            // Watch for theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setBackgroundColor);
+        </script>
+    """
+    st.markdown(css, unsafe_allow_html=True)
+
+# =============================================================================
+# EXTRACTED COMPONENT STYLES (FROM APP.PY AND STREAMLIT_UTILS.PY)
+# =============================================================================
+
+def get_trending_panel_styles():
+    """Generate CSS for trending panel headers (extracted from app.py)."""
+    return """
+        .trending-panel-header {
+            background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
+            padding: var(--space-base) var(--space-lg);
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(179, 27, 27, 0.08);
+            margin-bottom: var(--space-lg);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .trending-panel-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--arxiv-red) 0%, var(--arxiv-red-light) 100%);
+        }
+        
+        .trending-panel-title {
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+            color: var(--text-color, #333);
+            margin: 0 0 var(--space-sm) 0;
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+        
+        .trending-panel-subtitle {
+            font-size: var(--font-size-sm);
+            color: var(--text-color, #666);
+            margin: 0;
+            opacity: 0.8;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .trending-panel-header {
+                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
+                border-color: rgba(179, 27, 27, 0.15);
+            }
+            
+            .trending-panel-title {
+                color: var(--text-color, #FAFAFA);
+            }
+            
+            .trending-panel-subtitle {
+                color: var(--text-color, #CCCCCC);
+            }
+        }
+    """
+
+def get_sidebar_footer_styles():
+    """Generate CSS for sidebar footer styling (extracted from app.py)."""
+    return """
+        .reportview-container .main footer {
+            visibility: hidden;
+        }
+        
+        .llmp-sidebar-footer {
+            position: fixed;
+            bottom: 0;
+            width: 0%;
+            text-align: center;
+            color: var(--text-color, #888);
+            font-size: var(--font-size-xs);
+        }
+        
+        .llmp-sidebar-footer a {
+            color: inherit;
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+        
+        .llmp-sidebar-footer a:hover {
+            color: var(--arxiv-red);
+        }
+        
+        .llmp-acknowledgment {
+            font-size: var(--font-size-xs);
+            font-style: italic;
+            text-align: center;
+            position: relative;
+            top: var(--space-lg);
+            color: var(--text-color, #888);
+        }
+    """
+
+def get_markdown_viewer_styles():
+    """Generate CSS for markdown content viewer (extracted from streamlit_utils.py)."""
+    return """
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: var(--space-base);
+            font-family: var(--font-family-base);
+        }
+        
+        .markdown-body img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: var(--space-lg) auto;
+            border-radius: var(--radius-sm);
+        }
+        
+        .markdown-body pre {
+            background-color: var(--secondary-background-color, #f6f8fa);
+            border-radius: var(--radius-base);
+            padding: var(--space-base);
+            overflow: auto;
+        }
+        
+        .markdown-body code {
+            background-color: rgba(175, 184, 193, 0.2);
+            padding: 0.2em 0.4em;
+            border-radius: var(--radius-base);
+        }
+        
+        .markdown-body pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .markdown-body pre {
+                background-color: var(--secondary-background-color, #262730);
+            }
+            
+            .markdown-body code {
+                background-color: rgba(128, 128, 128, 0.2);
+            }
+        }
+    """
+
+def get_streamlit_overrides():
+    """Generate CSS overrides for Streamlit default components."""
+    return """
+        /* Streamlit Button Overrides */
+        .stButton button {
+            background-color: var(--arxiv-red) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: var(--radius-base) !important;
+            transition: all var(--transition-fast) !important;
+        }
+        
+        .stButton button:hover {
+            background-color: var(--arxiv-red-light) !important;
+            transform: translateY(-1px) !important;
+        }
+
+        /* Streamlit Link Overrides */
+        a {
+            color: var(--arxiv-red) !important;
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+        
+        a:hover {
+            color: var(--arxiv-red-light) !important;
+            text-decoration: underline;
+        }
+
+        /* Streamlit Slider Overrides */
+        .stSlider [aria-valuemax] {
+            background-color: var(--arxiv-red) !important;
+        }
+
+        /* Streamlit Progress Bar Overrides */
+        .stProgress > div > div > div > div {
+            background-color: var(--arxiv-red) !important;
+        }
+
+        /* Streamlit Tabs Overrides */
+        .stTabs [data-baseweb="tab-list"] button[role="tab"][aria-selected="true"] {
+            color: var(--arxiv-red) !important;
+            border-bottom-color: var(--arxiv-red) !important;
+        }
+    """
 
 # =============================================================================
 # LEGACY FUNCTIONS (MAINTAINED FOR COMPATIBILITY)
