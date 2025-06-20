@@ -33,6 +33,54 @@
     - `streamlit_app.service`: Systemd service file template
     - `DEPLOY_DIGITALOCEAN.md`: Step-by-step deployment guide for DigitalOcean
 
+## Design Philosophy & Styling
+
+### Visual Identity & Aesthetics
+
+LLMpedia follows a **modern, minimalist design philosophy** that draws inspiration from arXiv's academic heritage while embracing contemporary web aesthetics. The design system is comprehensively implemented in `utils/styling.py` and follows these core principles:
+
+#### **arXiv-Inspired Color Palette**
+- **Primary Brand Color**: arXiv red (`#b31b1b`) with subtle variations (`#c93232` light, `#8f1414` dark)
+- **Purpose**: Maintains visual connection to the academic arXiv ecosystem while establishing brand identity
+- **Application**: Used for interactive elements, accents, gradients, and call-to-action components
+
+#### **Zen-Like Minimalism**
+- **Clean Typography**: System fonts with Orbitron display font for headers, creating subtle pixel art influence
+- **Generous Whitespace**: Strategic use of spacing scales (`--space-xs` to `--space-2xl`) for visual breathing room
+- **Subtle Interactions**: Gentle hover effects, smooth transitions, and elevated shadows that enhance without overwhelming
+- **Card-Based Layout**: Clean, floating card components with soft shadows and gradient backgrounds
+
+#### **Elegant Pixel Art Influence**
+- **Orbitron Font**: Futuristic, geometric typeface for headers that evokes retro-computing aesthetics
+- **Geometric Elements**: Clean borders, consistent border radius scale, and structured layouts
+- **Nostalgic Touches**: Subtle references to classic computing interfaces through font choices and spacing
+
+#### **Adaptive Design System**
+- **CSS Custom Properties**: Centralized design tokens for consistency across components
+- **Dark/Light Mode Support**: Automatic theme adaptation respecting user preferences
+- **Responsive Design**: Mobile-first approach with fluid layouts and adaptive components
+- **Component Library**: Reusable patterns for cards, buttons, badges, and interactive elements
+
+### Technical Implementation
+
+The styling system (`utils/styling.py`) provides:
+
+- **`apply_complete_app_styles()`**: Master function that applies the entire design system
+- **Design Tokens**: CSS custom properties defining colors, typography, spacing, and effects
+- **Component Patterns**: Reusable styles for cards, buttons, tables, and specialized components
+- **Theme Adaptations**: Automatic dark mode support with enhanced contrast and accessibility
+- **Animation System**: Consistent transitions and micro-interactions that feel responsive yet subtle
+
+### Style Guidelines
+
+1. **Minimalist First**: Every element serves a purpose; decorative elements are meaningful and subtle
+2. **Academic Elegance**: Professional appearance suitable for research content with modern web sensibilities  
+3. **Consistent Interactions**: Predictable hover states, transitions, and feedback across all components
+4. **Accessibility**: High contrast ratios, readable typography, and keyboard navigation support
+5. **Performance**: Lightweight CSS with efficient selectors and minimal reflows
+
+The design creates an environment that feels both **academically serious** and **technologically forward**, allowing users to focus on research content while enjoying a polished, contemporary interface that subtly celebrates the intersection of academia and digital innovation.
+
 ## Key Features
 
 ### Main Application (app.py)
