@@ -19,8 +19,8 @@ def get_css_variables():
             --font-family-display: 'Orbitron', sans-serif;
             
             /* Font Sizes */
-            --font-size-xs: 0.75rem;
-            --font-size-sm: 0.85rem;
+            --font-size-xs: 0.875rem;
+            --font-size-sm: 0.95rem;
             --font-size-base: 1rem;
             --font-size-lg: 1.1rem;
             --font-size-xl: 1.2rem;
@@ -209,6 +209,41 @@ def get_base_component_styles():
         }
         
         /* =============================================================================
+           METRIC COMPONENTS
+           ============================================================================= */
+        
+        .metric-enhanced {
+            background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
+            border: 1px solid rgba(179, 27, 27, 0.06);
+            border-radius: var(--radius-base);
+            padding: var(--space-base);
+            transition: all var(--transition-fast);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .metric-enhanced:hover {
+            border-color: rgba(179, 27, 27, 0.12);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .metric-enhanced::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--arxiv-red) 0%, var(--arxiv-red-light) 100%);
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+        
+        .metric-enhanced:hover::before {
+            opacity: 1;
+        }
+        
+        /* =============================================================================
            RESPONSIVE BREAKPOINTS
            ============================================================================= */
         
@@ -221,6 +256,10 @@ def get_base_component_styles():
             .grid-auto-fit {
                 grid-template-columns: 1fr;
                 gap: var(--space-sm);
+            }
+            
+            .metric-enhanced {
+                padding: var(--space-sm);
             }
         }
         
@@ -701,6 +740,38 @@ def get_streamlit_overrides():
             color: var(--arxiv-red) !important;
             border-bottom-color: var(--arxiv-red) !important;
         }
+
+        /* Streamlit Metric Overrides */
+        .stMetric {
+            background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
+            border: 1px solid rgba(179, 27, 27, 0.06);
+            border-radius: var(--radius-base);
+            padding: var(--space-base);
+            transition: all var(--transition-fast);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stMetric:hover {
+            border-color: rgba(179, 27, 27, 0.12);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .stMetric::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--arxiv-red) 0%, var(--arxiv-red-light) 100%);
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+        
+        .stMetric:hover::before {
+            opacity: 1;
+        }
     """
 
 # =============================================================================
@@ -1037,6 +1108,16 @@ def get_advanced_trending_card_styles():
             
             .trending-summary {
                 color: var(--text-color, #AAAAAA);
+            }
+            
+            .stMetric {
+                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
+                border-color: rgba(179, 27, 27, 0.08);
+            }
+            
+            .stMetric:hover {
+                border-color: rgba(179, 27, 27, 0.15);
+                box-shadow: 0 2px 8px rgba(179, 27, 27, 0.15);
             }
         }
         
