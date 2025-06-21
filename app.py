@@ -522,7 +522,19 @@ def main():
     if not st.session_state.all_years:
         heatmap_data = au.prepare_calendar_data(published_df, year)
         release_calendar, padded_date = pt.plot_activity_map(heatmap_data)
-        st.markdown(f"### 📅 {year} Release Calendar")
+        
+        # Section header with consistent styling
+        header_html = f"""
+        <div class="trending-panel-header">
+            <div class="trending-panel-title">
+                📅 {year} Release Calendar
+            </div>
+            <div class="trending-panel-subtitle">
+                Click on any day to filter papers by publication date
+            </div>
+        </div>
+        """
+        st.markdown(header_html, unsafe_allow_html=True)
 
         # Use native Streamlit plotly_chart with on_select
         calendar_event = st.plotly_chart(
@@ -650,7 +662,19 @@ def main():
 
             @st.fragment
             def interesting_fact_display():
-                st.markdown("### 💡 Interesting Fact")
+                # Section header with consistent styling
+                header_html = """
+                <div class="trending-panel-header">
+                    <div class="trending-panel-title">
+                        💡 Interesting Fact
+                    </div>
+                    <div class="trending-panel-subtitle">
+                        Random discovery from recent research
+                    </div>
+                </div>
+                """
+                st.markdown(header_html, unsafe_allow_html=True)
+                
                 # Retrieve a single random fact (cached) and display it
                 fact_list = get_random_interesting_facts(
                     n=1,
@@ -674,17 +698,25 @@ def main():
 
             @st.fragment
             def feature_poll_fragment():
-                st.markdown("### 🗳️ Feature Poll")
+                # Section header with consistent styling
+                header_html = """
+                <div class="trending-panel-header">
+                    <div class="trending-panel-title">
+                        🗳️ Feature Poll
+                    </div>
+                    <div class="trending-panel-subtitle">
+                        Help us shape LLMpedia's future
+                    </div>
+                </div>
+                """
+                st.markdown(header_html, unsafe_allow_html=True)
 
                 has_voted = st.session_state.get("user_has_voted_poll", False)
 
                 if has_voted:
                     st.info("You have already voted in this session. Thank you for your feedback!")
                 else:
-                    st.write(
-                        "Help us prioritize upcoming LLMpedia features. Select your favourite or suggest a new one!"
-                    )
-
+                    pass
                 default_options = [
                     "**Aggregate Model Scores**: Get a summary of how different models perform on tests test results presented in papers.",
                     "**Improved Deep Research**: Support for long running (30 min+) agentic research.",
@@ -753,7 +785,19 @@ def main():
             feature_poll_fragment()
 
         st.divider()
-        st.markdown("### 🔬 Dive Deeper with Online Research")
+        # Section header with consistent styling
+        header_html = """
+        <div class="trending-panel-header">
+            <div class="trending-panel-title">
+                🔬 Dive Deeper with Online Research
+            </div>
+            <div class="trending-panel-subtitle">
+                AI-powered research assistant with cited sources
+            </div>
+        </div>
+        """
+        st.markdown(header_html, unsafe_allow_html=True)
+        
         st.markdown(
             "Got specific questions about LLMs, arXiv papers, or need to find relevant research? "
             "Our AI-powered Online Research tool helps you find answers, summarize content, and discover related work with cited sources. "
