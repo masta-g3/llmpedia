@@ -253,7 +253,18 @@ def chat_fragment():
         initial_query_value = st.session_state.query_to_pass_to_chat
         del st.session_state.query_to_pass_to_chat  # Clear after use
 
-    st.markdown("##### 🤖 Chat with the GPT maestro.")
+    # Online Research header with consistent styling
+    research_header_html = """
+    <div class="trending-panel-header">
+        <div class="trending-panel-title">
+            🤖 Online Research Assistant
+        </div>
+        <div class="trending-panel-subtitle">
+            AI-powered research with cited sources • Ask questions about LLMs and arXiv papers
+        </div>
+    </div>
+    """
+    st.markdown(research_header_html, unsafe_allow_html=True)
     user_question = st.text_area(
         label="Ask any question about LLMs or the arxiv papers.",
         value=initial_query_value,  # Use the passed value here
@@ -998,6 +1009,19 @@ def main():
         chat_fragment()
 
     with content_tabs[5]:
+        # Links & Repositories header with consistent styling
+        repos_header_html = """
+        <div class="trending-panel-header">
+            <div class="trending-panel-title">
+                ⚙️ Links & Repositories
+            </div>
+            <div class="trending-panel-subtitle">
+                Discover code repositories and resources related to research papers
+            </div>
+        </div>
+        """
+        st.markdown(repos_header_html, unsafe_allow_html=True)
+        
         ## Repositories.
         repos_df = st.session_state["repos"]
         repos_search_cols = st.columns((1, 1, 1))
@@ -1035,8 +1059,21 @@ def main():
             repos_df, search_term, topic_filter, domain_filter
         )
         repo_count = len(filtered_repos)
-        repos_title = f"### 📦 Total resources found: {repo_count}"
-        st.markdown(repos_title)
+        
+        # Results summary with enhanced styling
+        if repo_count > 0:
+            results_html = f"""
+            <div style="margin: 1rem 0; padding: 0.75rem; background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%); border: 1px solid rgba(179, 27, 27, 0.08); border-radius: var(--radius-base); font-size: var(--font-size-sm);">
+                <strong>📊 {repo_count:,} resources found</strong> • Use filters above to refine results
+            </div>
+            """
+        else:
+            results_html = """
+            <div style="margin: 1rem 0; padding: 0.75rem; background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: var(--radius-base); font-size: var(--font-size-sm);">
+                <strong>⚠️ No resources found</strong> • Try adjusting your filters
+            </div>
+            """
+        st.markdown(results_html, unsafe_allow_html=True)
         st.data_editor(
             filtered_repos.drop(columns=["published"]).sort_index(ascending=False),
             column_config={
@@ -1073,9 +1110,22 @@ def main():
             st.plotly_chart(plot_repos, use_container_width=True)
 
     with content_tabs[6]:
+        # Weekly Report header with consistent styling
+        weekly_header_html = """
+        <div class="trending-panel-header">
+            <div class="trending-panel-title">
+                🗞️ Weekly Research Report
+            </div>
+            <div class="trending-panel-subtitle">
+                Curated weekly summaries of key developments in LLM research
+            </div>
+        </div>
+        """
+        st.markdown(weekly_header_html, unsafe_allow_html=True)
+        
         report_top_cols = st.columns((5, 2))
         with report_top_cols[0]:
-            st.markdown("# 📰 LLM Weekly Review")
+            pass  # Header is now handled above
 
         with report_top_cols[1]:
             ## ToDo: Make dynamic?
