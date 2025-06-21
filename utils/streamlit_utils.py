@@ -884,41 +884,53 @@ def generate_mini_paper_table(
 
 
 def create_featured_paper_card(paper: Dict) -> None:
-    """Creates a featured paper card using the weekly highlight with a flip effect."""
-    st.markdown("### ⭐ Featured Paper")
+    """Display the weekly highlighted paper using a unified card design."""
+
+    # Section header with consistent styling
+    header_html = """
+    <div class="trending-panel-header">
+        <div class="trending-panel-title">
+            ⭐ Featured Paper
+        </div>
+        <div class="trending-panel-subtitle">
+            Weekly highlight selected by GPT Maestro
+        </div>
+    </div>
+    """
+    st.markdown(header_html, unsafe_allow_html=True)
+
     paper_code = paper.get("arxiv_code", "")
     title = paper.get("title", "Featured Paper")
     punchline = paper.get("punchline", "No summary available.")
     image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
+    paper_url = paper.get("url", f"https://arxiv.org/abs/{paper_code}")
 
-    # Sanitize title and punchline for HTML
+    # HTML-escape potentially unsafe content
     safe_title = html_escape(title)
     safe_punchline = html_escape(punchline)
 
+    # Build HTML card using shared design tokens
     card_html = f"""
-    <div class="flip-card" style="width: 450px; height: 550px; margin: 0 auto;">  <!-- Adjusted height for taller card -->
-      <div class="flip-card-inner">
-        <div class="flip-card-front">
-          <img src="{image_url}" alt="{safe_title}" onerror="this.style.display='none'; this.parentElement.style.justifyContent='center'; this.parentElement.innerHTML += '<div class=\'flip-card-image-error-text\'>Image not available</div>';">
-          <div class="flip-title">{safe_title}</div>
+    <div class="featured-card">
+        <div class="featured-image">
+            <img src=\"{image_url}\" alt=\"{safe_title}\"
+                 onerror=\"this.style.display='none'; this.parentElement.style.backgroundColor='var(--secondary-background-color, #f0f0f0)'; this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-size:0.7em;color:var(--text-color,#999);\\'>No Image</div>';\">
         </div>
-        <div class="flip-card-back">
-          <div class="flip-card-back-content">{safe_punchline}</div>
-          <!-- The button is handled by Streamlit below, so this is a placeholder or can be removed if button is outside -->
+        <div class="featured-content">
+            <div class="featured-title"><a href=\"{paper_url}\" target=\"_blank\">{safe_title}</a></div>
+            <div class="featured-punchline">{safe_punchline}</div>
         </div>
-      </div>
     </div>
     """
+
     st.markdown(card_html, unsafe_allow_html=True)
 
-    # Streamlit button for interaction - placed below the card
-    button_cols = st.columns([1, 2, 1])  # Adjust columns to center the button if needed
-    with button_cols[1]:
-        if st.button(
-            "Read More", key=f"featured_flip_{paper_code}", use_container_width=True
-        ):
+    # Call-to-action button – aligned with overall style, minimal footprint
+    btn_cols = st.columns([2, 2, 2])
+    with btn_cols[1]:
+        if st.button("Read More", key=f"featured_details_{paper_code}", use_container_width=True):
             st.session_state.arxiv_code = paper_code
-            click_tab(3)  # Assumes tab 3 is the detailed view
+            click_tab(3)
             st.rerun()
 
 

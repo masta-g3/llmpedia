@@ -486,6 +486,7 @@ def apply_complete_app_styles():
             {get_advanced_trending_card_styles()}
             {get_interesting_facts_styles()}
             {get_tweet_timeline_styles()}
+            {get_featured_card_styles()}
             {get_trending_panel_styles()}
             {get_sidebar_footer_styles()}
             {get_markdown_viewer_styles()}
@@ -1376,3 +1377,114 @@ def inject_interesting_facts_css():
             {get_interesting_facts_styles()}
         </style>
     """, unsafe_allow_html=True)
+
+def get_featured_card_styles():
+    """Generate CSS for featured paper card, aligning with trending design."""
+    return """
+        .featured-card {
+            background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
+            border: 1px solid rgba(179, 27, 27, 0.08);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            transition: all var(--transition-base);
+            position: relative;
+            max-width: 450px;
+            margin: 0 auto var(--space-lg) auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .featured-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: rgba(179, 27, 27, 0.2);
+        }
+
+        .featured-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--arxiv-red) 0%, var(--arxiv-red-light) 100%);
+        }
+
+        .featured-image {
+            width: 100%;
+            height: 280px;
+            background: var(--secondary-background-color, #f0f0f0);
+        }
+
+        .featured-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .featured-content {
+            padding: var(--space-base) var(--space-lg);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-base);
+        }
+
+        .featured-title {
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--text-color, #333);
+        }
+
+        .featured-title a {
+            color: var(--arxiv-red);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+
+        .featured-title a:hover {
+            color: var(--arxiv-red-light);
+            text-decoration: underline;
+        }
+
+        .featured-punchline {
+            font-size: var(--font-size-sm);
+            line-height: 1.5;
+            color: var(--text-color, #666);
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 6; /* Show up to 6 lines */
+            -webkit-box-orient: vertical;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .featured-card {
+                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
+                border-color: rgba(179, 27, 27, 0.15);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            }
+
+            .featured-title {
+                color: var(--text-color, #FAFAFA);
+            }
+
+            .featured-punchline {
+                color: var(--text-color, #CCCCCC);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .featured-card {
+                max-width: 100%;
+            }
+
+            .featured-image {
+                height: 200px;
+            }
+
+            .featured-title {
+                font-size: var(--font-size-lg);
+            }
+        }
+    """
