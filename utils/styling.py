@@ -772,6 +772,19 @@ def get_streamlit_overrides():
         .stMetric:hover::before {
             opacity: 1;
         }
+        
+        @media (prefers-color-scheme: dark) {
+            .stMetric {
+                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
+                border-color: rgba(179, 27, 27, 0.15);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            }
+            
+            .stMetric:hover {
+                border-color: rgba(179, 27, 27, 0.3);
+                box-shadow: 0 8px 25px rgba(179, 27, 27, 0.25);
+            }
+        }
     """
 
 # =============================================================================

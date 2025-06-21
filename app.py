@@ -493,16 +493,16 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
 
 def main():
     st.markdown(
-        """<div class="pixel-font">LLMpedia</div>
+        """<div class="pixel-font" style="margin-bottom: -0.5em;">LLMpedia</div>
     """,
         unsafe_allow_html=True,
     )
     st.markdown(
-        "##### The Illustrated Large Language Model Encyclopedia",
-        help="Welcome to LLMpedia, your curated guide to Large Language Model research, brought to you by GPT Maestro. "
-        "Our pixel art illustrations and structured summaries make complex research accessible. "
-        "Have questions or interested in LLM research? Chat with the Maestro or follow us [@GPTMaestro](https://twitter.com/GPTMaestro) for the latest updates.\n\n"
-        "*Buona lettura!*",
+        "##### The Illustrated Large Language Model Encyclopedia"
+        # help="Welcome to LLMpedia, your curated guide to Large Language Model research, brought to you by GPT Maestro. "
+        # "Our pixel art illustrations and structured summaries make complex research accessible. "
+        # "Have questions or interested in LLM research? Chat with the Maestro or follow us [@GPTMaestro](https://twitter.com/GPTMaestro) for the latest updates.\n\n"
+        # "*Buona lettura!*",
     )
     ## Main content.
     full_papers_df = load_data()
