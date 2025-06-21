@@ -851,32 +851,36 @@ def main():
 
     with content_tabs[2]:
         total_papers = len(papers_df)
+        
+        # Publication Counts Section with consistent header styling
         if not st.session_state.all_years:
-            st.markdown(f"### 📈 {year} Publication Counts: {total_papers}")
+            publication_header_html = f"""
+            <div class="trending-panel-header">
+                <div class="trending-panel-title">
+                    📈 {year} Publication Trends
+                </div>
+                <div class="trending-panel-subtitle">
+                    {total_papers:,} papers published • Interactive visualizations with filtering options
+                </div>
+            </div>
+            """
         else:
-            st.markdown(f"### 📈 Total Publication Counts: {total_papers}")
+            publication_header_html = f"""
+            <div class="trending-panel-header">
+                <div class="trending-panel-title">
+                    📈 Publication Trends Overview
+                </div>
+                <div class="trending-panel-subtitle">
+                    {total_papers:,} papers total • Comprehensive analysis across all years
+                </div>
+            </div>
+            """
         
-        ## Enhanced controls for plotting
-        plot_controls_cols = st.columns([1, 1])
+        st.markdown(publication_header_html, unsafe_allow_html=True)
         
-        with plot_controls_cols[0]:
-            plot_view = st.radio(
-                label="View Mode",
-                options=["Total Volume", "By Topics"],
-                index=0,
-                horizontal=True,
-                help="Choose between total publication volume or breakdown by research topics"
-            )
-        
-        with plot_controls_cols[1]:
-            plot_type = st.radio(
-                label="Chart Type",
-                options=["Daily", "Cumulative"],
-                index=0,
-                horizontal=True,
-                help="Daily shows publications per day, Cumulative shows running totals"
-            )
-        
+        # Default values for initial plot generation
+        plot_view = st.session_state.get("stats_plot_view", "Total Volume")
+        plot_type = st.session_state.get("stats_plot_type", "Daily")
         cumulative = plot_type == "Cumulative"
         
         ## Generate appropriate plot based on selections
@@ -885,13 +889,60 @@ def main():
         else:
             ts_plot = pt.plot_publication_counts_by_topics(papers_df, cumulative=cumulative, top_n=10)
         
+        # Reduce top margin for the publication counts chart
+        ts_plot.update_layout(margin=dict(t=0, b=0.5))
         st.plotly_chart(ts_plot, use_container_width=True)
+        
+        ## Controls for plotting
+        plot_controls_cols = st.columns([0.5, 1, 1, 0.5])
+        
+        with plot_controls_cols[1]:
+            plot_view = st.radio(
+                label="View Mode",
+                options=["Total Volume", "By Topics"],
+                index=0 if plot_view == "Total Volume" else 1,
+                horizontal=True,
+                help="Choose between total publication volume or breakdown by research topics",
+                key="stats_plot_view"
+            )
+        
+        with plot_controls_cols[2]:
+            plot_type = st.radio(
+                label="Chart Type",
+                options=["Daily", "Cumulative"],
+                index=0 if plot_type == "Daily" else 1,
+                horizontal=True,
+                help="Daily shows publications per day, Cumulative shows running totals",
+                key="stats_plot_type"
+            )
 
-        ## Cluster map.
+        st.divider()
+
+        # Topic Model Map Section with consistent header styling
         if not st.session_state.all_years:
-            st.markdown(f"### Topic Model Map ({year})")
+            topic_header_html = f"""
+            <div class="trending-panel-header">
+                <div class="trending-panel-title">
+                    🗺️ {year} Research Topic Map
+                </div>
+                <div class="trending-panel-subtitle">
+                    Interactive clustering visualization • Click any point to explore paper details
+                </div>
+            </div>
+            """
         else:
-            st.markdown(f"### Topic Model Map")
+            topic_header_html = f"""
+            <div class="trending-panel-header">
+                <div class="trending-panel-title">
+                    🗺️ Research Topic Landscape
+                </div>
+                <div class="trending-panel-subtitle">
+                    Complete topic model visualization • Click any point to explore paper details
+                </div>
+            </div>
+            """
+        
+        st.markdown(topic_header_html, unsafe_allow_html=True)
 
         cluster_map = pt.plot_cluster_map(papers_df)
 

@@ -23,8 +23,8 @@ def get_css_variables():
             --font-size-sm: 0.95rem;
             --font-size-base: 1rem;
             --font-size-lg: 1.1rem;
-            --font-size-xl: 1.2rem;
-            --font-size-2xl: 1.5rem;
+            --font-size-xl: 1.4rem;
+            --font-size-2xl: 1.7rem;
             --font-size-3xl: 2rem;
             
             /* Spacing Scale */
