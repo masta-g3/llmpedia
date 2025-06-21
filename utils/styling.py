@@ -485,6 +485,7 @@ def apply_complete_app_styles():
             {generate_table_styles()}
             {get_advanced_trending_card_styles()}
             {get_interesting_facts_styles()}
+            {get_tweet_timeline_styles()}
             {get_trending_panel_styles()}
             {get_sidebar_footer_styles()}
             {get_markdown_viewer_styles()}
@@ -1143,6 +1144,219 @@ def get_interesting_facts_styles():
             
             .fact-paper-link {
                 color: var(--text-color, #CCCCCC);
+            }
+        }
+    """
+
+
+def get_tweet_timeline_styles():
+    """Generate CSS for X.com discussions timeline carousel."""
+    return """
+        .tweet-timeline-container {
+            position: relative;
+            margin-bottom: var(--space-lg);
+        }
+        
+        .tweet-timeline-header {
+            background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
+            padding: var(--space-base) var(--space-lg);
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(179, 27, 27, 0.08);
+            margin-bottom: var(--space-lg);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tweet-timeline-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--arxiv-red) 0%, var(--arxiv-red-light) 100%);
+        }
+        
+        .tweet-timeline-title {
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+            color: var(--text-color, #333);
+            margin: 0 0 var(--space-sm) 0;
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+        
+        .tweet-timeline-subtitle {
+            font-size: var(--font-size-sm);
+            color: var(--text-color, #666);
+            margin: 0;
+            opacity: 0.8;
+        }
+        
+        .tweet-carousel {
+            display: flex;
+            gap: var(--space-base);
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding: var(--space-sm) 0 var(--space-lg) 0;
+            position: relative;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(179, 27, 27, 0.3) transparent;
+            /* Ensure horizontal layout */
+            flex-direction: row;
+            align-items: stretch;
+        }
+        
+        .tweet-carousel::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .tweet-carousel::-webkit-scrollbar-track {
+            background: rgba(179, 27, 27, 0.05);
+            border-radius: var(--radius-full);
+        }
+        
+        .tweet-carousel::-webkit-scrollbar-thumb {
+            background: rgba(179, 27, 27, 0.3);
+            border-radius: var(--radius-full);
+            transition: background var(--transition-fast);
+        }
+        
+        .tweet-carousel::-webkit-scrollbar-thumb:hover {
+            background: rgba(179, 27, 27, 0.5);
+        }
+        
+        .tweet-card {
+            flex: 0 0 320px;
+            background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
+            border: 1px solid rgba(179, 27, 27, 0.08);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-base);
+            cursor: default;
+            min-height: 220px;
+            max-height: 350px;
+            display: flex;
+            flex-direction: column;
+            /* Ensure cards don't shrink below min width */
+            flex-shrink: 0;
+        }
+        
+        .tweet-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: rgba(179, 27, 27, 0.2);
+        }
+        
+        .tweet-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--arxiv-red) 0%, var(--arxiv-red-light) 100%);
+            opacity: 0;
+            transition: opacity var(--transition-base);
+        }
+        
+        .tweet-card:hover::before {
+            opacity: 1;
+        }
+        
+        .tweet-timestamp {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            font-size: var(--font-size-xs);
+            color: var(--arxiv-red);
+            font-weight: 600;
+            margin-bottom: var(--space-base);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .tweet-content {
+            font-size: var(--font-size-sm);
+            line-height: 1.5;
+            color: var(--text-color, #333);
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: var(--space-xs);
+            scrollbar-width: thin;
+            scrollbar-color: rgba(179, 27, 27, 0.2) transparent;
+        }
+        
+        .tweet-content::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .tweet-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .tweet-content::-webkit-scrollbar-thumb {
+            background: rgba(179, 27, 27, 0.2);
+            border-radius: var(--radius-full);
+        }
+        
+        .tweet-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(179, 27, 27, 0.4);
+        }
+        
+        .tweet-timeline-footer {
+            text-align: center;
+            font-size: var(--font-size-xs);
+            color: var(--text-color, #888);
+            margin-top: var(--space-base);
+            font-style: italic;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .tweet-timeline-header {
+                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
+                border-color: rgba(179, 27, 27, 0.15);
+            }
+            
+            .tweet-timeline-title {
+                color: var(--text-color, #FAFAFA);
+            }
+            
+            .tweet-timeline-subtitle {
+                color: var(--text-color, #CCCCCC);
+            }
+            
+            .tweet-card {
+                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
+                border-color: rgba(179, 27, 27, 0.15);
+            }
+            
+            .tweet-card:hover {
+                box-shadow: 0 8px 25px rgba(179, 27, 27, 0.25);
+                border-color: rgba(179, 27, 27, 0.3);
+            }
+            
+            .tweet-content {
+                color: var(--text-color, #FAFAFA);
+            }
+            
+            .tweet-timeline-footer {
+                color: var(--text-color, #AAAAAA);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .tweet-card {
+                flex: 0 0 250px;
+                padding: var(--space-base);
+                min-height: 150px;
+            }
+            
+            .tweet-content {
+                -webkit-line-clamp: 5;
             }
         }
     """
