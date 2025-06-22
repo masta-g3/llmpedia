@@ -112,6 +112,7 @@ def create_sidebar(full_papers_df: pd.DataFrame) -> Tuple[pd.DataFrame, int]:
     return papers_df, year
 
 
+@st.fragment
 def create_paper_card(paper: Dict, mode="closed", name=""):
     """Creates card UI for paper details."""
     # Main container with padding and border
@@ -500,7 +501,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
                 if len(similar_codes) > 5:
                     similar_codes = np.random.choice(similar_codes, 5, replace=False)
                 similar_df = papers_df.loc[similar_codes]
-                generate_grid_gallery(similar_df, extra_key="_sim", n_cols=5)
+                generate_grid_gallery(similar_df, extra_key=f"_sim_{paper_code}", n_cols=5)
 
     # GPT Maestro Insight tab (only shown if insight exists)
     if "tweet_insight" in paper and not pd.isna(paper["tweet_insight"]):
@@ -511,6 +512,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
     st.markdown("---")
 
 
+@st.fragment
 def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
     """Create streamlit grid gallery of paper cards with flip effect."""
     n_rows = int(np.ceil(len(df) / n_cols))
@@ -578,10 +580,10 @@ def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
                         use_container_width=True,
                     ):
                         st.session_state.arxiv_code = paper_code
-                        click_tab(3)  # Assumes tab 3 is the detailed view
-                        st.rerun()
+                        click_tab(3)
 
 
+@st.fragment
 def generate_citations_list(df: pd.DataFrame) -> None:
     """Generate a formatted list of paper citations with rich styling."""
     for _, paper in df.iterrows():
@@ -628,11 +630,12 @@ def generate_citations_list(df: pd.DataFrame) -> None:
         st.markdown(citation_html, unsafe_allow_html=True)
 
         # Hidden button to handle tab switching after state is set
-        if paper_code == st.session_state.get("arxiv_code"):
+        if paper_code == st.session_state.arxiv_code:
             click_tab(3)
-            st.session_state.pop("arxiv_code", None)  # Clear it after use
+            # st.session_state.pop("arxiv_code", None)  # Clear it after use
 
 
+@st.fragment
 def generate_paper_table(df, extra_key=""):
     """Create a stylized table view of papers with key information."""
     # Table styles are now applied globally via apply_complete_app_styles()
@@ -780,6 +783,24 @@ def create_bottom_navigation(label: str):
         st.rerun()
 
 
+def display_paper_details_fragment(paper_code: str):
+    """Displays the paper details card or an error message within a fragment."""
+    st.session_state.details_canvas = st.session_state.details_canvas.empty()
+    with st.session_state.details_canvas:
+        if len(paper_code) > 0:
+            # Access full papers data frame from session state
+            if "papers" in st.session_state:
+                full_papers_df = st.session_state.papers
+                if paper_code in full_papers_df.index:
+                    paper = full_papers_df.loc[paper_code].to_dict()
+                    create_paper_card(paper, mode="open", name="_focus")
+                else:
+                    st.error("Paper not found.")
+            else:
+                # Handle case where papers haven't loaded yet (might happen on initial load)
+                st.warning("Paper data is still loading...")
+
+
 def click_tab(tab_num):
     js = f"""
     <script>
@@ -794,6 +815,8 @@ def click_tab(tab_num):
     </script>
     """
     st.components.v1.html(js)
+    display_paper_details_fragment(st.session_state.arxiv_code)
+    st.rerun(scope='fragment')
 
 
 @st.fragment
@@ -873,7 +896,6 @@ def generate_mini_paper_table(
             ):
                 st.session_state.arxiv_code = paper_code
                 click_tab(3)
-                st.rerun()
 
     # Summary information
     if len(df) > n:
@@ -882,7 +904,7 @@ def generate_mini_paper_table(
             unsafe_allow_html=True
         )
 
-
+@st.fragment
 def create_featured_paper_card(paper: Dict) -> None:
     """Display the weekly highlighted paper using a unified card design."""
 
@@ -925,13 +947,11 @@ def create_featured_paper_card(paper: Dict) -> None:
 
     st.markdown(card_html, unsafe_allow_html=True)
 
-    # Call-to-action button – aligned with overall style, minimal footprint
     btn_cols = st.columns([2, 2, 2])
     with btn_cols[1]:
         if st.button("Read More", key=f"featured_details_{paper_code}", use_container_width=True):
             st.session_state.arxiv_code = paper_code
             click_tab(3)
-            st.rerun()
 
 
 def display_interesting_facts(facts_list, n_cols=2, papers_df=None):

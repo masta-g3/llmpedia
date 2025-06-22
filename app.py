@@ -411,23 +411,6 @@ def chat_fragment():
 
 
 @st.fragment
-def display_paper_details_fragment(paper_code: str):
-    """Displays the paper details card or an error message within a fragment."""
-    if len(paper_code) > 0:
-        # Access full papers data frame from session state
-        if "papers" in st.session_state:
-            full_papers_df = st.session_state.papers
-            if paper_code in full_papers_df.index:
-                paper = full_papers_df.loc[paper_code].to_dict()
-                su.create_paper_card(paper, mode="open", name="_focus")
-            else:
-                st.error("Paper not found.")
-        else:
-            # Handle case where papers haven't loaded yet (might happen on initial load)
-            st.warning("Paper data is still loading...")
-
-
-@st.fragment
 def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
     """Displays the Top Cited / Trending Papers panel with toggle and caching."""
     citation_window = 90
@@ -825,7 +808,7 @@ def main():
             query_to_pass = st.session_state.get("news_tab_shared_query_input", "")
             if query_to_pass:  # Only pass if there's actual text
                 st.session_state.query_to_pass_to_chat = query_to_pass
-            su.click_tab(4)  # Navigate to the Online Research tab (index 4)
+            su.click_tab(4)  # Navigate to the Online Research tab
 
     with content_tabs[1]:
         ## Grid view or Table view
@@ -977,8 +960,7 @@ def main():
                 if len(custom_data) > 1:
                     arxiv_code = custom_data[1]  # The second element is the arxiv_code
                     if arxiv_code:
-                        # Redirect to the paper details
-                        st.query_params["arxiv_code"] = arxiv_code
+                        # st.query_params["arxiv_code"] = arxiv_code
                         st.session_state.arxiv_code = arxiv_code
                         su.click_tab(3)
 
@@ -999,11 +981,16 @@ def main():
             )
 
         # Text input remains outside the fragment to update session state
-        arxiv_code_input = st.text_input("arXiv Code", st.session_state.arxiv_code)
-        # Update session state if input changes
-        if arxiv_code_input != st.session_state.arxiv_code:
-            st.session_state.arxiv_code = arxiv_code_input
-        display_paper_details_fragment(st.session_state.arxiv_code)
+        search_cols = st.columns((7, 1))
+        st.session_state.details_canvas = st.container()
+        with search_cols[0]:
+            arxiv_code_input = st.text_input("arXiv Code", "")
+        with search_cols[1]:
+            st.write("  ")
+            st.write("  ")
+            if st.button("Search"):
+                st.session_state.arxiv_code = arxiv_code_input
+                su.click_tab(3)
 
     with content_tabs[4]:
         chat_fragment()
