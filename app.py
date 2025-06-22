@@ -634,13 +634,63 @@ def main():
             else:
                 st.info("Paper data is not available for this panel.")
 
-        # Panel 2.2: X.com & Featured Paper (Right)
+        # Panel 2.2: X.com/Reddit & Featured Paper (Right)
         with row2_cols[2]:
-            tweet_summaries_df = db.read_last_n_tweet_analyses(n=8)
-            tweet_summaries_df = tweet_summaries_df[tweet_summaries_df["tstp"] >= "2025-05-14"]
-            if tweet_summaries_df is not None and not tweet_summaries_df.empty:
-                su.display_tweet_summaries(tweet_summaries_df, max_entries=8)
-                st.divider()
+            @st.fragment
+            def discussions_toggle_panel():
+                """Displays discussions toggle panel similar to trending papers toggle."""
+                current_discussions_toggle = st.session_state.get("toggle_discussions_platform", True)
+                
+                # Create enhanced header
+                if current_discussions_toggle:
+                    header_html = """
+                    <div class="trending-panel-header">
+                        <div class="trending-panel-title">
+                            🐦 Latest LLM Discussions on X
+                        </div>
+                        <div class="trending-panel-subtitle">
+                            Timestamped summaries updated every ~12 hours
+                        </div>
+                    </div>
+                    """
+                else:
+                    header_html = """
+                    <div class="trending-panel-header">
+                        <div class="trending-panel-title">
+                            🦙 Latest LLM Discussions on Reddit
+                        </div>
+                        <div class="trending-panel-subtitle">
+                            Cross-subreddit summaries updated every ~12 hours
+                        </div>
+                    </div>
+                    """
+                
+                st.markdown(header_html, unsafe_allow_html=True)
+
+                # Toggle with improved styling
+                toggle_label = (
+                    "🦙 Switch to Reddit"
+                    if current_discussions_toggle
+                    else "🐦 Switch to X.com"
+                )
+                st.toggle(toggle_label, value=current_discussions_toggle, key="toggle_discussions_platform")
+
+                if current_discussions_toggle:  # Show X.com discussions
+                    tweet_summaries_df = db.read_last_n_tweet_analyses(n=8)
+                    tweet_summaries_df = tweet_summaries_df[tweet_summaries_df["tstp"] >= "2025-05-14"]
+                    if tweet_summaries_df is not None and not tweet_summaries_df.empty:
+                        su.display_tweet_summaries(tweet_summaries_df, max_entries=8)
+                    else:
+                        st.info("No recent X.com discussions found.")
+                else:  # Show Reddit discussions
+                    reddit_summaries_df = db.read_last_n_reddit_analyses(n=8)
+                    if reddit_summaries_df is not None and not reddit_summaries_df.empty:
+                        su.display_reddit_summaries(reddit_summaries_df, max_entries=8)
+                    else:
+                        st.info("No recent Reddit discussions found.")
+
+            discussions_toggle_panel()
+            st.divider()
 
             arxiv_code = au.get_latest_weekly_highlight()
             highlight_paper = (

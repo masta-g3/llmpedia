@@ -1011,13 +1011,67 @@ def display_tweet_summaries(df, max_entries: int = 8):
     # Build complete HTML structure as one piece to preserve flexbox layout
     html_parts = []
     
-    # Header
+    # Content only (no header - handled by toggle panel)
     html_parts.append('''
 <div class="tweet-timeline-container">
-    <div class="tweet-timeline-header">
-        <div class="tweet-timeline-title">🐦 Latest LLM Discussions on X</div>
-        <div class="tweet-timeline-subtitle">Timestamped summaries updated every ~12 hours</div>
+    <div class="tweet-carousel">''')
+
+    # Add each discussion as a card
+    for i, (_, row) in enumerate(df.iterrows()):
+        timestamp = row["tstp"].strftime("%b %d, %H:%M")
+        full_timestamp = row["tstp"].strftime("%B %d, %Y at %H:%M")
+        
+        # Clean and escape the summary content
+        summary = str(row["response"]).strip()
+        # Use html_escape to properly handle all special characters
+        summary = html_escape(summary)
+        
+        # Calculate relative time
+        time_diff = pd.Timestamp.now() - row["tstp"]
+        if time_diff.days > 0:
+            relative_time = f"{time_diff.days} day{'s' if time_diff.days > 1 else ''} ago"
+        elif time_diff.seconds > 3600:
+            hours = time_diff.seconds // 3600
+            relative_time = f"{hours} hour{'s' if hours > 1 else ''} ago"
+        else:
+            relative_time = "Recent"
+        
+        # Add card to HTML - use simple concatenation to avoid f-string issues
+        card_html = '<div class="tweet-card" title="' + html_escape(full_timestamp) + '">'
+        card_html += '<div class="tweet-timestamp">🕑 ' + timestamp + ' • ' + relative_time + '</div>'
+        card_html += '<div class="tweet-content">' + summary + '</div>'
+        card_html += '</div>'
+        
+        html_parts.append(card_html)
+
+    # Footer
+    html_parts.append('''
     </div>
+    <div class="tweet-timeline-footer">Scroll horizontally to explore the timeline →</div>
+</div>''')
+
+    # Render complete HTML structure as one piece
+    complete_html = ''.join(html_parts)
+    st.markdown(complete_html, unsafe_allow_html=True)
+
+
+def display_reddit_summaries(df, max_entries: int = 8):
+    """Display recent Reddit LLM discussion summaries in a timeline carousel."""
+    if df is None or df.empty:
+        st.info("No recent discussions found.")
+        return
+
+    # Limit to desired number of entries and sort by timestamp (newest first)
+    df = df.head(max_entries)
+    df["tstp"] = pd.to_datetime(df["tstp"])
+    df = df.sort_values("tstp", ascending=False)
+
+    # Build complete HTML structure as one piece to preserve flexbox layout
+    html_parts = []
+    
+    # Content only (no header - handled by toggle panel)
+    html_parts.append('''
+<div class="tweet-timeline-container">
     <div class="tweet-carousel">''')
 
     # Add each discussion as a card

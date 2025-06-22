@@ -425,6 +425,17 @@ def read_last_n_tweet_analyses(n: int = 10) -> pd.DataFrame:
     )
 
 
+def read_last_n_reddit_analyses(n: int = 10) -> pd.DataFrame:
+    """Read the last N reddit analyses from the database (multi-subreddit only)."""
+    return simple_select_query(
+        table="reddit_analysis",
+        select_cols=["tstp", "thinking_process", "response"],
+        order_by="tstp DESC",
+        index_col=None,
+        conditions={"subreddit": "multi", "LIMIT": n},
+    )
+
+
 ###############
 ## TRENDING PAPERS ##
 ###############
