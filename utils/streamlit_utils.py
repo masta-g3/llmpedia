@@ -900,6 +900,7 @@ def generate_mini_paper_table(
                 click_tab(3)
 
             # Tweet toggle button (if enabled and tweets exist) - below the arrow button
+            st.write(paper)
             if show_tweets_toggle and 'tweets' in paper and paper['tweets'] and len(paper['tweets']) > 0:
                 tweet_count = paper.get('tweet_count', len(paper['tweets']))
                 tweet_toggle_key = f"show_tweets_{paper_code}_{extra_key}"
