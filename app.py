@@ -218,7 +218,7 @@ def get_cached_top_cited_papers_app(
     )
 
 
-# @st.cache_data(ttl=timedelta(minutes=30))
+@st.cache_data(ttl=timedelta(minutes=30))
 def get_cached_raw_trending_data_app(
     n_fetch: int, time_window_days_db: int
 ) -> pd.DataFrame:
@@ -226,8 +226,7 @@ def get_cached_raw_trending_data_app(
     return db.get_trending_papers(n=n_fetch, time_window_days=time_window_days_db)
 
 
-@st.cache_data
-def get_cached_processed_trending_papers_app(
+def get_processed_trending_papers(
     papers_df_fragment: pd.DataFrame,
     raw_trending_data: pd.DataFrame,
     top_n_display: int,
@@ -459,7 +458,7 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
             n_fetch=top_n + 10,  # Fetch a bit more for robust joining
             time_window_days_db=trending_window,
         )
-        trending_papers = get_cached_processed_trending_papers_app(
+        trending_papers = get_processed_trending_papers(
             papers_df_fragment, raw_trending_df, top_n_display=top_n
         )
 
