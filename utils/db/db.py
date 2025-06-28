@@ -471,6 +471,6 @@ def get_trending_papers(n: int = 5, time_window_days: int = 7) -> pd.DataFrame:
         ORDER BY like_count DESC
         LIMIT {n}
     """
-    st.write(query)
+    print(query)
 
     return execute_read_query(query)
