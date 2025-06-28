@@ -173,7 +173,7 @@ def initialize_weekly_summary(date_report: str):
     return weekly_content, weekly_highlight, weekly_repos
 
 
-@st.cache_data(ttl=timedelta(hours=6))
+@st.cache_data(ttl=timedelta(hours=1))
 def get_random_interesting_facts(n=10, recency_days=7, _trigger: int = 0) -> List[Dict]:
     """Get random interesting facts from the database with caching."""
     return db.get_random_interesting_facts(n=n, recency_days=recency_days)
@@ -218,7 +218,7 @@ def get_cached_top_cited_papers_app(
     )
 
 
-@st.cache_data(ttl=timedelta(minutes=30))
+# @st.cache_data(ttl=timedelta(minutes=30))
 def get_cached_raw_trending_data_app(
     n_fetch: int, time_window_days_db: int
 ) -> pd.DataFrame:
