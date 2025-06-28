@@ -826,6 +826,7 @@ def generate_mini_paper_table(
     extra_key: str = "",
     metric_name: str = "Citations",
     metric_col: str = "citation_count",
+    show_tweets_toggle: bool = False,
 ):
     """Create an enhanced card-based display of top papers for dashboard display."""
     # Trending card styles are now applied globally via apply_complete_app_styles()
@@ -855,7 +856,7 @@ def generate_mini_paper_table(
         # Image URL with fallback
         image_url = f"https://arxiv-art.s3.amazonaws.com/{paper_code}.png"
         
-        # Use columns to place button to the right of the card
+        # Use columns to place buttons to the right of the card
         card_col, button_col = st.columns([10, 1])
 
         with card_col:
@@ -886,16 +887,51 @@ def generate_mini_paper_table(
             """
             st.markdown(card_html, unsafe_allow_html=True)
 
+        # Buttons stacked vertically
         with button_col:
             # Vertical alignment hack for the button
             st.markdown("<div style='height: calc(3 * var(--space-base));'></div>", unsafe_allow_html=True)
             if st.button(
-                "→",
+                "🔍",
                 key=f"details_btn_{paper_code}_{extra_key}",
-                help=f"View details for: {title[:50]}..."
+                help="Details"
             ):
                 st.session_state.arxiv_code = paper_code
                 click_tab(3)
+
+            # Tweet toggle button (if enabled and tweets exist) - below the arrow button
+            if show_tweets_toggle and 'tweets' in paper and paper['tweets'] and len(paper['tweets']) > 0:
+                tweet_count = paper.get('tweet_count', len(paper['tweets']))
+                tweet_toggle_key = f"show_tweets_{paper_code}_{extra_key}"
+                current_active_key = st.session_state.get("active_tweet_panel", None)
+                
+                if st.button(
+                    f"🐦",
+                    key=tweet_toggle_key,
+                    help=f"View {tweet_count} tweet(s) for this paper"
+                ):
+                    # Toggle tweet display - only one panel open at a time
+                    if current_active_key == tweet_toggle_key:
+                        # Close the currently open panel
+                        st.session_state["active_tweet_panel"] = None
+                    else:
+                        # Close any other panel and open this one
+                        st.session_state["active_tweet_panel"] = tweet_toggle_key
+                    st.rerun(scope="fragment")
+
+        # Display tweets if expanded
+        if (show_tweets_toggle and 'tweets' in paper and paper['tweets'] and 
+            st.session_state.get("active_tweet_panel") == f"show_tweets_{paper_code}_{extra_key}"):
+            
+            st.markdown("<div style='margin-left: var(--space-base); margin-top: var(--space-sm);'>", unsafe_allow_html=True)
+            
+            # Limit to top 8 tweets by likes and ensure they're properly parsed
+            tweets_data = paper['tweets'][:8] if len(paper['tweets']) > 8 else paper['tweets']
+            
+            for tweet in tweets_data:
+                display_individual_tweet(tweet, compact=True)
+            
+            st.markdown("</div>", unsafe_allow_html=True)
 
     # Summary information
     if len(df) > n:
@@ -1111,6 +1147,60 @@ def display_reddit_summaries(df, max_entries: int = 8):
     # Render complete HTML structure as one piece
     complete_html = ''.join(html_parts)
     st.markdown(complete_html, unsafe_allow_html=True)
+
+
+def display_individual_tweet(tweet_data: Dict, compact: bool = True):
+    """Display individual tweet card with author, content, metrics, and link."""
+    # Extract tweet information
+    author = tweet_data.get("author", "Unknown")
+    username = tweet_data.get("username", "@unknown")
+    text = tweet_data.get("text", "")
+    like_count = tweet_data.get("like_count", 0)
+    repost_count = tweet_data.get("repost_count", 0)
+    reply_count = tweet_data.get("reply_count", 0)
+    tweet_link = tweet_data.get("link", "")
+    tweet_timestamp = tweet_data.get("tweet_timestamp")
+    max_length = 512
+    
+    # Format timestamp
+    if tweet_timestamp:
+        try:
+            timestamp = pd.to_datetime(tweet_timestamp)
+            formatted_time = timestamp.strftime("%b %d, %H:%M")
+        except:
+            formatted_time = "Recent"
+    else:
+        formatted_time = "Recent"
+    
+    # Truncate text for compact view
+    if compact and len(text) > max_length:
+        text = text[:max_length] + "..."
+    
+    # Escape content for safe HTML
+    safe_author = html_escape(author)
+    safe_username = html_escape(username)
+    safe_text = html_escape(text)
+    
+    # Create compact tweet card
+    tweet_html = f"""
+    <div class="individual-tweet-card">
+        <div class="tweet-header">
+            <div class="tweet-author">
+                <strong>{safe_author}</strong> <span class="tweet-username">{safe_username}</span>
+            </div>
+            <div class="tweet-time">{formatted_time}</div>
+        </div>
+        <div class="tweet-text">{safe_text}</div>
+        <div class="tweet-metrics">
+            <span class="tweet-metric">💖 {like_count:,}</span>
+            <span class="tweet-metric">🔄 {repost_count:,}</span>
+            <span class="tweet-metric">💬 {reply_count:,}</span>
+            <a href="{tweet_link}" target="_blank" class="tweet-link">View Tweet →</a>
+        </div>
+    </div>
+    """
+    
+    st.markdown(tweet_html, unsafe_allow_html=True)
 
 
 def inject_flip_card_css():

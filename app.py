@@ -470,6 +470,7 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
                 extra_key="_dashboard_trending",
                 metric_name="Likes",
                 metric_col="like_count",
+                show_tweets_toggle=True,
             )
         else:
             st.info("No trending data found or papers not in current view.")

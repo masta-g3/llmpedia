@@ -523,6 +523,7 @@ def apply_complete_app_styles():
             {get_flip_card_styles()}
             {generate_table_styles()}
             {get_advanced_trending_card_styles()}
+            {get_individual_tweet_card_styles()}
             {get_interesting_facts_styles()}
             {get_tweet_timeline_styles()}
             {get_featured_card_styles()}
@@ -1452,6 +1453,134 @@ def get_tweet_timeline_styles():
             
             .tweet-content {
                 -webkit-line-clamp: 5;
+            }
+        }
+    """
+
+def get_individual_tweet_card_styles():
+    """Generate CSS for individual tweet cards displayed in trending papers."""
+    return """
+        .individual-tweet-card {
+            background: var(--background-color, #ffffff);
+            border: 1px solid rgba(179, 27, 27, 0.08);
+            border-radius: var(--radius-base);
+            padding: var(--space-base);
+            margin-bottom: var(--space-sm);
+            transition: all var(--transition-fast);
+            position: relative;
+        }
+        
+        .individual-tweet-card:hover {
+            border-color: rgba(179, 27, 27, 0.15);
+            box-shadow: 0 2px 8px rgba(179, 27, 27, 0.1);
+        }
+        
+        .tweet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-sm);
+        }
+        
+        .tweet-author {
+            font-size: var(--font-size-sm);
+            color: var(--text-color, #333);
+        }
+        
+        .tweet-username {
+            color: var(--text-color, #666);
+            font-weight: normal;
+            margin-left: var(--space-xs);
+        }
+        
+        .tweet-time {
+            font-size: var(--font-size-xs);
+            color: var(--text-color, #888);
+            opacity: 0.8;
+        }
+        
+        .tweet-text {
+            font-size: var(--font-size-sm);
+            line-height: 1.4;
+            color: var(--text-color, #333);
+            margin-bottom: var(--space-base);
+        }
+        
+        .tweet-metrics {
+            display: flex;
+            align-items: center;
+            gap: var(--space-base);
+            flex-wrap: wrap;
+        }
+        
+        .tweet-metric {
+            font-size: var(--font-size-xs);
+            color: var(--text-color, #666);
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+        
+        .tweet-link {
+            font-size: var(--font-size-xs);
+            color: var(--arxiv-red);
+            text-decoration: none;
+            font-weight: 500;
+            margin-left: auto;
+            transition: color var(--transition-fast);
+        }
+        
+        .tweet-link:hover {
+            color: var(--arxiv-red-light);
+            text-decoration: underline;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .individual-tweet-card {
+                background: var(--background-color, #0E1117);
+                border-color: rgba(179, 27, 27, 0.15);
+            }
+            
+            .individual-tweet-card:hover {
+                border-color: rgba(179, 27, 27, 0.25);
+                box-shadow: 0 2px 8px rgba(179, 27, 27, 0.2);
+            }
+            
+            .tweet-author {
+                color: var(--text-color, #FAFAFA);
+            }
+            
+            .tweet-username {
+                color: var(--text-color, #CCCCCC);
+            }
+            
+            .tweet-time {
+                color: var(--text-color, #AAAAAA);
+            }
+            
+            .tweet-text {
+                color: var(--text-color, #FAFAFA);
+            }
+            
+            .tweet-metric {
+                color: var(--text-color, #CCCCCC);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .individual-tweet-card {
+                padding: var(--space-sm);
+            }
+            
+            .tweet-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--space-xs);
+            }
+            
+            .tweet-metrics {
+                flex-wrap: wrap;
+                gap: var(--space-sm);
             }
         }
     """

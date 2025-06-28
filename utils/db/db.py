@@ -442,13 +442,30 @@ def read_last_n_reddit_analyses(n: int = 10) -> pd.DataFrame:
 
 
 def get_trending_papers(n: int = 5, time_window_days: int = 7) -> pd.DataFrame:
-    """Return papers with highest total like count on tweets within the given window."""
+    """Return papers with highest total like count on tweets within the given window, including individual tweet details."""
     cutoff_date = (datetime.now() - timedelta(days=time_window_days)).strftime("%Y-%m-%d")
 
     query = f"""
-        SELECT t.arxiv_code, SUM(t.like_count) AS like_count
-        FROM llm_tweets t
-        WHERE t.arxiv_code IS NOT NULL
+        SELECT 
+            t.arxiv_code,
+            SUM(t.like_count) AS like_count,
+            COUNT(*) as tweet_count,
+            ARRAY_AGG(
+                json_build_object(
+                    'text', t.text,
+                    'author', t.author, 
+                    'username', t.username,
+                    'like_count', t.like_count,
+                    'tweet_timestamp', t.tweet_timestamp,
+                    'link', t.link,
+                    'repost_count', t.repost_count,
+                    'reply_count', t.reply_count
+                ) ORDER BY t.like_count DESC
+            ) AS tweets
+        FROM llm_tweets t 
+        WHERE t.arxiv_code IS NOT NULL 
+          AND t.arxiv_code != 'null' 
+          AND t.arxiv_code != '' 
           AND t.tstp >= '{cutoff_date}'
         GROUP BY t.arxiv_code
         ORDER BY like_count DESC
