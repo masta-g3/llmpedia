@@ -93,3 +93,40 @@ class Document(BaseModel):
     abstract: str
     notes: str
     distance: float
+
+class NextSearchStepDecision(BaseModel):
+    """Decision on whether to continue deep search and the next query."""
+    reasoning: str = Field(
+        ...,
+        description="Initial analysis of the current research state, explaining what has been found and what gaps remain (if any).",
+    )
+    continue_search: bool = Field(
+        ...,
+        description="Whether the search should continue with another iteration.",
+    )
+    next_query: Optional[str] = Field(
+        None,
+        description="The refined or new search query to use in the next iteration, if continue_search is True.",
+    )
+
+class ScratchpadAnalysisResult(BaseModel):
+    """Result of analyzing documents and updating the research scratchpad."""
+    key_insights: List[str] = Field(
+        ...,
+        description="List of key findings or insights extracted from the newly analyzed documents relevant to the original question and current scratchpad.",
+    )
+    remaining_questions: List[str] = Field(
+        ...,
+        description="List of questions that remain unanswered or new questions that arose from the analysis.",
+    )
+    updated_scratchpad: str = Field(
+        ...,
+        description="The updated and augmented scratchpad content, incorporating the new insights and summarizing the current state of the research.",
+    )
+
+class ResolveScratchpadResponse(BaseModel):
+    """Final response synthesized from the research scratchpad."""
+    response: str = Field(
+        ...,
+        description="The final, synthesized response based on the scratchpad content, adhering to style and length requirements.",
+    )

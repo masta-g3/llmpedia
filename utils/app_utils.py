@@ -268,7 +268,6 @@ def decide_query_action(
         po.QueryDecision,
         llm_model=llm_model,
         process_id="decide_query_action",
-        thinking={"type": "enabled", "budget_tokens": 0},
     )
     return response
 
@@ -281,9 +280,57 @@ def generate_query_object(user_question: str, llm_model: str):
         llm_model=llm_model,
         temperature=0.5,
         process_id="generate_query_object",
-        thinking={"type": "enabled", "budget_tokens": 0},
     )
     return query_obj
+
+
+def decide_deep_search_step(
+    original_question: str,
+    scratchpad_content: str,
+    previous_queries: list[str],
+    llm_model: str,
+) -> po.NextSearchStepDecision:
+    """Decide whether to continue deep search based on scratchpad and determine the next query."""
+    user_message = ps.create_deep_search_decision_user_prompt(
+        original_question=original_question,
+        scratchpad_content=scratchpad_content,
+        previous_queries=previous_queries,
+    )
+    response = run_instructor_query(
+        ps.DEEP_SEARCH_DECISION_SYSTEM_PROMPT,
+        user_message,
+        po.NextSearchStepDecision,
+        llm_model=llm_model,
+        temperature=0.3,  # Lower temp for more deterministic decision
+        process_id="decide_deep_search_step",
+    )
+    return response
+
+
+def analyze_and_update_scratchpad(
+    original_question: str,
+    scratchpad_content: str,
+    current_query: str,
+    reranked_docs: list[Document],
+    llm_model: str,
+) -> po.ScratchpadAnalysisResult:
+    """Analyze reranked documents and update the research scratchpad."""
+    user_message = ps.create_scratchpad_analysis_user_prompt(
+        original_question=original_question,
+        scratchpad_content=scratchpad_content,
+        current_query=current_query,
+        reranked_docs=reranked_docs,
+    )
+    analysis_result = run_instructor_query(
+        ps.SCRATCHPAD_ANALYSIS_SYSTEM_PROMPT,
+        user_message,
+        po.ScratchpadAnalysisResult,
+        llm_model=llm_model,
+        temperature=0.5,
+        process_id="analyze_scratchpad",
+        thinking={"type": "enabled", "budget_tokens": 2048},
+    )
+    return analysis_result
 
 
 def rerank_documents_new(
@@ -298,7 +345,6 @@ def rerank_documents_new(
         llm_model=llm_model,
         temperature=temperature,
         process_id="rerank_documents",
-        # thinking={"type": "enabled", "budget_tokens": 0},
     )
     return response
 
@@ -324,9 +370,36 @@ def resolve_query(
         llm_model=llm_model,
         temperature=0.8,
         process_id="resolve_query",
-        # thinking={"type": "enabled", "budget_tokens": 0},
     )
     return response
+
+
+def resolve_from_scratchpad(
+    original_question: str,
+    scratchpad_content: str,
+    response_length: int, # May need different calculation based on scratchpad
+    llm_model: str,
+    custom_instructions: Optional[str] = None,
+) -> str: # Returning string directly for now
+    """Generate final response based on the final scratchpad content."""
+    
+    user_message = ps.create_resolve_scratchpad_user_prompt(
+        original_question=original_question,
+        scratchpad_content=scratchpad_content,
+        response_length=response_length,
+        custom_instructions=custom_instructions
+    )
+    
+    response_obj = run_instructor_query(
+        system_message=ps.RESOLVE_SCRATCHPAD_SYSTEM_PROMPT,
+        user_message=user_message,
+        model=po.ResolveScratchpadResponse, # Use the new simple model
+        llm_model=llm_model,
+        temperature=0.7, # Balance creativity and factuality for synthesis
+        process_id="resolve_from_scratchpad",
+    )
+    
+    return response_obj.response
 
 
 def resolve_query_other(user_question: str) -> str:
@@ -437,7 +510,7 @@ def get_paper_markdown(arxiv_code: str) -> Tuple[str, bool]:
 
 def query_llmpedia_new(
     user_question: str,
-    response_length: int = 500,
+    response_length: int = 4000,
     query_llm_model: str = "claude-3-7-sonnet-20250219",
     rerank_llm_model: str = "claude-3-7-sonnet-20250219",
     response_llm_model: str = "claude-3-7-sonnet-20250219",
@@ -446,8 +519,10 @@ def query_llmpedia_new(
     progress_callback: Optional[Callable[[str], None]] = None,
     custom_instructions: Optional[str] = None,
     show_only_sources: bool = False,
+    deep_research: bool = False,
+    deep_research_iterations: int = 3,
 ) -> Tuple[str, List[str], List[str]]:
-    """Query LLMpedia with customized response parameters."""
+    """Query LLMpedia with customized response parameters, including deep research."""
     if progress_callback:
         progress_callback("🧠 Analyzing your question...")
     if debug:
@@ -459,6 +534,8 @@ def query_llmpedia_new(
                 "response_length": response_length,
                 "max_sources": max_sources,
                 "show_only_sources": show_only_sources,
+                "deep_research": deep_research,
+                "deep_research_iterations": deep_research_iterations,
             },
         )
 
@@ -467,204 +544,424 @@ def query_llmpedia_new(
         log_debug("Query action decision:", action.model_dump(), 1)
 
     if action.llm_query:
-        if progress_callback:
-            progress_callback("🎯 Understanding search intent...")
-        
-        query_obj = generate_query_object(
-            user_question=user_question, llm_model=query_llm_model
-        )
-        if debug:
-            log_debug("Generated search criteria:", query_obj.model_dump(), 2)
+        if deep_research:
+            if debug:
+                log_debug("🚀 Initiating Sophisticated Deep Research Mode", indent_level=1)
+            if progress_callback:
+                progress_callback("🚀 Initiating Deep Research Mode (Scratchpad)..." )
 
-        if progress_callback:
-            progress_callback("📜 Formulating search strategy...")
+            scratchpad = "" # Initialize empty scratchpad (string for now)
+            executed_queries = []
+            current_query = user_question
+            MAX_ITERATIONS = deep_research_iterations
+            DOCS_TO_ANALYZE_PER_ITERATION = 5 # How many top docs to feed into analysis
+            final_answer = ""
+            all_referenced_codes = set()
+            all_relevant_codes = set()
+            processed_arxiv_codes = set() # Keep track of codes already fetched from DB
 
-        ## Calculate target summary length with roughly 3:1 source-to-summary ratio.
-        per_source_words = 0
-        if response_length <= 250:  # Brief note
-            per_source_words = response_length * 3 // min(max_sources, 2)
-        elif response_length <= 1000:  # Short summary
-            per_source_words = response_length * 3 // min(max_sources, 3)
-        elif response_length <= 3000:  # Detailed analysis
-            per_source_words = response_length * 3 // min(max_sources, 5)
+            for i in range(MAX_ITERATIONS):
+                iteration_num = i + 1
+                if debug:
+                    log_debug(f"Deep Research Iteration {iteration_num}/{MAX_ITERATIONS}", indent_level=2)
+                    log_debug(f"Current search query: '{current_query}'", indent_level=3)
+                    log_debug(f"Scratchpad before analysis:\n{scratchpad}", indent_level=3)
+                if progress_callback:
+                    progress_callback(f"🔄 Iteration {iteration_num}/{MAX_ITERATIONS}: Searching for '{current_query[:50]}...'" )
+
+                executed_queries.append(current_query)
+
+                ## 1. Generate search criteria & Fetch
+                query_obj = generate_query_object(
+                    user_question=current_query, llm_model=query_llm_model
+                )
+                if debug:
+                    log_debug("Generated search criteria:", query_obj.model_dump(), 4)
+                
+                criteria_dict = query_obj.model_dump(exclude_none=True)
+                # Fetch a decent number for reranking within the loop
+                criteria_dict["limit"] = max_sources * 2 
+                sql = db.generate_semantic_search_query(
+                    criteria_dict, 
+                    query_config, 
+                    embedding_model=VS_EMBEDDING_MODEL,
+                    exclude_arxiv_codes=processed_arxiv_codes # Pass codes to exclude
+                )
+                documents_df = db_utils.execute_read_query(sql)
+
+                iteration_docs = []
+                if not documents_df.empty:
+                    # Add newly fetched codes to processed_arxiv_codes BEFORE filtering iteration_docs
+                    # This ensures that if a document is fetched but later filtered out (e.g., by reranking),
+                    # it's still marked as processed for future DB queries.
+                    for arxiv_code in documents_df["arxiv_code"].tolist():
+                        processed_arxiv_codes.add(arxiv_code)
+                    
+                    iteration_docs = [
+                        Document(
+                            arxiv_code=d["arxiv_code"],
+                            title=d["title"],
+                            published_date=d["published_date"].to_pydatetime(),
+                            citations=int(d["citations"]),
+                            abstract=d["abstract"],
+                            notes=d["notes"], # Make sure notes are fetched if available
+                            distance=float(d["similarity_score"]),
+                        )
+                        for _, d in documents_df.iterrows()
+                    ]
+                    if debug:
+                        log_debug(f"Fetched {len(iteration_docs)} documents for this iteration.", indent_level=4)
+                elif debug:
+                    log_debug("No documents found for this iteration's query.", indent_level=4)
+                
+                ## 2. Rerank documents found in THIS iteration
+                reranked_iter_docs_obj = None
+                top_docs_for_analysis = []
+                if iteration_docs:
+                    if progress_callback:
+                        progress_callback(f"⚖️ Reranking {len(iteration_docs)} new documents...")
+                    reranked_iter_docs_obj = rerank_documents_new(
+                        user_question=user_question, # Rerank against original question
+                        documents=iteration_docs,
+                        llm_model=rerank_llm_model
+                    )
+                    
+                    # Get top N documents based on reranking score for analysis
+                    reranked_ids_scores = sorted(
+                        [(int(d.document_id), d.selected) for d in reranked_iter_docs_obj.documents],
+                        key=lambda x: x[1], reverse=True
+                    )
+                    top_ids = [id for id, score in reranked_ids_scores if score > 0][:DOCS_TO_ANALYZE_PER_ITERATION]
+                    top_docs_for_analysis = [iteration_docs[id] for id in top_ids]
+                    
+                    if debug:
+                        log_debug(f"Selected top {len(top_docs_for_analysis)} docs for analysis (score > 0):", [d.arxiv_code for d in top_docs_for_analysis], 4)
+                        # Log all reranked docs for this iter
+                        # log_debug("Reranking details for iteration:", reranked_iter_docs_obj.model_dump(), 5)
+                else:
+                     if progress_callback:
+                        progress_callback("🤷 No new documents found to rerank.")
+
+                ## 3. Analyze & Update Scratchpad
+                if top_docs_for_analysis:
+                    if progress_callback:
+                        progress_callback(f"📝 Analyzing {len(top_docs_for_analysis)} documents and updating scratchpad...")
+                    
+                    analysis_result = analyze_and_update_scratchpad(
+                        original_question=user_question,
+                        scratchpad_content=scratchpad,
+                        current_query=current_query,
+                        reranked_docs=top_docs_for_analysis,
+                        llm_model=query_llm_model # Use query model for analysis
+                    )
+                    scratchpad = analysis_result.updated_scratchpad
+                    
+                    # Keep track of all potentially relevant codes mentioned during analysis
+                    for doc in top_docs_for_analysis:
+                         all_relevant_codes.add(doc.arxiv_code)
+
+                    if debug:
+                        log_debug("Scratchpad analysis result:", analysis_result.model_dump(), 4)
+                        log_debug(f"Scratchpad after analysis:\n{scratchpad}", 4)
+                elif iteration_docs:
+                     # Docs were found but none scored > 0 in rerank
+                     if progress_callback:
+                         progress_callback("😐 No highly relevant documents found in this batch for analysis.")
+                     if debug:
+                         log_debug("No documents passed reranking threshold for analysis.", 4)
+                # else: (No docs found at all) - already logged
+
+                ## 4. Decide Next Step (unless last iteration)
+                if iteration_num == MAX_ITERATIONS:
+                    if debug:
+                        log_debug("Max iterations reached. Proceeding to final synthesis.", indent_level=3)
+                    if progress_callback:
+                         progress_callback("🏁 Reached max search iterations. Preparing final answer...")
+                    break
+
+                if progress_callback:
+                    progress_callback("🤔 Deciding if more research is needed based on scratchpad...")
+
+                decision = decide_deep_search_step(
+                    original_question=user_question,
+                    scratchpad_content=scratchpad,
+                    previous_queries=executed_queries,
+                    llm_model=query_llm_model,
+                )
+                if debug:
+                    log_debug("Decision for next step:", decision.model_dump(), 4)
+                    # log_debug(f"Reasoning: {decision.reasoning}", indent_level=5)
+                
+                if not decision.continue_search or not decision.next_query:
+                    if debug:
+                        log_debug("Decision is to stop searching. Proceeding to final synthesis.", indent_level=3)
+                    if progress_callback:
+                         progress_callback("✅ Sufficient information gathered. Preparing final answer...")
+                    break
+                else:
+                    current_query = decision.next_query
+                    if progress_callback:
+                         progress_callback(f"🔍 Refining search based on notes. Next query: '{current_query[:50]}...'" )
+            
+            ## End of deep research loop
+
+            if not scratchpad.strip() or scratchpad == "Scratchpad is currently empty. This is the first analysis.": # Check if scratchpad has meaningful content
+                if debug:
+                    log_debug("Scratchpad is empty after deep research, returning early", indent_level=2)
+                return (
+                    "I conducted a deep search but couldn't build a comprehensive understanding. Try rephrasing your question.",
+                    [],
+                    [],
+                )
+
+            ## 5. Synthesize Final Response from Scratchpad
+            if progress_callback:
+                progress_callback("✍️ Synthesizing final response from research notes...")
+            if debug:
+                log_debug("Generating final response from scratchpad content.", indent_level=2)
+                log_debug(f"Final Scratchpad:\n{scratchpad}", indent_level=3)
+
+            final_answer = resolve_from_scratchpad(
+                 original_question=user_question,
+                 scratchpad_content=scratchpad,
+                 response_length=response_length, # May need adjustment
+                 llm_model=response_llm_model,
+                 custom_instructions=custom_instructions
+            )
+            
+            # Extract referenced codes from the final answer (if resolve_from_scratchpad adds them)
+            all_referenced_codes = set(extract_arxiv_codes(final_answer)) 
+            # We tracked 'all_relevant_codes' during analysis
+            additional_relevant_codes = list(all_relevant_codes - all_referenced_codes)
+            referenced_codes_list = list(all_referenced_codes)
+
+            if debug:
+                log_debug(
+                    "Final Response Statistics (Scratchpad Method):",
+                    {
+                        "final_answer_length_words": len(final_answer.split()),
+                        "referenced_papers_in_answer": len(referenced_codes_list),
+                        "additional_relevant_papers_found": len(additional_relevant_codes),
+                        "total_relevant_papers_considered": len(all_relevant_codes),
+                    },
+                    2,
+                )
+                log_debug("~~Finished LLMpedia query pipeline (Sophisticated Deep Research)~~", indent_level=0)
+
+            return final_answer, referenced_codes_list, additional_relevant_codes
+
         else:
-            per_source_words = response_length * 3 // max_sources
-
-        query_obj.response_length = per_source_words
-        if debug:
-            log_debug(
-                f"Target length per source: {per_source_words} words", indent_level=2
+            ## Standard (non-deep) search path
+            if progress_callback:
+                progress_callback("🎯 Understanding search intent...")
+            query_obj = generate_query_object(
+                user_question=user_question, llm_model=query_llm_model
             )
-
-        ## Fetch results.
-        # query_obj.topic_categories = None
-        criteria_dict = query_obj.model_dump(exclude_none=True)
-        criteria_dict["limit"] = max_sources * 2
-        sql = db.generate_semantic_search_query(
-            criteria_dict, query_config, embedding_model=VS_EMBEDDING_MODEL
-        )
-
-        if progress_callback:
-            progress_callback("🔍 Searching the archive for relevant papers...")
-
-        documents_df = db_utils.execute_read_query(sql)
-        documents = documents_df.to_dict(orient="records")
-        documents = [
-            Document(
-                arxiv_code=d["arxiv_code"],
-                title=d["title"],
-                published_date=d["published_date"].to_pydatetime(),
-                citations=int(d["citations"]),
-                abstract=d["abstract"],
-                notes=d["notes"],
-                distance=float(d["similarity_score"]),
-            )
-            for d in documents
-        ]
-
-        num_initial_docs = len(documents)
-        if progress_callback:
-            progress_callback(f"📄 Found {num_initial_docs} initial candidate papers.")
-
-        if debug:
-            log_debug(f"Retrieved {len(documents)} initial documents", indent_level=2)
-            for doc in documents:
-                log_debug(
-                    f"- {doc.title} (arxiv:{doc.arxiv_code}, citations: {doc.citations}, distance: {doc.distance})",
-                    indent_level=3,
-                )
-
-        if len(documents) == 0:
             if debug:
-                log_debug("No documents found, returning early", indent_level=2)
-            return (
-                "I don't know about that my friend. Try asking something else.",
-                [],
-                [],
-            )
+                log_debug("Generated search criteria (standard):", query_obj.model_dump(), 2)
 
-        if progress_callback:
-            progress_callback(f"⚖️ Evaluating relevance of {num_initial_docs} candidates...")
+            if progress_callback:
+                progress_callback("📜 Formulating search strategy...")
 
-        ## Rerank.
-        reranked_documents = rerank_documents_new(
-            user_question, documents, llm_model=rerank_llm_model
-        )
+            ## Calculate target summary length for notes
+            per_source_words = 0
+            if response_length <= 250:  # Brief note
+                per_source_words = response_length * 3 // min(max_sources, 2)
+            elif response_length <= 1000:  # Short summary
+                per_source_words = response_length * 3 // min(max_sources, 3)
+            elif response_length <= 3000:  # Detailed analysis
+                per_source_words = response_length * 3 // min(max_sources, 5)
+            else:
+                per_source_words = response_length * 3 // max_sources
 
-        if debug:
-            log_debug("Reranking analysis:", indent_level=2)
-            for doc_analysis in reranked_documents.documents:
-                relevance = (
-                    "HIGH"
-                    if doc_analysis.selected == 1.0
-                    else "MEDIUM" if doc_analysis.selected == 0.5 else "LOW"
-                )
-                log_debug(
-                    f"- [{relevance}] Document {doc_analysis.document_id}:",
-                    indent_level=3,
-                )
-                log_debug(f"Analysis: {doc_analysis.analysis}", indent_level=4)
-
-        ## First get high relevance docs (1.0), then medium (0.5), preserving original order.
-        ## Sort within each relevance group by published date.
-        high_relevance_docs = [
-            (i, d)
-            for i, d in enumerate(documents)
-            if i
-            in [
-                int(d.document_id)
-                for d in reranked_documents.documents
-                if d.selected == 1.0
-            ]
-        ]
-
-        high_relevance_docs.sort(key=lambda x: x[1].published_date, reverse=True)
-        high_relevance_ids = [i for i, _ in high_relevance_docs]
-
-        medium_relevance_docs = [
-            (i, d)
-            for i, d in enumerate(documents)
-            if i
-            in [
-                int(d.document_id)
-                for d in reranked_documents.documents
-                if d.selected == 0.5
-            ]
-        ]
-
-        medium_relevance_docs.sort(key=lambda x: x[1].published_date, reverse=True)
-        medium_relevance_ids = [i for i, _ in medium_relevance_docs]
-
-        filtered_document_ids = (high_relevance_ids + medium_relevance_ids)[
-            :max_sources
-        ]
-
-        ## Create filtered documents list maintaining the sorted order
-        filtered_documents = []
-        for idx in filtered_document_ids:
-            filtered_documents.append(documents[idx])
-
-        if debug:
-            log_debug(
-                f"Selected {len(filtered_documents)} documents after reranking:",
-                indent_level=2,
-            )
-            for doc in filtered_documents:
-                log_debug(
-                    f"- {doc.title} (arxiv:{doc.arxiv_code}, citations: {doc.citations}, date: {doc.published_date})",
-                    indent_level=3,
-                )
-
-        num_filtered_docs = len(filtered_documents)
-        if progress_callback:
-            progress_callback(f"✅ Selected {num_filtered_docs} most relevant papers.")
-
-        if len(filtered_documents) == 0:
+            query_obj.response_length = per_source_words
             if debug:
                 log_debug(
-                    "No documents selected after reranking, returning early",
+                    f"Target length per source (standard): {per_source_words} words", indent_level=2
+                )
+
+            ## Fetch results
+            criteria_dict = query_obj.model_dump(exclude_none=True)
+            criteria_dict["limit"] = max_sources * 2 # Fetch more for reranking
+            sql = db.generate_semantic_search_query(
+                criteria_dict, query_config, embedding_model=VS_EMBEDDING_MODEL
+            )
+
+            if progress_callback:
+                progress_callback("🔍 Searching the archive for relevant papers...")
+
+            documents_df = db_utils.execute_read_query(sql)
+            if documents_df.empty:
+                 if debug:
+                    log_debug("No documents found (standard), returning early", indent_level=2)
+                 return (
+                    "I don't know about that my friend. Try asking something else.",
+                    [],
+                    [],
+                 )
+
+            documents = [
+                Document(
+                    arxiv_code=d["arxiv_code"],
+                    title=d["title"],
+                    published_date=d["published_date"].to_pydatetime(),
+                    citations=int(d["citations"]),
+                    abstract=d["abstract"],
+                    notes=d["notes"],
+                    distance=float(d["similarity_score"]),
+                )
+                for _, d in documents_df.iterrows()
+            ]
+            num_initial_docs = len(documents)
+            if progress_callback:
+                progress_callback(f"📄 Found {num_initial_docs} initial candidate papers.")
+
+            if debug:
+                log_debug(f"Retrieved {len(documents)} initial documents (standard)", indent_level=2)
+                for doc in documents:
+                    log_debug(
+                        f"- {doc.title} (arxiv:{doc.arxiv_code}, citations: {doc.citations}, distance: {doc.distance})",
+                        indent_level=3,
+                    )
+
+            ## Common processing starts after this block if deep_search is False
+            
+        ## ======================================
+        ## COMMON PROCESSING (Standard Search Only)
+        ## ======================================
+        # This block now only runs if deep_research is FALSE
+        if not deep_research:
+            if not documents: 
+                # Safeguard, should be caught earlier in standard path
+                if debug:
+                    log_debug("No documents available for reranking (standard path), returning early", indent_level=2)
+                return (
+                    "I couldn't find relevant information for your query.",
+                    [],
+                    [],
+                )
+
+            num_docs_for_rerank = len(documents)
+            if progress_callback:
+                progress_callback(f"⚖️ Evaluating relevance of {num_docs_for_rerank} candidates...")
+
+            ## Rerank.
+            reranked_documents = rerank_documents_new(
+                user_question=user_question, documents=documents, llm_model=rerank_llm_model
+            )
+
+            if debug:
+                log_debug("Reranking analysis:", indent_level=2)
+                doc_map = {i: doc.arxiv_code for i, doc in enumerate(documents)}
+                for doc_analysis in reranked_documents.documents:
+                    relevance = (
+                        "HIGH" if doc_analysis.selected == 1.0
+                        else "MEDIUM" if doc_analysis.selected == 0.5 else "LOW"
+                    )
+                    arxiv_code = doc_map.get(int(doc_analysis.document_id), "Unknown")
+                    log_debug(
+                        f"- [{relevance}] Document {doc_analysis.document_id} (arxiv:{arxiv_code}):",
+                        indent_level=3,
+                    )
+                    log_debug(f"Analysis: {doc_analysis.analysis}", indent_level=4)
+
+            ## Filter documents based on reranking
+            high_relevance_docs = [
+                (i, d)
+                for i, d in enumerate(documents)
+                if i
+                in [
+                    int(da.document_id)
+                    for da in reranked_documents.documents
+                    if da.selected == 1.0
+                ]
+            ]
+            high_relevance_docs.sort(key=lambda x: x[1].published_date, reverse=True)
+
+            medium_relevance_docs = [
+                (i, d)
+                for i, d in enumerate(documents)
+                if i
+                in [
+                    int(da.document_id)
+                    for da in reranked_documents.documents
+                    if da.selected == 0.5
+                ]
+            ]
+            medium_relevance_docs.sort(key=lambda x: x[1].published_date, reverse=True)
+
+            ## Combine, limit by max_sources, and preserve order
+            combined_sorted_indices = [i for i, _ in high_relevance_docs] + [i for i, _ in medium_relevance_docs]
+            final_document_indices = combined_sorted_indices[:max_sources]
+
+            filtered_documents = [documents[idx] for idx in final_document_indices]
+
+            if debug:
+                log_debug(
+                    f"Selected {len(filtered_documents)} documents after reranking:",
                     indent_level=2,
                 )
-            return (
-                "I don't know about that my friend. Try asking something else.",
-                [],
-                [],
+                for doc in filtered_documents:
+                    log_debug(
+                        f"- {doc.title} (arxiv:{doc.arxiv_code}, citations: {doc.citations}, date: {doc.published_date})",
+                        indent_level=3,
+                    )
+
+            num_filtered_docs = len(filtered_documents)
+            if progress_callback:
+                progress_callback(f"✅ Selected {num_filtered_docs} most relevant papers.")
+
+            if not filtered_documents:
+                if debug:
+                    log_debug(
+                        "No documents selected after reranking, returning early",
+                        indent_level=2,
+                    )
+                return (
+                    "I found some initial papers, but none seemed relevant enough to answer your question after review. Try rephrasing.",
+                    [],
+                    [],
+                )
+
+            ## Final Resolution (Standard Path)
+            if progress_callback:
+                progress_callback(f"✍️ Synthesizing response from {num_filtered_docs} papers...")
+
+            answer_obj = resolve_query(
+                user_question=user_question,
+                documents=filtered_documents,
+                response_length=response_length,
+                llm_model=rerank_llm_model,
+                custom_instructions=custom_instructions,
             )
+            if debug:
+                log_debug("Resolved query:", answer_obj.model_dump(), 2)
 
-        if progress_callback:
-            progress_callback(f"✍️ Synthesizing response from {num_filtered_docs} papers...")
+            answer = answer_obj.response
+            answer_augment = add_links_to_text_blob(answer)
+            referenced_arxiv_codes = extract_arxiv_codes(answer_augment)
 
-        answer_obj = resolve_query(
-            user_question,
-            filtered_documents,
-            response_length,
-            llm_model=response_llm_model,
-            custom_instructions=custom_instructions,
-        )
-        if debug:
-            log_debug("Resolved query:", answer_obj.model_dump(), 2)
-        answer = answer_obj.response
-        answer_augment = add_links_to_text_blob(answer)
-        referenced_arxiv_codes = extract_arxiv_codes(answer_augment)
-        filtered_arxiv_codes = [d.arxiv_code for d in filtered_documents]
-        filtered_arxiv_codes = [
-            d for d in filtered_arxiv_codes if d not in referenced_arxiv_codes
-        ]
+            ## Identify relevant codes not directly referenced in the text
+            filtered_arxiv_codes_set = {d.arxiv_code for d in filtered_documents}
+            referenced_arxiv_codes_set = set(referenced_arxiv_codes)
+            additional_relevant_codes = list(filtered_arxiv_codes_set - referenced_arxiv_codes_set)
 
-        if debug:
-            log_debug(
-                "Response statistics:",
-                {
-                    "response_length": len(answer.split()),
-                    "referenced_papers": len(referenced_arxiv_codes),
-                    "additional_relevant": len(filtered_arxiv_codes),
-                },
-                2,
-            )
+            if debug:
+                log_debug(
+                    "Response statistics:",
+                    {
+                        "response_length_words": len(answer.split()),
+                        "referenced_papers": len(referenced_arxiv_codes_set),
+                        "additional_relevant_papers": len(additional_relevant_codes),
+                        "total_sources_considered": len(filtered_arxiv_codes_set),
+                    },
+                    2,
+                )
+                log_debug("~~Finished LLMpedia query pipeline (Standard Search)~~", indent_level=0)
+            
+            return answer_augment, referenced_arxiv_codes, additional_relevant_codes
 
-        return answer_augment, referenced_arxiv_codes, filtered_arxiv_codes
-
-    else:
+    else: # Non-LLM query
         if debug:
             log_debug(
                 "Query classified as non-LLM related, generating simple response",
@@ -673,6 +970,8 @@ def query_llmpedia_new(
         if progress_callback:
              progress_callback("💬 Preparing a direct response...")
         answer = resolve_query_other(user_question)
+        if debug:
+            log_debug("~~Finished LLMpedia query pipeline (non-LLM query)~~", indent_level=0)
         return answer, [], []
 
 
