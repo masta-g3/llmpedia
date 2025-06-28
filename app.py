@@ -218,7 +218,7 @@ def get_cached_top_cited_papers_app(
     )
 
 
-@st.cache_data(ttl=timedelta(minutes=30))
+# @st.cache_data(ttl=timedelta(minutes=30))
 def get_cached_raw_trending_data_app(
     n_fetch: int, time_window_days_db: int
 ) -> pd.DataFrame:
@@ -454,6 +454,7 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
     st.toggle(toggle_label, value=current_actual_toggle_state, key="toggle_trending_papers")
 
     if current_actual_toggle_state:  # Show trending table
+        top_n = 1
         raw_trending_df = get_cached_raw_trending_data_app(
             n_fetch=top_n + 10,  # Fetch a bit more for robust joining
             time_window_days_db=trending_window,
