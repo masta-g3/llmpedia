@@ -463,6 +463,7 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
             papers_df_fragment, raw_trending_df, top_n_display=top_n
         )
         st.write(papers_df_fragment)
+        st.write(trending_papers)
 
         if not trending_papers.empty:
             su.generate_mini_paper_table(
