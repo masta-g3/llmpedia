@@ -458,12 +458,9 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
             n_fetch=top_n + 10,  # Fetch a bit more for robust joining
             time_window_days_db=trending_window,
         )
-        st.write(raw_trending_df)
         trending_papers = get_processed_trending_papers(
             papers_df_fragment, raw_trending_df, top_n_display=top_n
         )
-        st.write(papers_df_fragment)
-        st.write(trending_papers)
 
         if not trending_papers.empty:
             su.generate_mini_paper_table(

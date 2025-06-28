@@ -870,13 +870,15 @@ def process_trending_data(
     """
     Processes raw trending data (typically from db.get_trending_papers)
     by joining with the current papers_df_fragment, calculating like counts,
-    and returning the top N papers.
+    and returning the top N papers with tweet details.
     """
     if papers_df_fragment.empty or raw_trending_df.empty:
         return pd.DataFrame()
 
-    # Create a dictionary of arxiv_code to like_count from the raw trending data
+    # Create dictionaries for all the new data columns
     counts_dict = dict(zip(raw_trending_df["arxiv_code"], raw_trending_df["like_count"]))
+    tweet_count_dict = dict(zip(raw_trending_df["arxiv_code"], raw_trending_df["tweet_count"]))
+    tweets_dict = dict(zip(raw_trending_df["arxiv_code"], raw_trending_df["tweets"]))
 
     # Filter the main papers dataframe for codes present in the trending data
     # and create a copy to avoid SettingWithCopyWarning
@@ -887,8 +889,10 @@ def process_trending_data(
     if trending_papers_intermediate.empty:
         return pd.DataFrame()
 
-    # Map the like_count to the filtered papers
+    # Map all the new data to the filtered papers
     trending_papers_intermediate["like_count"] = trending_papers_intermediate["arxiv_code"].map(counts_dict)
+    trending_papers_intermediate["tweet_count"] = trending_papers_intermediate["arxiv_code"].map(tweet_count_dict)
+    trending_papers_intermediate["tweets"] = trending_papers_intermediate["arxiv_code"].map(tweets_dict)
 
     # Ensure 'like_count' is numeric, coercing errors and filling NaNs with 0
     trending_papers_intermediate["like_count"] = pd.to_numeric(
