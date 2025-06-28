@@ -218,7 +218,7 @@ def get_cached_top_cited_papers_app(
     )
 
 
-@st.cache_data(ttl=timedelta(minutes=30))
+# @st.cache_data(ttl=timedelta(minutes=30))
 def get_cached_raw_trending_data_app(
     n_fetch: int, time_window_days_db: int
 ) -> pd.DataFrame:
