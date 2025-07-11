@@ -137,7 +137,7 @@ def load_repositories(year: int, filter_by_year=True):
     topics_df.drop(columns=["dim1", "dim2"], inplace=True)
     repos_df = repos_df.join(topics_df, how="left")
     repos_df = repos_df.join(meta_df[["published"]], how="left")
-    repos_df["repo_url"].fillna("", inplace=True)
+    repos_df["repo_url"] = repos_df["repo_url"].fillna("")
     repos_df["domain"] = repos_df["repo_url"].apply(
         lambda x: x.split("/")[2].split(".")[-2] if len(x.split("/")) > 2 else ""
     )

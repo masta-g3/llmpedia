@@ -206,7 +206,7 @@ def plot_activity_map(df_year: pd.DataFrame) -> Tuple[go.Figure, pd.DataFrame]:
     ).fillna(pd.NaT)
     
     # Convert dates to string format
-    padded_date = padded_date.applymap(
+    padded_date = padded_date.map(
         lambda x: x.strftime("%b %d") if pd.notna(x) else ""
     )
     

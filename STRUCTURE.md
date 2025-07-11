@@ -15,12 +15,12 @@
 
 - `utils/`: Utility functions and modules for the application
   - `plots.py`: Visualization functions for creating charts and plots (e.g., publication trends, topic maps)
-  - `streamlit_utils.py`: Utility functions specific to Streamlit UI components (e.g., custom pagination, styling helpers)
+  - `streamlit_utils.py`: Utility functions specific to Streamlit UI components (e.g., custom pagination, styling helpers). **Recently added**: `display_reddit_summaries()` for showing Reddit discussion timelines with identical styling to X.com discussions.
   - `app_utils.py`: General utility functions for the application logic (e.g., data formatting, helper calculations)
   - `styling.py`: CSS and styling functions, including custom CSS injection
   - `db/`: Database-related utilities
     - `db_utils.py`: Lower-level database connection and query execution helpers (consider merging or refactoring if overlap with `db.py`)
-    - `db.py`: Consolidated database access functions abstracting queries for papers, embeddings, tweets, repositories, etc. This is the primary interface for fetching data for the UI.
+    - `db.py`: Consolidated database access functions abstracting queries for papers, embeddings, tweets, repositories, etc. This is the primary interface for fetching data for the UI. **Recently added**: `read_last_n_reddit_analyses()` for fetching cross-subreddit Reddit discussion summaries.
     - `logging_db.py`: Functions specifically for logging user interactions or application events to the database.
   - `instruct.py`: Functions for interacting with external LLM APIs (OpenAI, Anthropic, etc.) used in the chat feature.
   - `pydantic_objects.py`: Pydantic models used for data validation, especially for data fetched from the database or external APIs.
@@ -87,21 +87,22 @@ The design creates an environment that feels both **academically serious** and *
 
 The application is organized into tabs:
 
-1. **📰 Main Page**: Landing page showing recent paper statistics, trending topics, and a featured paper
+1. **📰 News**: Landing page showing recent paper statistics, trending topics, and platform discussions
    - Recent papers (1-day and 7-day statistics)
-   - Category distribution visualization
-   - Trending topics based on paper titles
-   - Featured paper (most cited or recent)
-   - Quick navigation buttons
+   - Top cited papers vs trending papers toggle panel
+   - **X.com/Reddit discussions toggle**: Switch between X.com and Reddit LLM discussion summaries using 🐦/🦙 emojis
+   - Featured paper (weekly highlight)
+   - Interesting facts and feature poll
+   - Quick navigation to Online Research
 
 2. **🧮 Release Feed**: Grid or table view of papers with pagination
    - Supports both grid and table views
    - Paginated navigation
 
-3. **🗺️ Statistics & Topics**: Visualizations of publication trends and topics
-   - Publication count charts with enhanced views (Total Volume or By Topics)
-   - Dual-mode visualization: Daily vs Cumulative display for both total volume and topic breakdowns
-   - Topic model map for exploring paper clusters
+3. **🗺️ Statistics & Topics**: Interactive visualizations of publication trends and research topics
+   - **Publication Trends**: Enhanced charts with dual-mode visualization (Total Volume/By Topics, Daily/Cumulative)
+   - **Research Topic Map**: Interactive UMAP-based clustering visualization for exploring paper relationships
+   - Consistent header styling and improved UX with centered controls and better visual hierarchy
 
 4. **🔍 Paper Details**: Detailed view of a specific paper
    - Search by arXiv code

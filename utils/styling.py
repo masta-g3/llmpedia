@@ -41,11 +41,17 @@ def get_css_variables():
             --radius-lg: 12px;
             --radius-full: 50%;
             
-            /* Shadows */
-            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04);
-            --shadow-base: 0 4px 12px rgba(0, 0, 0, 0.08);
-            --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.12);
-            --shadow-color: rgba(179, 27, 27, 0.12);
+            /* Shadows - More subtle and elegant */
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+            --shadow-base: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+            --shadow-color: rgba(179, 27, 27, 0.08);
+            
+            /* Dark mode shadows - neutral and subtle */
+            --shadow-dark-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+            --shadow-dark-base: 0 2px 8px rgba(0, 0, 0, 0.4);
+            --shadow-dark-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
+            --shadow-dark-accent: 0 2px 12px rgba(179, 27, 27, 0.12);
             
             /* Transitions */
             --transition-fast: 0.15s ease;
@@ -68,7 +74,7 @@ def get_base_component_styles():
         
         .card-base {
             background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
-            border: 1px solid rgba(179, 27, 27, 0.08);
+            border: 1px solid rgba(179, 27, 27, 0.06);
             border-radius: var(--radius-lg);
             padding: var(--space-base);
             margin-bottom: var(--space-base);
@@ -80,8 +86,8 @@ def get_base_component_styles():
         
         .card-base:hover {
             transform: translateY(-1px);
-            box-shadow: var(--shadow-lg);
-            border-color: rgba(179, 27, 27, 0.2);
+            box-shadow: var(--shadow-base);
+            border-color: rgba(179, 27, 27, 0.12);
         }
         
         .card-base::before {
@@ -90,14 +96,14 @@ def get_base_component_styles():
             top: 0;
             left: 0;
             right: 0;
-            height: 3px;
+            height: 2px;
             background: linear-gradient(90deg, var(--arxiv-red) 0%, var(--arxiv-red-light) 100%);
             opacity: 0;
             transition: opacity var(--transition-base);
         }
         
         .card-base:hover::before {
-            opacity: 1;
+            opacity: 0.6;
         }
         
         /* =============================================================================
@@ -214,7 +220,7 @@ def get_base_component_styles():
         
         .metric-enhanced {
             background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
-            border: 1px solid rgba(179, 27, 27, 0.06);
+            border: 1px solid rgba(179, 27, 27, 0.04);
             border-radius: var(--radius-base);
             padding: var(--space-base);
             transition: all var(--transition-fast);
@@ -223,7 +229,7 @@ def get_base_component_styles():
         }
         
         .metric-enhanced:hover {
-            border-color: rgba(179, 27, 27, 0.12);
+            border-color: rgba(179, 27, 27, 0.08);
             box-shadow: var(--shadow-sm);
         }
         
@@ -240,7 +246,7 @@ def get_base_component_styles():
         }
         
         .metric-enhanced:hover::before {
-            opacity: 1;
+            opacity: 0.5;
         }
         
         /* =============================================================================
@@ -264,19 +270,37 @@ def get_base_component_styles():
         }
         
         /* =============================================================================
-           DARK MODE ADAPTATIONS
+           DARK MODE ADAPTATIONS - Subtle and Elegant
            ============================================================================= */
         
         @media (prefers-color-scheme: dark) {
             .card-base {
                 background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
-                border-color: rgba(179, 27, 27, 0.12);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                border-color: rgba(179, 27, 27, 0.08);
+                box-shadow: var(--shadow-dark-sm);
             }
             
             .card-base:hover {
-                box-shadow: 0 6px 20px rgba(179, 27, 27, 0.12);
-                border-color: rgba(179, 27, 27, 0.18);
+                box-shadow: var(--shadow-dark-accent);
+                border-color: rgba(179, 27, 27, 0.15);
+            }
+            
+            .card-base:hover::before {
+                opacity: 0.4;
+            }
+            
+            .metric-enhanced {
+                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
+                border-color: rgba(179, 27, 27, 0.06);
+            }
+            
+            .metric-enhanced:hover {
+                border-color: rgba(179, 27, 27, 0.12);
+                box-shadow: var(--shadow-dark-sm);
+            }
+            
+            .metric-enhanced:hover::before {
+                opacity: 0.3;
             }
             
             .heading-primary,
@@ -563,10 +587,11 @@ def get_trending_panel_styles():
             background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
             padding: var(--space-base) var(--space-lg);
             border-radius: var(--radius-lg);
-            border: 1px solid rgba(179, 27, 27, 0.08);
+            border: 1px solid rgba(179, 27, 27, 0.06);
             margin-bottom: var(--space-lg);
             position: relative;
             overflow: hidden;
+            box-shadow: var(--shadow-sm);
         }
         
         .trending-panel-header::before {
@@ -575,7 +600,7 @@ def get_trending_panel_styles():
             top: 0;
             left: 0;
             right: 0;
-            height: 3px;
+            height: 2px;
             background: linear-gradient(90deg, var(--arxiv-red) 0%, var(--arxiv-red-light) 100%);
         }
         
@@ -599,7 +624,8 @@ def get_trending_panel_styles():
         @media (prefers-color-scheme: dark) {
             .trending-panel-header {
                 background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
-                border-color: rgba(179, 27, 27, 0.12);
+                border-color: rgba(179, 27, 27, 0.08);
+                box-shadow: var(--shadow-dark-sm);
             }
             
             .trending-panel-title {
@@ -742,20 +768,22 @@ def get_streamlit_overrides():
             border-bottom-color: var(--arxiv-red) !important;
         }
 
-        /* Streamlit Metric Overrides */
+        /* Streamlit Metric Overrides - Subtle and Elegant */
         .stMetric {
             background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
-            border: 1px solid rgba(179, 27, 27, 0.06);
+            border: 1px solid rgba(179, 27, 27, 0.04);
             border-radius: var(--radius-base);
             padding: var(--space-base);
             transition: all var(--transition-fast);
             position: relative;
             overflow: hidden;
+            box-shadow: var(--shadow-sm);
         }
         
         .stMetric:hover {
-            border-color: rgba(179, 27, 27, 0.12);
-            box-shadow: var(--shadow-sm);
+            border-color: rgba(179, 27, 27, 0.08);
+            box-shadow: var(--shadow-base);
+            transform: translateY(-1px);
         }
         
         .stMetric::before {
@@ -771,19 +799,23 @@ def get_streamlit_overrides():
         }
         
         .stMetric:hover::before {
-            opacity: 1;
+            opacity: 0.5;
         }
         
         @media (prefers-color-scheme: dark) {
             .stMetric {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
-                border-color: rgba(179, 27, 27, 0.15);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
+                border-color: rgba(179, 27, 27, 0.06);
+                box-shadow: var(--shadow-dark-sm);
             }
             
             .stMetric:hover {
-                border-color: rgba(179, 27, 27, 0.3);
-                box-shadow: 0 8px 25px rgba(179, 27, 27, 0.25);
+                border-color: rgba(179, 27, 27, 0.12);
+                box-shadow: var(--shadow-dark-base);
+            }
+            
+            .stMetric:hover::before {
+                opacity: 0.3;
             }
         }
     """
@@ -904,7 +936,7 @@ def get_advanced_trending_card_styles():
         
         .trending-card {
             background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
-            border: 1px solid rgba(179, 27, 27, 0.08);
+            border: 1px solid rgba(179, 27, 27, 0.06);
             border-radius: var(--radius-lg);
             padding: var(--space-base);
             margin-bottom: var(--space-base);
@@ -916,8 +948,8 @@ def get_advanced_trending_card_styles():
         
         .trending-card:hover {
             transform: translateY(-1px);
-            box-shadow: var(--shadow-lg);
-            border-color: rgba(179, 27, 27, 0.2);
+            box-shadow: var(--shadow-base);
+            border-color: rgba(179, 27, 27, 0.12);
         }
         
         .trending-card::before {
@@ -926,14 +958,14 @@ def get_advanced_trending_card_styles():
             top: 0;
             left: 0;
             right: 0;
-            height: 3px;
+            height: 2px;
             background: linear-gradient(90deg, var(--arxiv-red) 0%, var(--arxiv-red-light) 100%);
             opacity: 0;
             transition: opacity var(--transition-base);
         }
         
         .trending-card:hover::before {
-            opacity: 1;
+            opacity: 0.6;
         }
         
         .trending-header {
@@ -961,7 +993,7 @@ def get_advanced_trending_card_styles():
         }
         
         .trending-card:hover .trending-image img {
-            transform: scale(1.05);
+            transform: scale(1.02);
         }
         
         .trending-content {
@@ -1003,7 +1035,7 @@ def get_advanced_trending_card_styles():
             gap: var(--space-base);
             margin-top: var(--space-base);
             padding-top: var(--space-sm);
-            border-top: 1px solid rgba(128, 128, 128, 0.1);
+            border-top: 1px solid rgba(128, 128, 128, 0.08);
             flex-wrap: wrap;
         }
         
@@ -1021,7 +1053,7 @@ def get_advanced_trending_card_styles():
             display: flex;
             align-items: center;
             gap: var(--space-xs);
-            background: var(--secondary-background-color, rgba(179, 27, 27, 0.05));
+            background: var(--secondary-background-color, rgba(179, 27, 27, 0.04));
             padding: var(--space-xs) var(--space-sm);
             border-radius: var(--radius-full);
             font-size: var(--font-size-sm);
@@ -1079,28 +1111,32 @@ def get_advanced_trending_card_styles():
         .trending-summary {
             margin-top: var(--space-base);
             padding-top: var(--space-base);
-            border-top: 1px solid rgba(128, 128, 128, 0.1);
+            border-top: 1px solid rgba(128, 128, 128, 0.08);
             text-align: center;
             font-size: var(--font-size-xs);
             color: var(--text-color, #888);
             font-style: italic;
         }
 
-        /* Dark mode adaptations */
+        /* Dark mode adaptations - Subtle and elegant */
         @media (prefers-color-scheme: dark) {
             .trending-card {
                 background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
-                border-color: rgba(179, 27, 27, 0.12);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                border-color: rgba(179, 27, 27, 0.08);
+                box-shadow: var(--shadow-dark-sm);
             }
             
             .trending-card:hover {
-                box-shadow: 0 6px 20px rgba(179, 27, 27, 0.12);
-                border-color: rgba(179, 27, 27, 0.18);
+                box-shadow: var(--shadow-dark-accent);
+                border-color: rgba(179, 27, 27, 0.15);
+            }
+            
+            .trending-card:hover::before {
+                opacity: 0.4;
             }
             
             .trending-image {
-                background: var(--secondary-background-color, #262730);
+                background: var(--secondary-background-color, #1a1c23);
             }
             
             .trending-title {
@@ -1116,7 +1152,7 @@ def get_advanced_trending_card_styles():
             }
             
             .trending-metric {
-                background: rgba(179, 27, 27, 0.15);
+                background: rgba(179, 27, 27, 0.08);
                 color: var(--arxiv-red-light);
             }
             
@@ -1124,14 +1160,8 @@ def get_advanced_trending_card_styles():
                 color: var(--text-color, #AAAAAA);
             }
             
-            .stMetric {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
-                border-color: rgba(179, 27, 27, 0.08);
-            }
-            
-            .stMetric:hover {
-                border-color: rgba(179, 27, 27, 0.12);
-                box-shadow: 0 2px 8px rgba(179, 27, 27, 0.10);
+            .trending-metadata {
+                border-top-color: rgba(128, 128, 128, 0.12);
             }
         }
         
@@ -1175,15 +1205,17 @@ def get_interesting_facts_styles():
         .fact-card {
             padding: var(--space-base);
             margin-bottom: var(--space-base);
-            background-color: var(--background-color, #f9f9f9);
-            border-left: 3px solid var(--arxiv-red);
+            background: linear-gradient(135deg, var(--background-color, #f9f9f9) 0%, var(--secondary-background-color, #f5f5f5) 100%);
+            border-left: 2px solid var(--arxiv-red);
             border-radius: var(--radius-sm);
             transition: all var(--transition-fast);
+            box-shadow: var(--shadow-sm);
         }
         
         .fact-card:hover {
             transform: translateY(-1px);
             box-shadow: var(--shadow-base);
+            border-left-color: var(--arxiv-red-light);
         }
         
         .fact-content {
@@ -1201,7 +1233,7 @@ def get_interesting_facts_styles():
         }
         
         .fact-topic {
-            background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.1));
+            background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.08));
             padding: var(--space-xs) var(--space-sm);
             border-radius: var(--radius-lg);
             font-size: var(--font-size-xs);
@@ -1230,12 +1262,18 @@ def get_interesting_facts_styles():
         
         @media (prefers-color-scheme: dark) {
             .fact-card {
-                background-color: var(--background-color, rgba(49, 51, 63, 0.4));
+                background: linear-gradient(135deg, var(--background-color, rgba(26, 28, 35, 0.6)) 0%, var(--secondary-background-color, rgba(26, 28, 35, 0.8)) 100%);
                 border-left-color: var(--arxiv-red);
+                box-shadow: var(--shadow-dark-sm);
+            }
+            
+            .fact-card:hover {
+                box-shadow: var(--shadow-dark-base);
+                border-left-color: var(--arxiv-red-light);
             }
             
             .fact-topic {
-                background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.2));
+                background-color: var(--secondary-background-color, rgba(128, 128, 128, 0.15));
             }
             
             .fact-paper-link {
@@ -1257,7 +1295,7 @@ def get_tweet_timeline_styles():
             background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
             padding: var(--space-base) var(--space-lg);
             border-radius: var(--radius-lg);
-            border: 1px solid rgba(179, 27, 27, 0.08);
+            border: 1px solid rgba(179, 27, 27, 0.06);
             margin-bottom: var(--space-lg);
             position: relative;
             overflow: hidden;
@@ -1269,7 +1307,7 @@ def get_tweet_timeline_styles():
             top: 0;
             left: 0;
             right: 0;
-            height: 3px;
+            height: 2px;
             background: linear-gradient(90deg, var(--arxiv-red) 0%, var(--arxiv-red-light) 100%);
         }
         
@@ -1298,7 +1336,7 @@ def get_tweet_timeline_styles():
             padding: var(--space-sm) 0 var(--space-lg) 0;
             position: relative;
             scrollbar-width: thin;
-            scrollbar-color: rgba(179, 27, 27, 0.3) transparent;
+            scrollbar-color: rgba(179, 27, 27, 0.2) transparent;
             /* Ensure horizontal layout */
             flex-direction: row;
             align-items: stretch;
@@ -1309,24 +1347,24 @@ def get_tweet_timeline_styles():
         }
         
         .tweet-carousel::-webkit-scrollbar-track {
-            background: rgba(179, 27, 27, 0.05);
+            background: rgba(179, 27, 27, 0.04);
             border-radius: var(--radius-full);
         }
         
         .tweet-carousel::-webkit-scrollbar-thumb {
-            background: rgba(179, 27, 27, 0.3);
+            background: rgba(179, 27, 27, 0.2);
             border-radius: var(--radius-full);
             transition: background var(--transition-fast);
         }
         
         .tweet-carousel::-webkit-scrollbar-thumb:hover {
-            background: rgba(179, 27, 27, 0.5);
+            background: rgba(179, 27, 27, 0.3);
         }
         
         .tweet-card {
             flex: 0 0 320px;
             background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
-            border: 1px solid rgba(179, 27, 27, 0.08);
+            border: 1px solid rgba(179, 27, 27, 0.06);
             border-radius: var(--radius-lg);
             padding: var(--space-lg);
             position: relative;
@@ -1339,12 +1377,13 @@ def get_tweet_timeline_styles():
             flex-direction: column;
             /* Ensure cards don't shrink below min width */
             flex-shrink: 0;
+            box-shadow: var(--shadow-sm);
         }
         
         .tweet-card:hover {
             transform: translateY(-1px);
-            box-shadow: var(--shadow-lg);
-            border-color: rgba(179, 27, 27, 0.2);
+            box-shadow: var(--shadow-base);
+            border-color: rgba(179, 27, 27, 0.12);
         }
         
         .tweet-card::before {
@@ -1352,7 +1391,7 @@ def get_tweet_timeline_styles():
             position: absolute;
             top: 0;
             left: 0;
-            width: 4px;
+            width: 2px;
             height: 100%;
             background: linear-gradient(180deg, var(--arxiv-red) 0%, var(--arxiv-red-light) 100%);
             opacity: 0;
@@ -1360,7 +1399,7 @@ def get_tweet_timeline_styles():
         }
         
         .tweet-card:hover::before {
-            opacity: 1;
+            opacity: 0.6;
         }
         
         .tweet-timestamp {
@@ -1383,7 +1422,7 @@ def get_tweet_timeline_styles():
             overflow-y: auto;
             padding-right: var(--space-xs);
             scrollbar-width: thin;
-            scrollbar-color: rgba(179, 27, 27, 0.2) transparent;
+            scrollbar-color: rgba(179, 27, 27, 0.15) transparent;
         }
         
         .tweet-content::-webkit-scrollbar {
@@ -1395,12 +1434,12 @@ def get_tweet_timeline_styles():
         }
         
         .tweet-content::-webkit-scrollbar-thumb {
-            background: rgba(179, 27, 27, 0.2);
+            background: rgba(179, 27, 27, 0.15);
             border-radius: var(--radius-full);
         }
         
         .tweet-content::-webkit-scrollbar-thumb:hover {
-            background: rgba(179, 27, 27, 0.4);
+            background: rgba(179, 27, 27, 0.25);
         }
         
         .tweet-timeline-footer {
@@ -1414,7 +1453,7 @@ def get_tweet_timeline_styles():
         @media (prefers-color-scheme: dark) {
             .tweet-timeline-header {
                 background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
-                border-color: rgba(179, 27, 27, 0.12);
+                border-color: rgba(179, 27, 27, 0.08);
             }
             
             .tweet-timeline-title {
@@ -1427,16 +1466,30 @@ def get_tweet_timeline_styles():
             
             .tweet-card {
                 background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
-                border-color: rgba(179, 27, 27, 0.12);
+                border-color: rgba(179, 27, 27, 0.08);
+                box-shadow: var(--shadow-dark-sm);
             }
             
             .tweet-card:hover {
-                box-shadow: 0 6px 20px rgba(179, 27, 27, 0.12);
-                border-color: rgba(179, 27, 27, 0.18);
+                box-shadow: var(--shadow-dark-accent);
+                border-color: rgba(179, 27, 27, 0.15);
+            }
+            
+            .tweet-card:hover::before {
+                opacity: 0.4;
             }
             
             .tweet-content {
                 color: var(--text-color, #FAFAFA);
+                scrollbar-color: rgba(179, 27, 27, 0.2) transparent;
+            }
+            
+            .tweet-content::-webkit-scrollbar-thumb {
+                background: rgba(179, 27, 27, 0.2);
+            }
+            
+            .tweet-content::-webkit-scrollbar-thumb:hover {
+                background: rgba(179, 27, 27, 0.3);
             }
             
             .tweet-timeline-footer {
@@ -1538,12 +1591,12 @@ def get_individual_tweet_card_styles():
         @media (prefers-color-scheme: dark) {
             .individual-tweet-card {
                 background: var(--background-color, #0E1117);
-                border-color: rgba(179, 27, 27, 0.12);
+                border-color: rgba(179, 27, 27, 0.15);
             }
             
             .individual-tweet-card:hover {
-                border-color: rgba(179, 27, 27, 0.18);
-                box-shadow: 0 2px 8px rgba(179, 27, 27, 0.12);
+                border-color: rgba(179, 27, 27, 0.25);
+                box-shadow: 0 2px 8px rgba(179, 27, 27, 0.2);
             }
             
             .tweet-author {
@@ -1606,7 +1659,7 @@ def get_featured_card_styles():
     return """
         .featured-card {
             background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
-            border: 1px solid rgba(179, 27, 27, 0.08);
+            border: 1px solid rgba(179, 27, 27, 0.06);
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-sm);
             overflow: hidden;
@@ -1620,8 +1673,8 @@ def get_featured_card_styles():
 
         .featured-card:hover {
             transform: translateY(-1px);
-            box-shadow: var(--shadow-lg);
-            border-color: rgba(179, 27, 27, 0.2);
+            box-shadow: var(--shadow-base);
+            border-color: rgba(179, 27, 27, 0.12);
         }
 
         .featured-card::before {
@@ -1630,20 +1683,32 @@ def get_featured_card_styles():
             top: 0;
             left: 0;
             right: 0;
-            height: 3px;
+            height: 2px;
             background: linear-gradient(90deg, var(--arxiv-red) 0%, var(--arxiv-red-light) 100%);
+            opacity: 0;
+            transition: opacity var(--transition-base);
+        }
+
+        .featured-card:hover::before {
+            opacity: 0.6;
         }
 
         .featured-image {
             width: 100%;
             height: 280px;
             background: var(--secondary-background-color, #f0f0f0);
+            overflow: hidden;
         }
 
         .featured-image img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: transform var(--transition-base);
+        }
+
+        .featured-card:hover .featured-image img {
+            transform: scale(1.02);
         }
 
         .featured-content {
@@ -1684,8 +1749,21 @@ def get_featured_card_styles():
         @media (prefers-color-scheme: dark) {
             .featured-card {
                 background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
-                border-color: rgba(179, 27, 27, 0.12);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                border-color: rgba(179, 27, 27, 0.08);
+                box-shadow: var(--shadow-dark-sm);
+            }
+
+            .featured-card:hover {
+                box-shadow: var(--shadow-dark-accent);
+                border-color: rgba(179, 27, 27, 0.15);
+            }
+
+            .featured-card:hover::before {
+                opacity: 0.4;
+            }
+
+            .featured-image {
+                background: var(--secondary-background-color, #1a1c23);
             }
 
             .featured-title {
