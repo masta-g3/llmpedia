@@ -79,7 +79,7 @@ def get_base_component_styles():
         }
         
         .card-base:hover {
-            transform: translateY(-2px);
+            transform: translateY(-1px);
             box-shadow: var(--shadow-lg);
             border-color: rgba(179, 27, 27, 0.2);
         }
@@ -269,14 +269,14 @@ def get_base_component_styles():
         
         @media (prefers-color-scheme: dark) {
             .card-base {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
-                border-color: rgba(179, 27, 27, 0.15);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
+                border-color: rgba(179, 27, 27, 0.12);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             }
             
             .card-base:hover {
-                box-shadow: 0 8px 25px rgba(179, 27, 27, 0.25);
-                border-color: rgba(179, 27, 27, 0.3);
+                box-shadow: 0 6px 20px rgba(179, 27, 27, 0.12);
+                border-color: rgba(179, 27, 27, 0.18);
             }
             
             .heading-primary,
@@ -598,8 +598,8 @@ def get_trending_panel_styles():
         
         @media (prefers-color-scheme: dark) {
             .trending-panel-header {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
-                border-color: rgba(179, 27, 27, 0.15);
+                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
+                border-color: rgba(179, 27, 27, 0.12);
             }
             
             .trending-panel-title {
@@ -915,7 +915,7 @@ def get_advanced_trending_card_styles():
         }
         
         .trending-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-1px);
             box-shadow: var(--shadow-lg);
             border-color: rgba(179, 27, 27, 0.2);
         }
@@ -1089,14 +1089,14 @@ def get_advanced_trending_card_styles():
         /* Dark mode adaptations */
         @media (prefers-color-scheme: dark) {
             .trending-card {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
-                border-color: rgba(179, 27, 27, 0.15);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
+                border-color: rgba(179, 27, 27, 0.12);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             }
             
             .trending-card:hover {
-                box-shadow: 0 8px 25px rgba(179, 27, 27, 0.25);
-                border-color: rgba(179, 27, 27, 0.3);
+                box-shadow: 0 6px 20px rgba(179, 27, 27, 0.12);
+                border-color: rgba(179, 27, 27, 0.18);
             }
             
             .trending-image {
@@ -1125,13 +1125,13 @@ def get_advanced_trending_card_styles():
             }
             
             .stMetric {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
+                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
                 border-color: rgba(179, 27, 27, 0.08);
             }
             
             .stMetric:hover {
-                border-color: rgba(179, 27, 27, 0.15);
-                box-shadow: 0 2px 8px rgba(179, 27, 27, 0.15);
+                border-color: rgba(179, 27, 27, 0.12);
+                box-shadow: 0 2px 8px rgba(179, 27, 27, 0.10);
             }
         }
         
@@ -1342,7 +1342,7 @@ def get_tweet_timeline_styles():
         }
         
         .tweet-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-1px);
             box-shadow: var(--shadow-lg);
             border-color: rgba(179, 27, 27, 0.2);
         }
@@ -1413,8 +1413,8 @@ def get_tweet_timeline_styles():
         
         @media (prefers-color-scheme: dark) {
             .tweet-timeline-header {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
-                border-color: rgba(179, 27, 27, 0.15);
+                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
+                border-color: rgba(179, 27, 27, 0.12);
             }
             
             .tweet-timeline-title {
@@ -1426,13 +1426,13 @@ def get_tweet_timeline_styles():
             }
             
             .tweet-card {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
-                border-color: rgba(179, 27, 27, 0.15);
+                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
+                border-color: rgba(179, 27, 27, 0.12);
             }
             
             .tweet-card:hover {
-                box-shadow: 0 8px 25px rgba(179, 27, 27, 0.25);
-                border-color: rgba(179, 27, 27, 0.3);
+                box-shadow: 0 6px 20px rgba(179, 27, 27, 0.12);
+                border-color: rgba(179, 27, 27, 0.18);
             }
             
             .tweet-content {
@@ -1538,12 +1538,12 @@ def get_individual_tweet_card_styles():
         @media (prefers-color-scheme: dark) {
             .individual-tweet-card {
                 background: var(--background-color, #0E1117);
-                border-color: rgba(179, 27, 27, 0.15);
+                border-color: rgba(179, 27, 27, 0.12);
             }
             
             .individual-tweet-card:hover {
-                border-color: rgba(179, 27, 27, 0.25);
-                box-shadow: 0 2px 8px rgba(179, 27, 27, 0.2);
+                border-color: rgba(179, 27, 27, 0.18);
+                box-shadow: 0 2px 8px rgba(179, 27, 27, 0.12);
             }
             
             .tweet-author {
@@ -1619,7 +1619,7 @@ def get_featured_card_styles():
         }
 
         .featured-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-1px);
             box-shadow: var(--shadow-lg);
             border-color: rgba(179, 27, 27, 0.2);
         }
@@ -1683,9 +1683,9 @@ def get_featured_card_styles():
 
         @media (prefers-color-scheme: dark) {
             .featured-card {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #262730) 100%);
-                border-color: rgba(179, 27, 27, 0.15);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
+                border-color: rgba(179, 27, 27, 0.12);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             }
 
             .featured-title {
