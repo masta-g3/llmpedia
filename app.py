@@ -179,6 +179,19 @@ def get_random_interesting_facts(n=10, recency_days=7, _trigger: int = 0) -> Lis
     return db.get_random_interesting_facts(n=n, recency_days=recency_days)
 
 
+@st.cache_data(ttl=timedelta(hours=6))
+def get_featured_paper(papers_df: pd.DataFrame) -> Dict:
+    """Get featured paper with caching."""
+    arxiv_code = au.get_latest_weekly_highlight()
+    return papers_df[papers_df["arxiv_code"] == arxiv_code].iloc[0].to_dict()
+
+
+@st.cache_data(ttl=timedelta(minutes=15))
+def get_active_users_count() -> int:
+    """Get active users count with caching."""
+    return logging_db.get_active_users_last_24h()
+
+
 @st.cache_data
 def get_max_report_date():
     max_date = db_utils.get_max_table_date("weekly_content")
@@ -619,7 +632,7 @@ def main():
             st.metric(label="⏰ Added in last 24 hours", value=len(papers_1d))
 
         with metric_cols[4]:  # New metric for Active Users
-            active_users_count = logging_db.get_active_users_last_24h()
+            active_users_count = get_active_users_count()
             st.metric(label="👥 Active Users", value=f"{active_users_count:,d}")
 
         st.divider()
@@ -692,10 +705,7 @@ def main():
             discussions_toggle_panel()
             st.divider()
 
-            arxiv_code = au.get_latest_weekly_highlight()
-            highlight_paper = (
-                papers_df[papers_df["arxiv_code"] == arxiv_code].iloc[0].to_dict()
-            )
+            highlight_paper = get_featured_paper(papers_df)
             su.create_featured_paper_card(highlight_paper)
 
         st.divider()
