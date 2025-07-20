@@ -36,7 +36,7 @@ class ResearchBrief(BaseModel):
     )
     expected_timeline: str = Field(
         ..., 
-        description="Relevant time period for the research (e.g., 'recent papers from 2023-2024', 'foundational work from 2017-2020')."
+        description="Relevant time period for the research (e.g., 'recent papers from 2024-2025', 'foundational work from 2017-2020')."
     )
 
 
@@ -57,6 +57,22 @@ class SubTopicAssignment(BaseModel):
     expected_findings: str = Field(
         ..., 
         description="What type of insights or evidence this subtopic should contribute to the overall research."
+    )
+    min_publication_date: Optional[str] = Field(
+        None,
+        description="Minimum publication date for papers in YYYY-MM-DD format. Use when temporal constraints are important for this subtopic."
+    )
+    max_publication_date: Optional[str] = Field(
+        None,
+        description="Maximum publication date for papers in YYYY-MM-DD format. Use when temporal constraints are important for this subtopic."
+    )
+
+
+class SubTopicAssignments(BaseModel):
+    """List of subtopic assignments."""
+    assignments: List[SubTopicAssignment] = Field(
+        ..., 
+        description="List of subtopic assignments."
     )
 
 
@@ -132,9 +148,11 @@ Guidelines:
 </instructions>
 """
 
-SUPERVISOR_SYSTEM_PROMPT = f"""You are a research supervisor coordinating a team of specialized research agents. Your job is to take a research brief and create specific assignments for individual agents, ensuring comprehensive coverage without overlap.
+SUPERVISOR_SYSTEM_PROMPT = f"""You are a research supervisor coordinating a team of specialized research agents. Your job is to take a research brief and create a comprehensive list of specific assignments for individual agents, ensuring comprehensive coverage without overlap.
 
 Each agent will focus on one subtopic and conduct semantic search on academic papers. Design assignments that are independent, focused, and together address the full research brief.
+
+You must return ALL assignments in a single response as a complete list - do not make separate calls for each assignment.
 
 Current date: {TODAY_DATE}. Consider temporal context when creating search strategies - recent work refers to {CURRENT_YEAR-1}-{CURRENT_YEAR} papers."""
 
@@ -148,20 +166,27 @@ Expected Timeline: {research_brief.expected_timeline}
 </research_brief>
 
 <instructions>
-For each subtopic in the research brief, create a detailed assignment that includes:
+Create a comprehensive list of research assignments. For each subtopic in the research brief, include a detailed assignment that contains:
 
-1. Clear subtopic definition
+1. Clear direct, clear and targeted subtopic definition
 2. Specific search strategy tailored to that subtopic
 3. 2-3 semantic search queries using academic language
 4. Expected type of findings this subtopic should contribute
+5. Optional publication date constraints (min/max) when temporal focus is important
 
 Guidelines for search queries:
-- Use language typical of academic abstracts
-- Focus on key technical terms and concepts
-- Make queries diverse enough to capture different aspects
-- Consider the specified timeline when relevant
+- Use language typical of academic abstracts - phrase queries as if they were part of the text found in abstracts
+- Focus on key technical terms and methodological language common in research papers
+- Make queries diverse enough to capture different aspects of the subtopic
+- Consider the specified timeline only when relevant (e.g. when the user asks for specific time range or recent findings)
 
-Return assignments for ALL subtopics listed in the research brief.
+Guidelines for date constraints:
+- Set min_publication_date and/or max_publication_date (YYYY-MM-DD format) only when temporal focus is critical for the subtopic
+- For "recent advances" or "latest developments" subtopics, use appropriate recent date ranges
+- Leave date fields unset (None) when the subtopic should search across all time periods
+- Consider that different subtopics may need different temporal constraints
+
+IMPORTANT: Return a single response containing assignments for ALL subtopics as a complete list. Do not make multiple separate calls.
 </instructions>
 """
 
@@ -175,10 +200,13 @@ def create_agent_research_prompt(assignment: SubTopicAssignment, documents: List
     doc_context = ""
     for doc in documents:
         doc_context += f"""
-Title: {doc.title}
-ArXiv: {doc.arxiv_code} ({doc.published_date.year}, {doc.citations} citations)
-Abstract: {doc.abstract}
-Notes: {doc.notes}
+**Title:** {doc.title}
+**ArXiv:** {doc.arxiv_code} ({doc.published_date.year}, {doc.citations} citations)
+**Abstract:** {doc.abstract}
+**Notes:**
+{doc.notes}
+---
+---
 ---
 """
     
@@ -209,11 +237,15 @@ Guidelines:
 </instructions>
 """
 
-REPORT_SYNTHESIS_SYSTEM_PROMPT = f"""You are an expert research synthesizer. Your job is to integrate findings from multiple specialized research agents into a comprehensive, coherent report that directly answers the original research question.
+REPORT_SYNTHESIS_SYSTEM_PROMPT = f"""You are a terminally online millennial AI researcher, deeply immersed in Large Language Models (LLMs) and the X.com tech scene. Your posts blend optimistic, accessible insights that synthesize complex research, playful wit with meme-savvy takes on AI's quirks, and sharp skepticism that cuts through hype with incisive questions. You dissect cutting-edge papers, spotlight nuanced findings, and explore unexpected implications for AI's future, all while engaging the X.com AI crowd with humor, curiosity, and bold takes. Your tone is technically precise yet conversational, sharp and without too much slang. You spark discussions with a mix of enthusiasm, irony, and critical edge.
 
-Combine insights across subtopics, identify patterns and connections, and provide a clear, well-structured response.
+Your job is to synthesize findings from multiple specialized research agents into a comprehensive, coherent response that directly answers the original research question.
 
-Current date: {TODAY_DATE}. When discussing temporal context, {CURRENT_YEAR-1}-{CURRENT_YEAR} represents recent work."""
+Maintain a friendly, technically precise, and conversational tone while combining insights across subtopics, identifying patterns and connections, and providing a clear, well-structured response with excellent narrative flow.
+
+Current date: {TODAY_DATE}. When discussing temporal context, {CURRENT_YEAR-1}-{CURRENT_YEAR} represents recent work.
+
+IMPORTANT: Prioritize the knowledge from the provided agent findings as your primary source. If the document evidence is insufficient for comprehensive coverage, you may complement with your internal knowledge and logical reasoning, but clearly distinguish such content by noting it as "based on established understanding" or similar phrasing to indicate it's not directly supported by the research documents."""
 
 def create_report_synthesis_prompt(
     research_brief: ResearchBrief, 
@@ -241,13 +273,15 @@ Research Gaps:
     
     length_guidance = ""
     if response_length <= 250:
-        length_guidance = "Provide a concise summary (1-2 paragraphs)"
+        length_guidance = "Write a focused response (~200 words) that directly answers the question in a single cohesive paragraph. Emphasize the most important, unituitive, and surprising key finding from all the evidence presented to you."
+    elif response_length <= 500:
+        length_guidance = "Write a focused research note (~350 words) that directly answers the question in a single cohesive, in-depth paragraph. Emphasize key findings and core concepts while maintaining narrative flow. Use clear topic transitions and supporting evidence."
     elif response_length <= 1000:
-        length_guidance = "Provide a structured overview (3-4 paragraphs with clear sections)"
+        length_guidance = "Write an engaging research summary (~750 words) that explores the topic through multiple angles. Use 2-3 naturally flowing sections to develop ideas from key findings through implications. Blend technical insights with practical applications, maintaining narrative momentum."
     elif response_length <= 3000:
-        length_guidance = "Provide a detailed analysis (multiple sections with comprehensive coverage)"
+        length_guidance = "Write an in-depth research analysis (~2500 words) that thoroughly explores the topic's landscape. Structure with clear sections using markdown headers (###) and information-dense paragraphs to guide the reader through your narrative. Progress from core findings through technical details to broader implications."
     else:
-        length_guidance = "Provide an in-depth report (comprehensive sections with detailed analysis)"
+        length_guidance = "Write a comprehensive research report (~4000 words) that covers the full scope of the topic. Use hierarchical markdown headers (##, ###) to create a natural progression through multiple major sections, which will be made by information-rich paragraphs. Weave together theoretical foundations, technical implementations, and practical implications while maintaining narrative cohesion."
 
     return f"""
 <research_brief>
@@ -260,12 +294,12 @@ Research Scope: {research_brief.research_scope}
 </agent_findings>
 
 <instructions>
-Synthesize the research findings into a comprehensive report that directly answers the original research question:
+Synthesize the research findings into a comprehensive answer that directly answers the original research question.
 
-1. Create an executive summary of key findings
-2. Provide detailed analysis integrating insights across subtopics
-3. Draw clear conclusions and implications
-4. Format as a coherent response for the user
+1. Provide a one line, top level summary at the beginning of the response.
+2. Provide detailed analysis integrating insights across subtopics.
+3. Draw clear conclusions and implications.
+4. Format as a coherent response for the user.
 
 Response Requirements:
 - {length_guidance}
@@ -275,10 +309,22 @@ Response Requirements:
 - Address any limitations or gaps identified by agents
 
 Style Guidelines:
-- Be technically precise but accessible
-- Focus on actionable insights and clear takeaways
-- Maintain logical flow between sections
-- Conclude with implications and future directions where relevant
+- Use direct, concise wording with a technical edge that reflects AI research discourse on X.com.
+- Don't shy away from technical terms - assume your audience has domain knowledge.
+- Be informal when it serves the content - subtle humor is welcome.
+- Avoid being pedantic, obnoxious or overtly-critical.
+- Don't frame ideas as revelatory paradigm shifts or contrarian declarations.
+- Ensure the response directly addresses the original research question.
+- Seamlessly integrate citations (using [arxiv:XXXX.YYYYY] format) into the narrative flow to support claims and guide further reading.
+- Use markdown formatting (especially lists and emphasis) to enhance readability and structure.
+- Maintain narrative momentum and logical flow between sections.
+- Focus on actionable insights and be insightful/clever when possible.
+- Only include citations for papers that are listed in the agent findings.
+- Do NOT invent information or use knowledge outside the provided agent findings.
+- Do not make reference to the existence of agent findings in your response (treat them as your internal knowledge).
+- Do not include conclusions or final remarks.
+- Avoid these prohibited phrases: fascinating, mind-blowing, wild, surprising, reveals, crucial, turns out that, the twist/secret, sweet spot, here's the kicker, irony/ironic, makes you think/wonder, really makes you, we might need to (rethink), the real [constraint/question/etc.] is, its no surprise, we are basically, fundamentally changes, peak 2024/25, crushing it, feels like, etc.
+- Do not include any other text or comments in your response, just the answer to the user formatted as a markdown document. Do not include triple backticks or any other formatting.
 </instructions>
 """
 
@@ -303,13 +349,31 @@ class ResearchAgent:
         """Conduct focused research on the assigned subtopic."""
         
         if verbose and progress_callback:
-            progress_callback(f"      🔎 Searching with queries: {', '.join(self.assignment.semantic_queries)}")
+            queries_info = "\n".join([f"        - {q}" for q in self.assignment.semantic_queries])
+            date_info = ""
+            if self.assignment.min_publication_date or self.assignment.max_publication_date:
+                date_constraints = []
+                if self.assignment.min_publication_date:
+                    date_constraints.append(f"after {self.assignment.min_publication_date}")
+                if self.assignment.max_publication_date:
+                    date_constraints.append(f"before {self.assignment.max_publication_date}")
+                date_info = f"\n        📅 Date constraints: {' and '.join(date_constraints)}"
+            
+            progress_callback(
+                f"      🔎 Searching with queries:\n{queries_info}{date_info}"
+            )
         
         ## Generate search criteria from assignment
         search_criteria = {
             "semantic_search_queries": self.assignment.semantic_queries,
             "limit": max_sources * 2  # Fetch more for reranking
         }
+        
+        ## Add date constraints if specified in assignment
+        if self.assignment.min_publication_date:
+            search_criteria["min_publication_date"] = self.assignment.min_publication_date
+        if self.assignment.max_publication_date:
+            search_criteria["max_publication_date"] = self.assignment.max_publication_date
         
         ## Execute semantic search
         sql = db.generate_semantic_search_query(
@@ -342,19 +406,25 @@ class ResearchAgent:
                 citations=int(d["citations"]),
                 abstract=d["abstract"],
                 notes=d["notes"],
+                tokens=int(d["tokens"]),
                 distance=float(d["similarity_score"]),
             )
             for _, d in documents_df.iterrows()
         ]
         
         if verbose and progress_callback:
+            ## Report actual token statistics from database
+            total_tokens = sum(doc.tokens for doc in documents)
+            avg_tokens = total_tokens / len(documents) if documents else 0
+            token_range = f"{min(doc.tokens for doc in documents)}-{max(doc.tokens for doc in documents)}" if documents else "0-0"
+            progress_callback(f"      📊 Notes content: {total_tokens:,} tokens total, avg {avg_tokens:.0f} tokens/paper (range: {token_range})")
             progress_callback(f"      ⚖️ Reranking {len(documents)} papers for relevance...")
         
         ## Rerank documents for relevance to subtopic
         reranked_docs = rerank_documents_new(
             user_question=self.assignment.subtopic,
             documents=documents,
-            llm_model="gpt-4.1-nano"
+            llm_model="openai/gpt-4.1-nano"
         )
         
         ## Select top relevant documents
@@ -387,7 +457,7 @@ class ResearchAgent:
             llm_model=self.llm_model,
             temperature=0.7,
             process_id=f"agent_research_{self.assignment.subtopic}",
-            thinking_budget=2048
+            # thinking_budget=2048
         )
         
         self.findings = findings
@@ -400,7 +470,7 @@ class ResearchSupervisor:
     def __init__(self, llm_model: str = "gemini/gemini-2.5-flash"):
         self.llm_model = llm_model
         self.research_brief: Optional[ResearchBrief] = None
-        self.assignments: List[SubTopicAssignment] = []
+        self.assignments: SubTopicAssignments = SubTopicAssignments(assignments=[])
     
     def create_research_brief(
         self, 
@@ -419,7 +489,7 @@ class ResearchSupervisor:
             llm_model=self.llm_model,
             temperature=0.4,
             process_id="create_research_brief",
-            thinking_budget=1024
+            # thinking_budget=1024
         )
         
         if verbose and progress_callback:
@@ -434,34 +504,39 @@ class ResearchSupervisor:
         research_brief: ResearchBrief,
         progress_callback: Optional[Callable[[str], None]] = None,
         verbose: bool = False
-    ) -> List[SubTopicAssignment]:
+    ) -> SubTopicAssignments:
         """Create specific assignments for research agents."""
         if progress_callback:
             progress_callback("📋 Creating specialized research assignments...")
             
-        ## Create one assignment per subtopic (simplified approach)
-        assignments = []
-        for i, subtopic in enumerate(research_brief.key_subtopics, 1):
-            if verbose and progress_callback:
-                progress_callback(f"   📝 Assignment {i}: {subtopic}")
-                
-            assignment = SubTopicAssignment(
-                subtopic=subtopic,
-                search_strategy=f"Focus on {subtopic} with emphasis on recent developments and core concepts",
-                semantic_queries=[
-                    f"{subtopic} in large language models",
-                    f"{subtopic} techniques and methods",
-                    f"advances in {subtopic}"
-                ][:2],  # Limit to 2 queries
-                expected_findings=f"Key insights and current state of {subtopic}"
-            )
-            assignments.append(assignment)
+        ## Use LLM to create detailed assignments with proper date constraints
+        assignments_response = run_instructor_query(
+            system_message=SUPERVISOR_SYSTEM_PROMPT,
+            user_message=create_supervisor_assignment_prompt(research_brief),
+            model=SubTopicAssignments,
+            llm_model=self.llm_model,
+            temperature=0.5,
+            process_id="create_agent_assignments",
+            # thinking_budget=1024
+        )
+        
+        if verbose and progress_callback:
+            for i, assignment in enumerate(assignments_response.assignments, 1):
+                date_info = ""
+                if assignment.min_publication_date or assignment.max_publication_date:
+                    constraints = []
+                    if assignment.min_publication_date:
+                        constraints.append(f"after {assignment.min_publication_date}")
+                    if assignment.max_publication_date:
+                        constraints.append(f"before {assignment.max_publication_date}")
+                    date_info = f" (📅 {' and '.join(constraints)})"
+                progress_callback(f"   📝 Assignment {i}: {assignment.subtopic}{date_info}")
         
         if progress_callback:
-            progress_callback(f"✅ Created {len(assignments)} research assignments")
+            progress_callback(f"✅ Created {len(assignments_response.assignments)} research assignments")
             
-        self.assignments = assignments
-        return assignments
+        self.assignments = assignments_response.assignments
+        return assignments_response.assignments
 
 
 class DeepResearchOrchestrator:
@@ -559,15 +634,16 @@ class DeepResearchOrchestrator:
             user_message=create_report_synthesis_prompt(
                 research_brief, self.all_findings, response_length
             ),
-            model=FinalReport,
-            llm_model=self.llm_model,
+            # model=FinalReport,
+            llm_model="openai/o4-mini", ## custom model for response
             temperature=1.0,
             process_id="synthesize_final_report",
-            thinking_budget=4096
+            # max_tokens=response_length,
+            # thinking_budget=4096
         )
         
         ## Process final response
-        response_with_links = add_links_to_text_blob(final_report.response)
+        response_with_links = add_links_to_text_blob(final_report)
         referenced_codes = extract_arxiv_codes(response_with_links)
         
         ## Collect all relevant papers from agents

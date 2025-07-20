@@ -221,6 +221,7 @@ class Document(BaseModel):
     citations: int
     abstract: str
     notes: str
+    tokens: int
     distance: float
 
 
@@ -605,6 +606,7 @@ def query_llmpedia_new(
                             citations=int(d["citations"]),
                             abstract=d["abstract"],
                             notes=d["notes"], # Make sure notes are fetched if available
+                            tokens=int(d["tokens"]),
                             distance=float(d["similarity_score"]),
                         )
                         for _, d in documents_df.iterrows()
@@ -763,23 +765,6 @@ def query_llmpedia_new(
             if progress_callback:
                 progress_callback("📜 Formulating search strategy...")
 
-            ## Calculate target summary length for notes
-            per_source_words = 0
-            if response_length <= 250:  # Brief note
-                per_source_words = response_length * 3 // min(max_sources, 2)
-            elif response_length <= 1000:  # Short summary
-                per_source_words = response_length * 3 // min(max_sources, 3)
-            elif response_length <= 3000:  # Detailed analysis
-                per_source_words = response_length * 3 // min(max_sources, 5)
-            else:
-                per_source_words = response_length * 3 // max_sources
-
-            query_obj.response_length = per_source_words
-            if debug:
-                log_debug(
-                    f"Target length per source (standard): {per_source_words} words", indent_level=2
-                )
-
             ## Fetch results
             criteria_dict = query_obj.model_dump(exclude_none=True)
             criteria_dict["limit"] = max_sources * 2 # Fetch more for reranking
@@ -808,6 +793,7 @@ def query_llmpedia_new(
                     citations=int(d["citations"]),
                     abstract=d["abstract"],
                     notes=d["notes"],
+                    tokens=int(d["tokens"]),
                     distance=float(d["similarity_score"]),
                 )
                 for _, d in documents_df.iterrows()

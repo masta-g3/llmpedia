@@ -55,9 +55,6 @@ class SearchCriteria(BaseModel):
     min_citations: Optional[int] = Field(
         None, description="Minimum number of citations of the paper."
     )
-    response_length: Optional[int] = Field(
-        None, description="Target token length for the paper summaries to be retrieved."
-    )
 
 class DocumentAnalysis(BaseModel):
     """Analysis of a document's relevance to a query."""
@@ -92,6 +89,7 @@ class Document(BaseModel):
     citations: int
     abstract: str
     notes: str
+    tokens: int
     distance: float
 
 class NextSearchStepDecision(BaseModel):
