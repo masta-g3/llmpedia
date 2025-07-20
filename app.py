@@ -1014,14 +1014,6 @@ def main():
                         st.session_state.arxiv_code = arxiv_code
                         su.click_tab(3)
 
-    ## URL info extraction.
-    url_query = st.query_params
-    if "arxiv_code" in url_query and len(st.session_state.arxiv_code) == 0:
-        paper_code = url_query["arxiv_code"]
-        logging_db.log_visit(paper_code)
-        st.session_state.arxiv_code = paper_code
-        su.click_tab(3)
-
     with content_tabs[3]:
         ## Focus on a paper.
         if len(st.session_state.arxiv_code) == 0:
@@ -1214,6 +1206,9 @@ def main():
             report_highlights_cols[0].image(highlight_img, use_container_width=True)
             report_highlights_cols[1].markdown(weekly_highlight)
             st.markdown(weekly_repos)
+
+    ## URL info extraction (moved to end after all components are initialized).
+    su.parse_query_params()
 
 
 if __name__ == "__main__":

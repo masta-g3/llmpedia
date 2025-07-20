@@ -113,6 +113,16 @@ def create_sidebar(full_papers_df: pd.DataFrame) -> Tuple[pd.DataFrame, int]:
 
 
 @st.fragment
+def parse_query_params():
+    url_query = st.query_params
+    if "arxiv_code" in url_query and len(st.session_state.arxiv_code) == 0:
+        paper_code = url_query["arxiv_code"]
+        logging_db.log_visit(paper_code)
+        st.session_state.arxiv_code = paper_code
+        click_tab(3)
+
+
+@st.fragment
 def create_paper_card(paper: Dict, mode="closed", name=""):
     """Creates card UI for paper details."""
     # Main container with padding and border
@@ -816,8 +826,10 @@ def click_tab(tab_num):
     """
     st.components.v1.html(js)
     display_paper_details_fragment(st.session_state.arxiv_code)
-    st.rerun(scope='fragment')
-
+    try:
+        st.rerun(scope='fragment')
+    except st.errors.StreamlitAPIException:
+        pass
 
 @st.fragment
 def generate_mini_paper_table(
