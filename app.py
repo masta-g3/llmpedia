@@ -298,15 +298,16 @@ def chat_fragment():
         with settings_cols[1]:
             max_sources = st.select_slider(
                 "Maximum Sources",
-                options=[1, 3, 5, 7, 10, 15, 20, 25, 30],
-                value=10,
+                options=[1, 5, 10, 30, 50],
+                value=30,
             )
 
-        custom_instructions = st.text_area(
-            "Custom Instructions (Optional)",
-            placeholder="Add any specific instructions for how you would like the response to be structured or formatted...",
-            help="Provide custom style guidelines, instructions on what to focus on, etc.",
-        )
+        # custom_instructions = st.text_area(
+        #     "Custom Instructions (Optional)",
+        #     placeholder="Add any specific instructions for how you would like the response to be structured or formatted...",
+        #     help="Provide custom style guidelines, instructions on what to focus on, etc.",
+        # )
+        custom_instructions = ""
 
         show_only_sources = st.checkbox(
             "Show me only the sources",
@@ -335,6 +336,7 @@ def chat_fragment():
                 ) as status:  # Expand initially
 
                     def update_progress(message: str):
+                        print(message)
                         status.update(label=message)
 
                     try:
@@ -342,17 +344,15 @@ def chat_fragment():
                             au.query_llmpedia_new(
                                 user_question=user_question,
                                 response_length=response_length,
-                                query_llm_model="gemini/gemini-2.5-flash-preview-04-17",
-                                rerank_llm_model="gemini/gemini-2.0-flash",
-                                response_llm_model="claude-3-7-sonnet-20250219",
+                                query_llm_model="openai/gpt-4.1-nano",
+                                rerank_llm_model="openai/gpt-4.1-nano",
+                                response_llm_model="openai/gpt-4.1-nano",
                                 max_sources=max_sources,
+                                deep_research=True,
+                                deep_research_iterations=5,
                                 debug=True,
                                 progress_callback=update_progress,
-                                custom_instructions=(
-                                    custom_instructions
-                                    if custom_instructions.strip()
-                                    else None
-                                ),
+                                custom_instructions=custom_instructions,
                                 show_only_sources=show_only_sources,
                             )
                         )

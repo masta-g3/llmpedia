@@ -547,208 +547,30 @@ def query_llmpedia_new(
     if action.llm_query:
         if deep_research:
             if debug:
-                log_debug("🚀 Initiating Sophisticated Deep Research Mode", indent_level=1)
-            if progress_callback:
-                progress_callback("🚀 Initiating Deep Research Mode (Scratchpad)..." )
-
-            scratchpad = "" # Initialize empty scratchpad (string for now)
-            executed_queries = []
-            current_query = user_question
-            MAX_ITERATIONS = deep_research_iterations
-            DOCS_TO_ANALYZE_PER_ITERATION = 5 # How many top docs to feed into analysis
-            final_answer = ""
-            all_referenced_codes = set()
-            all_relevant_codes = set()
-            processed_arxiv_codes = set() # Keep track of codes already fetched from DB
-
-            for i in range(MAX_ITERATIONS):
-                iteration_num = i + 1
-                if debug:
-                    log_debug(f"Deep Research Iteration {iteration_num}/{MAX_ITERATIONS}", indent_level=2)
-                    log_debug(f"Current search query: '{current_query}'", indent_level=3)
-                    log_debug(f"Scratchpad before analysis:\n{scratchpad}", indent_level=3)
-                if progress_callback:
-                    progress_callback(f"🔄 Iteration {iteration_num}/{MAX_ITERATIONS}: Searching for '{current_query[:50]}...'" )
-
-                executed_queries.append(current_query)
-
-                ## 1. Generate search criteria & Fetch
-                query_obj = generate_query_object(
-                    user_question=current_query, llm_model=query_llm_model
-                )
-                if debug:
-                    log_debug("Generated search criteria:", query_obj.model_dump(), 4)
-                
-                criteria_dict = query_obj.model_dump(exclude_none=True)
-                # Fetch a decent number for reranking within the loop
-                criteria_dict["limit"] = max_sources * 2 
-                sql = db.generate_semantic_search_query(
-                    criteria_dict, 
-                    query_config, 
-                    embedding_model=VS_EMBEDDING_MODEL,
-                    exclude_arxiv_codes=processed_arxiv_codes # Pass codes to exclude
-                )
-                documents_df = db_utils.execute_read_query(sql)
-
-                iteration_docs = []
-                if not documents_df.empty:
-                    # Add newly fetched codes to processed_arxiv_codes BEFORE filtering iteration_docs
-                    # This ensures that if a document is fetched but later filtered out (e.g., by reranking),
-                    # it's still marked as processed for future DB queries.
-                    for arxiv_code in documents_df["arxiv_code"].tolist():
-                        processed_arxiv_codes.add(arxiv_code)
-                    
-                    iteration_docs = [
-                        Document(
-                            arxiv_code=d["arxiv_code"],
-                            title=d["title"],
-                            published_date=d["published_date"].to_pydatetime(),
-                            citations=int(d["citations"]),
-                            abstract=d["abstract"],
-                            notes=d["notes"], # Make sure notes are fetched if available
-                            tokens=int(d["tokens"]),
-                            distance=float(d["similarity_score"]),
-                        )
-                        for _, d in documents_df.iterrows()
-                    ]
-                    if debug:
-                        log_debug(f"Fetched {len(iteration_docs)} documents for this iteration.", indent_level=4)
-                elif debug:
-                    log_debug("No documents found for this iteration's query.", indent_level=4)
-                
-                ## 2. Rerank documents found in THIS iteration
-                reranked_iter_docs_obj = None
-                top_docs_for_analysis = []
-                if iteration_docs:
-                    if progress_callback:
-                        progress_callback(f"⚖️ Reranking {len(iteration_docs)} new documents...")
-                    reranked_iter_docs_obj = rerank_documents_new(
-                        user_question=user_question, # Rerank against original question
-                        documents=iteration_docs,
-                        llm_model=rerank_llm_model
-                    )
-                    
-                    # Get top N documents based on reranking score for analysis
-                    reranked_ids_scores = sorted(
-                        [(int(d.document_id), d.selected) for d in reranked_iter_docs_obj.documents],
-                        key=lambda x: x[1], reverse=True
-                    )
-                    top_ids = [id for id, score in reranked_ids_scores if score > 0][:DOCS_TO_ANALYZE_PER_ITERATION]
-                    top_docs_for_analysis = [iteration_docs[id] for id in top_ids]
-                    
-                    if debug:
-                        log_debug(f"Selected top {len(top_docs_for_analysis)} docs for analysis (score > 0):", [d.arxiv_code for d in top_docs_for_analysis], 4)
-                        # Log all reranked docs for this iter
-                        # log_debug("Reranking details for iteration:", reranked_iter_docs_obj.model_dump(), 5)
-                else:
-                     if progress_callback:
-                        progress_callback("🤷 No new documents found to rerank.")
-
-                ## 3. Analyze & Update Scratchpad
-                if top_docs_for_analysis:
-                    if progress_callback:
-                        progress_callback(f"📝 Analyzing {len(top_docs_for_analysis)} documents and updating scratchpad...")
-                    
-                    analysis_result = analyze_and_update_scratchpad(
-                        original_question=user_question,
-                        scratchpad_content=scratchpad,
-                        current_query=current_query,
-                        reranked_docs=top_docs_for_analysis,
-                        llm_model=query_llm_model # Use query model for analysis
-                    )
-                    scratchpad = analysis_result.updated_scratchpad
-                    
-                    # Keep track of all potentially relevant codes mentioned during analysis
-                    for doc in top_docs_for_analysis:
-                         all_relevant_codes.add(doc.arxiv_code)
-
-                    if debug:
-                        log_debug("Scratchpad analysis result:", analysis_result.model_dump(), 4)
-                        log_debug(f"Scratchpad after analysis:\n{scratchpad}", 4)
-                elif iteration_docs:
-                     # Docs were found but none scored > 0 in rerank
-                     if progress_callback:
-                         progress_callback("😐 No highly relevant documents found in this batch for analysis.")
-                     if debug:
-                         log_debug("No documents passed reranking threshold for analysis.", 4)
-                # else: (No docs found at all) - already logged
-
-                ## 4. Decide Next Step (unless last iteration)
-                if iteration_num == MAX_ITERATIONS:
-                    if debug:
-                        log_debug("Max iterations reached. Proceeding to final synthesis.", indent_level=3)
-                    if progress_callback:
-                         progress_callback("🏁 Reached max search iterations. Preparing final answer...")
-                    break
-
-                if progress_callback:
-                    progress_callback("🤔 Deciding if more research is needed based on scratchpad...")
-
-                decision = decide_deep_search_step(
-                    original_question=user_question,
-                    scratchpad_content=scratchpad,
-                    previous_queries=executed_queries,
-                    llm_model=query_llm_model,
-                )
-                if debug:
-                    log_debug("Decision for next step:", decision.model_dump(), 4)
-                    # log_debug(f"Reasoning: {decision.reasoning}", indent_level=5)
-                
-                if not decision.continue_search or not decision.next_query:
-                    if debug:
-                        log_debug("Decision is to stop searching. Proceeding to final synthesis.", indent_level=3)
-                    if progress_callback:
-                         progress_callback("✅ Sufficient information gathered. Preparing final answer...")
-                    break
-                else:
-                    current_query = decision.next_query
-                    if progress_callback:
-                         progress_callback(f"🔍 Refining search based on notes. Next query: '{current_query[:50]}...'" )
+                log_debug("🚀 Initiating Multi-Agent Deep Research Mode", indent_level=1)
             
-            ## End of deep research loop
-
-            if not scratchpad.strip() or scratchpad == "Scratchpad is currently empty. This is the first analysis.": # Check if scratchpad has meaningful content
-                if debug:
-                    log_debug("Scratchpad is empty after deep research, returning early", indent_level=2)
-                return (
-                    "I conducted a deep search but couldn't build a comprehensive understanding. Try rephrasing your question.",
-                    [],
-                    [],
-                )
-
-            ## 5. Synthesize Final Response from Scratchpad
-            if progress_callback:
-                progress_callback("✍️ Synthesizing final response from research notes...")
+            ## Import here to avoid circular dependency
+            from deep_research import deep_research_query
+            
+            ## Calculate parameters for deep_research_query
+            max_agents = min(deep_research_iterations, 5)
+            
             if debug:
-                log_debug("Generating final response from scratchpad content.", indent_level=2)
-                log_debug(f"Final Scratchpad:\n{scratchpad}", indent_level=3)
-
-            final_answer = resolve_from_scratchpad(
-                 original_question=user_question,
-                 scratchpad_content=scratchpad,
-                 response_length=response_length, # May need adjustment
-                 llm_model=response_llm_model,
-                 custom_instructions=custom_instructions
+                log_debug(f"Deep research config: {max_agents} agents, {max_sources} sources each", indent_level=2)
+            
+            ## Call new multi-agent deep research implementation
+            final_answer, referenced_codes_list, additional_relevant_codes = deep_research_query(
+                user_question=user_question,
+                max_agents=max_agents,
+                max_sources_per_agent=max_sources,
+                response_length=response_length,
+                llm_model="openai/gpt-4.1-nano",
+                # progress_callback=progress_callback,
+                verbose=debug,
             )
-            
-            # Extract referenced codes from the final answer (if resolve_from_scratchpad adds them)
-            all_referenced_codes = set(extract_arxiv_codes(final_answer)) 
-            # We tracked 'all_relevant_codes' during analysis
-            additional_relevant_codes = list(all_relevant_codes - all_referenced_codes)
-            referenced_codes_list = list(all_referenced_codes)
 
             if debug:
-                log_debug(
-                    "Final Response Statistics (Scratchpad Method):",
-                    {
-                        "final_answer_length_words": len(final_answer.split()),
-                        "referenced_papers_in_answer": len(referenced_codes_list),
-                        "additional_relevant_papers_found": len(additional_relevant_codes),
-                        "total_relevant_papers_considered": len(all_relevant_codes),
-                    },
-                    2,
-                )
-                log_debug("~~Finished LLMpedia query pipeline (Sophisticated Deep Research)~~", indent_level=0)
+                log_debug("~~Finished LLMpedia query pipeline (Multi-Agent Deep Research)~~", indent_level=0)
 
             return final_answer, referenced_codes_list, additional_relevant_codes
 
