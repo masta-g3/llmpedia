@@ -51,7 +51,7 @@ def run_instructor_query(
     system_message: str,
     user_message: str,
     model: Optional[Type[BaseModel]] = None,
-    llm_model: str = "gpt-4",
+    llm_model: str = "openai/gpt-4.1-nano",
     temperature: float = 0.5,
     process_id: str = None,
     messages: Optional[List[Dict]] = None,

@@ -164,13 +164,14 @@ def create_rerank_user_prompt(user_question: str, documents: list) -> str:
     </documents>
 
     <response_format>
-    - Reply with a list according to the provided schema. Each element must contain the document IDs, plus two additional fields: 'analysis' and 'selected'. 
+    - Reply with a list according to the provided schema. Each element must contain the document IDs, plus two additional fields: 'analysis' and 'selected'.
     - The 'analysis' element should contain a brief analysis of if and why the paper is relevant to the user query. 
     - The 'selected' element should be a float indicating the relevance level:
       * 1.0: Directly relevant and essential for answering the query
       * 0.5: Tangentially relevant or provides supporting context
       * 0.0: Not relevant to the specific query
     - Make sure to be stringent in scoring - only assign 1.0 to papers that are **directly** relevant to answer the specific user query.
+    - Some papers are about specific model implementations and not about LLMs in general. These papers might not be so useful when drawing general conclusions.
     - Be sure to include all the documents in the list, even if scored 0.0.
     </response_format>"""
     return rerank_msg

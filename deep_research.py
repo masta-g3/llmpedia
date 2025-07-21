@@ -102,18 +102,14 @@ class AgentFindings(BaseModel):
 class FinalReport(BaseModel):
     """Final synthesized research report."""
 
-    executive_summary: str = Field(
-        ..., description="High-level summary of the key findings across all subtopics."
-    )
-    detailed_analysis: str = Field(
-        ...,
-        description="Comprehensive analysis integrating findings from all research agents.",
-    )
-    conclusions: str = Field(
-        ..., description="Clear conclusions and implications based on the research."
-    )
     response: str = Field(
         ..., description="Final formatted response ready for presentation to the user."
+    )
+    referenced_papers: List[str] = Field(
+        ..., description="List of arxiv codes for papers that provided key evidence."
+    )
+    additional_relevant_papers: List[str] = Field(
+        ..., description="List of arxiv codes for additional relevant papers."
     )
 
 
@@ -692,7 +688,7 @@ class DeepResearchOrchestrator:
             user_message=create_report_synthesis_prompt(
                 research_brief, self.all_findings, response_length
             ),
-            # model=FinalReport,
+            model=FinalReport,
             llm_model=self.llm_model,
             temperature=1.0,
             process_id="synthesize_final_report",

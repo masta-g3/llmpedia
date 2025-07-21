@@ -512,262 +512,58 @@ def get_paper_markdown(arxiv_code: str) -> Tuple[str, bool]:
 def query_llmpedia_new(
     user_question: str,
     response_length: int = 4000,
-    query_llm_model: str = "claude-3-7-sonnet-20250219",
-    rerank_llm_model: str = "claude-3-7-sonnet-20250219",
-    response_llm_model: str = "claude-3-7-sonnet-20250219",
-    max_sources: int = 25,
+    llm_model: str = "openai/gpt-4.1-nano",
+    max_sources: int = 15,
+    max_agents: int = 4,
     debug: bool = False,
     progress_callback: Optional[Callable[[str], None]] = None,
-    custom_instructions: Optional[str] = None,
     show_only_sources: bool = False,
-    deep_research: bool = False,
-    deep_research_iterations: int = 3,
 ) -> Tuple[str, List[str], List[str]]:
-    """Query LLMpedia with customized response parameters, including deep research."""
+    """Query LLMpedia using unified multi-agent deep research approach."""
     if progress_callback:
         progress_callback("🧠 Analyzing your question...")
     if debug:
-        log_debug("~~Starting LLMpedia query pipeline~~")
+        log_debug("~~Starting LLMpedia unified query pipeline~~")
         log_debug(
             "Input parameters:",
             {
                 "question": user_question,
                 "response_length": response_length,
                 "max_sources": max_sources,
+                "max_agents": max_agents,
                 "show_only_sources": show_only_sources,
-                "deep_research": deep_research,
-                "deep_research_iterations": deep_research_iterations,
             },
         )
 
-    action = decide_query_action(user_question, llm_model=query_llm_model)
+    action = decide_query_action(user_question, llm_model=llm_model)
     if debug:
         log_debug("Query action decision:", action.model_dump(), 1)
 
     if action.llm_query:
-        if deep_research:
-            if debug:
-                log_debug("🚀 Initiating Multi-Agent Deep Research Mode", indent_level=1)
-            
-            ## Import here to avoid circular dependency
-            from deep_research import deep_research_query
-            
-            ## Calculate parameters for deep_research_query
-            max_agents = min(deep_research_iterations, 5)
-            
-            if debug:
-                log_debug(f"Deep research config: {max_agents} agents, {max_sources} sources each", indent_level=2)
-            
-            ## Call new multi-agent deep research implementation
-            final_answer, referenced_codes_list, additional_relevant_codes = deep_research_query(
-                user_question=user_question,
-                max_agents=max_agents,
-                max_sources_per_agent=max_sources,
-                response_length=response_length,
-                llm_model="openai/gpt-4.1-nano",
-                # progress_callback=progress_callback,
-                verbose=debug,
-            )
+        if debug:
+            log_debug("🚀 Initiating Multi-Agent Deep Research Mode", indent_level=1)
+        
+        ## Import here to avoid circular dependency
+        from deep_research import deep_research_query
+        
+        if debug:
+            log_debug(f"Deep research config: {max_agents} agents, {max_sources} sources each", indent_level=2)
+        
+        ## Call unified multi-agent deep research implementation
+        final_answer, referenced_codes_list, additional_relevant_codes = deep_research_query(
+            user_question=user_question,
+            max_agents=max_agents,
+            max_sources_per_agent=max_sources,
+            response_length=response_length,
+            llm_model=llm_model,
+            progress_callback=progress_callback,
+            verbose=debug,
+        )
 
-            if debug:
-                log_debug("~~Finished LLMpedia query pipeline (Multi-Agent Deep Research)~~", indent_level=0)
+        if debug:
+            log_debug("~~Finished LLMpedia unified query pipeline~~", indent_level=0)
 
-            return final_answer, referenced_codes_list, additional_relevant_codes
-
-        else:
-            ## Standard (non-deep) search path
-            if progress_callback:
-                progress_callback("🎯 Understanding search intent...")
-            query_obj = generate_query_object(
-                user_question=user_question, llm_model=query_llm_model
-            )
-            if debug:
-                log_debug("Generated search criteria (standard):", query_obj.model_dump(), 2)
-
-            if progress_callback:
-                progress_callback("📜 Formulating search strategy...")
-
-            ## Fetch results
-            criteria_dict = query_obj.model_dump(exclude_none=True)
-            criteria_dict["limit"] = max_sources * 2 # Fetch more for reranking
-            sql = db.generate_semantic_search_query(
-                criteria_dict, query_config, embedding_model=VS_EMBEDDING_MODEL
-            )
-
-            if progress_callback:
-                progress_callback("🔍 Searching the archive for relevant papers...")
-
-            documents_df = db_utils.execute_read_query(sql)
-            if documents_df.empty:
-                 if debug:
-                    log_debug("No documents found (standard), returning early", indent_level=2)
-                 return (
-                    "I don't know about that my friend. Try asking something else.",
-                    [],
-                    [],
-                 )
-
-            documents = [
-                Document(
-                    arxiv_code=d["arxiv_code"],
-                    title=d["title"],
-                    published_date=d["published_date"].to_pydatetime(),
-                    citations=int(d["citations"]),
-                    abstract=d["abstract"],
-                    notes=d["notes"],
-                    tokens=int(d["tokens"]),
-                    distance=float(d["similarity_score"]),
-                )
-                for _, d in documents_df.iterrows()
-            ]
-            num_initial_docs = len(documents)
-            if progress_callback:
-                progress_callback(f"📄 Found {num_initial_docs} initial candidate papers.")
-
-            if debug:
-                log_debug(f"Retrieved {len(documents)} initial documents (standard)", indent_level=2)
-                for doc in documents:
-                    log_debug(
-                        f"- {doc.title} (arxiv:{doc.arxiv_code}, citations: {doc.citations}, distance: {doc.distance})",
-                        indent_level=3,
-                    )
-
-            ## Common processing starts after this block if deep_search is False
-            
-        ## ======================================
-        ## COMMON PROCESSING (Standard Search Only)
-        ## ======================================
-        # This block now only runs if deep_research is FALSE
-        if not deep_research:
-            if not documents: 
-                # Safeguard, should be caught earlier in standard path
-                if debug:
-                    log_debug("No documents available for reranking (standard path), returning early", indent_level=2)
-                return (
-                    "I couldn't find relevant information for your query.",
-                    [],
-                    [],
-                )
-
-            num_docs_for_rerank = len(documents)
-            if progress_callback:
-                progress_callback(f"⚖️ Evaluating relevance of {num_docs_for_rerank} candidates...")
-
-            ## Rerank.
-            reranked_documents = rerank_documents_new(
-                user_question=user_question, documents=documents, llm_model=rerank_llm_model
-            )
-
-            if debug:
-                log_debug("Reranking analysis:", indent_level=2)
-                doc_map = {i: doc.arxiv_code for i, doc in enumerate(documents)}
-                for doc_analysis in reranked_documents.documents:
-                    relevance = (
-                        "HIGH" if doc_analysis.selected == 1.0
-                        else "MEDIUM" if doc_analysis.selected == 0.5 else "LOW"
-                    )
-                    arxiv_code = doc_map.get(int(doc_analysis.document_id), "Unknown")
-                    log_debug(
-                        f"- [{relevance}] Document {doc_analysis.document_id} (arxiv:{arxiv_code}):",
-                        indent_level=3,
-                    )
-                    log_debug(f"Analysis: {doc_analysis.analysis}", indent_level=4)
-
-            ## Filter documents based on reranking
-            high_relevance_docs = [
-                (i, d)
-                for i, d in enumerate(documents)
-                if i
-                in [
-                    int(da.document_id)
-                    for da in reranked_documents.documents
-                    if da.selected == 1.0
-                ]
-            ]
-            high_relevance_docs.sort(key=lambda x: x[1].published_date, reverse=True)
-
-            medium_relevance_docs = [
-                (i, d)
-                for i, d in enumerate(documents)
-                if i
-                in [
-                    int(da.document_id)
-                    for da in reranked_documents.documents
-                    if da.selected == 0.5
-                ]
-            ]
-            medium_relevance_docs.sort(key=lambda x: x[1].published_date, reverse=True)
-
-            ## Combine, limit by max_sources, and preserve order
-            combined_sorted_indices = [i for i, _ in high_relevance_docs] + [i for i, _ in medium_relevance_docs]
-            final_document_indices = combined_sorted_indices[:max_sources]
-
-            filtered_documents = [documents[idx] for idx in final_document_indices]
-
-            if debug:
-                log_debug(
-                    f"Selected {len(filtered_documents)} documents after reranking:",
-                    indent_level=2,
-                )
-                for doc in filtered_documents:
-                    log_debug(
-                        f"- {doc.title} (arxiv:{doc.arxiv_code}, citations: {doc.citations}, date: {doc.published_date})",
-                        indent_level=3,
-                    )
-
-            num_filtered_docs = len(filtered_documents)
-            if progress_callback:
-                progress_callback(f"✅ Selected {num_filtered_docs} most relevant papers.")
-
-            if not filtered_documents:
-                if debug:
-                    log_debug(
-                        "No documents selected after reranking, returning early",
-                        indent_level=2,
-                    )
-                return (
-                    "I found some initial papers, but none seemed relevant enough to answer your question after review. Try rephrasing.",
-                    [],
-                    [],
-                )
-
-            ## Final Resolution (Standard Path)
-            if progress_callback:
-                progress_callback(f"✍️ Synthesizing response from {num_filtered_docs} papers...")
-
-            answer_obj = resolve_query(
-                user_question=user_question,
-                documents=filtered_documents,
-                response_length=response_length,
-                llm_model=rerank_llm_model,
-                custom_instructions=custom_instructions,
-            )
-            if debug:
-                log_debug("Resolved query:", answer_obj.model_dump(), 2)
-
-            answer = answer_obj.response
-            answer_augment = add_links_to_text_blob(answer)
-            referenced_arxiv_codes = extract_arxiv_codes(answer_augment)
-
-            ## Identify relevant codes not directly referenced in the text
-            filtered_arxiv_codes_set = {d.arxiv_code for d in filtered_documents}
-            referenced_arxiv_codes_set = set(referenced_arxiv_codes)
-            additional_relevant_codes = list(filtered_arxiv_codes_set - referenced_arxiv_codes_set)
-
-            if debug:
-                log_debug(
-                    "Response statistics:",
-                    {
-                        "response_length_words": len(answer.split()),
-                        "referenced_papers": len(referenced_arxiv_codes_set),
-                        "additional_relevant_papers": len(additional_relevant_codes),
-                        "total_sources_considered": len(filtered_arxiv_codes_set),
-                    },
-                    2,
-                )
-                log_debug("~~Finished LLMpedia query pipeline (Standard Search)~~", indent_level=0)
-            
-            return answer_augment, referenced_arxiv_codes, additional_relevant_codes
+        return final_answer, referenced_codes_list, additional_relevant_codes
 
     else: # Non-LLM query
         if debug:

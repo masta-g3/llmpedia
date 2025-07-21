@@ -298,8 +298,8 @@ def chat_fragment():
         with settings_cols[1]:
             max_sources = st.select_slider(
                 "Maximum Sources",
-                options=[1, 5, 10, 30, 50],
-                value=30,
+                options=[1, 5, 15, 30, 50],
+                value=15,
             )
 
         # custom_instructions = st.text_area(
@@ -344,15 +344,11 @@ def chat_fragment():
                             au.query_llmpedia_new(
                                 user_question=user_question,
                                 response_length=response_length,
-                                query_llm_model="openai/gpt-4.1-nano",
-                                rerank_llm_model="openai/gpt-4.1-nano",
-                                response_llm_model="openai/gpt-4.1-nano",
+                                llm_model="openai/gpt-4.1-nano",
                                 max_sources=max_sources,
-                                deep_research=True,
-                                deep_research_iterations=5,
+                                max_agents=4,
                                 debug=True,
                                 progress_callback=update_progress,
-                                custom_instructions=custom_instructions,
                                 show_only_sources=show_only_sources,
                             )
                         )
