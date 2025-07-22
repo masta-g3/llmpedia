@@ -335,12 +335,168 @@ def chat_fragment():
                     "Processing your query...", expanded=True
                 ) as status:  # Expand initially
 
+                    # Enhanced progress tracking class
+                    class ProgressTracker:
+                        def __init__(self, status_widget):
+                            self.status = status_widget
+                            self.current_phase = "Initializing"
+                            self.phase_details = ""
+                            self.agents_total = 0
+                            self.agents_completed = 0
+                            self.current_agent = 0
+                            self.activity_log = []
+                            self.insights_found = 0
+                            self.papers_found = 0
+                            self.content_container = None
+                            
+                        def parse_and_update(self, message: str):
+                            print(message)  # Keep console logging
+                            
+                            # Parse message type and update state
+                            if "PHASE 1:" in message:
+                                self.current_phase = "Phase 1: Research Planning"
+                                self.phase_details = "Analyzing question and creating research brief"
+                            elif "PHASE 2:" in message:
+                                self.current_phase = "Phase 2: Multi-Agent Research"
+                                self.phase_details = "Deploying specialized research agents"
+                            elif "PHASE 3:" in message:
+                                self.current_phase = "Phase 3: Synthesis"
+                                self.phase_details = "Combining findings into final response"
+                            elif "Agent " in message and "/" in message:
+                                # Parse agent progress: "🤖 Agent 2/4: Researching 'topic'..."
+                                import re
+                                agent_match = re.search(r"Agent (\d+)/(\d+)", message)
+                                if agent_match:
+                                    self.current_agent = int(agent_match.group(1))
+                                    self.agents_total = int(agent_match.group(2))
+                                    self.phase_details = f"Agent {self.current_agent}/{self.agents_total} researching"
+                            elif "completed:" in message:
+                                # Parse completion: "✅ Agent 1 completed: 3 insights, 5 papers"
+                                self.agents_completed += 1
+                                import re
+                                insight_match = re.search(r"(\d+) insights", message)
+                                papers_match = re.search(r"(\d+) papers", message)
+                                if insight_match:
+                                    self.insights_found += int(insight_match.group(1))
+                                if papers_match:
+                                    self.papers_found += int(papers_match.group(1))
+                            elif "Research complete!" in message:
+                                self.current_phase = "Complete"
+                                self.phase_details = "Research successfully completed"
+                            
+                            # Add to activity log (keep last 5 entries)
+                            self.activity_log.append(message)
+                            if len(self.activity_log) > 5:
+                                self.activity_log = self.activity_log[-5:]
+                            
+                            # Update status display
+                            self.update_display()
+                        
+                        def update_display(self):
+                            # Create main status label with current phase
+                            main_label = f"{self.current_phase}"
+                            if self.agents_total > 0:
+                                main_label += f" ({self.agents_completed}/{self.agents_total} agents)"
+                            
+                            # Initialize content container on first run
+                            if self.content_container is None:
+                                with self.status:
+                                    self.content_container = st.empty()
+                            
+                            # Update the main status label
+                            self.status.update(
+                                label=main_label,
+                                expanded=True
+                            )
+                            
+                            # Create structured content with HTML sections
+                            with self.content_container.container():
+                                # Phase Status Section (back on top - provides context)
+                                if self.phase_details:
+                                    # Add animated wait indicator when agents are working
+                                    show_indicator = (self.current_agent > 0 and 
+                                                    self.current_agent <= self.agents_total and 
+                                                    self.current_phase != "Complete")
+                                    
+                                    if show_indicator:
+                                        phase_html = f"""
+                                        <style>
+                                        @keyframes pulse {{
+                                            0% {{ opacity: 1; transform: scale(1); }}
+                                            50% {{ opacity: 0.4; transform: scale(1.2); }}
+                                            100% {{ opacity: 1; transform: scale(1); }}
+                                        }}
+                                        </style>
+                                        <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(179, 27, 27, 0.05); border-left: 3px solid #b31b1b; border-radius: 4px;">
+                                            <div style="font-weight: 600; color: #b31b1b; font-size: 0.9rem; margin-bottom: 0.25rem; display: flex; align-items: center;">
+                                                🎯 Current Phase
+                                                <div style="display: inline-flex; align-items: center; margin-left: 0.5rem;">
+                                                    <div style="width: 8px; height: 8px; background: #b31b1b; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite;"></div>
+                                                </div>
+                                            </div>
+                                            <div style="font-size: 0.85rem; color: var(--text-color);">{self.phase_details}</div>
+                                        </div>
+                                        """
+                                    else:
+                                        phase_html = f"""
+                                        <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(179, 27, 27, 0.05); border-left: 3px solid #b31b1b; border-radius: 4px;">
+                                            <div style="font-weight: 600; color: #b31b1b; font-size: 0.9rem; margin-bottom: 0.25rem;">🎯 Current Phase</div>
+                                            <div style="font-size: 0.85rem; color: var(--text-color);">{self.phase_details}</div>
+                                        </div>
+                                        """
+                                    
+                                    st.markdown(phase_html, unsafe_allow_html=True)
+                                
+                                # Agent Progress Section (moved after phase)
+                                if self.agents_total > 0:
+                                    agent_status = []
+                                    for i in range(1, self.agents_total + 1):
+                                        if i <= self.agents_completed:
+                                            agent_status.append("✅")
+                                        elif i == self.current_agent:
+                                            agent_status.append("🔄")
+                                        else:
+                                            agent_status.append("⭕")
+                                    
+                                    agent_html = f"""
+                                    <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(76, 175, 80, 0.05); border-left: 3px solid #4caf50; border-radius: 4px;">
+                                        <div style="font-weight: 600; color: #4caf50; font-size: 0.9rem; margin-bottom: 0.25rem;">🤖 Research Agents</div>
+                                        <div style="font-size: 1.2rem; letter-spacing: 0.2rem;">{' '.join(agent_status)}</div>
+                                    </div>
+                                    """
+                                    st.markdown(agent_html, unsafe_allow_html=True)
+                                
+                                # Research Statistics Section  
+                                if self.insights_found > 0 or self.papers_found > 0:
+                                    stats_cols = st.columns(2)
+                                    if self.insights_found > 0:
+                                        with stats_cols[0]:
+                                            st.metric(label="💡 Insights", value=self.insights_found)
+                                    if self.papers_found > 0:
+                                        with stats_cols[1]:
+                                            st.metric(label="📄 Papers", value=self.papers_found)
+                                
+                                # Recent Activity Section
+                                if self.activity_log:
+                                    st.markdown("**📝 Recent Activity**")
+                                    for activity in self.activity_log[-3:]:
+                                        # Clean up the activity message for display
+                                        clean_activity = activity.replace("🎯 ", "").replace("🤖 ", "").replace("📝 ", "")
+                                        if len(clean_activity) > 200:
+                                            clean_activity = clean_activity[:197] + "..."
+                                        st.markdown(f"<div style='font-size: 0.85rem; margin-left: 1rem; color: var(--text-color); opacity: 0.8;'>• {clean_activity}</div>", unsafe_allow_html=True)
+                                
+                                # Add some breathing room at the bottom
+                                st.markdown("<div style='margin-bottom: 0.5rem;'></div>", unsafe_allow_html=True)
+                    
+                    # Initialize progress tracker
+                    progress_tracker = ProgressTracker(status)
+                    
                     def update_progress(message: str):
-                        print(message)
-                        status.update(label=message)
+                        progress_tracker.parse_and_update(message)
 
                     try:
-                        response, referenced_codes, relevant_codes = (
+                        response_title, response, referenced_codes, relevant_codes = (
                             au.query_llmpedia_new(
                                 user_question=user_question,
                                 response_length=response_length,
@@ -366,6 +522,11 @@ def chat_fragment():
                             state="error",
                             expanded=True,
                         )
+                        ## Print error with traceback
+                        import traceback
+                        print("Error details:")
+                        print(e)
+                        print(traceback.format_exc())
                         logging_db.log_error_db(e)  # Log the error
                         st.error(
                             "Sorry, an error occurred while processing your request."
@@ -374,6 +535,7 @@ def chat_fragment():
             # Store results in session state only if successful
             if "response" in locals():
                 st.session_state.chat_response = response
+                st.session_state.chat_response_title = response_title
                 st.session_state.referenced_codes = referenced_codes
                 st.session_state.relevant_codes = relevant_codes
                 logging_db.log_qna_db(user_question, response)
@@ -382,6 +544,7 @@ def chat_fragment():
     # Display results if they exist in session state
     if st.session_state.chat_response:
         st.divider()
+        st.markdown(f"**{st.session_state.chat_response_title}**")
         st.markdown(st.session_state.chat_response)
 
         if len(st.session_state.referenced_codes) > 0:
@@ -592,8 +755,8 @@ def main():
             "🧮 Release Feed",
             "🗺️ Statistics & Topics",
             "🔍 Paper Details",
-            "🤖 Online Research",
-            "⚙️  Links & Repositories",
+            "🔬 Online Research",
+            "⚙️ Links & Repositories",
             "🗞 Weekly Report",
         ]
     )
@@ -1218,10 +1381,10 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
+    # try:
         main()
-    except Exception as e:
-        logging_db.log_error_db(e)
-        st.error(
-            "Something went wrong. Please refresh the app and try again, we will look into it."
-        )
+    # except Exception as e:
+    #     logging_db.log_error_db(e)
+    #     st.error(
+    #         "Something went wrong. Please refresh the app and try again, we will look into it."
+    #     )

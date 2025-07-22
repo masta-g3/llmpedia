@@ -550,7 +550,7 @@ def query_llmpedia_new(
             log_debug(f"Deep research config: {max_agents} agents, {max_sources} sources each", indent_level=2)
         
         ## Call unified multi-agent deep research implementation
-        final_answer, referenced_codes_list, additional_relevant_codes = deep_research_query(
+        final_answer_title, final_answer, referenced_codes_list, additional_relevant_codes = deep_research_query(
             user_question=user_question,
             max_agents=max_agents,
             max_sources_per_agent=max_sources,
@@ -563,7 +563,7 @@ def query_llmpedia_new(
         if debug:
             log_debug("~~Finished LLMpedia unified query pipeline~~", indent_level=0)
 
-        return final_answer, referenced_codes_list, additional_relevant_codes
+        return final_answer_title, final_answer, referenced_codes_list, additional_relevant_codes
 
     else: # Non-LLM query
         if debug:

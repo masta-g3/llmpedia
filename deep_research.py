@@ -101,15 +101,14 @@ class AgentFindings(BaseModel):
 
 class FinalReport(BaseModel):
     """Final synthesized research report."""
-
+    title: str = Field(
+        ..., description="A simple, short, punchy sentence summarizing your most insightful finding."
+    )
     response: str = Field(
         ..., description="Final formatted response ready for presentation to the user."
     )
     referenced_papers: List[str] = Field(
-        ..., description="List of arxiv codes for papers that provided key evidence."
-    )
-    additional_relevant_papers: List[str] = Field(
-        ..., description="List of arxiv codes for additional relevant papers."
+        ..., description="List of arxiv codes for papers that provided key evidence. E.g. ['2507.03113', '2507.03114']"
     )
 
 
@@ -697,8 +696,9 @@ class DeepResearchOrchestrator:
         )
 
         ## Process final response
-        response_with_links = add_links_to_text_blob(final_report)
-        referenced_codes = extract_arxiv_codes(response_with_links)
+        print(final_report)
+        response_with_links = add_links_to_text_blob(final_report.response)
+        referenced_codes = final_report.referenced_papers
 
         ## Collect all relevant papers from agents
         all_relevant_codes = set()
@@ -713,7 +713,7 @@ class DeepResearchOrchestrator:
                 f"🎉 Research complete! Generated {word_count} word response with {len(referenced_codes)} referenced papers"
             )
 
-        return response_with_links, referenced_codes, additional_relevant_codes
+        return final_report.title, response_with_links, referenced_codes, additional_relevant_codes
 
 
 ## Main Entry Point
