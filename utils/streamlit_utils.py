@@ -829,6 +829,7 @@ def click_tab(tab_num):
         display_paper_details_fragment(st.session_state.arxiv_code)
     try:
         st.rerun(scope='fragment')
+        time.sleep(1)
     except st.errors.StreamlitAPIException:
         pass
 
@@ -1297,11 +1298,8 @@ def render_research_progress(status_widget, progress_state: dict):
             # Phase Status Section (first - provides context)
             phase_details = progress_state.get("phase_details")
             if phase_details:
-                # Add animated wait indicator when agents are working
-                current_agent = progress_state.get("current_agent", 0)
-                show_indicator = (current_agent > 0 and 
-                                current_agent <= agents_total and 
-                                current_phase != "Complete")
+                # Add animated wait indicator when research is active
+                show_indicator = (current_phase != "Complete")
                 
                 if show_indicator:
                     phase_html = f"""

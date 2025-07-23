@@ -288,8 +288,11 @@ def chat_fragment():
             st.session_state.relevant_codes = []
             st.rerun(scope="fragment")
 
-    # Execute research when Send is clicked
-    if chat_btn and user_question:
+    # Check for auto-execute flag (programmatic trigger)
+    auto_execute = st.session_state.pop("auto_execute_research", False)
+    
+    # Execute research when Send is clicked OR auto-execute is triggered
+    if (chat_btn and user_question) or (auto_execute and user_question):
         with status_placeholder.container():
             with st.status("Processing your query...", expanded=True) as status:
                 
@@ -361,7 +364,11 @@ def chat_fragment():
             st.session_state.referenced_codes = referenced_codes
             st.session_state.relevant_codes = relevant_codes
             logging_db.log_qna_db(user_question, response)
-            st.rerun(scope="fragment")
+            st.session_state.auto_execute_research = False
+            try:
+                st.rerun(scope="fragment")
+            except Exception as e:
+                pass
 
     # Display results if they exist in session state
     if st.session_state.chat_response:
@@ -617,6 +624,7 @@ def main():
             query_to_pass = st.session_state.get("news_tab_shared_query_input", "")
             if query_to_pass:  # Only pass if there's actual text
                 st.session_state.query_to_pass_to_chat = query_to_pass
+                st.session_state.auto_execute_research = True  # Auto-trigger research
             su.click_tab(4)  # Navigate to the Deep Research tab
 
         st.divider()
