@@ -612,7 +612,7 @@ def main():
             placeholder="E.g., Why do LLMs sometimes exhibit ADHD like symptoms?",
         )
         if st.button(
-            "Explore Deep Research 🤖", key="explore_deep_research_news_promo"
+            "Explore Deep Research", key="explore_deep_research_news_promo"
         ):
             query_to_pass = st.session_state.get("news_tab_shared_query_input", "")
             if query_to_pass:  # Only pass if there's actual text
