@@ -825,7 +825,8 @@ def click_tab(tab_num):
     </script>
     """
     st.components.v1.html(js)
-    display_paper_details_fragment(st.session_state.arxiv_code)
+    if tab_num == 3:
+        display_paper_details_fragment(st.session_state.arxiv_code)
     try:
         st.rerun(scope='fragment')
     except st.errors.StreamlitAPIException:
