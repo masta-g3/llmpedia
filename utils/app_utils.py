@@ -221,6 +221,7 @@ class Document(BaseModel):
     citations: int
     abstract: str
     notes: str
+    tokens: int
     distance: float
 
 
@@ -268,7 +269,6 @@ def decide_query_action(
         po.QueryDecision,
         llm_model=llm_model,
         process_id="decide_query_action",
-        thinking={"type": "enabled", "budget_tokens": 0},
     )
     return response
 
@@ -281,9 +281,57 @@ def generate_query_object(user_question: str, llm_model: str):
         llm_model=llm_model,
         temperature=0.5,
         process_id="generate_query_object",
-        thinking={"type": "enabled", "budget_tokens": 0},
     )
     return query_obj
+
+
+def decide_deep_search_step(
+    original_question: str,
+    scratchpad_content: str,
+    previous_queries: list[str],
+    llm_model: str,
+) -> po.NextSearchStepDecision:
+    """Decide whether to continue deep search based on scratchpad and determine the next query."""
+    user_message = ps.create_deep_search_decision_user_prompt(
+        original_question=original_question,
+        scratchpad_content=scratchpad_content,
+        previous_queries=previous_queries,
+    )
+    response = run_instructor_query(
+        ps.DEEP_SEARCH_DECISION_SYSTEM_PROMPT,
+        user_message,
+        po.NextSearchStepDecision,
+        llm_model=llm_model,
+        temperature=0.3,  # Lower temp for more deterministic decision
+        process_id="decide_deep_search_step",
+    )
+    return response
+
+
+def analyze_and_update_scratchpad(
+    original_question: str,
+    scratchpad_content: str,
+    current_query: str,
+    reranked_docs: list[Document],
+    llm_model: str,
+) -> po.ScratchpadAnalysisResult:
+    """Analyze reranked documents and update the research scratchpad."""
+    user_message = ps.create_scratchpad_analysis_user_prompt(
+        original_question=original_question,
+        scratchpad_content=scratchpad_content,
+        current_query=current_query,
+        reranked_docs=reranked_docs,
+    )
+    analysis_result = run_instructor_query(
+        ps.SCRATCHPAD_ANALYSIS_SYSTEM_PROMPT,
+        user_message,
+        po.ScratchpadAnalysisResult,
+        llm_model=llm_model,
+        temperature=0.5,
+        process_id="analyze_scratchpad",
+        thinking={"type": "enabled", "budget_tokens": 2048},
+    )
+    return analysis_result
 
 
 def rerank_documents_new(
@@ -298,7 +346,6 @@ def rerank_documents_new(
         llm_model=llm_model,
         temperature=temperature,
         process_id="rerank_documents",
-        # thinking={"type": "enabled", "budget_tokens": 0},
     )
     return response
 
@@ -324,9 +371,36 @@ def resolve_query(
         llm_model=llm_model,
         temperature=0.8,
         process_id="resolve_query",
-        # thinking={"type": "enabled", "budget_tokens": 0},
     )
     return response
+
+
+def resolve_from_scratchpad(
+    original_question: str,
+    scratchpad_content: str,
+    response_length: int, # May need different calculation based on scratchpad
+    llm_model: str,
+    custom_instructions: Optional[str] = None,
+) -> str: # Returning string directly for now
+    """Generate final response based on the final scratchpad content."""
+    
+    user_message = ps.create_resolve_scratchpad_user_prompt(
+        original_question=original_question,
+        scratchpad_content=scratchpad_content,
+        response_length=response_length,
+        custom_instructions=custom_instructions
+    )
+    
+    response_obj = run_instructor_query(
+        system_message=ps.RESOLVE_SCRATCHPAD_SYSTEM_PROMPT,
+        user_message=user_message,
+        model=po.ResolveScratchpadResponse, # Use the new simple model
+        llm_model=llm_model,
+        temperature=0.7, # Balance creativity and factuality for synthesis
+        process_id="resolve_from_scratchpad",
+    )
+    
+    return response_obj.response
 
 
 def resolve_query_other(user_question: str) -> str:
@@ -437,234 +511,61 @@ def get_paper_markdown(arxiv_code: str) -> Tuple[str, bool]:
 
 def query_llmpedia_new(
     user_question: str,
-    response_length: int = 500,
-    query_llm_model: str = "claude-3-7-sonnet-20250219",
-    rerank_llm_model: str = "claude-3-7-sonnet-20250219",
-    response_llm_model: str = "claude-3-7-sonnet-20250219",
-    max_sources: int = 25,
+    response_length: int = 4000,
+    llm_model: str = "openai/gpt-4.1-nano",
+    max_sources: int = 15,
+    max_agents: int = 4,
     debug: bool = False,
     progress_callback: Optional[Callable[[str], None]] = None,
-    custom_instructions: Optional[str] = None,
     show_only_sources: bool = False,
 ) -> Tuple[str, List[str], List[str]]:
-    """Query LLMpedia with customized response parameters."""
+    """Query LLMpedia using unified multi-agent deep research approach."""
     if progress_callback:
         progress_callback("🧠 Analyzing your question...")
     if debug:
-        log_debug("~~Starting LLMpedia query pipeline~~")
+        log_debug("~~Starting LLMpedia unified query pipeline~~")
         log_debug(
             "Input parameters:",
             {
                 "question": user_question,
                 "response_length": response_length,
                 "max_sources": max_sources,
+                "max_agents": max_agents,
                 "show_only_sources": show_only_sources,
             },
         )
 
-    action = decide_query_action(user_question, llm_model=query_llm_model)
+    action = decide_query_action(user_question, llm_model=llm_model)
     if debug:
         log_debug("Query action decision:", action.model_dump(), 1)
 
     if action.llm_query:
-        if progress_callback:
-            progress_callback("🎯 Understanding search intent...")
+        if debug:
+            log_debug("🚀 Initiating Multi-Agent Deep Research Mode", indent_level=1)
         
-        query_obj = generate_query_object(
-            user_question=user_question, llm_model=query_llm_model
-        )
+        ## Import here to avoid circular dependency
+        from deep_research import deep_research_query
+        
         if debug:
-            log_debug("Generated search criteria:", query_obj.model_dump(), 2)
-
-        if progress_callback:
-            progress_callback("📜 Formulating search strategy...")
-
-        ## Calculate target summary length with roughly 3:1 source-to-summary ratio.
-        per_source_words = 0
-        if response_length <= 250:  # Brief note
-            per_source_words = response_length * 3 // min(max_sources, 2)
-        elif response_length <= 1000:  # Short summary
-            per_source_words = response_length * 3 // min(max_sources, 3)
-        elif response_length <= 3000:  # Detailed analysis
-            per_source_words = response_length * 3 // min(max_sources, 5)
-        else:
-            per_source_words = response_length * 3 // max_sources
-
-        query_obj.response_length = per_source_words
-        if debug:
-            log_debug(
-                f"Target length per source: {per_source_words} words", indent_level=2
-            )
-
-        ## Fetch results.
-        # query_obj.topic_categories = None
-        criteria_dict = query_obj.model_dump(exclude_none=True)
-        criteria_dict["limit"] = max_sources * 2
-        sql = db.generate_semantic_search_query(
-            criteria_dict, query_config, embedding_model=VS_EMBEDDING_MODEL
-        )
-
-        if progress_callback:
-            progress_callback("🔍 Searching the archive for relevant papers...")
-
-        documents_df = db_utils.execute_read_query(sql)
-        documents = documents_df.to_dict(orient="records")
-        documents = [
-            Document(
-                arxiv_code=d["arxiv_code"],
-                title=d["title"],
-                published_date=d["published_date"].to_pydatetime(),
-                citations=int(d["citations"]),
-                abstract=d["abstract"],
-                notes=d["notes"],
-                distance=float(d["similarity_score"]),
-            )
-            for d in documents
-        ]
-
-        num_initial_docs = len(documents)
-        if progress_callback:
-            progress_callback(f"📄 Found {num_initial_docs} initial candidate papers.")
-
-        if debug:
-            log_debug(f"Retrieved {len(documents)} initial documents", indent_level=2)
-            for doc in documents:
-                log_debug(
-                    f"- {doc.title} (arxiv:{doc.arxiv_code}, citations: {doc.citations}, distance: {doc.distance})",
-                    indent_level=3,
-                )
-
-        if len(documents) == 0:
-            if debug:
-                log_debug("No documents found, returning early", indent_level=2)
-            return (
-                "I don't know about that my friend. Try asking something else.",
-                [],
-                [],
-            )
-
-        if progress_callback:
-            progress_callback(f"⚖️ Evaluating relevance of {num_initial_docs} candidates...")
-
-        ## Rerank.
-        reranked_documents = rerank_documents_new(
-            user_question, documents, llm_model=rerank_llm_model
+            log_debug(f"Deep research config: {max_agents} agents, {max_sources} sources each", indent_level=2)
+        
+        ## Call unified multi-agent deep research implementation
+        final_answer_title, final_answer, referenced_codes_list, additional_relevant_codes = deep_research_query(
+            user_question=user_question,
+            max_agents=max_agents,
+            max_sources_per_agent=max_sources,
+            response_length=response_length,
+            llm_model=llm_model,
+            progress_callback=progress_callback,
+            verbose=debug,
         )
 
         if debug:
-            log_debug("Reranking analysis:", indent_level=2)
-            for doc_analysis in reranked_documents.documents:
-                relevance = (
-                    "HIGH"
-                    if doc_analysis.selected == 1.0
-                    else "MEDIUM" if doc_analysis.selected == 0.5 else "LOW"
-                )
-                log_debug(
-                    f"- [{relevance}] Document {doc_analysis.document_id}:",
-                    indent_level=3,
-                )
-                log_debug(f"Analysis: {doc_analysis.analysis}", indent_level=4)
+            log_debug("~~Finished LLMpedia unified query pipeline~~", indent_level=0)
 
-        ## First get high relevance docs (1.0), then medium (0.5), preserving original order.
-        ## Sort within each relevance group by published date.
-        high_relevance_docs = [
-            (i, d)
-            for i, d in enumerate(documents)
-            if i
-            in [
-                int(d.document_id)
-                for d in reranked_documents.documents
-                if d.selected == 1.0
-            ]
-        ]
+        return final_answer_title, final_answer, referenced_codes_list, additional_relevant_codes
 
-        high_relevance_docs.sort(key=lambda x: x[1].published_date, reverse=True)
-        high_relevance_ids = [i for i, _ in high_relevance_docs]
-
-        medium_relevance_docs = [
-            (i, d)
-            for i, d in enumerate(documents)
-            if i
-            in [
-                int(d.document_id)
-                for d in reranked_documents.documents
-                if d.selected == 0.5
-            ]
-        ]
-
-        medium_relevance_docs.sort(key=lambda x: x[1].published_date, reverse=True)
-        medium_relevance_ids = [i for i, _ in medium_relevance_docs]
-
-        filtered_document_ids = (high_relevance_ids + medium_relevance_ids)[
-            :max_sources
-        ]
-
-        ## Create filtered documents list maintaining the sorted order
-        filtered_documents = []
-        for idx in filtered_document_ids:
-            filtered_documents.append(documents[idx])
-
-        if debug:
-            log_debug(
-                f"Selected {len(filtered_documents)} documents after reranking:",
-                indent_level=2,
-            )
-            for doc in filtered_documents:
-                log_debug(
-                    f"- {doc.title} (arxiv:{doc.arxiv_code}, citations: {doc.citations}, date: {doc.published_date})",
-                    indent_level=3,
-                )
-
-        num_filtered_docs = len(filtered_documents)
-        if progress_callback:
-            progress_callback(f"✅ Selected {num_filtered_docs} most relevant papers.")
-
-        if len(filtered_documents) == 0:
-            if debug:
-                log_debug(
-                    "No documents selected after reranking, returning early",
-                    indent_level=2,
-                )
-            return (
-                "I don't know about that my friend. Try asking something else.",
-                [],
-                [],
-            )
-
-        if progress_callback:
-            progress_callback(f"✍️ Synthesizing response from {num_filtered_docs} papers...")
-
-        answer_obj = resolve_query(
-            user_question,
-            filtered_documents,
-            response_length,
-            llm_model=response_llm_model,
-            custom_instructions=custom_instructions,
-        )
-        if debug:
-            log_debug("Resolved query:", answer_obj.model_dump(), 2)
-        answer = answer_obj.response
-        answer_augment = add_links_to_text_blob(answer)
-        referenced_arxiv_codes = extract_arxiv_codes(answer_augment)
-        filtered_arxiv_codes = [d.arxiv_code for d in filtered_documents]
-        filtered_arxiv_codes = [
-            d for d in filtered_arxiv_codes if d not in referenced_arxiv_codes
-        ]
-
-        if debug:
-            log_debug(
-                "Response statistics:",
-                {
-                    "response_length": len(answer.split()),
-                    "referenced_papers": len(referenced_arxiv_codes),
-                    "additional_relevant": len(filtered_arxiv_codes),
-                },
-                2,
-            )
-
-        return answer_augment, referenced_arxiv_codes, filtered_arxiv_codes
-
-    else:
+    else: # Non-LLM query
         if debug:
             log_debug(
                 "Query classified as non-LLM related, generating simple response",
@@ -673,6 +574,8 @@ def query_llmpedia_new(
         if progress_callback:
              progress_callback("💬 Preparing a direct response...")
         answer = resolve_query_other(user_question)
+        if debug:
+            log_debug("~~Finished LLMpedia query pipeline (non-LLM query)~~", indent_level=0)
         return answer, [], []
 
 

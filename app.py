@@ -179,6 +179,19 @@ def get_random_interesting_facts(n=10, recency_days=7, _trigger: int = 0) -> Lis
     return db.get_random_interesting_facts(n=n, recency_days=recency_days)
 
 
+@st.cache_data(ttl=timedelta(hours=6))
+def get_featured_paper(papers_df: pd.DataFrame) -> Dict:
+    """Get featured paper with caching."""
+    arxiv_code = au.get_latest_weekly_highlight()
+    return papers_df[papers_df["arxiv_code"] == arxiv_code].iloc[0].to_dict()
+
+
+@st.cache_data(ttl=timedelta(minutes=15))
+def get_active_users_count() -> int:
+    """Get active users count with caching."""
+    return logging_db.get_active_users_last_24h()
+
+
 @st.cache_data
 def get_max_report_date():
     max_date = db_utils.get_max_table_date("weekly_content")
@@ -246,62 +259,24 @@ def get_processed_trending_papers(
 @st.fragment
 def chat_fragment():
     """Handles the entire chat interface logic within a Streamlit fragment."""
-
-    initial_query_value = ""
-    if "query_to_pass_to_chat" in st.session_state:
-        initial_query_value = st.session_state.query_to_pass_to_chat
-        del st.session_state.query_to_pass_to_chat  # Clear after use
-
-    # Online Research header with consistent styling
-    research_header_html = """
-    <div class="trending-panel-header">
-        <div class="trending-panel-title">
-            🤖 Online Research Assistant
-        </div>
-        <div class="trending-panel-subtitle">
-            AI-powered research with cited sources • Ask questions about LLMs and arXiv papers
-        </div>
-    </div>
-    """
-    st.markdown(research_header_html, unsafe_allow_html=True)
+    # Get initial query value and render header
+    user_question = su.get_initial_query_value()
+    su.render_research_header()
+    
+    # User input
     user_question = st.text_area(
         label="Ask any question about LLMs or the arxiv papers.",
-        value=initial_query_value,  # Use the passed value here
-        key="chat_user_question_area",  # Added a key for consistent state management
+        value=user_question,
+        key="chat_user_question_area",
     )
     chat_btn_disabled = len(user_question) == 0
 
-    ## Advanced response settings in an expander
-    with st.expander("⚙️ Response Settings", expanded=False):
-        settings_cols = st.columns(2)
-
-        with settings_cols[0]:
-            response_length = st.select_slider(
-                "Response Length (words)",
-                options=[250, 500, 1000, 3000],
-                value=250,
-                format_func=lambda x: f"~{x} words",
-            )
-        with settings_cols[1]:
-            max_sources = st.select_slider(
-                "Maximum Sources",
-                options=[1, 3, 5, 7, 10, 15, 20, 25, 30],
-                value=10,
-            )
-
-        custom_instructions = st.text_area(
-            "Custom Instructions (Optional)",
-            placeholder="Add any specific instructions for how you would like the response to be structured or formatted...",
-            help="Provide custom style guidelines, instructions on what to focus on, etc.",
-        )
-
-        show_only_sources = st.checkbox(
-            "Show me only the sources",
-            help="Skip generating a response and just show the most relevant papers for this query.",
-        )
-
+    # Render settings panel and get configuration
+    settings = su.render_research_settings_panel()
+    
     status_placeholder = st.empty()
-
+    
+    # Action buttons
     chat_cols = st.columns((1, 1, 1))
     chat_btn = chat_cols[0].button("Send", disabled=chat_btn_disabled)
 
@@ -311,102 +286,92 @@ def chat_fragment():
             st.session_state.chat_response = None
             st.session_state.referenced_codes = []
             st.session_state.relevant_codes = []
-            # Rerun to reflect the cleared state
             st.rerun(scope="fragment")
 
-    if chat_btn:
-        if user_question != "":
-            with status_placeholder.container():
-                with st.status(
-                    "Processing your query...", expanded=True
-                ) as status:  # Expand initially
+    # Execute research when Send is clicked
+    if chat_btn and user_question:
+        with status_placeholder.container():
+            with st.status("Processing your query...", expanded=True) as status:
+                
+                # Initialize progress tracking with functional approach
+                progress_state = {
+                    "current_phase": "Initializing",
+                    "phase_details": "",
+                    "agents_total": 0,
+                    "agents_completed": 0,
+                    "current_agent": 0,
+                    "activity_log": [],
+                    "insights_found": 0,
+                    "papers_found": 0,
+                }
+                
+                def update_progress(message: str):
+                    print(message)  # Keep console logging
+                    
+                    # Parse message and update state
+                    updates = su.parse_research_progress_message(message)
+                    progress_state.update(updates)
+                    
+                    # Add to activity log (keep last 5 entries)
+                    progress_state["activity_log"].append(message)
+                    if len(progress_state["activity_log"]) > 5:
+                        progress_state["activity_log"] = progress_state["activity_log"][-5:]
+                    
+                    # Render updated progress
+                    su.render_research_progress(status, progress_state)
 
-                    def update_progress(message: str):
-                        status.update(label=message)
+                try:
+                    response_title, response, referenced_codes, relevant_codes = (
+                        au.query_llmpedia_new(
+                            user_question=user_question,
+                            response_length=settings["response_length"],
+                            llm_model="openai/gpt-4.1-nano",
+                            max_sources=settings["max_sources"],
+                            max_agents=settings["max_agents"],
+                            debug=True,
+                            progress_callback=update_progress,
+                            show_only_sources=settings["show_only_sources"],
+                        )
+                    )
+                    status.update(
+                        label="Processing complete!",
+                        state="complete",
+                        expanded=False,
+                    )
+                    time.sleep(1)
+                    status_placeholder.empty()
 
-                    try:
-                        response, referenced_codes, relevant_codes = (
-                            au.query_llmpedia_new(
-                                user_question=user_question,
-                                response_length=response_length,
-                                query_llm_model="gemini/gemini-2.5-flash-preview-04-17",
-                                rerank_llm_model="gemini/gemini-2.0-flash",
-                                response_llm_model="claude-3-7-sonnet-20250219",
-                                max_sources=max_sources,
-                                debug=True,
-                                progress_callback=update_progress,
-                                custom_instructions=(
-                                    custom_instructions
-                                    if custom_instructions.strip()
-                                    else None
-                                ),
-                                show_only_sources=show_only_sources,
-                            )
-                        )
-                        status.update(
-                            label="Processing complete!",
-                            state="complete",
-                            expanded=False,
-                        )
-                        time.sleep(1)
-                        status_placeholder.empty()
+                except Exception as e:
+                    status.update(
+                        label="🤖 Error detected. System malfunction. Returning to nebular state.",
+                        state="error",
+                        expanded=True,
+                    )
+                    import traceback
+                    print("Error details:")
+                    print(e)
+                    print(traceback.format_exc())
+                    logging_db.log_error_db(e)
+                    st.error("Sorry, an error occurred while processing your request.")
 
-                    except Exception as e:
-                        status.update(
-                            label=f"🤖 Error detected. System malfunction. Returning to nebular state.",
-                            state="error",
-                            expanded=True,
-                        )
-                        logging_db.log_error_db(e)  # Log the error
-                        st.error(
-                            "Sorry, an error occurred while processing your request."
-                        )
-
-            # Store results in session state only if successful
-            if "response" in locals():
-                st.session_state.chat_response = response
-                st.session_state.referenced_codes = referenced_codes
-                st.session_state.relevant_codes = relevant_codes
-                logging_db.log_qna_db(user_question, response)
-                st.rerun(scope="fragment")
+        # Store results in session state only if successful
+        if "response" in locals():
+            st.session_state.chat_response = response
+            st.session_state.chat_response_title = response_title
+            st.session_state.referenced_codes = referenced_codes
+            st.session_state.relevant_codes = relevant_codes
+            logging_db.log_qna_db(user_question, response)
+            st.rerun(scope="fragment")
 
     # Display results if they exist in session state
     if st.session_state.chat_response:
-        st.divider()
-        st.markdown(st.session_state.chat_response)
-
-        if len(st.session_state.referenced_codes) > 0:
-            st.divider()
-
-            # View selector for paper display format
-            display_format = st.radio(
-                "Display Format",
-                options=["Grid View", "Citation List"],
-                horizontal=True,
-                label_visibility="collapsed",
-                key="papers_display_format",
-            )
-
-            st.markdown("<h4>Referenced Papers:</h4>", unsafe_allow_html=True)
-            # Ensure 'papers' is accessible via session state
-            reference_df = st.session_state["papers"].loc[
-                st.session_state.referenced_codes
-            ]
-            if display_format == "Grid View":
-                su.generate_grid_gallery(reference_df, n_cols=5, extra_key="_chat")
-            else:
-                su.generate_citations_list(reference_df)
-
-            if len(st.session_state.relevant_codes) > 0:
-                st.divider()
-                st.markdown("<h4>Other Relevant Papers:</h4>", unsafe_allow_html=True)
-                relevant_df = st.session_state["papers"].loc[
-                    st.session_state.relevant_codes
-                ]
-                if display_format == "Grid View":
-                    su.generate_grid_gallery(relevant_df, n_cols=5, extra_key="_chat")
-                else:
-                    su.generate_citations_list(relevant_df)
+        su.display_research_results(
+            title=st.session_state.chat_response_title,
+            response=st.session_state.chat_response,
+            referenced_codes=st.session_state.referenced_codes,
+            relevant_codes=st.session_state.relevant_codes,
+            papers_df=st.session_state["papers"]
+        )
 
 
 @st.fragment
@@ -579,12 +544,12 @@ def main():
     ## Content tabs.
     content_tabs = st.tabs(
         [
-            "📰 News",
+            "🏠 Main",
             "🧮 Release Feed",
             "🗺️ Statistics & Topics",
             "🔍 Paper Details",
-            "🤖 Online Research",
-            "⚙️  Links & Repositories",
+            "🔬 Deep Research",
+            "⚙️ Links & Repositories",
             "🗞 Weekly Report",
         ]
     )
@@ -619,8 +584,40 @@ def main():
             st.metric(label="⏰ Added in last 24 hours", value=len(papers_1d))
 
         with metric_cols[4]:  # New metric for Active Users
-            active_users_count = logging_db.get_active_users_last_24h()
+            active_users_count = get_active_users_count()
             st.metric(label="👥 Active Users", value=f"{active_users_count:,d}")
+
+        st.divider()
+        # Deep Research promotion section - moved to top for prominence
+        header_html = """
+        <div class="trending-panel-header">
+            <div class="trending-panel-title">
+                🔬 Ask the GPT Maestro
+            </div>
+            <div class="trending-panel-subtitle">
+                AI-powered multi-agent research with cited sources
+            </div>
+        </div>
+        """
+        st.markdown(header_html, unsafe_allow_html=True)
+        
+        st.markdown(
+            "Got specific questions about LLMs, arXiv papers, or need to find relevant research? "
+            "Our AI-powered Deep Research tool uses specialized agents to find answers, synthesize content, and discover related work with cited sources. "
+            "Ask the GPT maestro!"
+        )
+        shared_query_news_tab = st.text_input(
+            "Ask your question here first:",
+            key="news_tab_shared_query_input",
+            placeholder="E.g., Why do LLMs sometimes exhibit ADHD like symptoms?",
+        )
+        if st.button(
+            "Explore Deep Research", key="explore_deep_research_news_promo"
+        ):
+            query_to_pass = st.session_state.get("news_tab_shared_query_input", "")
+            if query_to_pass:  # Only pass if there's actual text
+                st.session_state.query_to_pass_to_chat = query_to_pass
+            su.click_tab(4)  # Navigate to the Deep Research tab
 
         st.divider()
         row2_cols = st.columns([4, 0.1, 2])
@@ -649,7 +646,7 @@ def main():
                             🐦 Latest LLM Discussions on X
                         </div>
                         <div class="trending-panel-subtitle">
-                            Timestamped summaries updated every ~12 hours
+                            Timestamped summaries updated every ~24 hours
                         </div>
                     </div>
                     """
@@ -660,7 +657,7 @@ def main():
                             🦙 Latest LLM Discussions on Reddit
                         </div>
                         <div class="trending-panel-subtitle">
-                            Cross-subreddit summaries updated every ~12 hours
+                            Cross-subreddit summaries updated every ~24 hours
                         </div>
                     </div>
                     """
@@ -692,10 +689,7 @@ def main():
             discussions_toggle_panel()
             st.divider()
 
-            arxiv_code = au.get_latest_weekly_highlight()
-            highlight_paper = (
-                papers_df[papers_df["arxiv_code"] == arxiv_code].iloc[0].to_dict()
-            )
+            highlight_paper = get_featured_paper(papers_df)
             su.create_featured_paper_card(highlight_paper)
 
         st.divider()
@@ -828,37 +822,6 @@ def main():
 
             feature_poll_fragment()
 
-        st.divider()
-        # Section header with consistent styling
-        header_html = """
-        <div class="trending-panel-header">
-            <div class="trending-panel-title">
-                🔬 Dive Deeper with Online Research
-            </div>
-            <div class="trending-panel-subtitle">
-                AI-powered research assistant with cited sources
-            </div>
-        </div>
-        """
-        st.markdown(header_html, unsafe_allow_html=True)
-        
-        st.markdown(
-            "Got specific questions about LLMs, arXiv papers, or need to find relevant research? "
-            "Our AI-powered Online Research tool helps you find answers, summarize content, and discover related work with cited sources. "
-            "Ask the GPT maestro!"
-        )
-        shared_query_news_tab = st.text_input(
-            "Ask your question here first:",
-            key="news_tab_shared_query_input",
-            placeholder="E.g., What are the latest advancements in Mixture of Experts?",
-        )
-        if st.button(
-            "Explore Online Research 🤖", key="explore_online_research_news_promo"
-        ):
-            query_to_pass = st.session_state.get("news_tab_shared_query_input", "")
-            if query_to_pass:  # Only pass if there's actual text
-                st.session_state.query_to_pass_to_chat = query_to_pass
-            su.click_tab(4)  # Navigate to the Online Research tab
 
     with content_tabs[1]:
         ## Grid view or Table view
@@ -1013,14 +976,6 @@ def main():
                         # st.query_params["arxiv_code"] = arxiv_code
                         st.session_state.arxiv_code = arxiv_code
                         su.click_tab(3)
-
-    ## URL info extraction.
-    url_query = st.query_params
-    if "arxiv_code" in url_query and len(st.session_state.arxiv_code) == 0:
-        paper_code = url_query["arxiv_code"]
-        logging_db.log_visit(paper_code)
-        st.session_state.arxiv_code = paper_code
-        su.click_tab(3)
 
     with content_tabs[3]:
         ## Focus on a paper.
@@ -1215,12 +1170,15 @@ def main():
             report_highlights_cols[1].markdown(weekly_highlight)
             st.markdown(weekly_repos)
 
+    ## URL info extraction (moved to end after all components are initialized).
+    su.parse_query_params()
+
 
 if __name__ == "__main__":
-    try:
+    # try:
         main()
-    except Exception as e:
-        logging_db.log_error_db(e)
-        st.error(
-            "Something went wrong. Please refresh the app and try again, we will look into it."
-        )
+    # except Exception as e:
+    #     logging_db.log_error_db(e)
+    #     st.error(
+    #         "Something went wrong. Please refresh the app and try again, we will look into it."
+    #     )

@@ -13,6 +13,12 @@ def get_css_variables():
             --arxiv-red-light: #c93232;
             --arxiv-red-dark: #8f1414;
             
+            /* NEW – Surface tokens for subtle gradients */
+            --surface-light: #ffffff;
+            --surface-light-alt: #fafbfc;   /* just ~2-3% darker */
+            --surface-dark: #0E1117;
+            --surface-dark-alt: #13151b;    /* very subtle lift */
+            
             /* Typography */
             --font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
             --font-family-mono: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
@@ -73,8 +79,8 @@ def get_base_component_styles():
            ============================================================================= */
         
         .card-base {
-            background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
-            border: 1px solid rgba(179, 27, 27, 0.06);
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--surface-light-alt) 100%);
+            border: 1px solid rgba(179, 27, 27, 0.08);
             border-radius: var(--radius-lg);
             padding: var(--space-base);
             margin-bottom: var(--space-base);
@@ -219,8 +225,8 @@ def get_base_component_styles():
            ============================================================================= */
         
         .metric-enhanced {
-            background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
-            border: 1px solid rgba(179, 27, 27, 0.04);
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--surface-light-alt) 100%);
+            border: 1px solid rgba(179, 27, 27, 0.06);
             border-radius: var(--radius-base);
             padding: var(--space-base);
             transition: all var(--transition-fast);
@@ -275,9 +281,9 @@ def get_base_component_styles():
         
         @media (prefers-color-scheme: dark) {
             .card-base {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
-                border-color: rgba(179, 27, 27, 0.08);
-                box-shadow: var(--shadow-dark-sm);
+                background: linear-gradient(180deg, var(--surface-dark) 0%, var(--surface-dark-alt) 100%);
+                border-color: rgba(179, 27, 27, 0.15);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             }
             
             .card-base:hover {
@@ -584,7 +590,7 @@ def get_trending_panel_styles():
     """Generate CSS for trending panel headers (extracted from app.py)."""
     return """
         .trending-panel-header {
-            background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--surface-light-alt) 100%);
             padding: var(--space-base) var(--space-lg);
             border-radius: var(--radius-lg);
             border: 1px solid rgba(179, 27, 27, 0.06);
@@ -623,9 +629,8 @@ def get_trending_panel_styles():
         
         @media (prefers-color-scheme: dark) {
             .trending-panel-header {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
-                border-color: rgba(179, 27, 27, 0.08);
-                box-shadow: var(--shadow-dark-sm);
+                background: linear-gradient(180deg, var(--surface-dark) 0%, var(--surface-dark-alt) 100%);
+                border-color: rgba(179, 27, 27, 0.15);
             }
             
             .trending-panel-title {
@@ -770,8 +775,8 @@ def get_streamlit_overrides():
 
         /* Streamlit Metric Overrides - Subtle and Elegant */
         .stMetric {
-            background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
-            border: 1px solid rgba(179, 27, 27, 0.04);
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--surface-light-alt) 100%);
+            border: 1px solid rgba(179, 27, 27, 0.06);
             border-radius: var(--radius-base);
             padding: var(--space-base);
             transition: all var(--transition-fast);
@@ -804,9 +809,9 @@ def get_streamlit_overrides():
         
         @media (prefers-color-scheme: dark) {
             .stMetric {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
-                border-color: rgba(179, 27, 27, 0.06);
-                box-shadow: var(--shadow-dark-sm);
+                background: linear-gradient(180deg, var(--surface-dark) 0%, var(--surface-dark-alt) 100%);
+                border-color: rgba(179, 27, 27, 0.15);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             }
             
             .stMetric:hover {
@@ -935,8 +940,8 @@ def get_advanced_trending_card_styles():
         }
         
         .trending-card {
-            background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
-            border: 1px solid rgba(179, 27, 27, 0.06);
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--surface-light-alt) 100%);
+            border: 1px solid rgba(179, 27, 27, 0.08);
             border-radius: var(--radius-lg);
             padding: var(--space-base);
             margin-bottom: var(--space-base);
@@ -1121,9 +1126,9 @@ def get_advanced_trending_card_styles():
         /* Dark mode adaptations - Subtle and elegant */
         @media (prefers-color-scheme: dark) {
             .trending-card {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
-                border-color: rgba(179, 27, 27, 0.08);
-                box-shadow: var(--shadow-dark-sm);
+                background: linear-gradient(180deg, var(--surface-dark) 0%, var(--surface-dark-alt) 100%);
+                border-color: rgba(179, 27, 27, 0.15);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             }
             
             .trending-card:hover {
@@ -1160,8 +1165,14 @@ def get_advanced_trending_card_styles():
                 color: var(--text-color, #AAAAAA);
             }
             
-            .trending-metadata {
-                border-top-color: rgba(128, 128, 128, 0.12);
+            .stMetric {
+                background: linear-gradient(180deg, var(--surface-dark) 0%, var(--surface-dark-alt) 100%);
+                border-color: rgba(179, 27, 27, 0.08);
+            }
+            
+            .stMetric:hover {
+                border-color: rgba(179, 27, 27, 0.15);
+                box-shadow: 0 2px 8px rgba(179, 27, 27, 0.15);
             }
         }
         
@@ -1205,8 +1216,8 @@ def get_interesting_facts_styles():
         .fact-card {
             padding: var(--space-base);
             margin-bottom: var(--space-base);
-            background: linear-gradient(135deg, var(--background-color, #f9f9f9) 0%, var(--secondary-background-color, #f5f5f5) 100%);
-            border-left: 2px solid var(--arxiv-red);
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--surface-light-alt) 100%);
+            border-left: 3px solid var(--arxiv-red);
             border-radius: var(--radius-sm);
             transition: all var(--transition-fast);
             box-shadow: var(--shadow-sm);
@@ -1262,7 +1273,7 @@ def get_interesting_facts_styles():
         
         @media (prefers-color-scheme: dark) {
             .fact-card {
-                background: linear-gradient(135deg, var(--background-color, rgba(26, 28, 35, 0.6)) 0%, var(--secondary-background-color, rgba(26, 28, 35, 0.8)) 100%);
+                background: linear-gradient(180deg, var(--surface-dark) 0%, rgba(19, 21, 27, 0.72) 100%);
                 border-left-color: var(--arxiv-red);
                 box-shadow: var(--shadow-dark-sm);
             }
@@ -1292,7 +1303,7 @@ def get_tweet_timeline_styles():
         }
         
         .tweet-timeline-header {
-            background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--surface-light-alt) 100%);
             padding: var(--space-base) var(--space-lg);
             border-radius: var(--radius-lg);
             border: 1px solid rgba(179, 27, 27, 0.06);
@@ -1363,8 +1374,8 @@ def get_tweet_timeline_styles():
         
         .tweet-card {
             flex: 0 0 320px;
-            background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
-            border: 1px solid rgba(179, 27, 27, 0.06);
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--surface-light-alt) 100%);
+            border: 1px solid rgba(179, 27, 27, 0.08);
             border-radius: var(--radius-lg);
             padding: var(--space-lg);
             position: relative;
@@ -1452,8 +1463,8 @@ def get_tweet_timeline_styles():
         
         @media (prefers-color-scheme: dark) {
             .tweet-timeline-header {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
-                border-color: rgba(179, 27, 27, 0.08);
+                background: linear-gradient(180deg, var(--surface-dark) 0%, var(--surface-dark-alt) 100%);
+                border-color: rgba(179, 27, 27, 0.15);
             }
             
             .tweet-timeline-title {
@@ -1465,9 +1476,8 @@ def get_tweet_timeline_styles():
             }
             
             .tweet-card {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
-                border-color: rgba(179, 27, 27, 0.08);
-                box-shadow: var(--shadow-dark-sm);
+                background: linear-gradient(180deg, var(--surface-dark) 0%, var(--surface-dark-alt) 100%);
+                border-color: rgba(179, 27, 27, 0.15);
             }
             
             .tweet-card:hover {
@@ -1658,8 +1668,8 @@ def get_featured_card_styles():
     """Generate CSS for featured paper card, aligning with trending design."""
     return """
         .featured-card {
-            background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%);
-            border: 1px solid rgba(179, 27, 27, 0.06);
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--surface-light-alt) 100%);
+            border: 1px solid rgba(179, 27, 27, 0.08);
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-sm);
             overflow: hidden;
@@ -1748,13 +1758,7 @@ def get_featured_card_styles():
 
         @media (prefers-color-scheme: dark) {
             .featured-card {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
-                border-color: rgba(179, 27, 27, 0.08);
-                box-shadow: var(--shadow-dark-sm);
-            }
-
-            .featured-card:hover {
-                box-shadow: var(--shadow-dark-accent);
+                background: linear-gradient(180deg, var(--surface-dark) 0%, var(--surface-dark-alt) 100%);
                 border-color: rgba(179, 27, 27, 0.15);
             }
 

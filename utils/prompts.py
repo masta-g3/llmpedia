@@ -164,13 +164,14 @@ def create_rerank_user_prompt(user_question: str, documents: list) -> str:
     </documents>
 
     <response_format>
-    - Reply with a list according to the provided schema. Each element must contain the document IDs, plus two additional fields: 'analysis' and 'selected'. 
+    - Reply with a list according to the provided schema. Each element must contain the document IDs, plus two additional fields: 'analysis' and 'selected'.
     - The 'analysis' element should contain a brief analysis of if and why the paper is relevant to the user query. 
     - The 'selected' element should be a float indicating the relevance level:
       * 1.0: Directly relevant and essential for answering the query
       * 0.5: Tangentially relevant or provides supporting context
       * 0.0: Not relevant to the specific query
     - Make sure to be stringent in scoring - only assign 1.0 to papers that are **directly** relevant to answer the specific user query.
+    - Some papers are about specific model implementations and not about LLMs in general. These papers might not be so useful when drawing general conclusions.
     - Be sure to include all the documents in the list, even if scored 0.0.
     </response_format>"""
     return rerank_msg
@@ -249,25 +250,201 @@ def create_resolve_user_prompt(
     - Pay special attention to the style guidelines when formulating your response.
     </output_format>
 
-    <instructions>
-    - Use narrative writing to provide a complete, direct and useful answer. Structure your response as a mini-report in a magazine.
-    - Provide the conclusion of your analysis upfront, and then provide the rest of the report in a narrative manner.
-    - Do not mention 'the context'! The user does not have access to it, so do not reference it or the fact that I presented it to you. Act as if you have all the information in your head (i.e.: do not say 'Based on the information provided...', etc.).
-    - Make sure your report reads naturally and is easy to follow.
-    - Use markdown to add a title to your response (i.e.: '##'), add subtitles, incorporate code blocks (when relevant, informed by the content of the documents), and any other elements that help improve clarity and flow.
-    - Use information-dense paragraphs interweaving techncial details with clear examples.
-    - Even if your report is extensive, be sure to not get lost in the weeds. Provide clear conclusions and implications upfront.
-    - Avoid listicles, enumerations and other repetitive, non-engaging writing styles.
-    - Be practical and reference any existing libraries or implementations mentioned on the documents.
-    - Prioritize papers that are more recent and have more citations.
-    - Present different viewpoints if they exist, but avoid being vague or unclear.
-    - Inform your response with the information available in the context, and less so with your own opinions (although you can draw simple connections between ideas and draw conclusions).
-    - Organize concepts chronologically, indicating how the field evolved from one stage to the next.
-    - Add citations when referencing papers by mentioning the relevant arxiv_codes (e.g.: use the format *reference content* (arxiv:1234.5678)). If you mention paper titles wrap them in double quotes.
-    </instructions>
+    <style_guide>
+    - Maintain a friendly yet professional tone, like a knowledgeable expert assisting a colleague.
+    - Prioritize clarity, conciseness, and accuracy in all technical descriptions.
+    - Ensure the response directly addresses the user's query.
+    - Seamlessly integrate citations (using [arxiv:XXXX.YYYYY] format) into the narrative flow to support claims and guide further reading.
+    - Use markdown formatting (especially lists and emphasis) to enhance readability and structure.
+    - Be careful to only include citations for papers that are listed in the context.
+    - Do not make reference to the existence of the context in your response.
+    - Do not invent information, ground all statements in the provided context documents.
+    - Do not include a preamble or concluding remarks.
+    </style_guide>
+    """
+    return user_message
+
+# System prompt for deep search decision (Scratchpad Aware)
+DEEP_SEARCH_DECISION_SYSTEM_PROMPT = """
+You are a research assistant analyzing an evolving scratchpad of notes compiled to answer a user's question about LLMs.
+Your task is to assess the current scratchpad content and decide if another search iteration is required to achieve a comprehensive answer.
+First, provide a concise analysis of the current state based on the scratchpad (`reasoning`).
+Then, decide if more information is needed (`continue_search`).
+If yes, formulate a *new, targeted* semantic search query (`next_query`) designed to fill the specific gaps identified in your reasoning.
+"""
+
+
+def create_deep_search_decision_user_prompt(
+    original_question: str,
+    scratchpad_content: str,  # Changed from accumulated_docs
+    previous_queries: list
+) -> str:
+    """Create the user prompt for the scratchpad-aware deep search decision step."""
+    previous_queries_str = "\n".join(f"- `{q}`" for q in previous_queries)
+    
+    if not scratchpad_content:
+        scratchpad_content = "Scratchpad is currently empty. This is the first analysis step."
+        
+    user_prompt = f"""
+    <original_question>
+    {original_question}
+    </original_question>
+
+    <previous_search_queries>
+    {previous_queries_str}
+    </previous_search_queries>
+
+    <current_scratchpad_content>
+    {scratchpad_content}
+    </current_scratchpad_content>
+
+    <task>
+    Analyze the `current_scratchpad_content` in relation to the `original_question` and `previous_search_queries`.
+    1. **Reasoning**: Write a concise summary of the current research status based *only* on the scratchpad. What key aspects of the original question have been addressed? What significant gaps or unanswered questions remain?
+    2. **Decision**: Based on your reasoning, decide if `continue_search` should be true or false.
+    3. **Next Query**: If `continue_search` is true, formulate *one* specific `next_query` targeting a key gap identified in your reasoning. This query should be phrased like text found in relevant paper abstracts and aim to find *new* information. Do not simply rephrase old queries unless refining a specific concept.
+    </task>
+
+    <rules>
+    - Base your `reasoning` *only* on the provided scratchpad content.
+    - If the scratchpad comprehensively addresses the original question, set `continue_search` to false.
+    - If significant gaps exist, set `continue_search` to true and provide a targeted `next_query`.
+    - Be concise.
+    </rules>
+    """
+    return user_prompt
+
+
+# System prompt for Scratchpad Analysis
+SCRATCHPAD_ANALYSIS_SYSTEM_PROMPT = """
+You are a research assistant synthesizing information about LLMs.
+Your task is to analyze a list of newly found documents (abstracts/notes) in the context of an ongoing research scratchpad and the original user question.
+Extract key insights relevant to the question, identify remaining or new questions, and update the scratchpad by integrating the new findings concisely.
+"""
+
+
+def create_scratchpad_analysis_user_prompt(
+    original_question: str,
+    scratchpad_content: str,
+    current_query: str,
+    reranked_docs: list # Expecting list of Document objects
+) -> str:
+    """Create the user prompt for the scratchpad analysis and update step."""
+    
+    doc_details = ""
+    if reranked_docs:
+        doc_details += "<newly_found_documents>\n"
+        for idx, doc in enumerate(reranked_docs):
+             # Include Title, Arxiv Code, Year, Citations, and Notes/Abstract
+            doc_details += f"### Doc {idx}: {doc.title} (arxiv:{doc.arxiv_code}, {doc.published_date.strftime('%Y')}, {doc.citations} citations)\n"
+            # Use notes if available, otherwise abstract as fallback
+            content_summary = doc.notes if doc.notes else doc.abstract
+            doc_details += f"**Summary/Abstract**:\n{content_summary}\n---\n"
+        doc_details += "</newly_found_documents>\n\n"
+    else:
+        # Handle case where reranking yields no relevant docs for the current query
+        doc_details = "<newly_found_documents>None found for the current query.</newly_found_documents>\n\n"
+        
+    if not scratchpad_content:
+        scratchpad_content = "Scratchpad is currently empty. This is the first analysis."
+
+    user_prompt = f"""
+    <original_question>
+    {original_question}
+    </original_question>
+
+    <current_search_query>
+    {current_query}
+    </current_search_query>
+
+    <current_scratchpad_content>
+    {scratchpad_content}
+    </current_scratchpad_content>
+
+    {doc_details}
+    <task>
+    Analyze the `newly_found_documents` retrieved by the `current_search_query`.
+    Consider the `original_question` and the `current_scratchpad_content`.
+    1. **Key Insights**: List the most important new findings from the documents that directly address the `original_question` or fill gaps in the `current_scratchpad_content`.
+    2. **Remaining Questions**: List any questions from the `original_question` that are still unanswered, or new questions raised by these documents.
+    3. **Updated Scratchpad**: Synthesize the `key_insights` with the `current_scratchpad_content`. Create a concise, updated summary of the research findings so far. Integrate the new information smoothly. Do not just append; rewrite and merge to maintain coherence. Reference specific documents minimally (e.g., citing arxiv codes like [arxiv:XXXX.YYYYY] only if essential for a key insight).
+    </task>
+
+    <rules>
+    - Focus on information directly relevant to the `original_question`.
+    - Be detailed and comprehensive, but avoid redundancy in the `updated_scratchpad`.
+    - Ensure the `updated_scratchpad` reflects the cumulative knowledge gained and is well organized.
+    - If no new relevant insights are found, state that explicitly in `key_insights` and make minimal changes to the scratchpad.
+    - Include citations from the `newly_found_documents` in the `updated_scratchpad` if they are essential for a key insight, so that the user can easily find the original source. Use the arxiv code in brackets for citing (e.g., [arxiv:XXXX.YYYYY]).
+    - Prioritize findings from the most recent and most cited documents.
+    </rules>
+    """
+    return user_prompt
+
+# System prompt for generating final response from scratchpad
+RESOLVE_SCRATCHPAD_SYSTEM_PROMPT = """
+You are GPT Maestro, an AI expert focused on Large Language Models.
+Your task is to synthesize a final, high-quality response to a user's question based *only* on the provided research scratchpad, which contains the summarized findings from an iterative search process.
+Adhere strictly to the requested response length and style guidelines.
+"""
+
+
+def create_resolve_scratchpad_user_prompt(
+    original_question: str,
+    scratchpad_content: str,
+    response_length: int,
+    custom_instructions: Optional[str] = None
+) -> str:
+    """Create the user prompt for synthesizing the final response from the scratchpad."""
+
+    ## Convert word count to response guidance (Same logic as create_resolve_user_prompt)
+    response_guidance = ""
+    if response_length <= 250:
+        response_guidance = "\n- Write a focused research note (~250 words) that directly answers the question in a single cohesive paragraph.\n- Emphasize key findings and core concepts while maintaining narrative flow.\n- Use clear topic transitions and supporting evidence extracted *only* from the scratchpad."
+    elif response_length <= 500:
+        response_guidance = "\n- Write a focused research note (~500 words) that directly answers the question in a single cohesive, in-depth paragraph.\n- Emphasize key findings and core concepts while maintaining narrative flow.\n- Use clear topic transitions and supporting evidence extracted *only* from the scratchpad."
+    elif response_length <= 1000:
+        response_guidance = "\n- Write an engaging research summary (~1000 words) that explores the topic through multiple angles based *only* on the scratchpad.\n- Use 2-3 naturally flowing sections to develop ideas from key findings through implications.\n- Blend technical insights with practical applications, maintaining narrative momentum."
+    elif response_length <= 3000:
+        response_guidance = "\n- Write an in-depth research analysis (~3000 words) that thoroughly explores the topic's landscape based *only* on the scratchpad.\n- Structure with clear sections using markdown headers (###) and information-dense paragraphs to guide the reader through your narrative.\n- Progress from core findings through technical details to broader implications, incorporating code examples if supported by the scratchpad."
+    else:
+        response_guidance = "\n- Write a comprehensive research report (~5000 words) that covers the full scope of the topic based *only* on the scratchpad.\n- Use hierarchical markdown headers (##, ###) to create a natural progression through multiple major sections, which will be made by information-rich paragraphs.\n- Weave together theoretical foundations, technical implementations, and practical implications while maintaining narrative cohesion."
+
+    custom_instructions_section = f"""
+    <custom_instructions>
+    {custom_instructions}
+    </custom_instructions>
+    """ if custom_instructions else ""
+
+    user_message = f"""
+    <original_question>
+    {original_question}
+    </original_question>
+
+    <research_scratchpad>
+    {scratchpad_content}
+    </research_scratchpad>
+
+    <task>
+    Synthesize a final response to the `original_question` using *only* the information contained within the `research_scratchpad`.
+    Follow the response length guidance below and the general style guidelines.
+    </task>
+
+    <response_length_guidance>
+    {response_guidance}
+    </response_length_guidance>
 
     {custom_instructions_section}
 
-    {TWEET_BASE_STYLE}
+    <style_guide>
+    - Maintain a friendly yet professional tone, like a knowledgeable expert assisting a colleague.
+    - Prioritize clarity, conciseness, and accuracy based *only* on the scratchpad content.
+    - Ensure the response directly addresses the `original_question`.
+    - If the scratchpad mentions specific papers (e.g., with [arxiv:XXXX.YYYYY]), integrate these citations naturally into the narrative.
+    - Use markdown formatting (especially lists and emphasis) to enhance readability and structure.
+    - Do NOT invent information or use knowledge outside the provided scratchpad.
+    - Do not make reference to the existence of the scratchpad in your response (treat it as your internal knowledge).
+    - Do not include a preamble or concluding remarks unless naturally part of the synthesized answer.
+    </style_guide>
     """
     return user_message

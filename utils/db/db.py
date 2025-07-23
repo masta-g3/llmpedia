@@ -257,7 +257,8 @@ def generate_semantic_search_query(
             a.published as published_date, 
             s.citation_count as citations, 
             a.summary AS abstract,
-            n.notes""",
+            n.notes,
+            n.tokens""",
         ## From tables.
         """FROM arxiv_details a, 
              semantic_details s, 
@@ -265,8 +266,7 @@ def generate_semantic_search_query(
              arxiv_embeddings_1024 e,
              (SELECT DISTINCT ON (arxiv_code) arxiv_code, summary as notes, tokens 
               FROM summary_notes 
-              ORDER BY arxiv_code, ABS(tokens - %d) ASC) n"""
-        % (criteria.get("response_length", 1000) * 3),
+              ORDER BY arxiv_code, ABS(tokens - 3000) ASC) n""",
         ## Join conditions.
         """WHERE a.arxiv_code = s.arxiv_code
         AND a.arxiv_code = t.arxiv_code 
