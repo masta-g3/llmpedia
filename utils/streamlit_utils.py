@@ -2,7 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 import time
 import re
 import markdown2
@@ -1213,6 +1213,253 @@ def display_individual_tweet(tweet_data: Dict, compact: bool = True):
     """
     
     st.markdown(tweet_html, unsafe_allow_html=True)
+
+
+def render_research_header():
+    """Render the research assistant header HTML."""
+    header_html = """
+    <div class="trending-panel-header">
+        <div class="trending-panel-title">
+            🤖 Online Research Assistant
+        </div>
+        <div class="trending-panel-subtitle">
+            AI-powered research with cited sources • Ask questions about LLMs and arXiv papers
+        </div>
+    </div>
+    """
+    st.markdown(header_html, unsafe_allow_html=True)
+
+
+def parse_research_progress_message(message: str) -> dict:
+    """Parse progress messages into structured state dict."""
+    import re
+    
+    updates = {}
+    
+    # Parse phase information
+    if "PHASE 1:" in message:
+        updates["current_phase"] = "Phase 1: Research Planning"
+        updates["phase_details"] = "Analyzing question and creating research brief"
+    elif "PHASE 2:" in message:
+        updates["current_phase"] = "Phase 2: Multi-Agent Research"
+        updates["phase_details"] = "Deploying specialized research agents"
+    elif "PHASE 3:" in message:
+        updates["current_phase"] = "Phase 3: Synthesis"
+        updates["phase_details"] = "Combining findings into final response"
+    elif "Agent " in message and "/" in message:
+        # Parse agent progress: "🤖 Agent 2/4: Researching 'topic'..."
+        agent_match = re.search(r"Agent (\d+)/(\d+)", message)
+        if agent_match:
+            updates["current_agent"] = int(agent_match.group(1))
+            updates["agents_total"] = int(agent_match.group(2))
+            updates["phase_details"] = f"Agent {updates['current_agent']}/{updates['agents_total']} researching"
+    elif "completed:" in message:
+        # Parse completion: "✅ Agent 1 completed: 3 insights, 5 papers"
+        updates["agents_completed"] = updates.get("agents_completed", 0) + 1
+        insight_match = re.search(r"(\d+) insights", message)
+        papers_match = re.search(r"(\d+) papers", message)
+        if insight_match:
+            updates["insights_found"] = updates.get("insights_found", 0) + int(insight_match.group(1))
+        if papers_match:
+            updates["papers_found"] = updates.get("papers_found", 0) + int(papers_match.group(1))
+    elif "Research complete!" in message:
+        updates["current_phase"] = "Complete"
+        updates["phase_details"] = "Research successfully completed"
+    
+    return updates
+
+
+def render_research_progress(status_widget, progress_state: dict):
+    """Render progress display with structured HTML sections."""
+    # Create main status label with current phase
+    current_phase = progress_state.get("current_phase", "Initializing")
+    agents_total = progress_state.get("agents_total", 0)
+    agents_completed = progress_state.get("agents_completed", 0)
+    
+    main_label = f"{current_phase}"
+    if agents_total > 0:
+        main_label += f" ({agents_completed}/{agents_total} agents)"
+    
+    # Update the main status label
+    status_widget.update(
+        label=main_label,
+        expanded=True
+    )
+    
+    # Get or create content container from progress_state
+    if "content_container" not in progress_state:
+        with status_widget:
+            progress_state["content_container"] = st.empty()
+    
+    # Clear and update the content container
+    with progress_state["content_container"].container():
+            # Phase Status Section (first - provides context)
+            phase_details = progress_state.get("phase_details")
+            if phase_details:
+                # Add animated wait indicator when agents are working
+                current_agent = progress_state.get("current_agent", 0)
+                show_indicator = (current_agent > 0 and 
+                                current_agent <= agents_total and 
+                                current_phase != "Complete")
+                
+                if show_indicator:
+                    phase_html = f"""
+                    <style>
+                    @keyframes pulse {{
+                        0% {{ opacity: 1; transform: scale(1); }}
+                        50% {{ opacity: 0.4; transform: scale(1.2); }}
+                        100% {{ opacity: 1; transform: scale(1); }}
+                    }}
+                    </style>
+                    <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(179, 27, 27, 0.05); border-left: 3px solid #b31b1b; border-radius: 4px;">
+                        <div style="font-weight: 600; color: #b31b1b; font-size: 0.9rem; margin-bottom: 0.25rem; display: flex; align-items: center;">
+                            🎯 Current Phase
+                            <div style="display: inline-flex; align-items: center; margin-left: 0.5rem;">
+                                <div style="width: 8px; height: 8px; background: #b31b1b; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite;"></div>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-color);">{phase_details}</div>
+                    </div>
+                    """
+                else:
+                    phase_html = f"""
+                    <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(179, 27, 27, 0.05); border-left: 3px solid #b31b1b; border-radius: 4px;">
+                        <div style="font-weight: 600; color: #b31b1b; font-size: 0.9rem; margin-bottom: 0.25rem;">🎯 Current Phase</div>
+                        <div style="font-size: 0.85rem; color: var(--text-color);">{phase_details}</div>
+                    </div>
+                    """
+                
+                st.markdown(phase_html, unsafe_allow_html=True)
+            
+            # Agent Progress Section (second - shows active work)
+            if agents_total > 0:
+                agent_status = []
+                for i in range(1, agents_total + 1):
+                    if i <= agents_completed:
+                        agent_status.append("✅")
+                    elif i == progress_state.get("current_agent", 0):
+                        agent_status.append("🔄")
+                    else:
+                        agent_status.append("⭕")
+                
+                agent_html = f"""
+                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(76, 175, 80, 0.05); border-left: 3px solid #4caf50; border-radius: 4px;">
+                    <div style="font-weight: 600; color: #4caf50; font-size: 0.9rem; margin-bottom: 0.25rem;">🤖 Research Agents</div>
+                    <div style="font-size: 1.2rem; letter-spacing: 0.2rem;">{' '.join(agent_status)}</div>
+                </div>
+                """
+                st.markdown(agent_html, unsafe_allow_html=True)
+            
+            # Research Statistics Section  
+            insights_found = progress_state.get("insights_found", 0)
+            papers_found = progress_state.get("papers_found", 0)
+            if insights_found > 0 or papers_found > 0:
+                stats_cols = st.columns(2)
+                if insights_found > 0:
+                    with stats_cols[0]:
+                        st.metric(label="💡 Insights", value=insights_found)
+                if papers_found > 0:
+                    with stats_cols[1]:
+                        st.metric(label="📄 Papers", value=papers_found)
+            
+            # Recent Activity Section
+            activity_log = progress_state.get("activity_log", [])
+            if activity_log:
+                st.markdown("**📝 Recent Activity**")
+                for activity in activity_log[-3:]:
+                    # Clean up the activity message for display
+                    clean_activity = activity.replace("🎯 ", "").replace("🤖 ", "").replace("📝 ", "")
+                    if len(clean_activity) > 200:
+                        clean_activity = clean_activity[:197] + "..."
+                    st.markdown(f"<div style='font-size: 0.85rem; margin-left: 1rem; color: var(--text-color); opacity: 0.8;'>• {clean_activity}</div>", unsafe_allow_html=True)
+            
+            # Add some breathing room at the bottom
+            st.markdown("<div style='margin-bottom: 0.5rem;'></div>", unsafe_allow_html=True)
+
+
+def get_initial_query_value() -> str:
+    """Handle initial query from session state."""
+    initial_query_value = ""
+    if "query_to_pass_to_chat" in st.session_state:
+        initial_query_value = st.session_state.query_to_pass_to_chat
+        del st.session_state.query_to_pass_to_chat  # Clear after use
+    return initial_query_value
+
+
+def render_research_settings_panel() -> dict:
+    """Render settings expander, return selected values."""
+    with st.expander("⚙️ Response Settings", expanded=False):
+        settings_cols = st.columns(3)
+
+        with settings_cols[0]:
+            response_length = st.select_slider(
+                "Response Length (words)",
+                options=[250, 500, 1000, 3000],
+                value=250,
+                format_func=lambda x: f"~{x} words",
+            )
+        with settings_cols[1]:
+            max_sources = st.select_slider(
+                "Maximum Sources",
+                options=[1, 5, 15, 30, 50],
+                value=15,
+            )
+        with settings_cols[2]:
+            max_agents = st.select_slider(
+                "Research Agents",
+                options=[1, 2, 3, 4, 5],
+                value=3,
+                help="Number of specialized agents to deploy for parallel research. More agents = more comprehensive but slower.",
+            )
+
+        show_only_sources = st.checkbox(
+            "Show me only the sources",
+            help="Skip generating a response and just show the most relevant papers for this query.",
+        )
+
+    return {
+        "response_length": response_length,
+        "max_sources": max_sources,
+        "max_agents": max_agents,
+        "show_only_sources": show_only_sources,
+    }
+
+
+def display_research_results(title: str, response: str, referenced_codes: List[str], 
+                           relevant_codes: List[str], papers_df: pd.DataFrame):
+    """Display research results with paper citations."""
+    st.divider()
+    st.markdown(f"#### {title}")
+    st.markdown(response)
+
+    if len(referenced_codes) > 0:
+        st.divider()
+
+        # View selector for paper display format
+        display_format = st.radio(
+            "Display Format",
+            options=["Grid View", "Citation List"],
+            horizontal=True,
+            label_visibility="collapsed",
+            key="papers_display_format",
+        )
+
+        st.markdown("<h4>Referenced Papers:</h4>", unsafe_allow_html=True)
+        # Get referenced papers
+        reference_df = papers_df.loc[referenced_codes]
+        if display_format == "Grid View":
+            generate_grid_gallery(reference_df, n_cols=5, extra_key="_chat")
+        else:
+            generate_citations_list(reference_df)
+
+        if len(relevant_codes) > 0:
+            st.divider()
+            st.markdown("<h4>Other Relevant Papers:</h4>", unsafe_allow_html=True)
+            relevant_df = papers_df.loc[relevant_codes]
+            if display_format == "Grid View":
+                generate_grid_gallery(relevant_df, n_cols=5, extra_key="_chat")
+            else:
+                generate_citations_list(relevant_df)
 
 
 def inject_flip_card_css():

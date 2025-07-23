@@ -259,63 +259,24 @@ def get_processed_trending_papers(
 @st.fragment
 def chat_fragment():
     """Handles the entire chat interface logic within a Streamlit fragment."""
-
-    initial_query_value = ""
-    if "query_to_pass_to_chat" in st.session_state:
-        initial_query_value = st.session_state.query_to_pass_to_chat
-        del st.session_state.query_to_pass_to_chat  # Clear after use
-
-    # Online Research header with consistent styling
-    research_header_html = """
-    <div class="trending-panel-header">
-        <div class="trending-panel-title">
-            🤖 Online Research Assistant
-        </div>
-        <div class="trending-panel-subtitle">
-            AI-powered research with cited sources • Ask questions about LLMs and arXiv papers
-        </div>
-    </div>
-    """
-    st.markdown(research_header_html, unsafe_allow_html=True)
+    # Get initial query value and render header
+    user_question = su.get_initial_query_value()
+    su.render_research_header()
+    
+    # User input
     user_question = st.text_area(
         label="Ask any question about LLMs or the arxiv papers.",
-        value=initial_query_value,  # Use the passed value here
-        key="chat_user_question_area",  # Added a key for consistent state management
+        value=user_question,
+        key="chat_user_question_area",
     )
     chat_btn_disabled = len(user_question) == 0
 
-    ## Advanced response settings in an expander
-    with st.expander("⚙️ Response Settings", expanded=False):
-        settings_cols = st.columns(2)
-
-        with settings_cols[0]:
-            response_length = st.select_slider(
-                "Response Length (words)",
-                options=[250, 500, 1000, 3000],
-                value=250,
-                format_func=lambda x: f"~{x} words",
-            )
-        with settings_cols[1]:
-            max_sources = st.select_slider(
-                "Maximum Sources",
-                options=[1, 5, 15, 30, 50],
-                value=15,
-            )
-
-        # custom_instructions = st.text_area(
-        #     "Custom Instructions (Optional)",
-        #     placeholder="Add any specific instructions for how you would like the response to be structured or formatted...",
-        #     help="Provide custom style guidelines, instructions on what to focus on, etc.",
-        # )
-        custom_instructions = ""
-
-        show_only_sources = st.checkbox(
-            "Show me only the sources",
-            help="Skip generating a response and just show the most relevant papers for this query.",
-        )
-
+    # Render settings panel and get configuration
+    settings = su.render_research_settings_panel()
+    
     status_placeholder = st.empty()
-
+    
+    # Action buttons
     chat_cols = st.columns((1, 1, 1))
     chat_btn = chat_cols[0].button("Send", disabled=chat_btn_disabled)
 
@@ -325,260 +286,92 @@ def chat_fragment():
             st.session_state.chat_response = None
             st.session_state.referenced_codes = []
             st.session_state.relevant_codes = []
-            # Rerun to reflect the cleared state
             st.rerun(scope="fragment")
 
-    if chat_btn:
-        if user_question != "":
-            with status_placeholder.container():
-                with st.status(
-                    "Processing your query...", expanded=True
-                ) as status:  # Expand initially
-
-                    # Enhanced progress tracking class
-                    class ProgressTracker:
-                        def __init__(self, status_widget):
-                            self.status = status_widget
-                            self.current_phase = "Initializing"
-                            self.phase_details = ""
-                            self.agents_total = 0
-                            self.agents_completed = 0
-                            self.current_agent = 0
-                            self.activity_log = []
-                            self.insights_found = 0
-                            self.papers_found = 0
-                            self.content_container = None
-                            
-                        def parse_and_update(self, message: str):
-                            print(message)  # Keep console logging
-                            
-                            # Parse message type and update state
-                            if "PHASE 1:" in message:
-                                self.current_phase = "Phase 1: Research Planning"
-                                self.phase_details = "Analyzing question and creating research brief"
-                            elif "PHASE 2:" in message:
-                                self.current_phase = "Phase 2: Multi-Agent Research"
-                                self.phase_details = "Deploying specialized research agents"
-                            elif "PHASE 3:" in message:
-                                self.current_phase = "Phase 3: Synthesis"
-                                self.phase_details = "Combining findings into final response"
-                            elif "Agent " in message and "/" in message:
-                                # Parse agent progress: "🤖 Agent 2/4: Researching 'topic'..."
-                                import re
-                                agent_match = re.search(r"Agent (\d+)/(\d+)", message)
-                                if agent_match:
-                                    self.current_agent = int(agent_match.group(1))
-                                    self.agents_total = int(agent_match.group(2))
-                                    self.phase_details = f"Agent {self.current_agent}/{self.agents_total} researching"
-                            elif "completed:" in message:
-                                # Parse completion: "✅ Agent 1 completed: 3 insights, 5 papers"
-                                self.agents_completed += 1
-                                import re
-                                insight_match = re.search(r"(\d+) insights", message)
-                                papers_match = re.search(r"(\d+) papers", message)
-                                if insight_match:
-                                    self.insights_found += int(insight_match.group(1))
-                                if papers_match:
-                                    self.papers_found += int(papers_match.group(1))
-                            elif "Research complete!" in message:
-                                self.current_phase = "Complete"
-                                self.phase_details = "Research successfully completed"
-                            
-                            # Add to activity log (keep last 5 entries)
-                            self.activity_log.append(message)
-                            if len(self.activity_log) > 5:
-                                self.activity_log = self.activity_log[-5:]
-                            
-                            # Update status display
-                            self.update_display()
-                        
-                        def update_display(self):
-                            # Create main status label with current phase
-                            main_label = f"{self.current_phase}"
-                            if self.agents_total > 0:
-                                main_label += f" ({self.agents_completed}/{self.agents_total} agents)"
-                            
-                            # Initialize content container on first run
-                            if self.content_container is None:
-                                with self.status:
-                                    self.content_container = st.empty()
-                            
-                            # Update the main status label
-                            self.status.update(
-                                label=main_label,
-                                expanded=True
-                            )
-                            
-                            # Create structured content with HTML sections
-                            with self.content_container.container():
-                                # Phase Status Section (back on top - provides context)
-                                if self.phase_details:
-                                    # Add animated wait indicator when agents are working
-                                    show_indicator = (self.current_agent > 0 and 
-                                                    self.current_agent <= self.agents_total and 
-                                                    self.current_phase != "Complete")
-                                    
-                                    if show_indicator:
-                                        phase_html = f"""
-                                        <style>
-                                        @keyframes pulse {{
-                                            0% {{ opacity: 1; transform: scale(1); }}
-                                            50% {{ opacity: 0.4; transform: scale(1.2); }}
-                                            100% {{ opacity: 1; transform: scale(1); }}
-                                        }}
-                                        </style>
-                                        <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(179, 27, 27, 0.05); border-left: 3px solid #b31b1b; border-radius: 4px;">
-                                            <div style="font-weight: 600; color: #b31b1b; font-size: 0.9rem; margin-bottom: 0.25rem; display: flex; align-items: center;">
-                                                🎯 Current Phase
-                                                <div style="display: inline-flex; align-items: center; margin-left: 0.5rem;">
-                                                    <div style="width: 8px; height: 8px; background: #b31b1b; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite;"></div>
-                                                </div>
-                                            </div>
-                                            <div style="font-size: 0.85rem; color: var(--text-color);">{self.phase_details}</div>
-                                        </div>
-                                        """
-                                    else:
-                                        phase_html = f"""
-                                        <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(179, 27, 27, 0.05); border-left: 3px solid #b31b1b; border-radius: 4px;">
-                                            <div style="font-weight: 600; color: #b31b1b; font-size: 0.9rem; margin-bottom: 0.25rem;">🎯 Current Phase</div>
-                                            <div style="font-size: 0.85rem; color: var(--text-color);">{self.phase_details}</div>
-                                        </div>
-                                        """
-                                    
-                                    st.markdown(phase_html, unsafe_allow_html=True)
-                                
-                                # Agent Progress Section (moved after phase)
-                                if self.agents_total > 0:
-                                    agent_status = []
-                                    for i in range(1, self.agents_total + 1):
-                                        if i <= self.agents_completed:
-                                            agent_status.append("✅")
-                                        elif i == self.current_agent:
-                                            agent_status.append("🔄")
-                                        else:
-                                            agent_status.append("⭕")
-                                    
-                                    agent_html = f"""
-                                    <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(76, 175, 80, 0.05); border-left: 3px solid #4caf50; border-radius: 4px;">
-                                        <div style="font-weight: 600; color: #4caf50; font-size: 0.9rem; margin-bottom: 0.25rem;">🤖 Research Agents</div>
-                                        <div style="font-size: 1.2rem; letter-spacing: 0.2rem;">{' '.join(agent_status)}</div>
-                                    </div>
-                                    """
-                                    st.markdown(agent_html, unsafe_allow_html=True)
-                                
-                                # Research Statistics Section  
-                                if self.insights_found > 0 or self.papers_found > 0:
-                                    stats_cols = st.columns(2)
-                                    if self.insights_found > 0:
-                                        with stats_cols[0]:
-                                            st.metric(label="💡 Insights", value=self.insights_found)
-                                    if self.papers_found > 0:
-                                        with stats_cols[1]:
-                                            st.metric(label="📄 Papers", value=self.papers_found)
-                                
-                                # Recent Activity Section
-                                if self.activity_log:
-                                    st.markdown("**📝 Recent Activity**")
-                                    for activity in self.activity_log[-3:]:
-                                        # Clean up the activity message for display
-                                        clean_activity = activity.replace("🎯 ", "").replace("🤖 ", "").replace("📝 ", "")
-                                        if len(clean_activity) > 200:
-                                            clean_activity = clean_activity[:197] + "..."
-                                        st.markdown(f"<div style='font-size: 0.85rem; margin-left: 1rem; color: var(--text-color); opacity: 0.8;'>• {clean_activity}</div>", unsafe_allow_html=True)
-                                
-                                # Add some breathing room at the bottom
-                                st.markdown("<div style='margin-bottom: 0.5rem;'></div>", unsafe_allow_html=True)
+    # Execute research when Send is clicked
+    if chat_btn and user_question:
+        with status_placeholder.container():
+            with st.status("Processing your query...", expanded=True) as status:
+                
+                # Initialize progress tracking with functional approach
+                progress_state = {
+                    "current_phase": "Initializing",
+                    "phase_details": "",
+                    "agents_total": 0,
+                    "agents_completed": 0,
+                    "current_agent": 0,
+                    "activity_log": [],
+                    "insights_found": 0,
+                    "papers_found": 0,
+                }
+                
+                def update_progress(message: str):
+                    print(message)  # Keep console logging
                     
-                    # Initialize progress tracker
-                    progress_tracker = ProgressTracker(status)
+                    # Parse message and update state
+                    updates = su.parse_research_progress_message(message)
+                    progress_state.update(updates)
                     
-                    def update_progress(message: str):
-                        progress_tracker.parse_and_update(message)
+                    # Add to activity log (keep last 5 entries)
+                    progress_state["activity_log"].append(message)
+                    if len(progress_state["activity_log"]) > 5:
+                        progress_state["activity_log"] = progress_state["activity_log"][-5:]
+                    
+                    # Render updated progress
+                    su.render_research_progress(status, progress_state)
 
-                    try:
-                        response_title, response, referenced_codes, relevant_codes = (
-                            au.query_llmpedia_new(
-                                user_question=user_question,
-                                response_length=response_length,
-                                llm_model="openai/gpt-4.1-nano",
-                                max_sources=max_sources,
-                                max_agents=4,
-                                debug=True,
-                                progress_callback=update_progress,
-                                show_only_sources=show_only_sources,
-                            )
+                try:
+                    response_title, response, referenced_codes, relevant_codes = (
+                        au.query_llmpedia_new(
+                            user_question=user_question,
+                            response_length=settings["response_length"],
+                            llm_model="openai/gpt-4.1-nano",
+                            max_sources=settings["max_sources"],
+                            max_agents=settings["max_agents"],
+                            debug=True,
+                            progress_callback=update_progress,
+                            show_only_sources=settings["show_only_sources"],
                         )
-                        status.update(
-                            label="Processing complete!",
-                            state="complete",
-                            expanded=False,
-                        )
-                        time.sleep(1)
-                        status_placeholder.empty()
+                    )
+                    status.update(
+                        label="Processing complete!",
+                        state="complete",
+                        expanded=False,
+                    )
+                    time.sleep(1)
+                    status_placeholder.empty()
 
-                    except Exception as e:
-                        status.update(
-                            label=f"🤖 Error detected. System malfunction. Returning to nebular state.",
-                            state="error",
-                            expanded=True,
-                        )
-                        ## Print error with traceback
-                        import traceback
-                        print("Error details:")
-                        print(e)
-                        print(traceback.format_exc())
-                        logging_db.log_error_db(e)  # Log the error
-                        st.error(
-                            "Sorry, an error occurred while processing your request."
-                        )
+                except Exception as e:
+                    status.update(
+                        label="🤖 Error detected. System malfunction. Returning to nebular state.",
+                        state="error",
+                        expanded=True,
+                    )
+                    import traceback
+                    print("Error details:")
+                    print(e)
+                    print(traceback.format_exc())
+                    logging_db.log_error_db(e)
+                    st.error("Sorry, an error occurred while processing your request.")
 
-            # Store results in session state only if successful
-            if "response" in locals():
-                st.session_state.chat_response = response
-                st.session_state.chat_response_title = response_title
-                st.session_state.referenced_codes = referenced_codes
-                st.session_state.relevant_codes = relevant_codes
-                logging_db.log_qna_db(user_question, response)
-                st.rerun(scope="fragment")
+        # Store results in session state only if successful
+        if "response" in locals():
+            st.session_state.chat_response = response
+            st.session_state.chat_response_title = response_title
+            st.session_state.referenced_codes = referenced_codes
+            st.session_state.relevant_codes = relevant_codes
+            logging_db.log_qna_db(user_question, response)
+            st.rerun(scope="fragment")
 
     # Display results if they exist in session state
     if st.session_state.chat_response:
-        st.divider()
-        st.markdown(f"**{st.session_state.chat_response_title}**")
-        st.markdown(st.session_state.chat_response)
-
-        if len(st.session_state.referenced_codes) > 0:
-            st.divider()
-
-            # View selector for paper display format
-            display_format = st.radio(
-                "Display Format",
-                options=["Grid View", "Citation List"],
-                horizontal=True,
-                label_visibility="collapsed",
-                key="papers_display_format",
-            )
-
-            st.markdown("<h4>Referenced Papers:</h4>", unsafe_allow_html=True)
-            # Ensure 'papers' is accessible via session state
-            reference_df = st.session_state["papers"].loc[
-                st.session_state.referenced_codes
-            ]
-            if display_format == "Grid View":
-                su.generate_grid_gallery(reference_df, n_cols=5, extra_key="_chat")
-            else:
-                su.generate_citations_list(reference_df)
-
-            if len(st.session_state.relevant_codes) > 0:
-                st.divider()
-                st.markdown("<h4>Other Relevant Papers:</h4>", unsafe_allow_html=True)
-                relevant_df = st.session_state["papers"].loc[
-                    st.session_state.relevant_codes
-                ]
-                if display_format == "Grid View":
-                    su.generate_grid_gallery(relevant_df, n_cols=5, extra_key="_chat")
-                else:
-                    su.generate_citations_list(relevant_df)
+        su.display_research_results(
+            title=st.session_state.chat_response_title,
+            response=st.session_state.chat_response,
+            referenced_codes=st.session_state.referenced_codes,
+            relevant_codes=st.session_state.relevant_codes,
+            papers_df=st.session_state["papers"]
+        )
 
 
 @st.fragment
@@ -751,11 +544,11 @@ def main():
     ## Content tabs.
     content_tabs = st.tabs(
         [
-            "📰 News",
+            "🏠 Main",
             "🧮 Release Feed",
             "🗺️ Statistics & Topics",
             "🔍 Paper Details",
-            "🔬 Online Research",
+            "🔬 Deep Research",
             "⚙️ Links & Repositories",
             "🗞 Weekly Report",
         ]
@@ -795,6 +588,38 @@ def main():
             st.metric(label="👥 Active Users", value=f"{active_users_count:,d}")
 
         st.divider()
+        # Deep Research promotion section - moved to top for prominence
+        header_html = """
+        <div class="trending-panel-header">
+            <div class="trending-panel-title">
+                🔬 Ask the GPT Maestro
+            </div>
+            <div class="trending-panel-subtitle">
+                AI-powered multi-agent research with cited sources
+            </div>
+        </div>
+        """
+        st.markdown(header_html, unsafe_allow_html=True)
+        
+        st.markdown(
+            "Got specific questions about LLMs, arXiv papers, or need to find relevant research? "
+            "Our AI-powered Deep Research tool uses specialized agents to find answers, synthesize content, and discover related work with cited sources. "
+            "Ask the GPT maestro!"
+        )
+        shared_query_news_tab = st.text_input(
+            "Ask your question here first:",
+            key="news_tab_shared_query_input",
+            placeholder="E.g., Why do LLMs sometimes exhibit ADHD like symptoms?",
+        )
+        if st.button(
+            "Explore Deep Research 🤖", key="explore_deep_research_news_promo"
+        ):
+            query_to_pass = st.session_state.get("news_tab_shared_query_input", "")
+            if query_to_pass:  # Only pass if there's actual text
+                st.session_state.query_to_pass_to_chat = query_to_pass
+            su.click_tab(4)  # Navigate to the Deep Research tab
+
+        st.divider()
         row2_cols = st.columns([4, 0.1, 2])
 
         # Panel 2.1: Top Cited / Trending Papers (Left)
@@ -821,7 +646,7 @@ def main():
                             🐦 Latest LLM Discussions on X
                         </div>
                         <div class="trending-panel-subtitle">
-                            Timestamped summaries updated every ~12 hours
+                            Timestamped summaries updated every ~24 hours
                         </div>
                     </div>
                     """
@@ -832,7 +657,7 @@ def main():
                             🦙 Latest LLM Discussions on Reddit
                         </div>
                         <div class="trending-panel-subtitle">
-                            Cross-subreddit summaries updated every ~12 hours
+                            Cross-subreddit summaries updated every ~24 hours
                         </div>
                     </div>
                     """
@@ -997,37 +822,6 @@ def main():
 
             feature_poll_fragment()
 
-        st.divider()
-        # Section header with consistent styling
-        header_html = """
-        <div class="trending-panel-header">
-            <div class="trending-panel-title">
-                🔬 Dive Deeper with Online Research
-            </div>
-            <div class="trending-panel-subtitle">
-                AI-powered research assistant with cited sources
-            </div>
-        </div>
-        """
-        st.markdown(header_html, unsafe_allow_html=True)
-        
-        st.markdown(
-            "Got specific questions about LLMs, arXiv papers, or need to find relevant research? "
-            "Our AI-powered Online Research tool helps you find answers, summarize content, and discover related work with cited sources. "
-            "Ask the GPT maestro!"
-        )
-        shared_query_news_tab = st.text_input(
-            "Ask your question here first:",
-            key="news_tab_shared_query_input",
-            placeholder="E.g., What are the latest advancements in Mixture of Experts?",
-        )
-        if st.button(
-            "Explore Online Research 🤖", key="explore_online_research_news_promo"
-        ):
-            query_to_pass = st.session_state.get("news_tab_shared_query_input", "")
-            if query_to_pass:  # Only pass if there's actual text
-                st.session_state.query_to_pass_to_chat = query_to_pass
-            su.click_tab(4)  # Navigate to the Online Research tab
 
     with content_tabs[1]:
         ## Grid view or Table view
