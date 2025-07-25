@@ -463,6 +463,28 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
 
 
 def main():
+    # Initialize session tracking and log visit
+    if "session_id" not in st.session_state:
+        import uuid
+        st.session_state.session_id = str(uuid.uuid4())
+        st.session_state.visit_logged = False
+    
+    # Log visit once per session
+    if not st.session_state.visit_logged:
+        try:
+            # Determine entrypoint type
+            url_query = st.query_params
+            if "arxiv_code" in url_query:
+                entrypoint = f"arxiv_referral:{url_query['arxiv_code']}"
+            else:
+                entrypoint = "general_visit"
+            
+            logging_db.log_visit(entrypoint)
+            st.session_state.visit_logged = True
+        except Exception as e:
+            # Don't break the app if logging fails
+            logging_db.log_error_db(f"Visit logging error: {e}")
+
     st.markdown(
         """<div class="pixel-font" style="margin-bottom: -0.5em;">LLMpedia</div>
     """,
@@ -623,7 +645,7 @@ def main():
         search_cols = st.columns((6, 1))
         with search_cols[0]:
             shared_query_news_tab = st.text_input(
-                "Ask your question here first:",
+                "Ask your question here:",
                 key="news_tab_shared_query_input",
                 placeholder="E.g., Why do LLMs sometimes exhibit ADHD like symptoms?",
             )
@@ -813,9 +835,9 @@ def main():
 
                     if feature_name_to_log:
                         try:
-                            # Placeholder for session_id; implement actual session tracking if needed
+                            # Use the session_id we now track in main()
                             current_session_id = st.session_state.get(
-                                "user_session_id", None
+                                "session_id", None
                             )
 
                             logging_db.log_feature_poll_vote(

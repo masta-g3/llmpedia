@@ -129,7 +129,7 @@ def parse_query_params():
     url_query = st.query_params
     if "arxiv_code" in url_query and len(st.session_state.arxiv_code) == 0:
         paper_code = url_query["arxiv_code"]
-        logging_db.log_visit(paper_code)
+        # Visit logging now handled in main() - just handle paper navigation
         st.session_state.arxiv_code = paper_code
         click_tab(3)
 
