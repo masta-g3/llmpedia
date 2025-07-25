@@ -240,8 +240,16 @@ query_config = json.loads(query_config_json)
 
 
 def interrogate_paper(question: str, arxiv_code: str, model="gpt-4o") -> str:
-    """Ask a question about a paper."""
-    context = db.get_extended_notes(arxiv_code, expected_tokens=2000)
+    """Ask a question about a paper using full markdown content with fallback to extended notes."""
+    ## Try to get full paper markdown content first (preferred)
+    context, markdown_success = get_paper_markdown(arxiv_code)
+    
+    if not markdown_success:
+        ## Fallback to extended notes if markdown unavailable
+        context = db.get_extended_notes(arxiv_code, level=1)
+        if not context or pd.isna(context):
+            return "Paper content not available yet. Check back soon!"
+    
     user_message = ps.create_interrogate_user_prompt(
         context=context, user_question=question
     )

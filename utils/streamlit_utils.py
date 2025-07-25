@@ -59,6 +59,18 @@ def create_sidebar(full_papers_df: pd.DataFrame) -> Tuple[pd.DataFrame, int]:
         ["Published Date", "Last Updated", "Citations", "Random"],
     )
 
+    ## Global image display preference.
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("#### 🖼️ Image Display")
+    image_preference = st.sidebar.radio(
+        "Paper Images",
+        options=["🎨 Art", "📄 Page"],
+        index=0 if st.session_state.global_image_type == "artwork" else 1,
+        key="global_image_toggle",
+        horizontal=True
+    )
+    st.session_state.global_image_type = "artwork" if image_preference == "🎨 Art" else "first_page"
+
     ## Year filter.
     if not st.session_state.all_years:
         papers_df = full_papers_df[full_papers_df["published"].dt.year == int(year)]
@@ -122,6 +134,15 @@ def parse_query_params():
         click_tab(3)
 
 
+def populate_paper_question(paper_code: str, name: str, question: str):
+    """Populate paper question and auto-trigger send (modular, reusable)."""
+    # Store the question in a separate state key to avoid widget state conflicts
+    st.session_state[f"pending_question_{paper_code}{name}"] = question
+    # Set flag to auto-trigger send on next render
+    st.session_state[f"auto_send_{paper_code}{name}"] = True
+    st.rerun(scope="fragment")
+
+
 @st.fragment
 def create_paper_card(paper: Dict, mode="closed", name=""):
     """Creates card UI for paper details."""
@@ -136,10 +157,11 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
 
         # Image column
         try:
-            img_cols[0].image(
-                f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png",
-                use_container_width=True,
-            )
+            if st.session_state.global_image_type == "first_page":
+                image_url = f"https://arxiv-first-page.s3.us-east-1.amazonaws.com/{paper_code}.png"
+            else:
+                image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
+            img_cols[0].image(image_url, use_container_width=True)
         except:
             pass
 
@@ -256,7 +278,8 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
 
     # Content sections using tabs
     tab_names = [
-        "❗️ Takeaways",  # Start with the most concise overview
+        "🤖 Ask GPT Maestro",  # Enhanced title following current style
+        "❗️ Takeaways",  # Concise overview
         "📝 Research Notes",  # More detailed analysis
         "📖 Full Paper",  # Complete in-depth content
     ]
@@ -276,19 +299,88 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
     if has_repos:
         tab_names.append("💻 Code")
 
-    tab_names.extend(
-        [
-            "💬 Chat",
-            "🔍 Similar Papers",
-        ]
-    )
+    tab_names.append("🔍 Similar Papers")
 
     # Only add Insight tab if we have an insight
     if "tweet_insight" in paper and not pd.isna(paper["tweet_insight"]):
         tab_names.append("🤖 Maestro's Insight")
     tabs = st.tabs(tab_names)
 
-    with tabs[0]:
+    with tabs[0]:  # Ask GPT Maestro
+        # Enhanced chat interface with subtle improvements
+        st.markdown(
+            "<div style='font-size: 0.9em; opacity: 0.7; margin-bottom: 1em;'>💡 <em>Ask specific questions about this paper's methodology, findings, or implications</em></div>",
+            unsafe_allow_html=True,
+        )
+
+        # Check for pending question from pills selection
+        pending_question = st.session_state.get(
+            f"pending_question_{paper_code}{name}", ""
+        )
+        if pending_question:
+            # Clear the pending question after using it
+            del st.session_state[f"pending_question_{paper_code}{name}"]
+
+        paper_question = st.text_area(
+            "Your question:",
+            value=pending_question,
+            height=100,
+            key=f"chat_{paper_code}{name}",
+            placeholder="e.g., 'What's the key innovation?' or 'How does this compare to previous work?'",
+        )
+
+        # Quick action suggestions (elegant pills interface)
+        if not paper_question.strip():  # Only show when text area is empty
+            st.markdown(
+                "<div style='margin: 0.5em 0; padding: 0.8em; background: rgba(179, 27, 27, 0.03); border-radius: 8px; border-left: 3px solid rgba(179, 27, 27, 0.2);'>",
+                unsafe_allow_html=True,
+            )
+
+            # Question options mapping
+            question_options = {
+                "🔍 Key insights": "What are the key insights and main contributions of this paper?",
+                "⚡ TL;DR": "Can you provide a concise summary of this paper's main findings?",
+                "🧠 Methodology": "Can you explain the methodology and approach used in this research?",
+                "🔗 Impact": "What are the practical implications and potential impact of this work?",
+            }
+
+            # Pills widget for quick questions
+            selected_pill = st.pills(
+                "Quick questions:",
+                options=list(question_options.keys()),
+                selection_mode="single",
+                key=f"quick_pills_{paper_code}{name}",
+                label_visibility="collapsed",
+            )
+
+            # Handle pill selection
+            if selected_pill and selected_pill in question_options:
+                populate_paper_question(
+                    paper_code, name, question_options[selected_pill]
+                )
+                # Reset pills selection to avoid repeated triggers
+                st.session_state[f"quick_pills_{paper_code}{name}"] = None
+
+            # Subtle caption below pills
+            st.caption("💡 *Quick questions to get started*")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        # Check for auto-send trigger (from quick action buttons)
+        auto_send = st.session_state.pop(f"auto_send_{paper_code}{name}", False)
+        send_clicked = st.button(
+            "Send", key=f"send_{paper_code}{name}", disabled=not paper_question.strip()
+        )
+
+        # Execute when Send is clicked OR auto-send is triggered
+        if (send_clicked or auto_send) and paper_question.strip():
+            with st.spinner("🤖 GPT Maestro is analyzing..."):
+                response = au.interrogate_paper(
+                    paper_question, paper_code, model="gpt-4.1-nano"
+                )
+                logging_db.log_qna_db(f"[{paper_code}] ::: {paper_question}", response)
+                st.chat_message("assistant").write(response)
+
+    with tabs[1]:  # Takeaways
         st.markdown("### ❗️ Takeaways")
         bullet_summary = (
             paper["bullet_list_summary"]
@@ -334,7 +426,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
 
         st.markdown("\n".join(numbered_summary))
 
-    with tabs[1]:  # Research Notes
+    with tabs[2]:  # Research Notes
         st.markdown("### 📝 Research Notes")
         level_select = st.selectbox(
             "Detail",
@@ -354,15 +446,14 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         )
         markdown_summary = paper["markdown_notes"]
 
-
         # Map selection to level values (level 1 is most detailed)
         level_map = {
             # "Most Detailed": 20,  # Most detailed level
-            "Detailed": 10,       # Detailed level
-            "Concise": 5,         # Concise level
-            "Very Concise": 3,    # More concise
+            "Detailed": 10,  # Detailed level
+            "Concise": 5,  # Concise level
+            "Very Concise": 3,  # More concise
             # "Brief": 2,           # Brief level
-            "Minimal": 1,         # Most concise level
+            "Minimal": 1,  # Most concise level
         }
 
         if level_select == "📝 High-Level Overview":
@@ -376,7 +467,6 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
                 value="Detailed",
                 help="Adjust the level of detail in the research notes",
             )
-
 
             # Get notes based on selected level
             try:
@@ -412,7 +502,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             st.markdown(f"#### {paper['takeaway_title']}")
         st.markdown(paper["takeaway_example"])
 
-    with tabs[2]:  # Full Paper Content
+    with tabs[3]:  # Full Paper Content
         # Fetch paper content
         markdown_content, success = au.get_paper_markdown(paper_code)
 
@@ -467,7 +557,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             st.warning(markdown_content)
 
     # Code & Resources tab (shown if repos exist)
-    tab_index = 3
+    tab_index = 4
     if has_repos:
         with tabs[tab_index]:
             paper_repos = st.session_state["repos"].loc[paper_code]
@@ -487,20 +577,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
                     st.markdown("---")
         tab_index += 1
 
-    with tabs[tab_index]:  # Chat
-        paper_question = st.text_area(
-            "Ask GPT Maestro about this paper.",
-            height=100,
-            key=f"chat_{paper_code}{name}",
-        )
-        if st.button("Send", key=f"send_{paper_code}{name}"):
-            response = au.interrogate_paper(
-                paper_question, paper_code, model="claude-3-5-sonnet-20241022"
-            )
-            logging_db.log_qna_db(f"[{paper_code}] ::: {paper_question}", response)
-            st.chat_message("assistant").write(response)
-
-    with tabs[tab_index + 1]:  # Similar Papers
+    with tabs[tab_index]:  # Similar Papers
         papers_df = st.session_state["papers"]
         if paper_code in papers_df.index:
             similar_codes = pd.Series(papers_df.loc[paper_code]["similar_docs"])
@@ -511,11 +588,13 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
                 if len(similar_codes) > 5:
                     similar_codes = np.random.choice(similar_codes, 5, replace=False)
                 similar_df = papers_df.loc[similar_codes]
-                generate_grid_gallery(similar_df, extra_key=f"_sim_{paper_code}", n_cols=5)
+                generate_grid_gallery(
+                    similar_df, extra_key=f"_sim_{paper_code}", n_cols=5, image_type=st.session_state.global_image_type
+                )
 
     # GPT Maestro Insight tab (only shown if insight exists)
     if "tweet_insight" in paper and not pd.isna(paper["tweet_insight"]):
-        with tabs[tab_index + 2]:
+        with tabs[tab_index + 1]:
             st.markdown("### 🤖 GPT Maestro's Key Insight")
             st.markdown(f"{paper['tweet_insight']}")
 
@@ -544,9 +623,7 @@ def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
                 if image_type == "first_page":
                     image_url = f"https://arxiv-first-page.s3.us-east-1.amazonaws.com/{paper_code}.png"
                 else:  # Default to artwork
-                    image_url = (
-                        f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
-                    )
+                    image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
 
                 with cols[j]:
                     card_html = f"""
@@ -828,10 +905,11 @@ def click_tab(tab_num):
     if tab_num == 3:
         display_paper_details_fragment(st.session_state.arxiv_code)
     try:
-        st.rerun(scope='fragment')
+        st.rerun(scope="fragment")
         time.sleep(1)
     except st.errors.StreamlitAPIException:
         pass
+
 
 @st.fragment
 def generate_mini_paper_table(
@@ -862,14 +940,17 @@ def generate_mini_paper_table(
         punchline = paper.get("punchline", "")
         authors = paper.get("authors", "")
         paper_url = paper.get("url", "")
-        
+
         # Truncate long author lists
         if len(authors) > 60:
             authors = authors[:60] + "..."
-        
+
         # Image URL with fallback
-        image_url = f"https://arxiv-art.s3.amazonaws.com/{paper_code}.png"
-        
+        if st.session_state.global_image_type == "first_page":
+            image_url = f"https://arxiv-first-page.s3.us-east-1.amazonaws.com/{paper_code}.png"
+        else:
+            image_url = f"https://arxiv-art.s3.amazonaws.com/{paper_code}.png"
+
         # Use columns to place buttons to the right of the card
         card_col, button_col = st.columns([10, 1])
 
@@ -904,25 +985,31 @@ def generate_mini_paper_table(
         # Buttons stacked vertically
         with button_col:
             # Vertical alignment hack for the button
-            st.markdown("<div style='height: calc(3 * var(--space-base));'></div>", unsafe_allow_html=True)
+            st.markdown(
+                "<div style='height: calc(3 * var(--space-base));'></div>",
+                unsafe_allow_html=True,
+            )
             if st.button(
-                "🔍",
-                key=f"details_btn_{paper_code}_{extra_key}",
-                help="Details"
+                "🔍", key=f"details_btn_{paper_code}_{extra_key}", help="Details"
             ):
                 st.session_state.arxiv_code = paper_code
                 click_tab(3)
 
             # Tweet toggle button (if enabled and tweets exist) - below the arrow button
-            if show_tweets_toggle and 'tweets' in paper and paper['tweets'] and len(paper['tweets']) > 0:
-                tweet_count = paper.get('tweet_count', len(paper['tweets']))
+            if (
+                show_tweets_toggle
+                and "tweets" in paper
+                and paper["tweets"]
+                and len(paper["tweets"]) > 0
+            ):
+                tweet_count = paper.get("tweet_count", len(paper["tweets"]))
                 tweet_toggle_key = f"show_tweets_{paper_code}_{extra_key}"
                 current_active_key = st.session_state.get("active_tweet_panel", None)
-                
+
                 if st.button(
                     f"🐦",
                     key=tweet_toggle_key,
-                    help=f"View {tweet_count} tweet(s) for this paper"
+                    help=f"View {tweet_count} tweet(s) for this paper",
                 ):
                     # Toggle tweet display - only one panel open at a time
                     if current_active_key == tweet_toggle_key:
@@ -934,25 +1021,36 @@ def generate_mini_paper_table(
                     st.rerun(scope="fragment")
 
         # Display tweets if expanded
-        if (show_tweets_toggle and 'tweets' in paper and paper['tweets'] and 
-            st.session_state.get("active_tweet_panel") == f"show_tweets_{paper_code}_{extra_key}"):
-            
-            st.markdown("<div style='margin-left: var(--space-base); margin-top: var(--space-sm);'>", unsafe_allow_html=True)
-            
+        if (
+            show_tweets_toggle
+            and "tweets" in paper
+            and paper["tweets"]
+            and st.session_state.get("active_tweet_panel")
+            == f"show_tweets_{paper_code}_{extra_key}"
+        ):
+
+            st.markdown(
+                "<div style='margin-left: var(--space-base); margin-top: var(--space-sm);'>",
+                unsafe_allow_html=True,
+            )
+
             # Limit to top 8 tweets by likes and ensure they're properly parsed
-            tweets_data = paper['tweets'][:8] if len(paper['tweets']) > 8 else paper['tweets']
-            
+            tweets_data = (
+                paper["tweets"][:8] if len(paper["tweets"]) > 8 else paper["tweets"]
+            )
+
             for tweet in tweets_data:
                 display_individual_tweet(tweet, compact=True)
-            
+
             st.markdown("</div>", unsafe_allow_html=True)
 
     # Summary information
     if len(df) > n:
         st.markdown(
             f'<div class="trending-summary">Showing top {n} of {len(df)} papers</div>',
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
+
 
 @st.fragment
 def create_featured_paper_card(paper: Dict) -> None:
@@ -974,7 +1072,10 @@ def create_featured_paper_card(paper: Dict) -> None:
     paper_code = paper.get("arxiv_code", "")
     title = paper.get("title", "Featured Paper")
     punchline = paper.get("punchline", "No summary available.")
-    image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
+    if st.session_state.global_image_type == "first_page":
+        image_url = f"https://arxiv-first-page.s3.us-east-1.amazonaws.com/{paper_code}.png"
+    else:
+        image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
     paper_url = paper.get("url", f"https://arxiv.org/abs/{paper_code}")
 
     # HTML-escape potentially unsafe content
@@ -999,7 +1100,9 @@ def create_featured_paper_card(paper: Dict) -> None:
 
     btn_cols = st.columns([2, 2, 2])
     with btn_cols[1]:
-        if st.button("Read More", key=f"featured_details_{paper_code}", use_container_width=True):
+        if st.button(
+            "Read More", key=f"featured_details_{paper_code}", use_container_width=True
+        ):
             st.session_state.arxiv_code = paper_code
             click_tab(3)
 
@@ -1060,48 +1163,62 @@ def display_tweet_summaries(df, max_entries: int = 8):
 
     # Build complete HTML structure as one piece to preserve flexbox layout
     html_parts = []
-    
+
     # Content only (no header - handled by toggle panel)
-    html_parts.append('''
+    html_parts.append(
+        """
 <div class="tweet-timeline-container">
-    <div class="tweet-carousel">''')
+    <div class="tweet-carousel">"""
+    )
 
     # Add each discussion as a card
     for i, (_, row) in enumerate(df.iterrows()):
         timestamp = row["tstp"].strftime("%b %d, %H:%M")
         full_timestamp = row["tstp"].strftime("%B %d, %Y at %H:%M")
-        
+
         # Clean and escape the summary content
         summary = str(row["response"]).strip()
         # Use html_escape to properly handle all special characters
         summary = html_escape(summary)
-        
+
         # Calculate relative time
         time_diff = pd.Timestamp.now() - row["tstp"]
         if time_diff.days > 0:
-            relative_time = f"{time_diff.days} day{'s' if time_diff.days > 1 else ''} ago"
+            relative_time = (
+                f"{time_diff.days} day{'s' if time_diff.days > 1 else ''} ago"
+            )
         elif time_diff.seconds > 3600:
             hours = time_diff.seconds // 3600
             relative_time = f"{hours} hour{'s' if hours > 1 else ''} ago"
         else:
             relative_time = "Recent"
-        
+
         # Add card to HTML - use simple concatenation to avoid f-string issues
-        card_html = '<div class="tweet-card" title="' + html_escape(full_timestamp) + '">'
-        card_html += '<div class="tweet-timestamp">🕑 ' + timestamp + ' • ' + relative_time + '</div>'
-        card_html += '<div class="tweet-content">' + summary + '</div>'
-        card_html += '</div>'
-        
+        card_html = (
+            '<div class="tweet-card" title="' + html_escape(full_timestamp) + '">'
+        )
+        card_html += (
+            '<div class="tweet-timestamp">🕑 '
+            + timestamp
+            + " • "
+            + relative_time
+            + "</div>"
+        )
+        card_html += '<div class="tweet-content">' + summary + "</div>"
+        card_html += "</div>"
+
         html_parts.append(card_html)
 
     # Footer
-    html_parts.append('''
+    html_parts.append(
+        """
     </div>
     <div class="tweet-timeline-footer">Scroll horizontally to explore the timeline →</div>
-</div>''')
+</div>"""
+    )
 
     # Render complete HTML structure as one piece
-    complete_html = ''.join(html_parts)
+    complete_html = "".join(html_parts)
     st.markdown(complete_html, unsafe_allow_html=True)
 
 
@@ -1118,48 +1235,62 @@ def display_reddit_summaries(df, max_entries: int = 8):
 
     # Build complete HTML structure as one piece to preserve flexbox layout
     html_parts = []
-    
+
     # Content only (no header - handled by toggle panel)
-    html_parts.append('''
+    html_parts.append(
+        """
 <div class="tweet-timeline-container">
-    <div class="tweet-carousel">''')
+    <div class="tweet-carousel">"""
+    )
 
     # Add each discussion as a card
     for i, (_, row) in enumerate(df.iterrows()):
         timestamp = row["tstp"].strftime("%b %d, %H:%M")
         full_timestamp = row["tstp"].strftime("%B %d, %Y at %H:%M")
-        
+
         # Clean and escape the summary content
         summary = str(row["response"]).strip()
         # Use html_escape to properly handle all special characters
         summary = html_escape(summary)
-        
+
         # Calculate relative time
         time_diff = pd.Timestamp.now() - row["tstp"]
         if time_diff.days > 0:
-            relative_time = f"{time_diff.days} day{'s' if time_diff.days > 1 else ''} ago"
+            relative_time = (
+                f"{time_diff.days} day{'s' if time_diff.days > 1 else ''} ago"
+            )
         elif time_diff.seconds > 3600:
             hours = time_diff.seconds // 3600
             relative_time = f"{hours} hour{'s' if hours > 1 else ''} ago"
         else:
             relative_time = "Recent"
-        
+
         # Add card to HTML - use simple concatenation to avoid f-string issues
-        card_html = '<div class="tweet-card" title="' + html_escape(full_timestamp) + '">'
-        card_html += '<div class="tweet-timestamp">🕑 ' + timestamp + ' • ' + relative_time + '</div>'
-        card_html += '<div class="tweet-content">' + summary + '</div>'
-        card_html += '</div>'
-        
+        card_html = (
+            '<div class="tweet-card" title="' + html_escape(full_timestamp) + '">'
+        )
+        card_html += (
+            '<div class="tweet-timestamp">🕑 '
+            + timestamp
+            + " • "
+            + relative_time
+            + "</div>"
+        )
+        card_html += '<div class="tweet-content">' + summary + "</div>"
+        card_html += "</div>"
+
         html_parts.append(card_html)
 
     # Footer
-    html_parts.append('''
+    html_parts.append(
+        """
     </div>
     <div class="tweet-timeline-footer">Scroll horizontally to explore the timeline →</div>
-</div>''')
+</div>"""
+    )
 
     # Render complete HTML structure as one piece
-    complete_html = ''.join(html_parts)
+    complete_html = "".join(html_parts)
     st.markdown(complete_html, unsafe_allow_html=True)
 
 
@@ -1175,7 +1306,7 @@ def display_individual_tweet(tweet_data: Dict, compact: bool = True):
     tweet_link = tweet_data.get("link", "")
     tweet_timestamp = tweet_data.get("tweet_timestamp")
     max_length = 512
-    
+
     # Format timestamp
     if tweet_timestamp:
         try:
@@ -1185,16 +1316,16 @@ def display_individual_tweet(tweet_data: Dict, compact: bool = True):
             formatted_time = "Recent"
     else:
         formatted_time = "Recent"
-    
+
     # Truncate text for compact view
     if compact and len(text) > max_length:
         text = text[:max_length] + "..."
-    
+
     # Escape content for safe HTML
     safe_author = html_escape(author)
     safe_username = html_escape(username)
     safe_text = html_escape(text)
-    
+
     # Create compact tweet card
     tweet_html = f"""
     <div class="individual-tweet-card">
@@ -1213,7 +1344,7 @@ def display_individual_tweet(tweet_data: Dict, compact: bool = True):
         </div>
     </div>
     """
-    
+
     st.markdown(tweet_html, unsafe_allow_html=True)
 
 
@@ -1235,9 +1366,9 @@ def render_research_header():
 def parse_research_progress_message(message: str) -> dict:
     """Parse progress messages into structured state dict."""
     import re
-    
+
     updates = {}
-    
+
     # Parse phase information
     if "PHASE 1:" in message:
         updates["current_phase"] = "Phase 1: Research Planning"
@@ -1254,21 +1385,43 @@ def parse_research_progress_message(message: str) -> dict:
         if agent_match:
             updates["current_agent"] = int(agent_match.group(1))
             updates["agents_total"] = int(agent_match.group(2))
-            updates["phase_details"] = f"Agent {updates['current_agent']}/{updates['agents_total']} researching"
+            updates["phase_details"] = (
+                f"Agent {updates['current_agent']}/{updates['agents_total']} researching"
+            )
     elif "completed:" in message:
         # Parse completion: "✅ Agent 1 completed: 3 insights, 5 papers"
         updates["agents_completed"] = updates.get("agents_completed", 0) + 1
         insight_match = re.search(r"(\d+) insights", message)
         papers_match = re.search(r"(\d+) papers", message)
         if insight_match:
-            updates["insights_found"] = updates.get("insights_found", 0) + int(insight_match.group(1))
+            updates["insights_found"] = updates.get("insights_found", 0) + int(
+                insight_match.group(1)
+            )
         if papers_match:
-            updates["papers_found"] = updates.get("papers_found", 0) + int(papers_match.group(1))
+            updates["papers_found"] = updates.get("papers_found", 0) + int(
+                papers_match.group(1)
+            )
     elif "Research complete!" in message:
         updates["current_phase"] = "Complete"
         updates["phase_details"] = "Research successfully completed"
-    
+
     return updates
+
+
+def add_insight_to_progress(progress_state: dict, insight: str):
+    """Add a new insight to the progress state."""
+    if "insights_list" not in progress_state:
+        progress_state["insights_list"] = []
+    progress_state["insights_list"].append(insight)
+    progress_state["insights_found"] = len(progress_state["insights_list"])
+
+
+def add_paper_to_progress(progress_state: dict, paper_info: dict):
+    """Add a new paper to the progress state."""
+    if "papers_list" not in progress_state:
+        progress_state["papers_list"] = []
+    progress_state["papers_list"].append(paper_info)
+    progress_state["papers_found"] = len(progress_state["papers_list"])
 
 
 def render_research_progress(status_widget, progress_state: dict):
@@ -1277,32 +1430,29 @@ def render_research_progress(status_widget, progress_state: dict):
     current_phase = progress_state.get("current_phase", "Initializing")
     agents_total = progress_state.get("agents_total", 0)
     agents_completed = progress_state.get("agents_completed", 0)
-    
+
     main_label = f"{current_phase}"
     if agents_total > 0:
         main_label += f" ({agents_completed}/{agents_total} agents)"
-    
+
     # Update the main status label
-    status_widget.update(
-        label=main_label,
-        expanded=True
-    )
-    
+    status_widget.update(label=main_label, expanded=True)
+
     # Get or create content container from progress_state
     if "content_container" not in progress_state:
         with status_widget:
             progress_state["content_container"] = st.empty()
-    
+
     # Clear and update the content container
     with progress_state["content_container"].container():
-            # Phase Status Section (first - provides context)
-            phase_details = progress_state.get("phase_details")
-            if phase_details:
-                # Add animated wait indicator when research is active
-                show_indicator = (current_phase != "Complete")
-                
-                if show_indicator:
-                    phase_html = f"""
+        # Phase Status Section (first - provides context)
+        phase_details = progress_state.get("phase_details")
+        if phase_details:
+            # Add animated wait indicator when research is active
+            show_indicator = current_phase != "Complete"
+
+            if show_indicator:
+                phase_html = f"""
                     <style>
                     @keyframes pulse {{
                         0% {{ opacity: 1; transform: scale(1); }}
@@ -1320,60 +1470,108 @@ def render_research_progress(status_widget, progress_state: dict):
                         <div style="font-size: 0.85rem; color: var(--text-color);">{phase_details}</div>
                     </div>
                     """
-                else:
-                    phase_html = f"""
+            else:
+                phase_html = f"""
                     <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(179, 27, 27, 0.05); border-left: 3px solid #b31b1b; border-radius: 4px;">
                         <div style="font-weight: 600; color: #b31b1b; font-size: 0.9rem; margin-bottom: 0.25rem;">🎯 Current Phase</div>
                         <div style="font-size: 0.85rem; color: var(--text-color);">{phase_details}</div>
                     </div>
                     """
-                
-                st.markdown(phase_html, unsafe_allow_html=True)
-            
-            # Agent Progress Section (second - shows active work)
-            if agents_total > 0:
-                agent_status = []
-                for i in range(1, agents_total + 1):
-                    if i <= agents_completed:
-                        agent_status.append("✅")
-                    elif i == progress_state.get("current_agent", 0):
-                        agent_status.append("🔄")
-                    else:
-                        agent_status.append("⭕")
-                
-                agent_html = f"""
+
+            st.markdown(phase_html, unsafe_allow_html=True)
+
+        # Agent Progress Section (second - shows active work)
+        if agents_total > 0:
+            agent_status = []
+            for i in range(1, agents_total + 1):
+                if i <= agents_completed:
+                    agent_status.append("✅")
+                elif i == progress_state.get("current_agent", 0):
+                    agent_status.append("🔄")
+                else:
+                    agent_status.append("⭕")
+
+            agent_html = f"""
                 <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(76, 175, 80, 0.05); border-left: 3px solid #4caf50; border-radius: 4px;">
                     <div style="font-weight: 600; color: #4caf50; font-size: 0.9rem; margin-bottom: 0.25rem;">🤖 Research Agents</div>
                     <div style="font-size: 1.2rem; letter-spacing: 0.2rem;">{' '.join(agent_status)}</div>
                 </div>
                 """
-                st.markdown(agent_html, unsafe_allow_html=True)
-            
-            # Research Statistics Section  
-            insights_found = progress_state.get("insights_found", 0)
-            papers_found = progress_state.get("papers_found", 0)
-            if insights_found > 0 or papers_found > 0:
-                stats_cols = st.columns(2)
-                if insights_found > 0:
-                    with stats_cols[0]:
-                        st.metric(label="💡 Insights", value=insights_found)
-                if papers_found > 0:
-                    with stats_cols[1]:
-                        st.metric(label="📄 Papers", value=papers_found)
-            
-            # Recent Activity Section
-            activity_log = progress_state.get("activity_log", [])
-            if activity_log:
-                st.markdown("**📝 Recent Activity**")
-                for activity in activity_log[-3:]:
-                    # Clean up the activity message for display
-                    clean_activity = activity.replace("🎯 ", "").replace("🤖 ", "").replace("📝 ", "")
-                    if len(clean_activity) > 200:
-                        clean_activity = clean_activity[:197] + "..."
-                    st.markdown(f"<div style='font-size: 0.85rem; margin-left: 1rem; color: var(--text-color); opacity: 0.8;'>• {clean_activity}</div>", unsafe_allow_html=True)
-            
-            # Add some breathing room at the bottom
-            st.markdown("<div style='margin-bottom: 0.5rem;'></div>", unsafe_allow_html=True)
+            st.markdown(agent_html, unsafe_allow_html=True)
+
+        # Research Discovery Feed Section
+        insights_list = progress_state.get("insights_list", [])
+        papers_list = progress_state.get("papers_list", [])
+
+        if insights_list or papers_list:
+            discovery_cols = st.columns(2)
+
+            # Insights Column (Left)
+            with discovery_cols[0]:
+                st.markdown("**💡 Insights Discovered**")
+                insights_container = st.container()
+                with insights_container:
+                    for i, insight in enumerate(insights_list[-4:]):  # Show last 4
+                        insight_preview = (
+                            insight[:100] + "..." if len(insight) > 100 else insight
+                        )
+                        insight_html = f"""
+                            <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: rgba(103, 58, 183, 0.08); border-left: 3px solid #673ab7; border-radius: 4px; animation: fadeInSlide 0.3s ease-out;">
+                                <div style="font-size: 0.85rem; color: var(--text-color); line-height: 1.4;">{insight_preview}</div>
+                            </div>
+                            <style>
+                            @keyframes fadeInSlide {{
+                                0% {{ opacity: 0; transform: translateY(-10px); }}
+                                100% {{ opacity: 1; transform: translateY(0); }}
+                            }}
+                            </style>
+                            """
+                        st.markdown(insight_html, unsafe_allow_html=True)
+
+            # Papers Column (Right)
+            with discovery_cols[1]:
+                st.markdown("**📄 Papers Found**")
+                papers_container = st.container()
+                with papers_container:
+                    for paper in papers_list[-6:]:  # Show last 6
+                        title_preview = (
+                            paper.get("title", "")[:60] + "..."
+                            if len(paper.get("title", "")) > 60
+                            else paper.get("title", "")
+                        )
+                        arxiv_code = paper.get("arxiv_code", "")
+                        citations = paper.get("citations", 0)
+
+                        paper_html = f"""
+                            <div style="margin-bottom: 0.5rem; padding: 0.4rem; background: rgba(33, 150, 243, 0.08); border-left: 3px solid #2196f3; border-radius: 4px; animation: fadeInSlide 0.3s ease-out;">
+                                <div style="font-size: 0.8rem; color: var(--text-color); line-height: 1.3; margin-bottom: 0.2rem;">{title_preview}</div>
+                                <div style="font-size: 0.75rem; color: var(--secondary-text-color);">
+                                    <span style="color: #b31b1b; font-weight: 500;">arxiv:{arxiv_code}</span> • {citations} citations
+                                </div>
+                            </div>
+                            """
+                        st.markdown(paper_html, unsafe_allow_html=True)
+
+        # Recent Activity Section
+        activity_log = progress_state.get("activity_log", [])
+        if activity_log:
+            st.markdown("**📝 Recent Activity**")
+            for activity in activity_log[-3:]:
+                # Clean up the activity message for display
+                clean_activity = (
+                    activity.replace("🎯 ", "").replace("🤖 ", "").replace("📝 ", "")
+                )
+                if len(clean_activity) > 200:
+                    clean_activity = clean_activity[:197] + "..."
+                st.markdown(
+                    f"<div style='font-size: 0.85rem; margin-left: 1rem; color: var(--text-color); opacity: 0.8;'>• {clean_activity}</div>",
+                    unsafe_allow_html=True,
+                )
+
+        # Add some breathing room at the bottom
+        st.markdown(
+            "<div style='margin-bottom: 0.5rem;'></div>", unsafe_allow_html=True
+        )
 
 
 def get_initial_query_value() -> str:
@@ -1424,8 +1622,13 @@ def render_research_settings_panel() -> dict:
     }
 
 
-def display_research_results(title: str, response: str, referenced_codes: List[str], 
-                           relevant_codes: List[str], papers_df: pd.DataFrame):
+def display_research_results(
+    title: str,
+    response: str,
+    referenced_codes: List[str],
+    relevant_codes: List[str],
+    papers_df: pd.DataFrame,
+):
     """Display research results with paper citations."""
     st.divider()
     st.markdown(f"#### {title}")
@@ -1447,7 +1650,7 @@ def display_research_results(title: str, response: str, referenced_codes: List[s
         # Get referenced papers
         reference_df = papers_df.loc[referenced_codes]
         if display_format == "Grid View":
-            generate_grid_gallery(reference_df, n_cols=5, extra_key="_chat")
+            generate_grid_gallery(reference_df, n_cols=5, extra_key="_chat", image_type=st.session_state.global_image_type)
         else:
             generate_citations_list(reference_df)
 
@@ -1456,7 +1659,7 @@ def display_research_results(title: str, response: str, referenced_codes: List[s
             st.markdown("<h4>Other Relevant Papers:</h4>", unsafe_allow_html=True)
             relevant_df = papers_df.loc[relevant_codes]
             if display_format == "Grid View":
-                generate_grid_gallery(relevant_df, n_cols=5, extra_key="_chat")
+                generate_grid_gallery(relevant_df, n_cols=5, extra_key="_chat", image_type=st.session_state.global_image_type)
             else:
                 generate_citations_list(relevant_df)
 

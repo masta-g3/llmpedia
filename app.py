@@ -53,6 +53,9 @@ if "all_years" not in st.session_state:
 if "facts_refresh_trigger" not in st.session_state:
     st.session_state.facts_refresh_trigger = 0
 
+if "global_image_type" not in st.session_state:
+    st.session_state.global_image_type = "first_page"
+
 # Chat-related state variables
 if "chat_response" not in st.session_state:
     st.session_state.chat_response = None
@@ -186,7 +189,7 @@ def get_featured_paper(papers_df: pd.DataFrame) -> Dict:
     return papers_df[papers_df["arxiv_code"] == arxiv_code].iloc[0].to_dict()
 
 
-@st.cache_data(ttl=timedelta(minutes=15))
+@st.cache_data(ttl=timedelta(minutes=5))
 def get_active_users_count() -> int:
     """Get active users count with caching."""
     return logging_db.get_active_users_last_24h()
@@ -278,7 +281,7 @@ def chat_fragment():
     
     # Action buttons
     chat_cols = st.columns((1, 1, 1))
-    chat_btn = chat_cols[0].button("Send", disabled=chat_btn_disabled)
+    chat_btn = chat_cols[0].button("Run Deep Research", disabled=chat_btn_disabled)
 
     # Show clear button only when we have a response
     if st.session_state.chat_response:
@@ -306,6 +309,8 @@ def chat_fragment():
                     "activity_log": [],
                     "insights_found": 0,
                     "papers_found": 0,
+                    "insights_list": [],
+                    "papers_list": [],
                 }
                 
                 def update_progress(message: str):
@@ -470,6 +475,12 @@ def main():
         # "Have questions or interested in LLM research? Chat with the Maestro or follow us [@GPTMaestro](https://twitter.com/GPTMaestro) for the latest updates.\n\n"
         # "*Buona lettura!*",
     )
+    st.markdown(
+        """<div style="font-size: 0.85em; opacity: 0.7; margin-top: 0.5em; margin-bottom: 0.5em;">
+        💡 <em>Use filters sidebar (←) to search papers, adjust year, or switch between artwork/page views</em>
+        </div>""",
+        unsafe_allow_html=True,
+    )
     ## Main content.
     full_papers_df = load_data()
     papers_df, year = su.create_sidebar(full_papers_df)
@@ -534,7 +545,7 @@ def main():
     st.sidebar.markdown(
         """
     <div class="llmp-sidebar-footer">
-        <a href="https://github.com/masta-g3/llmpedia/blob/main/VERSIONS.md" target="_blank">v1.6.0</a>
+        <span>v2.0.0</span>
     </div>
 
     <div class="llmp-acknowledgment">
@@ -555,7 +566,7 @@ def main():
             "🧮 Release Feed",
             "🗺️ Statistics & Topics",
             "🔍 Paper Details",
-            "🔬 Deep Research",
+            "🔬 Ask the GPT Maestro",
             "⚙️ Links & Repositories",
             "🗞 Weekly Report",
         ]
@@ -602,30 +613,31 @@ def main():
                 🔬 Ask the GPT Maestro
             </div>
             <div class="trending-panel-subtitle">
-                AI-powered multi-agent research with cited sources
+                Try our AI-powered multi-agent research with cited sources
             </div>
         </div>
         """
         st.markdown(header_html, unsafe_allow_html=True)
         
-        st.markdown(
-            "Got specific questions about LLMs, arXiv papers, or need to find relevant research? "
-            "Our AI-powered Deep Research tool uses specialized agents to find answers, synthesize content, and discover related work with cited sources. "
-            "Ask the GPT maestro!"
-        )
-        shared_query_news_tab = st.text_input(
-            "Ask your question here first:",
-            key="news_tab_shared_query_input",
-            placeholder="E.g., Why do LLMs sometimes exhibit ADHD like symptoms?",
-        )
-        if st.button(
-            "Explore Deep Research", key="explore_deep_research_news_promo"
-        ):
-            query_to_pass = st.session_state.get("news_tab_shared_query_input", "")
-            if query_to_pass:  # Only pass if there's actual text
-                st.session_state.query_to_pass_to_chat = query_to_pass
-                st.session_state.auto_execute_research = True  # Auto-trigger research
-            su.click_tab(4)  # Navigate to the Deep Research tab
+
+        search_cols = st.columns((6, 1))
+        with search_cols[0]:
+            shared_query_news_tab = st.text_input(
+                "Ask your question here first:",
+                key="news_tab_shared_query_input",
+                placeholder="E.g., Why do LLMs sometimes exhibit ADHD like symptoms?",
+            )
+        with search_cols[1]:
+            st.write(" ") # Add some vertical spacing
+            st.write(" ") # Add some vertical spacing
+            if st.button(
+                "Run Deep Research", key="explore_deep_research_news_promo", use_container_width=True
+            ):
+                query_to_pass = st.session_state.get("news_tab_shared_query_input", "")
+                if query_to_pass:  # Only pass if there's actual text
+                    st.session_state.query_to_pass_to_chat = query_to_pass
+                    st.session_state.auto_execute_research = True  # Auto-trigger research
+                su.click_tab(4)  # Navigate to the Deep Research tab
 
         st.divider()
         row2_cols = st.columns([4, 0.1, 2])
@@ -837,12 +849,9 @@ def main():
             st.session_state.page_number = 0
 
         # Add view selector with radio buttons
-        if "view_mode" not in st.session_state:
-            st.session_state.view_mode = "Grid View"
-
         view_mode = st.radio(
             "Display Mode",
-            options=["Artwork Grid", "First Page Grid", "Table View"],
+            options=["Grid View", "Table View"],
             horizontal=True,
             key="view_selector",
             index=0,
@@ -854,10 +863,8 @@ def main():
         )
 
         # Display content based on selected view
-        if view_mode == "Artwork Grid":
-            su.generate_grid_gallery(papers_df_subset, image_type="artwork")
-        elif view_mode == "First Page Grid":
-            su.generate_grid_gallery(papers_df_subset, image_type="first_page")
+        if view_mode == "Grid View":
+            su.generate_grid_gallery(papers_df_subset, image_type=st.session_state.global_image_type)
         elif view_mode == "Table View":
             su.generate_paper_table(papers_df_subset)
 
@@ -995,6 +1002,7 @@ def main():
 
         # Text input remains outside the fragment to update session state
         search_cols = st.columns((7, 1))
+        st.divider()
         st.session_state.details_canvas = st.container()
         with search_cols[0]:
             arxiv_code_input = st.text_input("arXiv Code", "")
