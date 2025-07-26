@@ -69,12 +69,6 @@ This guide provides step-by-step instructions to deploy the LLMpedia Streamlit a
     ```bash
     sudo apt install -y certbot python3-certbot-nginx
     ```
-5.  **Inject Meta Tags**: Run the script to inject Twitter meta tags into Streamlit's core HTML file. Ensure the virtual environment is active.
-    ```bash
-    # Make sure the venv is active: source .venv/bin/activate
-    # Note: Assuming your project root is the current directory
-    python deployment/inject_meta_tags.py
-    ```
 
 ## Step 3: Deploy Application Code
 
@@ -95,7 +89,14 @@ This guide provides step-by-step instructions to deploy the LLMpedia Streamlit a
     ```
     *Note: `streamlit` is included in `requirements.txt`.*
 
-4.  **Configure Environment Variables**:
+4.  **Inject Meta Tags**: Run the script to inject Twitter meta tags into Streamlit's core HTML file:
+    ```bash
+    # Make sure the venv is active: source .venv/bin/activate
+    # Note: Assuming your project root is the current directory
+    python deployment/inject_meta_tags.py
+    ```
+
+5.  **Configure Environment Variables**:
     - Copy the template:
       ```bash
       cp .env.template .env
@@ -134,11 +135,11 @@ This guide provides step-by-step instructions to deploy the LLMpedia Streamlit a
     ```bash
     sudo cp deployment/digitalocean/nginx_streamlit.conf /etc/nginx/sites-available/llmpedia
     ```
-2.  **Edit Configuration**: Open the copied file and replace `your_domain.com www.your_domain.com` with your actual domain name(s) (e.g., `llmpedia.ai www.llmpedia.ai`):
+2.  **Review Configuration**: The configuration file is already well configured, but review and modify if needed (the domain URL should already be correct):
     ```bash
     sudo nano /etc/nginx/sites-available/llmpedia
     ```
-    *(Save and close)*
+    *(Save and close if any changes were made)*
 
 3.  **Set Static File Permissions**: Set the correct ownership and permissions for the static directory so Nginx can read the files.
     ```bash
@@ -189,14 +190,14 @@ This guide provides step-by-step instructions to deploy the LLMpedia Streamlit a
     ```bash
     sudo cp deployment/digitalocean/streamlit_app.service /etc/systemd/system/streamlit_app.service
     ```
-2.  **Edit Service File**: Modify the service file to match your setup:
+2.  **Review Service File**: The service file is already prefilled, but review to ensure paths match your setup:
     ```bash
     sudo nano /etc/systemd/system/streamlit_app.service
     ```
-    - Replace `your_user` and `your_group` with the username and group you created in Step 1.
-    - Replace `/path/to/your/llmpedia` with the *absolute path* to your application directory (e.g., `/home/your_user/llmpedia`). Make sure this path is correct for both `WorkingDirectory` and `EnvironmentFile`.
-    - Ensure the path to `streamlit` in `ExecStart` is correct. If you installed it within the virtual environment, the path might be `/home/your_user/llmpedia/.venv/bin/streamlit`. You can verify with `which streamlit` *while the venv is active*.
-    *(Save and close)*
+    - Verify `your_user` and `your_group` match the username and group you created in Step 1.
+    - Verify `/path/to/your/llmpedia` matches the *absolute path* to your application directory (e.g., `/home/your_user/llmpedia`).
+    - Verify the path to `streamlit` in `ExecStart` is correct (should be `/home/your_user/llmpedia/.venv/bin/streamlit`).
+    *(Save and close if any changes were made)*
 
 3.  **Reload Systemd**: Inform systemd about the new service file:
     ```bash

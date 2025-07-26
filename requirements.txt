@@ -1,5 +1,6 @@
 anthropic==0.40.0
 beautifulsoup4==4.12.3
+boto3==1.35.90
 cohere==5.13.12
 colorcet==3.0.1
 instructor==1.4.1
