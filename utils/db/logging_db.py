@@ -111,13 +111,13 @@ def report_issue(arxiv_code: str, issue_type: str) -> bool:
     except Exception as e:
         raise e
 
-def get_active_users_last_24h() -> int:
-    """Get the count of unique visitors in the last 24 hours."""
-    query = """
+def get_active_users(lookback_hours: int = 12) -> int:
+    """Get the count of unique visitors in the last `lookback_hours` hours."""
+    query = f"""
         SELECT COUNT(DISTINCT visit_id) 
         FROM visit_logs
-        WHERE tstp > NOW() - INTERVAL '1 days'
-    """        
+        WHERE tstp > NOW() - INTERVAL '{lookback_hours} hours'
+    """
     result = execute_read_query(query)
     return result['count'].iloc[0]
 

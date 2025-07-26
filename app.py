@@ -189,10 +189,10 @@ def get_featured_paper(papers_df: pd.DataFrame) -> Dict:
     return papers_df[papers_df["arxiv_code"] == arxiv_code].iloc[0].to_dict()
 
 
-@st.cache_data(ttl=timedelta(minutes=5))
+@st.cache_data(ttl=timedelta(minutes=15))
 def get_active_users_count() -> int:
     """Get active users count with caching."""
-    return logging_db.get_active_users_last_24h()
+    return logging_db.get_active_users()
 
 
 @st.cache_data
@@ -307,6 +307,7 @@ def chat_fragment():
                     "agents_completed": 0,
                     "current_agent": 0,
                     "activity_log": [],
+                    "total_activities": 0,
                     "insights_found": 0,
                     "papers_found": 0,
                     "insights_list": [],
@@ -320,10 +321,11 @@ def chat_fragment():
                     updates = su.parse_research_progress_message(message)
                     progress_state.update(updates)
                     
-                    # Add to activity log (keep last 5 entries)
+                    # Add to activity log (keep last 4 entries) and increment total counter
                     progress_state["activity_log"].append(message)
-                    if len(progress_state["activity_log"]) > 5:
-                        progress_state["activity_log"] = progress_state["activity_log"][-5:]
+                    progress_state["total_activities"] = progress_state.get("total_activities", 0) + 1
+                    if len(progress_state["activity_log"]) > 4:
+                        progress_state["activity_log"] = progress_state["activity_log"][-4:]
                     
                     # Render updated progress
                     su.render_research_progress(status, progress_state)

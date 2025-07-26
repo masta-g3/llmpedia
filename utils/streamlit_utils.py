@@ -1451,59 +1451,88 @@ def render_research_progress(status_widget, progress_state: dict):
 
     # Clear and update the content container
     with progress_state["content_container"].container():
-        # Phase Status Section (first - provides context)
-        phase_details = progress_state.get("phase_details")
-        if phase_details:
-            # Add animated wait indicator when research is active
-            show_indicator = current_phase != "Complete"
+        # Clean timeline header with total activity counter
+        activity_log = progress_state.get("activity_log", [])
+        total_activities = progress_state.get("total_activities", 0)
+        displayed_activities = len(activity_log)
+        
+        timeline_header = f"""
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+            <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-color);">📡 Research Timeline</div>
+            <div style="width: 6px; height: 6px; background: #4caf50; border-radius: 50%; animation: pulse 2s ease-in-out infinite;"></div>
+            <div style="font-size: 0.75rem; color: var(--text-color); opacity: 0.6;">({total_activities} total)</div>
+        </div>
+        <style>
+        @keyframes pulse {{
+            0% {{ opacity: 1; transform: scale(1); }}
+            50% {{ opacity: 0.4; transform: scale(1.3); }}
+            100% {{ opacity: 1; transform: scale(1); }}
+        }}
+        </style>
+        """
+        st.markdown(timeline_header, unsafe_allow_html=True)
 
-            if show_indicator:
-                phase_html = f"""
-                    <style>
-                    @keyframes pulse {{
-                        0% {{ opacity: 1; transform: scale(1); }}
-                        50% {{ opacity: 0.4; transform: scale(1.2); }}
-                        100% {{ opacity: 1; transform: scale(1); }}
-                    }}
-                    </style>
-                    <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(179, 27, 27, 0.05); border-left: 3px solid #b31b1b; border-radius: 4px;">
-                        <div style="font-weight: 600; color: #b31b1b; font-size: 0.9rem; margin-bottom: 0.25rem; display: flex; align-items: center;">
-                            🎯 Current Phase
-                            <div style="display: inline-flex; align-items: center; margin-left: 0.5rem;">
-                                <div style="width: 8px; height: 8px; background: #b31b1b; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite;"></div>
-                            </div>
-                        </div>
-                        <div style="font-size: 0.85rem; color: var(--text-color);">{phase_details}</div>
-                    </div>
-                    """
-            else:
-                phase_html = f"""
-                    <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(179, 27, 27, 0.05); border-left: 3px solid #b31b1b; border-radius: 4px;">
-                        <div style="font-weight: 600; color: #b31b1b; font-size: 0.9rem; margin-bottom: 0.25rem;">🎯 Current Phase</div>
-                        <div style="font-size: 0.85rem; color: var(--text-color);">{phase_details}</div>
-                    </div>
-                    """
-
-            st.markdown(phase_html, unsafe_allow_html=True)
-
-        # Agent Progress Section (second - shows active work)
-        if agents_total > 0:
-            agent_status = []
-            for i in range(1, agents_total + 1):
-                if i <= agents_completed:
-                    agent_status.append("✅")
-                elif i == progress_state.get("current_agent", 0):
-                    agent_status.append("🔄")
+        # Timeline with truncation indicator
+        if activity_log:
+            # Show "earlier activities" if we have more total than displayed
+            if total_activities > displayed_activities:
+                earlier_count = total_activities - displayed_activities
+                truncation_entry = (
+                    '<div style="display: flex; margin-bottom: 0.1rem; opacity: 0.5;">'
+                    '<div style="display: flex; flex-direction: column; align-items: center; margin-right: 0.75rem; min-width: 20px;">'
+                    '<div style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; color: #999;">⋯</div>'
+                    '<div style="width: 2px; height: 16px; background: rgba(179, 27, 27, 0.2); margin-top: 4px;"></div>'
+                    '</div>'
+                    f'<div style="flex: 1; font-size: 0.75rem; color: var(--text-color); opacity: 0.6; line-height: 1.3; padding-top: 2px; font-style: italic;">{earlier_count} earlier activities...</div>'
+                    '</div>'
+                )
+                st.markdown(truncation_entry, unsafe_allow_html=True)
+            
+            # Timeline entries
+            for i, activity in enumerate(activity_log):
+                # Clean up the activity message for display
+                clean_activity = (
+                    activity.replace("🎯 ", "").replace("🤖 ", "").replace("📝 ", "")
+                )
+                if len(clean_activity) > 200:
+                    clean_activity = clean_activity[:197] + "..."
+                
+                # Add minimal log-style prefix: step number from total count
+                step_number = total_activities - len(activity_log) + i + 1
+                clean_activity = f"#{step_number} {clean_activity}"
+                
+                # Determine activity type and icon
+                if "Phase" in activity:
+                    icon = "🎯"
+                    color = "#b31b1b"
+                elif "Agent" in activity:
+                    icon = "🤖"
+                    color = "#2196f3"
+                elif "complete" in activity.lower():
+                    icon = "✅"
+                    color = "#4caf50"
                 else:
-                    agent_status.append("⭕")
-
-            agent_html = f"""
-                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(76, 175, 80, 0.05); border-left: 3px solid #4caf50; border-radius: 4px;">
-                    <div style="font-weight: 600; color: #4caf50; font-size: 0.9rem; margin-bottom: 0.25rem;">🤖 Research Agents</div>
-                    <div style="font-size: 1.2rem; letter-spacing: 0.2rem;">{' '.join(agent_status)}</div>
-                </div>
-                """
-            st.markdown(agent_html, unsafe_allow_html=True)
+                    icon = "📝"
+                    color = "#9c27b0"
+                
+                # Calculate timeline position (newest at top)
+                is_latest = i == len(activity_log) - 1
+                
+                # Build timeline entry components separately
+                connector_line = '' if i == len(activity_log) - 1 else '<div style="width: 2px; height: 16px; background: rgba(179, 27, 27, 0.2); margin-top: 4px;"></div>'
+                opacity = '1' if is_latest else '0.8'
+                
+                # Simple timeline entry without nested quotes issues
+                timeline_entry = (
+                    '<div style="display: flex; margin-bottom: 0rem;">'
+                    '<div style="display: flex; flex-direction: column; align-items: center; margin-right: 0.75rem; min-width: 20px;">'
+                    f'<div style="width: 20px; height: 20px; background: {color}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">{icon}</div>'
+                    f'{connector_line}'
+                    '</div>'
+                    f'<div style="flex: 1; font-size: 0.8rem; color: var(--text-color); opacity: {opacity}; line-height: 1.3; padding-top: 2px;">{clean_activity}</div>'
+                    '</div>'
+                )
+                st.caption(timeline_entry, unsafe_allow_html=True)
 
         # Research Discovery Feed Section
         insights_list = progress_state.get("insights_list", [])
@@ -1515,64 +1544,38 @@ def render_research_progress(status_widget, progress_state: dict):
             # Insights Column (Left)
             with discovery_cols[0]:
                 st.markdown("**💡 Insights Discovered**")
-                insights_container = st.container()
-                with insights_container:
-                    for i, insight in enumerate(insights_list[-4:]):  # Show last 4
-                        insight_preview = (
-                            insight[:100] + "..." if len(insight) > 100 else insight
-                        )
-                        insight_html = f"""
-                            <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: rgba(103, 58, 183, 0.08); border-left: 3px solid #673ab7; border-radius: 4px; animation: fadeInSlide 0.3s ease-out;">
-                                <div style="font-size: 0.85rem; color: var(--text-color); line-height: 1.4;">{insight_preview}</div>
-                            </div>
-                            <style>
-                            @keyframes fadeInSlide {{
-                                0% {{ opacity: 0; transform: translateY(-10px); }}
-                                100% {{ opacity: 1; transform: translateY(0); }}
-                            }}
-                            </style>
-                            """
-                        st.markdown(insight_html, unsafe_allow_html=True)
+                for insight in insights_list[-4:]:  # Show last 4
+                    insight_preview = (
+                        insight[:100] + "..." if len(insight) > 100 else insight
+                    )
+                    insight_html = f"""
+                        <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: rgba(103, 58, 183, 0.08); border-left: 3px solid #673ab7; border-radius: 4px;">
+                            <div style="font-size: 0.85rem; color: var(--text-color); line-height: 1.4;">{insight_preview}</div>
+                        </div>
+                        """
+                    st.markdown(insight_html, unsafe_allow_html=True)
 
             # Papers Column (Right)
             with discovery_cols[1]:
                 st.markdown("**📄 Papers Found**")
-                papers_container = st.container()
-                with papers_container:
-                    for paper in papers_list[-6:]:  # Show last 6
-                        title_preview = (
-                            paper.get("title", "")[:60] + "..."
-                            if len(paper.get("title", "")) > 60
-                            else paper.get("title", "")
-                        )
-                        arxiv_code = paper.get("arxiv_code", "")
-                        citations = paper.get("citations", 0)
+                for paper in papers_list[-6:]:  # Show last 6
+                    title_preview = (
+                        paper.get("title", "")[:60] + "..."
+                        if len(paper.get("title", "")) > 60
+                        else paper.get("title", "")
+                    )
+                    arxiv_code = paper.get("arxiv_code", "")
+                    citations = paper.get("citations", 0)
 
-                        paper_html = f"""
-                            <div style="margin-bottom: 0.5rem; padding: 0.4rem; background: rgba(33, 150, 243, 0.08); border-left: 3px solid #2196f3; border-radius: 4px; animation: fadeInSlide 0.3s ease-out;">
-                                <div style="font-size: 0.8rem; color: var(--text-color); line-height: 1.3; margin-bottom: 0.2rem;">{title_preview}</div>
-                                <div style="font-size: 0.75rem; color: var(--secondary-text-color);">
-                                    <span style="color: #b31b1b; font-weight: 500;">arxiv:{arxiv_code}</span> • {citations} citations
-                                </div>
+                    paper_html = f"""
+                        <div style="margin-bottom: 0.5rem; padding: 0.4rem; background: rgba(33, 150, 243, 0.08); border-left: 3px solid #2196f3; border-radius: 4px;">
+                            <div style="font-size: 0.8rem; color: var(--text-color); line-height: 1.3; margin-bottom: 0.2rem;">{title_preview}</div>
+                            <div style="font-size: 0.75rem; color: var(--secondary-text-color);">
+                                <span style="color: #b31b1b; font-weight: 500;">arxiv:{arxiv_code}</span> • {citations} citations
                             </div>
-                            """
-                        st.markdown(paper_html, unsafe_allow_html=True)
-
-        # Recent Activity Section
-        activity_log = progress_state.get("activity_log", [])
-        if activity_log:
-            st.markdown("**📝 Recent Activity**")
-            for activity in activity_log[-3:]:
-                # Clean up the activity message for display
-                clean_activity = (
-                    activity.replace("🎯 ", "").replace("🤖 ", "").replace("📝 ", "")
-                )
-                if len(clean_activity) > 200:
-                    clean_activity = clean_activity[:197] + "..."
-                st.markdown(
-                    f"<div style='font-size: 0.85rem; margin-left: 1rem; color: var(--text-color); opacity: 0.8;'>• {clean_activity}</div>",
-                    unsafe_allow_html=True,
-                )
+                        </div>
+                        """
+                    st.markdown(paper_html, unsafe_allow_html=True)
 
         # Add some breathing room at the bottom
         st.markdown(
@@ -1654,7 +1657,7 @@ def display_research_results(
 
         st.markdown("<h4>Referenced Papers:</h4>", unsafe_allow_html=True)
         # Get referenced papers
-        reference_df = papers_df.loc[referenced_codes]
+        reference_df = papers_df.loc[[c for c in referenced_codes if c in papers_df.index]]
         if display_format == "Grid View":
             generate_grid_gallery(reference_df, n_cols=5, extra_key="_chat", image_type=st.session_state.global_image_type)
         else:
