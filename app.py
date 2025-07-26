@@ -588,9 +588,9 @@ def main():
         [
             "🏠 Main",
             "🧮 Release Feed",
-            "🗺️ Statistics & Topics",
+            "💬 Ask GPT Maestro",
             "🔍 Paper Details",
-            "🔬 Ask the GPT Maestro",
+            "🗺️ Statistics & Topics",
             "⚙️ Links & Repositories",
             "🗞 Weekly Report",
         ]
@@ -661,7 +661,7 @@ def main():
                 if query_to_pass:  # Only pass if there's actual text
                     st.session_state.query_to_pass_to_chat = query_to_pass
                     st.session_state.auto_execute_research = True  # Auto-trigger research
-                su.click_tab(4)  # Navigate to the Deep Research tab
+                su.click_tab(2)  # Navigate to the Deep Research tab
 
         st.divider()
         row2_cols = st.columns([4, 0.1, 2])
@@ -895,6 +895,30 @@ def main():
         su.create_bottom_navigation("grid")
 
     with content_tabs[2]:
+        chat_fragment()
+
+    with content_tabs[3]:
+        ## Focus on a paper.
+        if len(st.session_state.arxiv_code) == 0:
+            st.markdown(
+                "<div style='font-size: 0.9em; opacity: 0.8; margin-bottom: 1.5em;'>💡 <em>Search a paper by its arXiv code, or use the sidebar to search and filter papers by title, author, or other attributes.</em></div>",
+                unsafe_allow_html=True,
+            )
+
+        # Text input remains outside the fragment to update session state
+        search_cols = st.columns((7, 1))
+        st.divider()
+        st.session_state.details_canvas = st.container()
+        with search_cols[0]:
+            arxiv_code_input = st.text_input("arXiv Code", "")
+        with search_cols[1]:
+            st.write("  ")
+            st.write("  ")
+            if st.button("Search"):
+                st.session_state.arxiv_code = arxiv_code_input
+                su.click_tab(3)
+
+    with content_tabs[4]:
         total_papers = len(papers_df)
         
         # Publication Counts Section with consistent header styling
@@ -1014,30 +1038,6 @@ def main():
                         # st.query_params["arxiv_code"] = arxiv_code
                         st.session_state.arxiv_code = arxiv_code
                         su.click_tab(3)
-
-    with content_tabs[3]:
-        ## Focus on a paper.
-        if len(st.session_state.arxiv_code) == 0:
-            st.markdown(
-                "<div style='font-size: 0.9em; opacity: 0.8; margin-bottom: 1.5em;'>💡 <em>Search a paper by its arXiv code, or use the sidebar to search and filter papers by title, author, or other attributes.</em></div>",
-                unsafe_allow_html=True,
-            )
-
-        # Text input remains outside the fragment to update session state
-        search_cols = st.columns((7, 1))
-        st.divider()
-        st.session_state.details_canvas = st.container()
-        with search_cols[0]:
-            arxiv_code_input = st.text_input("arXiv Code", "")
-        with search_cols[1]:
-            st.write("  ")
-            st.write("  ")
-            if st.button("Search"):
-                st.session_state.arxiv_code = arxiv_code_input
-                su.click_tab(3)
-
-    with content_tabs[4]:
-        chat_fragment()
 
     with content_tabs[5]:
         # Links & Repositories header with consistent styling

@@ -278,7 +278,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
 
     # Content sections using tabs
     tab_names = [
-        "🤖 Ask GPT Maestro",  # Enhanced title following current style
+        "💬 Ask GPT Maestro",  # Enhanced title following current style
         "❗️ Takeaways",  # Concise overview
         "📝 Research Notes",  # More detailed analysis
         "📖 Full Paper",  # Complete in-depth content
