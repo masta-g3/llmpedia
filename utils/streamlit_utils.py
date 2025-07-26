@@ -1129,17 +1129,23 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
             arxiv_code = fact["arxiv_code"]
             if arxiv_code in papers_df.index and "topic" in papers_df.columns:
                 topic_full = papers_df.loc[arxiv_code, "topic"]
-                topic = topic_full[:30] + "..." if len(topic_full) > 30 else topic_full
+                # Handle NaN values safely
+                if pd.notna(topic_full) and isinstance(topic_full, str):
+                    topic = topic_full[:30] + "..." if len(topic_full) > 30 else topic_full
 
         with cols[col_idx]:
             # Create a container with padding and subtle border
             with st.container():
+                # Build topic HTML safely
+                topic_html = ""
+                if topic and topic_full:
+                    topic_html = f"<span class='fact-topic' title='{topic_full}'>{topic}</span>"
+                
                 st.markdown(
                     f"""<div class="fact-card">
                     <div class="fact-content">{fact['fact']}</div>
-                    <div class="fact-metadata">
-                        {"<span class='fact-topic' title='" + topic_full + "'>" + topic + "</span>" if topic else ""}
-                        <div class="fact-paper-link">
+                    <div class="fact-metadata">{topic_html}
+                    <div class="fact-paper-link">
                         <a href="https://arxiv.org/abs/{fact['arxiv_code']}" target="_blank">
                             {fact['paper_title'][:75] + ('...' if len(fact['paper_title']) > 75 else '')}
                         </a>

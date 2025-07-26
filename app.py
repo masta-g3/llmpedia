@@ -743,16 +743,15 @@ def main():
             @st.fragment
             def interesting_fact_display():
                 # Section header with consistent styling
-                header_html = """
-                <div class="trending-panel-header">
-                    <div class="trending-panel-title">
-                        💡 Interesting Fact
-                    </div>
-                    <div class="trending-panel-subtitle">
-                        Random discovery from recent research
-                    </div>
-                </div>
-                """
+                header_html = """<div class="trending-panel-header">
+    <div class="trending-panel-title">
+        💡 Interesting Fact
+    </div>
+    <div class="trending-panel-subtitle">
+        Random discovery from recent research
+    </div>
+</div>
+"""
                 st.markdown(header_html, unsafe_allow_html=True)
                 
                 # Retrieve a single random fact (cached) and display it
