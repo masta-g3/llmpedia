@@ -31,7 +31,7 @@ def inject_meta_tags():
         {'name': 'twitter:creator', 'content': '@GPTMaestro'},
         {'name': 'twitter:title', 'content': 'LLMpedia - The Illustrated Large Language Model Encyclopedia'},
         {'name': 'twitter:description', 'content': 'Discover LLM research visually: AI-generated summaries, interactive visualizations, and weekly reviews of cutting-edge AI papers.'},
-        {'name': 'twitter:image', 'content': 'https://raw.githubusercontent.com/masta-g3/llmpedia/refs/heads/main/logo3.png'}
+        {'name': 'twitter:image', 'content': 'https://raw.githubusercontent.com/masta-g3/llmpedia/refs/heads/main/logo5.png'}
     ]
 
     try:
