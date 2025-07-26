@@ -129,7 +129,7 @@ def create_research_brief_prompt(user_question: str) -> str:
 
 <instructions>
 1. Analyze the user's question and create a focused research brief
-2. Identify 3-5 independent subtopics that together comprehensively address the question
+2. Identify 3-5 independent, orthogonal subtopics that together comprehensively address the question
 3. Define clear research scope and timeline expectations
 4. Ensure subtopics don't overlap and can be researched independently
 
@@ -165,7 +165,7 @@ Create a comprehensive list of research assignments. For each subtopic in the re
 
 1. Clear direct, clear and targeted subtopic definition.
 2. Specific search strategy tailored to that subtopic.
-3. 2-3 semantic search queries using targeted academic language.
+3. 2-3 diverse and non-overlapping semantic search queries using targeted academic language.
 4. Expected type of findings this subtopic should contribute.
 5. Optional publication date constraints (min/max) when temporal focus is important.
 </instructions>
@@ -174,7 +174,7 @@ Create a comprehensive list of research assignments. For each subtopic in the re
 - Use language typical of academic abstracts - phrase queries as if they were part of the text found in abstracts.
 - Consider that there are likely few or no relevant papers to very niche subtopics, so try to effectively balance between breadth and depth of search.
 - Focus on key terms and methodological language common in research papers about the subtopic.
-- Make queries diverse enough to capture different aspects of the subtopic.
+- Make queries diverse enough to capture different aspects of the subtopic. Think about how to avoid situations where your queries all return the same set of papers.
 - Make your queries concise and to the point, aiming to maximize semantic similarity between the query and the axiv documents you expect to find.
 </guidelines_for_search_queries>
 
