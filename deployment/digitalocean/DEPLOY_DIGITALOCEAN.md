@@ -50,11 +50,20 @@ This guide provides step-by-step instructions to deploy the LLMpedia Streamlit a
     ```
 3.  **Install uv (Python Package Manager)**:
     ```bash
-    curl -sSf https://astral.sh/uv/install.sh | sh
+    # Primary installation method
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    
+    # Alternative methods if the above doesn't work:
+    # Via pip: pip install uv
+    # Via apt (if snapd is available): sudo snap install astral-uv --classic
+    
     ## Add uv to your PATH if the installer doesn't do it automatically
     export PATH="$HOME/.cargo/bin:$PATH"
     ## Add this line to your .bashrc or .zshrc to make it permanent
     echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+    
+    ## Verify installation
+    uv --version
     ```
 4.  **Install Certbot (for SSL)**:
     ```bash
@@ -75,9 +84,9 @@ This guide provides step-by-step instructions to deploy the LLMpedia Streamlit a
     git clone <your_repository_url> llmpedia
     cd llmpedia
     ```
-2.  **Create Virtual Environment**: Set up a virtual environment using uv:
+2.  **Create Virtual Environment**: Set up a virtual environment using uv with Python 3.11:
     ```bash
-    uv venv
+    uv venv --python 3.11
     source .venv/bin/activate
     ```
 3.  **Install Dependencies**: Install the required Python packages using uv:
