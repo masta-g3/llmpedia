@@ -436,6 +436,180 @@ def read_last_n_reddit_analyses(n: int = 10) -> pd.DataFrame:
     )
 
 
+def load_reddit_posts(arxiv_code: Optional[str] = None, drop_tstp: bool = True) -> pd.DataFrame:
+    """Load Reddit posts from reddit_posts table."""
+    return simple_select_query(
+        table="reddit_posts",
+        conditions={"arxiv_code": arxiv_code} if arxiv_code else None,
+        drop_cols=["tstp"] if drop_tstp else None,
+        index_col=None,
+    )
+
+
+def load_reddit_comments(post_reddit_id: Optional[str] = None, drop_tstp: bool = True) -> pd.DataFrame:
+    """Load Reddit comments from reddit_comments table."""
+    return simple_select_query(
+        table="reddit_comments",
+        conditions={"post_reddit_id": post_reddit_id} if post_reddit_id else None,
+        drop_cols=["tstp"] if drop_tstp else None,
+        index_col=None,
+    )
+
+
+def load_reddit_for_papers(arxiv_codes: List[str]) -> pd.DataFrame:
+    """Load Reddit posts and comments for specific arXiv papers."""
+    if not arxiv_codes:
+        return pd.DataFrame()
+    
+    query = """
+        SELECT 
+            p.arxiv_code,
+            p.reddit_id as post_reddit_id,
+            p.subreddit,
+            p.title as post_title,
+            p.selftext as post_content,
+            p.author as post_author,
+            p.score as post_score,
+            p.num_comments,
+            p.post_timestamp,
+            c.body as comment_content,
+            c.author as comment_author,
+            c.score as comment_score,
+            c.depth as comment_depth,
+            c.is_top_level
+        FROM reddit_posts p
+        LEFT JOIN reddit_comments c ON p.reddit_id = c.post_reddit_id
+        WHERE p.arxiv_code IN :arxiv_codes
+          AND p.arxiv_code IS NOT NULL
+          AND p.arxiv_code != ''
+          AND p.arxiv_code != 'null'
+        ORDER BY p.post_score DESC, c.score DESC
+    """
+    
+    return execute_read_query(query, {"arxiv_codes": tuple(arxiv_codes)})
+
+
+def get_reddit_metrics(arxiv_code: str) -> Dict[str, int]:
+    """Get Reddit engagement metrics for a specific arXiv paper."""
+    df = simple_select_query(
+        table="reddit_posts",
+        conditions={"arxiv_code": arxiv_code},
+        select_cols=["score", "num_comments"],
+    )
+    
+    if df.empty:
+        return {"total_posts": 0, "total_score": 0, "total_comments": 0, "avg_score": 0}
+    
+    return {
+        "total_posts": len(df),
+        "total_score": int(df["score"].sum()),
+        "total_comments": int(df["num_comments"].sum()),
+        "avg_score": int(df["score"].mean()) if len(df) > 0 else 0,
+    }
+
+
+def get_reddit_discussions_summary(arxiv_codes: List[str]) -> pd.DataFrame:
+    """Get aggregated Reddit discussion metrics for multiple papers."""
+    if not arxiv_codes:
+        return pd.DataFrame()
+    
+    query = """
+        SELECT 
+            p.arxiv_code,
+            COUNT(DISTINCT p.reddit_id) as post_count,
+            COUNT(DISTINCT c.reddit_id) as comment_count,
+            SUM(p.score) as total_post_score,
+            AVG(p.score) as avg_post_score,
+            COUNT(DISTINCT p.subreddit) as subreddit_count,
+            ARRAY_AGG(DISTINCT p.subreddit) as subreddits,
+            MAX(p.post_timestamp) as latest_discussion
+        FROM reddit_posts p
+        LEFT JOIN reddit_comments c ON p.reddit_id = c.post_reddit_id
+        WHERE p.arxiv_code IN :arxiv_codes
+          AND p.arxiv_code IS NOT NULL
+          AND p.arxiv_code != ''
+          AND p.arxiv_code != 'null'
+        GROUP BY p.arxiv_code
+        ORDER BY total_post_score DESC
+    """
+    
+    return execute_read_query(query, {"arxiv_codes": tuple(arxiv_codes)})
+
+
+def generate_reddit_semantic_search_query(
+    criteria: dict,
+    config: dict,
+    embedding_model: str = "embed-english-v3.0",
+) -> str:
+    """Generate SQL query for semantic search over Reddit content using pgvector."""
+    # Create Reddit-specific config mapping
+    reddit_config = {
+        "min_publication_date": "p.post_timestamp >= '%s'",
+        "max_publication_date": "p.post_timestamp <= '%s'",
+        "semantic_search_queries": "(%s)",
+    }
+    
+    query_parts = [
+        ## Select Reddit post/comment info
+        """SELECT 
+            p.reddit_id,
+            p.subreddit,
+            p.title,
+            p.selftext as content,
+            p.author,
+            p.score,
+            p.num_comments,
+            p.post_timestamp as published_date,
+            'reddit_post' as content_type""",
+        ## From Reddit posts with embeddings - use 'e' alias to match format_query_condition expectations
+        """FROM reddit_posts p, reddit_posts e""",
+        ## Basic filters - ensure we're using the same record from both aliases
+        """WHERE p.reddit_id = e.reddit_id
+        AND p.title IS NOT NULL
+        AND p.score >= 0""",
+    ]
+
+    ## Add similarity conditions if present - use reddit_config instead of passed config for date constraints
+    similarity_scores = []
+    for field, value in criteria.items():
+        if (
+            value is not None
+            and field not in ["response_length", "limit"]
+        ):
+            # Use reddit_config for date constraints, fall back to passed config for other fields
+            if field in reddit_config:
+                condition_str, similarity_expr = format_query_condition(
+                    field, reddit_config[field], value, embedding_model
+                )
+            elif field in config:
+                condition_str, similarity_expr = format_query_condition(
+                    field, config[field], value, embedding_model
+                )
+            else:
+                continue
+                
+            query_parts.append(f"AND {condition_str}")
+            if similarity_expr != "0 as max_similarity":
+                similarity_scores.append(similarity_expr)
+
+    # Add similarity score to SELECT if we have any
+    if similarity_scores:
+        similarity_select = (
+            f"GREATEST({', '.join(similarity_scores)}) as similarity_score"
+        )
+        query_parts[0] += f", {similarity_select}"
+        
+        # Add ORDER BY for similarity
+        if not any("ORDER BY" in part for part in query_parts[1:]):
+            query_parts.append("ORDER BY similarity_score DESC")
+
+    # Add LIMIT if specified in criteria
+    if "limit" in criteria and criteria["limit"] is not None:
+        query_parts.append(f"LIMIT {criteria['limit']}")
+
+    return "\n".join(query_parts)
+
+
 ###############
 ## TRENDING PAPERS ##
 ###############

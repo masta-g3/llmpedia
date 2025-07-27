@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Tuple, Optional, Callable
+from typing import List, Tuple, Optional, Callable, Dict
 import pandas as pd
 import numpy as np
 import datetime
@@ -125,18 +125,43 @@ def parse_weekly_report(report_md: str):
 
 
 def add_links_to_text_blob(response: str):
-    """Add links to arxiv codes in the response."""
+    """Add links to arxiv codes and Reddit posts in the response."""
 
-    def repl(match):
+    def arxiv_repl(match):
         return f"[arxiv:{match.group(1)}](https://llmpedia.ai/?arxiv_code={match.group(1)})"
 
-    return re.sub(r"arxiv:(\d{4}\.\d{4,5})", repl, response)
+    def reddit_repl(match):
+        reddit_id = match.group(1)
+        # Get Reddit post data to create proper link
+        try:
+            from utils.db import db_utils
+            query = "SELECT permalink, subreddit FROM reddit_posts WHERE reddit_id = :reddit_id LIMIT 1"
+            result = db_utils.execute_read_query(query, {"reddit_id": reddit_id})
+            if not result.empty:
+                permalink = result.iloc[0]["permalink"]
+                subreddit = result.iloc[0]["subreddit"]
+                return f"[r/{subreddit}:{reddit_id}]({permalink})"
+        except:
+            pass
+        # Fallback if lookup fails
+        return f"[reddit:{reddit_id}](https://www.reddit.com/search/?q={reddit_id})"
+
+    # Apply both transformations
+    response = re.sub(r"arxiv:(\d{4}\.\d{4,5})", arxiv_repl, response)
+    response = re.sub(r"reddit:([a-zA-Z0-9_]+)", reddit_repl, response)
+    return response
 
 
 def extract_arxiv_codes(text: str):
     """Extract unique arxiv codes from the text."""
     arxiv_codes = re.findall(r"arxiv:(\d{4}\.\d{4,5})", text)
     return list(set(arxiv_codes))
+
+
+def extract_reddit_codes(text: str):
+    """Extract unique Reddit post IDs from the text."""
+    reddit_codes = re.findall(r"reddit:([a-zA-Z0-9_]+)", text)
+    return list(set(reddit_codes))
 
 
 def get_img_link_for_blob(text_blob: str):
@@ -214,6 +239,37 @@ def create_rag_context(parent_docs: pd.DataFrame) -> str:
 ######################
 
 
+class RedditDiscussion(BaseModel):
+    subreddit: str
+    post_title: str
+    post_content: str
+    post_author: str
+    post_score: int
+    num_comments: int
+    post_timestamp: datetime.datetime
+    top_comments: List[str] = []
+    comment_scores: List[int] = []
+
+
+class RedditContent(BaseModel):
+    reddit_id: str
+    subreddit: str
+    title: str
+    content: str
+    author: str
+    score: int
+    num_comments: int
+    published_date: datetime.datetime
+    content_type: str  # 'reddit_post' or 'reddit_comment'
+    distance: float
+    citations: int = 0  # Reddit posts don't have citations, default to 0
+    
+    @property
+    def abstract(self) -> str:
+        """Map content to abstract for reranker compatibility."""
+        return self.content
+
+
 class Document(BaseModel):
     arxiv_code: str
     title: str
@@ -223,6 +279,8 @@ class Document(BaseModel):
     notes: str
     tokens: int
     distance: float
+    reddit_discussions: Optional[List[RedditDiscussion]] = None
+    reddit_metrics: Optional[Dict[str, int]] = None
 
 
 query_config_json = """
@@ -232,7 +290,10 @@ query_config_json = """
   "max_publication_date": "a.published <= '%s'",
   "topic_categories": "t.topic IN ('%s')",
   "min_citations": "s.citation_count > %d",
-  "semantic_search_queries": "(%s)"
+  "semantic_search_queries": "(%s)",
+  "min_reddit_score": "EXISTS (SELECT 1 FROM reddit_posts r WHERE r.arxiv_code = a.arxiv_code AND r.score >= %d)",
+  "subreddits": "EXISTS (SELECT 1 FROM reddit_posts r WHERE r.arxiv_code = a.arxiv_code AND r.subreddit IN ('%s'))",
+  "has_reddit_discussion": "EXISTS (SELECT 1 FROM reddit_posts r WHERE r.arxiv_code = a.arxiv_code AND r.arxiv_code IS NOT NULL AND r.arxiv_code != '' AND r.arxiv_code != 'null')"
 }
 """
 
@@ -828,3 +889,96 @@ def get_latest_weekly_highlight():
             return match.group(1)
 
     return None
+
+
+######################
+## REDDIT INTEGRATION ##
+######################
+
+
+def convert_reddit_data_to_discussions(reddit_df: pd.DataFrame) -> List[RedditDiscussion]:
+    """Convert Reddit DataFrame to RedditDiscussion objects."""
+    discussions = []
+    
+    if reddit_df.empty:
+        return discussions
+    
+    ## Group by post to aggregate comments
+    for arxiv_code, group in reddit_df.groupby('arxiv_code'):
+        post_data = group.iloc[0]  # Get post data from first row
+        
+        ## Extract comments from the group
+        comments = []
+        comment_scores = []
+        for _, row in group.iterrows():
+            if pd.notna(row.get('comment_content')) and row['comment_content'].strip():
+                comments.append(row['comment_content'])
+                comment_scores.append(row.get('comment_score', 0))
+        
+        ## Sort comments by score and take top ones
+        if comments:
+            comment_data = list(zip(comments, comment_scores))
+            comment_data.sort(key=lambda x: x[1], reverse=True)
+            top_comments = [comment for comment, _ in comment_data[:5]]  # Top 5 comments
+            scores = [score for _, score in comment_data[:5]]
+        else:
+            top_comments = []
+            scores = []
+        
+        discussion = RedditDiscussion(
+            subreddit=post_data['subreddit'],
+            post_title=post_data['post_title'],
+            post_content=post_data.get('post_content', '') or '',
+            post_author=post_data.get('post_author', '') or '',
+            post_score=int(post_data.get('post_score', 0)),
+            num_comments=int(post_data.get('num_comments', 0)),
+            post_timestamp=pd.to_datetime(post_data['post_timestamp']).to_pydatetime(),
+            top_comments=top_comments,
+            comment_scores=scores
+        )
+        discussions.append(discussion)
+    
+    return discussions
+
+
+def enhance_documents_with_reddit(documents: List[Document]) -> List[Document]:
+    """Enhance Document objects with Reddit discussions and metrics."""
+    if not documents:
+        return documents
+    
+    ## Import here to avoid circular imports
+    from utils.db import db
+    
+    ## Extract arXiv codes
+    arxiv_codes = [doc.arxiv_code for doc in documents]
+    
+    ## Load Reddit data for these papers
+    reddit_df = db.load_reddit_for_papers(arxiv_codes)
+    reddit_metrics_df = db.get_reddit_discussions_summary(arxiv_codes)
+    
+    ## Create mapping of arXiv codes to Reddit data
+    reddit_discussions_map = {}
+    if not reddit_df.empty:
+        for arxiv_code, group in reddit_df.groupby('arxiv_code'):
+            reddit_discussions_map[arxiv_code] = convert_reddit_data_to_discussions(group)
+    
+    reddit_metrics_map = {}
+    if not reddit_metrics_df.empty:
+        for _, row in reddit_metrics_df.iterrows():
+            reddit_metrics_map[row['arxiv_code']] = {
+                'post_count': int(row['post_count']),
+                'comment_count': int(row['comment_count']),
+                'total_post_score': int(row['total_post_score']),
+                'avg_post_score': float(row['avg_post_score']),
+                'subreddit_count': int(row['subreddit_count']),
+                'subreddits': row['subreddits']
+            }
+    
+    ## Enhance documents
+    enhanced_documents = []
+    for doc in documents:
+        doc.reddit_discussions = reddit_discussions_map.get(doc.arxiv_code, [])
+        doc.reddit_metrics = reddit_metrics_map.get(doc.arxiv_code, {})
+        enhanced_documents.append(doc)
+    
+    return enhanced_documents

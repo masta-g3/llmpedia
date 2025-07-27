@@ -335,7 +335,7 @@ def chat_fragment():
                         au.query_llmpedia_new(
                             user_question=user_question,
                             response_length=settings["response_length"],
-                            llm_model="openai/gpt-4.1-nano",
+                            llm_model="openai/gpt-4.1-mini",
                             max_sources=settings["max_sources"],
                             max_agents=settings["max_agents"],
                             debug=True,
@@ -348,7 +348,7 @@ def chat_fragment():
                         state="complete",
                         expanded=False,
                     )
-                    time.sleep(1)
+                    time.sleep(2)
                     status_placeholder.empty()
 
                 except Exception as e:

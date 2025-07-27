@@ -1661,13 +1661,24 @@ def display_research_results(
             key="papers_display_format",
         )
 
-        st.markdown("<h4>Referenced Papers:</h4>", unsafe_allow_html=True)
+        # Check if response contains Reddit citations
+        reddit_citations = len([line for line in response.split('\n') if 'r/' in line and '](' in line and 'reddit.com' in line])
+        
+        if reddit_citations > 0:
+            st.markdown(f"<h4>Referenced Sources ({len(referenced_codes)} papers, {reddit_citations} discussions):</h4>", unsafe_allow_html=True)
+        else:
+            st.markdown("<h4>Referenced Papers:</h4>", unsafe_allow_html=True)
+            
         # Get referenced papers
         reference_df = papers_df.loc[[c for c in referenced_codes if c in papers_df.index]]
         if display_format == "Grid View":
             generate_grid_gallery(reference_df, n_cols=5, extra_key="_chat", image_type=st.session_state.global_image_type)
         else:
             generate_citations_list(reference_df)
+            
+        # Add note about Reddit discussions if present
+        if reddit_citations > 0:
+            st.caption(f"💬 Additionally referenced {reddit_citations} Reddit community discussions (see links in text above)")
 
         if len(relevant_codes) > 0:
             st.divider()

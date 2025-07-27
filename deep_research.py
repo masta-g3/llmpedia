@@ -11,10 +11,13 @@ from utils.instruct import run_instructor_query
 from utils.app_utils import (
     rerank_documents_new,
     Document,
+    RedditContent,
     VS_EMBEDDING_MODEL,
     query_config,
     extract_arxiv_codes,
+    extract_reddit_codes,
     add_links_to_text_blob,
+    enhance_documents_with_reddit,
 )
 from utils.db import db, db_utils
 
@@ -38,11 +41,11 @@ class ResearchBrief(BaseModel):
     )
     key_subtopics: List[str] = Field(
         ...,
-        description="3-5 independent subtopics that together comprehensively address the research question.",
+        description="Up to 3-5 independent subtopics that together comprehensively address the research question.",
     )
     expected_timeline: str = Field(
         ...,
-        description="Relevant time period for the research (e.g., 'recent papers from 2022-2025', 'foundational work from 2017-2020').",
+        description="Relevant time period for the research (e.g., 'recent papers from April and May 2025', 'foundational work from 2017-2020'). Might vary for different subtopics.",
     )
 
 
@@ -61,6 +64,10 @@ class SubTopicAssignment(BaseModel):
     expected_findings: str = Field(
         ...,
         description="What type of insights or evidence this subtopic should contribute to the overall research.",
+    )
+    sources: List[str] = Field(
+        default=["arxiv"],
+        description="Data sources to search: 'arxiv' for academic papers, 'reddit' for community discussions, or both.",
     )
     min_publication_date: Optional[str] = Field(
         None,
@@ -97,6 +104,14 @@ class AgentFindings(BaseModel):
         ...,
         description="Identified gaps or limitations in the current research on this subtopic.",
     )
+    community_insights: Optional[List[str]] = Field(
+        default=[],
+        description="Key insights from Reddit community discussions, including practical perspectives and real-world experiences.",
+    )
+    reddit_references: Optional[List[str]] = Field(
+        default=[],
+        description="List of Reddit post IDs that provided community insights (format: reddit_id).",
+    )
 
 
 class FinalReport(BaseModel):
@@ -114,9 +129,9 @@ class FinalReport(BaseModel):
 
 ## Prompt Templates
 
-RESEARCH_BRIEF_SYSTEM_PROMPT = f"""You are a research planning expert. Your job is to analyze a user's research question and create a focused, actionable research brief that will guide a team of specialized research agents.
+RESEARCH_BRIEF_SYSTEM_PROMPT = f"""You are a research planning expert. Your job is to analyze a user's research question and create a focused, actionable research plan that will guide a team of specialized research agents.
 
-Break down complex questions into independent, researchable subtopics that can be investigated in parallel. Focus on creating subtopics that don't overlap and together provide comprehensive coverage of the research question.
+Break down complex questions into independent, researchable subtopics that can be investigated in parallel. Focus on creating subtopics that don't overlap and together provide comprehensive coverage of the research question. Be sure topics are not too broad and directly address the user's question.
 
 Current date: {TODAY_DATE}. When the user asks about "recent" or "latest" developments, focus on papers from {CURRENT_YEAR-1}-{CURRENT_YEAR}."""
 
@@ -128,23 +143,22 @@ def create_research_brief_prompt(user_question: str) -> str:
 </user_question>
 
 <instructions>
-1. Analyze the user's question and create a focused research brief
-2. Identify 3-5 independent, orthogonal subtopics that together comprehensively address the question
-3. Define clear research scope and timeline expectations
-4. Ensure subtopics don't overlap and can be researched independently
-
-Guidelines:
-- Make subtopics specific enough to guide focused research
-- Consider both technical and practical aspects where relevant
-- Include foundational concepts if the question touches on emerging areas
-- Specify appropriate time periods (e.g., recent advances vs foundational work)
+- Analyze the user's question and create a focused research brief.
+- Identify up to 3-5 independent, orthogonal subtopics that together comprehensively address the question.
+- Define clear research scope and the relevant time periods.
+- Ensure subtopics don't overlap and can be researched independently. Do not add more topics than necessary.
 </instructions>
 """
 
 
 SUPERVISOR_SYSTEM_PROMPT = f"""You are a research supervisor coordinating a team of specialized research agents. Your job is to take a research brief and create a comprehensive list of specific assignments for individual agents, ensuring comprehensive coverage without overlap.
 
-Each agent will focus on one subtopic and conduct semantic search on academic papers. Design assignments that are independent, focused, and together address the full research brief.
+Each agent will focus on one subtopic and conduct semantic search across different information sources. You can assign agents to search:
+- "arxiv": Academic papers and research literature
+- "reddit": Community discussions and practitioner experiences  
+- Both sources when comprehensive coverage is needed
+
+Design assignments that are independent, focused, and together address the full research brief.
 
 You must return ALL assignments in a single response as a complete list - do not make separate calls for each assignment.
 
@@ -163,11 +177,12 @@ Expected Timeline: {research_brief.expected_timeline}
 <instructions>
 Create a comprehensive list of research assignments. For each subtopic in the research brief, include a detailed assignment that contains:
 
-1. Clear direct, clear and targeted subtopic definition.
+1. Clear, direct, and targeted subtopic definition.
 2. Specific search strategy tailored to that subtopic.
 3. 2-3 diverse and non-overlapping semantic search queries using targeted academic language.
 4. Expected type of findings this subtopic should contribute.
-5. Optional publication date constraints (min/max) when temporal focus is important.
+5. Appropriate data sources: ["arxiv"], ["reddit"], or ["arxiv", "reddit"] based on the information needs.
+6. Optional publication date constraints (min/max) when temporal focus is important.
 </instructions>
 
 <guidelines_for_search_queries>
@@ -178,12 +193,19 @@ Create a comprehensive list of research assignments. For each subtopic in the re
 - Make your queries concise and to the point, aiming to maximize semantic similarity between the query and the axiv documents you expect to find.
 </guidelines_for_search_queries>
 
+<guidelines_for_source_selection>
+- Use "arxiv" for: Technical methodologies, performance benchmarks, theoretical foundations, algorithm details, empirical evaluations
+- Use "reddit" for: User experiences, implementation challenges, adoption patterns, community sentiment, practical applications, real-world deployment issues
+- Use both ["arxiv", "reddit"] for: Comprehensive analysis where both academic rigor and practical perspectives are valuable
+- Choose sources based on the type of insights needed for each subtopic
+</guidelines_for_source_selection>
+
 <guidelines_for_date_constraints>
 - Consider the specified timeline only when relevant (e.g. when the user asks for specific time range or recent findings).
-- Set min_publication_date and/or max_publication_date (YYYY-MM-DD format) only when temporal focus is critical for the subtopic
-- For "recent advances" or "latest developments" subtopics, use appropriate recent date ranges
-- Leave date fields unset (None) when the subtopic should search across all time periods
-- Consider that different subtopics may need different temporal constraints
+- Set min_publication_date and/or max_publication_date (YYYY-MM-DD format) only when temporal focus is critical for the subtopic.
+- Consider that this is a very fast moving field; "recent advances" or "latest developments" likely refers papers from the last 2-3 months.
+- Leave date fields unset (None) when the subtopic should search across all time periods.
+- Consider that different subtopics may need different temporal constraints.
 </guidelines_for_date_constraints>
 """
 
@@ -192,20 +214,41 @@ AGENT_RESEARCH_SYSTEM_PROMPT = f"""You are a specialized research agent focused 
 
 Be thorough but focused - stick to your subtopic and provide evidence-backed insights. Try to copy verbatim from the documents when possible. Identify gaps where current research may be incomplete.
 
+When analyzing Reddit content: Weight opinions based on community engagement (upvotes/comments) and look for patterns across multiple posts rather than relying on individual low-engagement posts, which may not be representative of broader community sentiment.
+
 Current date: {TODAY_DATE}. When assessing recency, papers from {CURRENT_YEAR-1}-{CURRENT_YEAR} are considered recent work."""
 
 
 def create_agent_research_prompt(
-    assignment: SubTopicAssignment, documents: List[Document]
+    assignment: SubTopicAssignment, sources: List
 ) -> str:
     doc_context = ""
-    for doc in documents:
-        doc_context += f"""
-**Title:** {doc.title}
-**ArXiv:** {doc.arxiv_code} ({doc.published_date.year}, {doc.citations} citations)
-**Abstract:** {doc.abstract}
+    for source in sources:
+        if isinstance(source, Document):
+            # Academic paper content
+            doc_context += f"""
+**Title:** {source.title}
+**ArXiv:** {source.arxiv_code} ({source.published_date.year}, {source.citations} citations)
+**Abstract:** {source.abstract}
 **Notes:**
-{doc.notes}
+{source.notes}
+
+---
+---
+---
+"""
+        elif isinstance(source, RedditContent):
+            # Reddit community content
+            doc_context += f"""
+**Community Discussion**
+**Subreddit:** r/{source.subreddit}
+**Title:** {source.title}
+**Score:** {source.score} upvotes ({source.num_comments} comments)
+**Author:** {source.author}
+**Date:** {source.published_date.strftime('%Y-%m-%d')}
+**Content:**
+{source.content[:500]}{'...' if len(source.content) > 500 else ''}
+
 ---
 ---
 ---
@@ -218,25 +261,32 @@ Search Strategy: {assignment.search_strategy}
 Expected Findings: {assignment.expected_findings}
 </assignment>
 
-<documents>
+<sources>
 {doc_context}
-</documents>
+</sources>
 
 <instructions>
-Analyze the provided documents and extract findings specifically related to your assigned subtopic:
+Analyze the provided sources and extract findings specifically related to your assigned subtopic. You may have academic papers, community discussions, or both:
+
 1. Identify all key insights that directly address your subtopic.
-2. Provide supporting evidence from the documents, try to copy verbatim from the documents when possible.
-3. List the arxiv codes of papers that provided key evidence.
-4. Identify any research gaps or limitations you notice.
-5. If you are not able to find any evidence for your subtopic, just say so.
+2. For academic sources: Focus on research findings, methodologies, and experimental results.
+3. For community sources: Analyze practical perspectives, implementation challenges, user experiences, and real-world applications.
+4. Provide supporting evidence from the sources, copying verbatim when possible.
+5. List the arxiv codes of papers that provided key evidence (if any).
+6. For Reddit sources: Include post IDs as reddit:post_id when citing community insights.
+7. Identify any research gaps or limitations you notice.
+8. Note any discrepancies between academic claims and community experiences (when both are available).
+9. If you are not able to find any evidence for your subtopic, just say so.
 
 Guidelines:
 - Stay focused on your specific subtopic.
-- Ground all insights in the provided documents.
-- Consider that some papers are about specific models and not behavior of LLMs or AI systems in general. These papers might not be so useful when drawing general conclusions.
-- Avoid referencing nieche models that are not widely known (CLAM, LAMBDA, etc.) unless they are very relevant to the subtopic.
-- Be specific about which papers support which insights.
-- Note if certain aspects of your subtopic lack sufficient evidence, or the evidence presented is insufficient / unconvincing.
+- Ground all insights in the provided sources.
+- Be specific about which sources support which insights.
+- When citing sources: Use "arxiv:paper_id" for academic papers and "reddit:post_id" for community discussions.
+- Consider that some papers are about specific models and not general AI behavior.
+- Avoid referencing niche models unless they are very relevant to the subtopic.
+- Note if certain aspects of your subtopic lack sufficient evidence.
+- Balance different types of sources appropriately based on what's available.
 </instructions>
 """
 
@@ -271,7 +321,22 @@ Supporting Evidence:
 Referenced Papers: {', '.join(findings.referenced_papers)}
 
 Research Gaps:
-{chr(10).join(f"- {gap}" for gap in findings.research_gaps)}
+{chr(10).join(f"- {gap}" for gap in findings.research_gaps)}"""
+
+        # Add community insights if available
+        if findings.community_insights:
+            findings_context += f"""
+
+Community Insights:
+{chr(10).join(f"- {insight}" for insight in findings.community_insights)}"""
+
+        # Add Reddit references if available
+        if findings.reddit_references:
+            findings_context += f"""
+
+Referenced Reddit Posts: {', '.join(findings.reddit_references)}"""
+
+        findings_context += """
 
 ---
 """
@@ -301,7 +366,9 @@ Research Scope: {research_brief.research_scope}
 <instructions>
 Synthesize the research findings into a comprehensive answer that directly answers the original research question.
 - Provide a one line, top level summary as the first line of the response.
-- Provide detailed analysis integrating insights across subtopics.
+- Provide detailed analysis integrating insights across subtopics, combining both academic research and community perspectives.
+- When community insights are available, blend them naturally with academic findings to provide a fuller picture.
+- Highlight any notable agreements, disagreements, or gaps between academic research and community experiences.
 - Draw one main, clear conclusion and be clear about it.
 - Format your response as a coherent, engaging answer for the user, following the style guide provided below.
 </instructions>
@@ -395,20 +462,70 @@ class ResearchAgent:
                 self.assignment.max_publication_date
             )
 
-        ## Execute semantic search
-        sql = db.generate_semantic_search_query(
-            search_criteria,
-            query_config,
-            embedding_model=VS_EMBEDDING_MODEL,
-            exclude_arxiv_codes=exclude_codes or set(),
-        )
-
-        documents_df = db_utils.execute_read_query(sql)
+        ## Execute searches based on assigned sources
+        all_documents = []
+        
+        if "arxiv" in self.assignment.sources:
+            if verbose and progress_callback:
+                progress_callback(f"      📚 Searching arXiv papers...")
+            
+            arxiv_sql = db.generate_semantic_search_query(
+                search_criteria,
+                query_config,
+                embedding_model=VS_EMBEDDING_MODEL,
+                exclude_arxiv_codes=exclude_codes or set(),
+            )
+            arxiv_df = db_utils.execute_read_query(arxiv_sql)
+            
+            if not arxiv_df.empty:
+                arxiv_documents = [
+                    Document(
+                        arxiv_code=d["arxiv_code"],
+                        title=d["title"],
+                        published_date=d["published_date"].to_pydatetime(),
+                        citations=int(d["citations"]),
+                        abstract=d["abstract"],
+                        notes=d["notes"],
+                        tokens=int(d["tokens"]),
+                        distance=float(d["similarity_score"]),
+                    )
+                    for _, d in arxiv_df.iterrows()
+                ]
+                all_documents.extend(arxiv_documents)
+        
+        if "reddit" in self.assignment.sources:
+            if verbose and progress_callback:
+                progress_callback(f"      💬 Searching Reddit discussions...")
+            
+            reddit_sql = db.generate_reddit_semantic_search_query(
+                search_criteria,
+                query_config,
+                embedding_model=VS_EMBEDDING_MODEL,
+            )
+            reddit_df = db_utils.execute_read_query(reddit_sql)
+            
+            if not reddit_df.empty:
+                reddit_documents = [
+                    RedditContent(
+                        reddit_id=d["reddit_id"],
+                        subreddit=d["subreddit"],
+                        title=d["title"],
+                        content=d["content"] or "",
+                        author=d["author"] or "",
+                        score=int(d["score"]),
+                        num_comments=int(d["num_comments"]),
+                        published_date=d["published_date"].to_pydatetime(),
+                        content_type=d["content_type"],
+                        distance=float(d["similarity_score"]),
+                    )
+                    for _, d in reddit_df.iterrows()
+                ]
+                all_documents.extend(reddit_documents)
 
         if verbose and progress_callback:
-            progress_callback(f"      📄 Found {len(documents_df)} candidate papers")
+            progress_callback(f"      📄 Found {len(all_documents)} candidate sources")
 
-        if documents_df.empty:
+        if not all_documents:
             return AgentFindings(
                 subtopic=self.assignment.subtopic,
                 key_insights=["No relevant documents found for this subtopic."],
@@ -417,55 +534,29 @@ class ResearchAgent:
                 research_gaps=["Insufficient research available on this subtopic."],
             )
 
-        ## Convert to Document objects
-        documents = [
-            Document(
-                arxiv_code=d["arxiv_code"],
-                title=d["title"],
-                published_date=d["published_date"].to_pydatetime(),
-                citations=int(d["citations"]),
-                abstract=d["abstract"],
-                notes=d["notes"],
-                tokens=int(d["tokens"]),
-                distance=float(d["similarity_score"]),
-            )
-            for _, d in documents_df.iterrows()
-        ]
-
         if verbose and progress_callback:
-            ## Report actual token statistics from database
-            total_tokens = sum(doc.tokens for doc in documents)
-            avg_tokens = total_tokens / len(documents) if documents else 0
-            token_range = (
-                f"{min(doc.tokens for doc in documents)}-{max(doc.tokens for doc in documents)}"
-                if documents
-                else "0-0"
-            )
             progress_callback(
-                f"      📊 Notes content: {total_tokens:,} tokens total, avg {avg_tokens:.0f} tokens/paper (range: {token_range})"
-            )
-            progress_callback(
-                f"      ⚖️ Reranking {len(documents)} papers for relevance..."
+                f"      ⚖️ Reranking {len(all_documents)} sources for relevance..."
             )
 
         ## Rerank documents for relevance to subtopic
         reranked_docs = rerank_documents_new(
             user_question=f"""{self.assignment.subtopic} - {self.assignment.search_strategy}. 
             Expected findings: {self.assignment.expected_findings}""",
-            documents=documents,
+            documents=all_documents,
             llm_model=self.llm_model,
         )
 
         ## Select top relevant documents
         high_relevance_docs = [
-            documents[int(da.document_id)]
+            all_documents[int(da.document_id)]
             for da in reranked_docs.documents
             if da.selected >= 0.5  # Include medium and high relevance
         ][:max_sources]
 
         if verbose and progress_callback:
             progress_callback(
-                f"      📋 Selected {len(high_relevance_docs)} relevant papers for analysis"
+                f"      📋 Selected {len(high_relevance_docs)} relevant sources for analysis"
             )
 
         if not high_relevance_docs:
@@ -478,7 +569,7 @@ class ResearchAgent:
             )
 
         if verbose and progress_callback:
-            progress_callback(f"      🧠 Analyzing papers and extracting insights...")
+            progress_callback(f"      🧠 Analyzing sources and extracting insights...")
 
         ## Analyze documents and extract findings
         findings = run_instructor_query(
@@ -563,8 +654,10 @@ class ResearchSupervisor:
                     if assignment.max_publication_date:
                         constraints.append(f"before {assignment.max_publication_date}")
                     date_info = f" (📅 {' and '.join(constraints)})"
+                
+                sources_info = f" ({'📚' if 'arxiv' in assignment.sources else ''}{'💬' if 'reddit' in assignment.sources else ''})"
                 progress_callback(
-                    f"   📝 Assignment {i}: {assignment.subtopic}{date_info}"
+                    f"   📝 Assignment {i}: {assignment.subtopic}{sources_info}{date_info}"
                 )
 
         if progress_callback:
@@ -702,16 +795,28 @@ class DeepResearchOrchestrator:
 
         ## Collect all relevant papers from agents
         all_relevant_codes = set()
+        all_reddit_refs = set()
         for findings in self.all_findings:
             all_relevant_codes.update(findings.referenced_papers)
+            if findings.reddit_references:
+                all_reddit_refs.update(findings.reddit_references)
 
         additional_relevant_codes = list(all_relevant_codes - set(referenced_codes))
-
+        
+        ## Count total sources (papers + reddit posts)
+        total_sources = len(referenced_codes) + len(all_reddit_refs)
+        source_label = "sources" if total_sources != 1 else "source"
+        
         if progress_callback:
             word_count = len(response_with_links.split())
-            progress_callback(
-                f"🎉 Research complete! Generated {word_count} word response with {len(referenced_codes)} referenced papers"
-            )
+            if all_reddit_refs:
+                progress_callback(
+                    f"🎉 Research complete! Generated {word_count} word response with {total_sources} referenced {source_label} ({len(referenced_codes)} papers, {len(all_reddit_refs)} discussions)"
+                )
+            else:
+                progress_callback(
+                    f"🎉 Research complete! Generated {word_count} word response with {len(referenced_codes)} referenced papers"
+                )
 
         return final_report.title, response_with_links, referenced_codes, additional_relevant_codes
 
