@@ -1,8 +1,10 @@
 """Database operations for logging-related functionality."""
 
 import uuid
+import json
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict
+from pydantic import BaseModel
 
 from .db_utils import execute_write_query, execute_read_query
 
@@ -13,12 +15,24 @@ def log_instructor_query(
     completion_tokens: int,
     prompt_cost: float,
     completion_cost: float,
+    cache_creation_input_tokens: int = 0,
+    cache_read_input_tokens: int = 0,
+    cache_creation_cost: Optional[float] = None,
+    cache_read_cost: Optional[float] = None,
 ) -> bool:
     """Log token usage in DB."""
     try:
         query = """
-            INSERT INTO token_usage_logs (id, tstp, model_name, process_id, prompt_tokens, completion_tokens, prompt_cost, completion_cost)
-            VALUES (:id, :tstp, :model_name, :process_id, :prompt_tokens, :completion_tokens, :prompt_cost, :completion_cost)
+            INSERT INTO token_usage_logs (
+                id, tstp, model_name, process_id, prompt_tokens, completion_tokens, 
+                prompt_cost, completion_cost, cache_creation_input_tokens, 
+                cache_read_input_tokens, cache_creation_cost, cache_read_cost
+            )
+            VALUES (
+                :id, :tstp, :model_name, :process_id, :prompt_tokens, :completion_tokens, 
+                :prompt_cost, :completion_cost, :cache_creation_input_tokens, 
+                :cache_read_input_tokens, :cache_creation_cost, :cache_read_cost
+            )
         """
         
         params = {
@@ -30,6 +44,10 @@ def log_instructor_query(
             "process_id": process_id,
             "prompt_cost": prompt_cost,
             "completion_cost": completion_cost,
+            "cache_creation_input_tokens": cache_creation_input_tokens,
+            "cache_read_input_tokens": cache_read_input_tokens,
+            "cache_creation_cost": cache_creation_cost,
+            "cache_read_cost": cache_read_cost,
         }
         
         return execute_write_query(query, params)
@@ -58,15 +76,16 @@ def log_qna_db(user_question: str, response: str) -> bool:
     """Log Q&A in DB along with streamlit app state."""
     try:
         query = """
-            INSERT INTO qna_logs (qna_id, tstp, user_question, response)
-            VALUES (:qna_id, :tstp, :user_question, :response)
+            INSERT INTO qna_logs (qna_id, tstp, system_prompt, user_prompt, structured_response)
+            VALUES (:qna_id, :tstp, :system_prompt, :user_prompt, :structured_response)
         """
         
         params = {
             "qna_id": str(uuid.uuid4()),
             "tstp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "user_question": str(user_question),
-            "response": str(response),
+            "system_prompt": None,
+            "user_prompt": str(user_question),
+            "structured_response": json.dumps({"response": str(response)}),
         }
         
         return execute_write_query(query, params)
@@ -134,6 +153,36 @@ def log_feature_poll_vote(feature_name: str, is_custom_suggestion: bool, session
             "feature_name": feature_name,
             "is_custom_suggestion": is_custom_suggestion,
             "session_id": session_id,
+        }
+        
+        return execute_write_query(query, params)
+    except Exception as e:
+        raise e
+
+def log_workflow_step(
+    workflow_id: str,
+    step_type: str,
+    system_prompt: str,
+    user_prompt: str,
+    structured_response: Optional[BaseModel] = None,
+    step_metadata: Optional[Dict] = None,
+) -> bool:
+    """Log workflow step with complete LLM interaction context."""
+    try:
+        query = """
+            INSERT INTO qna_logs (qna_id, tstp, system_prompt, user_prompt, workflow_id, step_type, step_metadata, structured_response)
+            VALUES (:qna_id, :tstp, :system_prompt, :user_prompt, :workflow_id, :step_type, :step_metadata, :structured_response)
+        """
+        
+        params = {
+            "qna_id": str(uuid.uuid4()),
+            "tstp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "system_prompt": system_prompt,
+            "user_prompt": user_prompt,
+            "workflow_id": workflow_id,
+            "step_type": step_type,
+            "step_metadata": json.dumps(step_metadata) if step_metadata else None,
+            "structured_response": json.dumps(structured_response.model_dump()) if structured_response else None,
         }
         
         return execute_write_query(query, params)

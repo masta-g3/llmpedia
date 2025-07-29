@@ -131,24 +131,18 @@ def add_links_to_text_blob(response: str):
         return f"[arxiv:{match.group(1)}](https://llmpedia.ai/?arxiv_code={match.group(1)})"
 
     def reddit_repl(match):
-        reddit_id = match.group(1)
-        # Get Reddit post data to create proper link
-        try:
-            from utils.db import db_utils
-            query = "SELECT permalink, subreddit FROM reddit_posts WHERE reddit_id = :reddit_id LIMIT 1"
-            result = db_utils.execute_read_query(query, {"reddit_id": reddit_id})
-            if not result.empty:
-                permalink = result.iloc[0]["permalink"]
-                subreddit = result.iloc[0]["subreddit"]
-                return f"[r/{subreddit}:{reddit_id}]({permalink})"
-        except:
-            pass
-        # Fallback if lookup fails
-        return f"[reddit:{reddit_id}](https://www.reddit.com/search/?q={reddit_id})"
+        if match.group(1):  # New format: reddit:subreddit:post_id
+            subreddit = match.group(1)
+            reddit_id = match.group(2)
+            permalink = f"https://www.reddit.com/r/{subreddit}/comments/{reddit_id}/"
+            return f"[r/{subreddit}:{reddit_id}]({permalink})"
+        else:  # Old format: reddit:post_id (fallback)
+            reddit_id = match.group(2)
+            return f"[reddit:{reddit_id}](https://www.reddit.com/search/?q={reddit_id})"
 
     # Apply both transformations
     response = re.sub(r"arxiv:(\d{4}\.\d{4,5})", arxiv_repl, response)
-    response = re.sub(r"reddit:([a-zA-Z0-9_]+)", reddit_repl, response)
+    response = re.sub(r"reddit:(?:([^:]+):)?([a-zA-Z0-9_/-]+)", reddit_repl, response)
     return response
 
 
@@ -160,8 +154,28 @@ def extract_arxiv_codes(text: str):
 
 def extract_reddit_codes(text: str):
     """Extract unique Reddit post IDs from the text."""
-    reddit_codes = re.findall(r"reddit:([a-zA-Z0-9_]+)", text)
+    # Handle both new format (reddit:subreddit:post_id) and old format (reddit:post_id)
+    matches = re.findall(r"reddit:(?:([^:]+):)?([a-zA-Z0-9_/-]+)", text)
+    reddit_codes = []
+    for subreddit, post_id in matches:
+        if subreddit:  # New format with subreddit
+            reddit_codes.append(f"{subreddit}:{post_id}")
+        else:  # Old format, just post_id
+            reddit_codes.append(post_id)
     return list(set(reddit_codes))
+
+
+def extract_all_citations(text: str):
+    """Extract all arxiv and reddit citations from text, returning them with prefixes."""
+    arxiv_codes = extract_arxiv_codes(text)
+    reddit_codes = extract_reddit_codes(text)
+
+    ## Return with prefixes for consistency with citation format
+    citations = []
+    citations.extend([f"arxiv:{code}" for code in arxiv_codes])
+    citations.extend([f"reddit:{code}" for code in reddit_codes])
+
+    return citations
 
 
 def get_img_link_for_blob(text_blob: str):
@@ -263,7 +277,7 @@ class RedditContent(BaseModel):
     content_type: str  # 'reddit_post' or 'reddit_comment'
     distance: float
     citations: int = 0  # Reddit posts don't have citations, default to 0
-    
+
     @property
     def abstract(self) -> str:
         """Map content to abstract for reranker compatibility."""
@@ -304,13 +318,13 @@ def interrogate_paper(question: str, arxiv_code: str, model="gpt-4o") -> str:
     """Ask a question about a paper using full markdown content with fallback to extended notes."""
     ## Try to get full paper markdown content first (preferred)
     context, markdown_success = get_paper_markdown(arxiv_code)
-    
+
     if not markdown_success:
         ## Fallback to extended notes if markdown unavailable
         context = db.get_extended_notes(arxiv_code, level=1)
         if not context or pd.isna(context):
             return "Paper content not available yet. Check back soon!"
-    
+
     user_message = ps.create_interrogate_user_prompt(
         context=context, user_question=question
     )
@@ -447,28 +461,28 @@ def resolve_query(
 def resolve_from_scratchpad(
     original_question: str,
     scratchpad_content: str,
-    response_length: int, # May need different calculation based on scratchpad
+    response_length: int,  # May need different calculation based on scratchpad
     llm_model: str,
     custom_instructions: Optional[str] = None,
-) -> str: # Returning string directly for now
+) -> str:  # Returning string directly for now
     """Generate final response based on the final scratchpad content."""
-    
+
     user_message = ps.create_resolve_scratchpad_user_prompt(
         original_question=original_question,
         scratchpad_content=scratchpad_content,
         response_length=response_length,
-        custom_instructions=custom_instructions
+        custom_instructions=custom_instructions,
     )
-    
+
     response_obj = run_instructor_query(
         system_message=ps.RESOLVE_SCRATCHPAD_SYSTEM_PROMPT,
         user_message=user_message,
-        model=po.ResolveScratchpadResponse, # Use the new simple model
+        model=po.ResolveScratchpadResponse,  # Use the new simple model
         llm_model=llm_model,
-        temperature=0.7, # Balance creativity and factuality for synthesis
+        temperature=0.7,  # Balance creativity and factuality for synthesis
         process_id="resolve_from_scratchpad",
     )
-    
+
     return response_obj.response
 
 
@@ -611,15 +625,24 @@ def query_llmpedia_new(
     if action.llm_query:
         if debug:
             log_debug("🚀 Initiating Multi-Agent Deep Research Mode", indent_level=1)
-        
+
         ## Import here to avoid circular dependency
         from deep_research import deep_research_query
-        
+
         if debug:
-            log_debug(f"Deep research config: {max_agents} agents, {max_sources} sources each", indent_level=2)
-        
+            log_debug(
+                f"Deep research config: {max_agents} agents, {max_sources} sources each",
+                indent_level=2,
+            )
+
         ## Call unified multi-agent deep research implementation
-        final_answer_title, final_answer, referenced_codes_list, additional_relevant_codes = deep_research_query(
+        (
+            final_answer_title,
+            workflow_id,
+            final_answer,
+            referenced_codes_list,
+            additional_relevant_codes,
+        ) = deep_research_query(
             user_question=user_question,
             max_agents=max_agents,
             max_sources_per_agent=max_sources,
@@ -632,19 +655,26 @@ def query_llmpedia_new(
         if debug:
             log_debug("~~Finished LLMpedia unified query pipeline~~", indent_level=0)
 
-        return final_answer_title, final_answer, referenced_codes_list, additional_relevant_codes
+        return (
+            final_answer_title,
+            final_answer,
+            referenced_codes_list,
+            additional_relevant_codes,
+        )
 
-    else: # Non-LLM query
+    else:  # Non-LLM query
         if debug:
             log_debug(
                 "Query classified as non-LLM related, generating simple response",
                 indent_level=1,
             )
         if progress_callback:
-             progress_callback("💬 Preparing a direct response...")
+            progress_callback("💬 Preparing a direct response...")
         answer = resolve_query_other(user_question)
         if debug:
-            log_debug("~~Finished LLMpedia query pipeline (non-LLM query)~~", indent_level=0)
+            log_debug(
+                "~~Finished LLMpedia query pipeline (non-LLM query)~~", indent_level=0
+            )
         return answer, [], []
 
 
@@ -749,7 +779,9 @@ def extract_trending_topics(documents, n=15, ngram_range=(2, 3), min_df=2, max_d
     domain_stopwords = get_domain_stopwords()
     all_stopwords = list(set(nltk_stop + domain_stopwords))
     all_stopwords = [preprocess_text(word) for word in all_stopwords]
-    all_stopwords = [word for word in all_stopwords if word and len(word) >= 2 and word.isalpha()]
+    all_stopwords = [
+        word for word in all_stopwords if word and len(word) >= 2 and word.isalpha()
+    ]
     all_stopwords = list(set(all_stopwords))
 
     # Create TF-IDF vectorizer for bi and trigrams with optimized parameters
@@ -822,7 +854,7 @@ def get_top_cited_papers(papers_df, n=5, time_window_days=None):
     """Get the top cited papers, optionally filtering by recency."""
     df = papers_df.copy()
     # Ensure 'published' column is in datetime format
-    df["published"] = pd.to_datetime(df["published"], errors='coerce')
+    df["published"] = pd.to_datetime(df["published"], errors="coerce")
 
     if time_window_days is not None:
         today = pd.Timestamp.now().date()
@@ -835,9 +867,7 @@ def get_top_cited_papers(papers_df, n=5, time_window_days=None):
 
 
 def process_trending_data(
-    papers_df_fragment: pd.DataFrame,
-    raw_trending_df: pd.DataFrame,
-    top_n_display: int
+    papers_df_fragment: pd.DataFrame, raw_trending_df: pd.DataFrame, top_n_display: int
 ) -> pd.DataFrame:
     """
     Processes raw trending data (typically from db.get_trending_papers)
@@ -848,8 +878,12 @@ def process_trending_data(
         return pd.DataFrame()
 
     # Create dictionaries for all the new data columns
-    counts_dict = dict(zip(raw_trending_df["arxiv_code"], raw_trending_df["like_count"]))
-    tweet_count_dict = dict(zip(raw_trending_df["arxiv_code"], raw_trending_df["tweet_count"]))
+    counts_dict = dict(
+        zip(raw_trending_df["arxiv_code"], raw_trending_df["like_count"])
+    )
+    tweet_count_dict = dict(
+        zip(raw_trending_df["arxiv_code"], raw_trending_df["tweet_count"])
+    )
     tweets_dict = dict(zip(raw_trending_df["arxiv_code"], raw_trending_df["tweets"]))
 
     # Filter the main papers dataframe for codes present in the trending data
@@ -862,17 +896,27 @@ def process_trending_data(
         return pd.DataFrame()
 
     # Map all the new data to the filtered papers
-    trending_papers_intermediate["like_count"] = trending_papers_intermediate["arxiv_code"].map(counts_dict)
-    trending_papers_intermediate["tweet_count"] = trending_papers_intermediate["arxiv_code"].map(tweet_count_dict)
-    trending_papers_intermediate["tweets"] = trending_papers_intermediate["arxiv_code"].map(tweets_dict)
+    trending_papers_intermediate["like_count"] = trending_papers_intermediate[
+        "arxiv_code"
+    ].map(counts_dict)
+    trending_papers_intermediate["tweet_count"] = trending_papers_intermediate[
+        "arxiv_code"
+    ].map(tweet_count_dict)
+    trending_papers_intermediate["tweets"] = trending_papers_intermediate[
+        "arxiv_code"
+    ].map(tweets_dict)
 
     # Ensure 'like_count' is numeric, coercing errors and filling NaNs with 0
-    trending_papers_intermediate["like_count"] = pd.to_numeric(
-        trending_papers_intermediate["like_count"], errors='coerce'
-    ).fillna(0).astype(int) # Convert to int after fillna
+    trending_papers_intermediate["like_count"] = (
+        pd.to_numeric(trending_papers_intermediate["like_count"], errors="coerce")
+        .fillna(0)
+        .astype(int)
+    )  # Convert to int after fillna
 
     # Sort by like_count in descending order
-    trending_papers_intermediate.sort_values("like_count", ascending=False, inplace=True)
+    trending_papers_intermediate.sort_values(
+        "like_count", ascending=False, inplace=True
+    )
 
     return trending_papers_intermediate.head(top_n_display)
 
@@ -896,48 +940,52 @@ def get_latest_weekly_highlight():
 ######################
 
 
-def convert_reddit_data_to_discussions(reddit_df: pd.DataFrame) -> List[RedditDiscussion]:
+def convert_reddit_data_to_discussions(
+    reddit_df: pd.DataFrame,
+) -> List[RedditDiscussion]:
     """Convert Reddit DataFrame to RedditDiscussion objects."""
     discussions = []
-    
+
     if reddit_df.empty:
         return discussions
-    
+
     ## Group by post to aggregate comments
-    for arxiv_code, group in reddit_df.groupby('arxiv_code'):
+    for arxiv_code, group in reddit_df.groupby("arxiv_code"):
         post_data = group.iloc[0]  # Get post data from first row
-        
+
         ## Extract comments from the group
         comments = []
         comment_scores = []
         for _, row in group.iterrows():
-            if pd.notna(row.get('comment_content')) and row['comment_content'].strip():
-                comments.append(row['comment_content'])
-                comment_scores.append(row.get('comment_score', 0))
-        
+            if pd.notna(row.get("comment_content")) and row["comment_content"].strip():
+                comments.append(row["comment_content"])
+                comment_scores.append(row.get("comment_score", 0))
+
         ## Sort comments by score and take top ones
         if comments:
             comment_data = list(zip(comments, comment_scores))
             comment_data.sort(key=lambda x: x[1], reverse=True)
-            top_comments = [comment for comment, _ in comment_data[:5]]  # Top 5 comments
+            top_comments = [
+                comment for comment, _ in comment_data[:5]
+            ]  # Top 5 comments
             scores = [score for _, score in comment_data[:5]]
         else:
             top_comments = []
             scores = []
-        
+
         discussion = RedditDiscussion(
-            subreddit=post_data['subreddit'],
-            post_title=post_data['post_title'],
-            post_content=post_data.get('post_content', '') or '',
-            post_author=post_data.get('post_author', '') or '',
-            post_score=int(post_data.get('post_score', 0)),
-            num_comments=int(post_data.get('num_comments', 0)),
-            post_timestamp=pd.to_datetime(post_data['post_timestamp']).to_pydatetime(),
+            subreddit=post_data["subreddit"],
+            post_title=post_data["post_title"],
+            post_content=post_data.get("post_content", "") or "",
+            post_author=post_data.get("post_author", "") or "",
+            post_score=int(post_data.get("post_score", 0)),
+            num_comments=int(post_data.get("num_comments", 0)),
+            post_timestamp=pd.to_datetime(post_data["post_timestamp"]).to_pydatetime(),
             top_comments=top_comments,
-            comment_scores=scores
+            comment_scores=scores,
         )
         discussions.append(discussion)
-    
+
     return discussions
 
 
@@ -945,40 +993,42 @@ def enhance_documents_with_reddit(documents: List[Document]) -> List[Document]:
     """Enhance Document objects with Reddit discussions and metrics."""
     if not documents:
         return documents
-    
+
     ## Import here to avoid circular imports
     from utils.db import db
-    
+
     ## Extract arXiv codes
     arxiv_codes = [doc.arxiv_code for doc in documents]
-    
+
     ## Load Reddit data for these papers
     reddit_df = db.load_reddit_for_papers(arxiv_codes)
     reddit_metrics_df = db.get_reddit_discussions_summary(arxiv_codes)
-    
+
     ## Create mapping of arXiv codes to Reddit data
     reddit_discussions_map = {}
     if not reddit_df.empty:
-        for arxiv_code, group in reddit_df.groupby('arxiv_code'):
-            reddit_discussions_map[arxiv_code] = convert_reddit_data_to_discussions(group)
-    
+        for arxiv_code, group in reddit_df.groupby("arxiv_code"):
+            reddit_discussions_map[arxiv_code] = convert_reddit_data_to_discussions(
+                group
+            )
+
     reddit_metrics_map = {}
     if not reddit_metrics_df.empty:
         for _, row in reddit_metrics_df.iterrows():
-            reddit_metrics_map[row['arxiv_code']] = {
-                'post_count': int(row['post_count']),
-                'comment_count': int(row['comment_count']),
-                'total_post_score': int(row['total_post_score']),
-                'avg_post_score': float(row['avg_post_score']),
-                'subreddit_count': int(row['subreddit_count']),
-                'subreddits': row['subreddits']
+            reddit_metrics_map[row["arxiv_code"]] = {
+                "post_count": int(row["post_count"]),
+                "comment_count": int(row["comment_count"]),
+                "total_post_score": int(row["total_post_score"]),
+                "avg_post_score": float(row["avg_post_score"]),
+                "subreddit_count": int(row["subreddit_count"]),
+                "subreddits": row["subreddits"],
             }
-    
+
     ## Enhance documents
     enhanced_documents = []
     for doc in documents:
         doc.reddit_discussions = reddit_discussions_map.get(doc.arxiv_code, [])
         doc.reddit_metrics = reddit_metrics_map.get(doc.arxiv_code, {})
         enhanced_documents.append(doc)
-    
+
     return enhanced_documents

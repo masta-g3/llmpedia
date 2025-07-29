@@ -3,6 +3,7 @@
 ## Main Files
 
 - `app.py`: The main Streamlit application file that contains the UI and application logic
+- `deep_research.py`: Multi-agent deep research system with comprehensive workflow logging
 - `README.md`: Project documentation and setup instructions
 - `requirements.txt`: Python dependencies for the project
 - `Procfile`: Configuration for deployment on platforms like Heroku (primarily relevant if deploying outside Streamlit Cloud)
@@ -15,19 +16,22 @@
 
 - `utils/`: Utility functions and modules for the application
   - `plots.py`: Visualization functions for creating charts and plots (e.g., publication trends, topic maps)
-  - `streamlit_utils.py`: Utility functions specific to Streamlit UI components (e.g., custom pagination, styling helpers). **Recently added**: `display_reddit_summaries()` for showing Reddit discussion timelines with identical styling to X.com discussions.
+  - `streamlit_utils.py`: Utility functions specific to Streamlit UI components (e.g., custom pagination, styling helpers)
   - `app_utils.py`: General utility functions for the application logic (e.g., data formatting, helper calculations)
   - `styling.py`: CSS and styling functions, including custom CSS injection
   - `db/`: Database-related utilities
     - `db_utils.py`: Lower-level database connection and query execution helpers (consider merging or refactoring if overlap with `db.py`)
-    - `db.py`: Consolidated database access functions abstracting queries for papers, embeddings, tweets, repositories, etc. This is the primary interface for fetching data for the UI. **Recently added**: `read_last_n_reddit_analyses()` for fetching cross-subreddit Reddit discussion summaries.
-    - `logging_db.py`: Functions specifically for logging user interactions or application events to the database.
-  - `instruct.py`: Functions for interacting with external LLM APIs (OpenAI, Anthropic, etc.) used in the chat feature.
+    - `db.py`: Consolidated database access functions abstracting queries for papers, embeddings, tweets, repositories, etc. This is the primary interface for fetching data for the UI.
+    - `logging_db.py`: Functions specifically for logging user interactions or application events to the database
+  - `instruct.py`: Functions for interacting with external LLM APIs (OpenAI, Anthropic, etc.) used in the chat feature
   - `pydantic_objects.py`: Pydantic models used for data validation, especially for data fetched from the database or external APIs.
   - `prompts.py`: Predefined prompt templates used for generating queries or instructions for the LLMs in `instruct.py`.
 - `notebooks/`: Jupyter notebooks used for experimentation, data analysis, or one-off tasks during development. Not part of the core application runtime.
 - `components/`: Custom Streamlit components
 - `deployment/`: Configuration files and guides for deployment
+  - `database/`: Database migration scripts and schema updates
+    - `add_workflow_logging.sql`: Migration script to add workflow logging columns to qna_logs table
+    - `rename_workflow_columns.sql`: Migration script to rename columns to match their actual usage
   - `digitalocean/`: Files specific to DigitalOcean deployment
     - `nginx_streamlit.conf`: Nginx configuration template
     - `streamlit_app.service`: Systemd service file template
@@ -90,7 +94,7 @@ The application is organized into tabs:
 1. **📰 News**: Landing page showing recent paper statistics, trending topics, and platform discussions
    - Recent papers (1-day and 7-day statistics)
    - Top cited papers vs trending papers toggle panel
-   - **X.com/Reddit discussions toggle**: Switch between X.com and Reddit LLM discussion summaries using 🐦/🦙 emojis
+   - **X.com/Reddit discussions toggle**: Switch between X.com and Reddit LLM discussion summaries
    - Featured paper (weekly highlight)
    - Interesting facts and feature poll
    - Quick navigation to Online Research
@@ -152,6 +156,6 @@ While the exact schema resides in the database managed by `llmpedia_workflows`, 
 - **Topics**: Clusters or categories derived from paper embeddings.
 - **Repositories**: Information about related code repositories.
 - **Tweets**: Relevant tweets associated with papers or topics (if applicable).
-- **Logs**: Records of user activity or application events.
+- **Logs**: Records of user activity or application events
 
 The `utils/db/db.py` module provides functions to query these conceptual entities.

@@ -335,7 +335,7 @@ def chat_fragment():
                         au.query_llmpedia_new(
                             user_question=user_question,
                             response_length=settings["response_length"],
-                            llm_model="openai/gpt-4.1-mini",
+                            llm_model="gpt-4.1-nano",
                             max_sources=settings["max_sources"],
                             max_agents=settings["max_agents"],
                             debug=True,

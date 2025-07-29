@@ -456,6 +456,44 @@ def load_reddit_comments(post_reddit_id: Optional[str] = None, drop_tstp: bool =
     )
 
 
+def get_top_reddit_comments(post_reddit_ids: List[str], max_comments: int = 5, min_score: int = 1) -> pd.DataFrame:
+    """Get top-scoring comments for specific Reddit posts."""
+    if not post_reddit_ids:
+        return pd.DataFrame()
+    
+    query = """
+        SELECT 
+            reddit_id,
+            post_reddit_id,
+            author,
+            body as content,
+            score,
+            depth,
+            is_top_level,
+            comment_timestamp as published_date
+        FROM reddit_comments
+        WHERE post_reddit_id IN :post_ids
+          AND score >= :min_score
+        ORDER BY post_reddit_id, score DESC
+    """
+    
+    df = execute_read_query(query, {
+        "post_ids": tuple(post_reddit_ids),
+        "min_score": min_score
+    })
+    
+    if df.empty:
+        return df
+    
+    ## Limit to top comments per post
+    top_comments = []
+    for post_id in post_reddit_ids:
+        post_comments = df[df['post_reddit_id'] == post_id].head(max_comments)
+        top_comments.append(post_comments)
+    
+    return pd.concat(top_comments, ignore_index=True) if top_comments else pd.DataFrame()
+
+
 def load_reddit_for_papers(arxiv_codes: List[str]) -> pd.DataFrame:
     """Load Reddit posts and comments for specific arXiv papers."""
     if not arxiv_codes:
