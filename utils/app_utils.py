@@ -131,18 +131,14 @@ def add_links_to_text_blob(response: str):
         return f"[arxiv:{match.group(1)}](https://llmpedia.ai/?arxiv_code={match.group(1)})"
 
     def reddit_repl(match):
-        if match.group(1):  # New format: reddit:subreddit:post_id
-            subreddit = match.group(1)
-            reddit_id = match.group(2)
-            permalink = f"https://www.reddit.com/r/{subreddit}/comments/{reddit_id}/"
-            return f"[r/{subreddit}:{reddit_id}]({permalink})"
-        else:  # Old format: reddit:post_id (fallback)
-            reddit_id = match.group(2)
-            return f"[reddit:{reddit_id}](https://www.reddit.com/search/?q={reddit_id})"
+        subreddit = match.group(1)
+        reddit_id = match.group(2)
+        permalink = f"https://www.reddit.com/r/{subreddit}/comments/{reddit_id}/"
+        return f"[r/{subreddit}:{reddit_id}]({permalink})"
 
-    # Apply both transformations
+    # Apply transformations
     response = re.sub(r"arxiv:(\d{4}\.\d{4,5})", arxiv_repl, response)
-    response = re.sub(r"reddit:(?:([^:]+):)?([a-zA-Z0-9_/-]+)", reddit_repl, response)
+    response = re.sub(r"r/([^:]+):([a-zA-Z0-9_/-]+)", reddit_repl, response)
     return response
 
 
@@ -154,28 +150,24 @@ def extract_arxiv_codes(text: str):
 
 def extract_reddit_codes(text: str):
     """Extract unique Reddit post IDs from the text."""
-    # Handle both new format (reddit:subreddit:post_id) and old format (reddit:post_id)
-    matches = re.findall(r"reddit:(?:([^:]+):)?([a-zA-Z0-9_/-]+)", text)
+    # Handle format: r/subreddit:post_id - be more permissive with boundaries
+    matches = re.findall(r"r/([^:\s\]'\"]+):([a-zA-Z0-9_-]+)", text)
     reddit_codes = []
     for subreddit, post_id in matches:
-        if subreddit:  # New format with subreddit
-            reddit_codes.append(f"{subreddit}:{post_id}")
-        else:  # Old format, just post_id
-            reddit_codes.append(post_id)
+        reddit_codes.append(f"{subreddit}:{post_id}")
+    
     return list(set(reddit_codes))
 
 
 def extract_all_citations(text: str):
-    """Extract all arxiv and reddit citations from text, returning them with prefixes."""
+    """Extract all arxiv and reddit citations from text, returning structured dict."""
     arxiv_codes = extract_arxiv_codes(text)
     reddit_codes = extract_reddit_codes(text)
 
-    ## Return with prefixes for consistency with citation format
-    citations = []
-    citations.extend([f"arxiv:{code}" for code in arxiv_codes])
-    citations.extend([f"reddit:{code}" for code in reddit_codes])
-
-    return citations
+    return {
+        "arxiv_papers": arxiv_codes,
+        "reddit_posts": reddit_codes
+    }
 
 
 def get_img_link_for_blob(text_blob: str):
@@ -601,7 +593,7 @@ def query_llmpedia_new(
     debug: bool = False,
     progress_callback: Optional[Callable[[str], None]] = None,
     show_only_sources: bool = False,
-) -> Tuple[str, List[str], List[str]]:
+) -> Tuple[str, str, List[str], List[str], List[str], List[str]]:
     """Query LLMpedia using unified multi-agent deep research approach."""
     if progress_callback:
         progress_callback("🧠 Analyzing your question...")
@@ -640,8 +632,10 @@ def query_llmpedia_new(
             final_answer_title,
             workflow_id,
             final_answer,
-            referenced_codes_list,
-            additional_relevant_codes,
+            referenced_arxiv_codes,
+            referenced_reddit_codes,
+            additional_arxiv_codes,
+            additional_reddit_codes,
         ) = deep_research_query(
             user_question=user_question,
             max_agents=max_agents,
@@ -658,8 +652,10 @@ def query_llmpedia_new(
         return (
             final_answer_title,
             final_answer,
-            referenced_codes_list,
-            additional_relevant_codes,
+            referenced_arxiv_codes,
+            referenced_reddit_codes,
+            additional_arxiv_codes,
+            additional_reddit_codes,
         )
 
     else:  # Non-LLM query

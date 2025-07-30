@@ -67,9 +67,11 @@ def create_sidebar(full_papers_df: pd.DataFrame) -> Tuple[pd.DataFrame, int]:
         options=["🎨 Art", "📄 Page"],
         index=0 if st.session_state.global_image_type == "artwork" else 1,
         key="global_image_toggle",
-        horizontal=True
+        horizontal=True,
     )
-    st.session_state.global_image_type = "artwork" if image_preference == "🎨 Art" else "first_page"
+    st.session_state.global_image_type = (
+        "artwork" if image_preference == "🎨 Art" else "first_page"
+    )
 
     ## Year filter.
     if not st.session_state.all_years:
@@ -160,7 +162,9 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             if st.session_state.global_image_type == "first_page":
                 image_url = f"https://arxiv-first-page.s3.us-east-1.amazonaws.com/{paper_code}.png"
             else:
-                image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
+                image_url = (
+                    f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
+                )
             img_cols[0].image(image_url, use_container_width=True)
         except:
             pass
@@ -589,7 +593,10 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
                     similar_codes = np.random.choice(similar_codes, 5, replace=False)
                 similar_df = papers_df.loc[similar_codes]
                 generate_grid_gallery(
-                    similar_df, extra_key=f"_sim_{paper_code}", n_cols=5, image_type=st.session_state.global_image_type
+                    similar_df,
+                    extra_key=f"_sim_{paper_code}",
+                    n_cols=5,
+                    image_type=st.session_state.global_image_type,
                 )
 
     # GPT Maestro Insight tab (only shown if insight exists)
@@ -623,7 +630,9 @@ def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
                 if image_type == "first_page":
                     image_url = f"https://arxiv-first-page.s3.us-east-1.amazonaws.com/{paper_code}.png"
                 else:  # Default to artwork
-                    image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
+                    image_url = (
+                        f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
+                    )
 
                 with cols[j]:
                     card_html = f"""
@@ -947,7 +956,9 @@ def generate_mini_paper_table(
 
         # Image URL with fallback
         if st.session_state.global_image_type == "first_page":
-            image_url = f"https://arxiv-first-page.s3.us-east-1.amazonaws.com/{paper_code}.png"
+            image_url = (
+                f"https://arxiv-first-page.s3.us-east-1.amazonaws.com/{paper_code}.png"
+            )
         else:
             image_url = f"https://arxiv-art.s3.amazonaws.com/{paper_code}.png"
 
@@ -1073,7 +1084,9 @@ def create_featured_paper_card(paper: Dict) -> None:
     title = paper.get("title", "Featured Paper")
     punchline = paper.get("punchline", "No summary available.")
     if st.session_state.global_image_type == "first_page":
-        image_url = f"https://arxiv-first-page.s3.us-east-1.amazonaws.com/{paper_code}.png"
+        image_url = (
+            f"https://arxiv-first-page.s3.us-east-1.amazonaws.com/{paper_code}.png"
+        )
     else:
         image_url = f"https://arxiv-art.s3.us-west-2.amazonaws.com/{paper_code}.png"
     paper_url = paper.get("url", f"https://arxiv.org/abs/{paper_code}")
@@ -1131,7 +1144,9 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
                 topic_full = papers_df.loc[arxiv_code, "topic"]
                 # Handle NaN values safely
                 if pd.notna(topic_full) and isinstance(topic_full, str):
-                    topic = topic_full[:30] + "..." if len(topic_full) > 30 else topic_full
+                    topic = (
+                        topic_full[:30] + "..." if len(topic_full) > 30 else topic_full
+                    )
 
         with cols[col_idx]:
             # Create a container with padding and subtle border
@@ -1139,8 +1154,10 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
                 # Build topic HTML safely
                 topic_html = ""
                 if topic and topic_full:
-                    topic_html = f"<span class='fact-topic' title='{topic_full}'>{topic}</span>"
-                
+                    topic_html = (
+                        f"<span class='fact-topic' title='{topic_full}'>{topic}</span>"
+                    )
+
                 st.markdown(
                     f"""<div class="fact-card">
                     <div class="fact-content">{fact['fact']}</div>
@@ -1462,7 +1479,7 @@ def render_research_progress(status_widget, progress_state: dict):
         displayed_activities = len(activity_log)
         insights_found = progress_state.get("insights_found", 0)
         papers_found = progress_state.get("papers_found", 0)
-        
+
         timeline_header = f"""
         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
             <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-color);">📡 Research Timeline</div>
@@ -1479,9 +1496,9 @@ def render_research_progress(status_widget, progress_state: dict):
         """
         st.markdown(timeline_header, unsafe_allow_html=True)
 
-        # Better layout: Timeline + compact stats  
+        # Better layout: Timeline + compact stats
         layout_cols = st.columns([3, 1])  # Timeline takes 3/4, stats take 1/4
-        
+
         # Timeline column (left - wider)
         with layout_cols[0]:
             # Timeline with truncation indicator
@@ -1494,58 +1511,167 @@ def render_research_progress(status_widget, progress_state: dict):
                         '<div style="display: flex; flex-direction: column; align-items: center; margin-right: 0.75rem; min-width: 20px;">'
                         '<div style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; color: #999;">⋯</div>'
                         '<div style="width: 2px; height: 16px; background: rgba(179, 27, 27, 0.2); margin-top: 4px;"></div>'
-                        '</div>'
+                        "</div>"
                         f'<div style="flex: 1; font-size: 0.75rem; color: var(--text-color); opacity: 0.6; line-height: 1.3; padding-top: 2px; font-style: italic;">{earlier_count} earlier activities...</div>'
-                        '</div>'
+                        "</div>"
                     )
                     st.markdown(truncation_entry, unsafe_allow_html=True)
-            
-                # Timeline entries
+
+                # Timeline entries with enhanced visual hierarchy
                 for i, activity in enumerate(activity_log):
                     # Clean up the activity message for display
                     clean_activity = (
-                        activity.replace("🎯 ", "").replace("🤖 ", "").replace("📝 ", "")
+                        activity.replace("🎯 ", "")
+                        .replace("🤖 ", "")
+                        .replace("📝 ", "")
                     )
                     if len(clean_activity) > 200:
                         clean_activity = clean_activity[:197] + "..."
-                    
+
                     # Add minimal log-style prefix: step number from total count
                     step_number = total_activities - len(activity_log) + i + 1
                     clean_activity = f"#{step_number} {clean_activity}"
-                    
-                    # Determine activity type and icon
-                    if "Phase" in activity:
+
+                    # Enhanced activity type detection and styling
+                    activity_lower = activity.lower()
+                    is_latest = i == len(activity_log) - 1
+
+                    # Determine activity type, icon, color, and status
+                    if "phase" in activity_lower:
                         icon = "🎯"
                         color = "#b31b1b"
-                    elif "Agent" in activity:
-                        icon = "🤖"
-                        color = "#2196f3"
-                    elif "complete" in activity.lower():
+                        activity_type = "phase"
+                        bg_color = "rgba(179, 27, 27, 0.08)"
+                        icon_style = "font-weight: bold;"
+                    elif "agent" in activity_lower and "completed" in activity_lower:
                         icon = "✅"
                         color = "#4caf50"
-                    else:
-                        icon = "📝"
+                        activity_type = "completion"
+                        bg_color = "rgba(76, 175, 80, 0.1)"
+                        icon_style = ""
+                    elif "agent" in activity_lower:
+                        icon = "🤖"
+                        color = "#2196f3"
+                        activity_type = "agent"
+                        bg_color = "rgba(33, 150, 243, 0.08)"
+                        icon_style = ""
+                    elif "searching" in activity_lower or "found" in activity_lower:
+                        icon = "🔍"
+                        color = "#ff9800"
+                        activity_type = "search"
+                        bg_color = "rgba(255, 152, 0, 0.08)"
+                        icon_style = ""
+                    elif "reranking" in activity_lower or "filtering" in activity_lower:
+                        icon = "⚖️"
                         color = "#9c27b0"
-                    
-                    # Calculate timeline position (newest at top)
-                    is_latest = i == len(activity_log) - 1
-                    
-                    # Build timeline entry components separately
-                    connector_line = '' if i == len(activity_log) - 1 else '<div style="width: 2px; height: 16px; background: rgba(179, 27, 27, 0.2); margin-top: 4px;"></div>'
-                    opacity = '1' if is_latest else '0.8'
-                    
-                    # Simple timeline entry without nested quotes issues
-                    timeline_entry = (
-                        '<div style="display: flex; margin-bottom: 0rem;">'
-                        '<div style="display: flex; flex-direction: column; align-items: center; margin-right: 0.75rem; min-width: 20px;">'
-                        f'<div style="width: 20px; height: 20px; background: {color}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">{icon}</div>'
-                        f'{connector_line}'
-                        '</div>'
-                        f'<div style="flex: 1; font-size: 0.8rem; color: var(--text-color); opacity: {opacity}; line-height: 1.3; padding-top: 2px;">{clean_activity}</div>'
-                        '</div>'
+                        activity_type = "process"
+                        bg_color = "rgba(156, 39, 176, 0.08)"
+                        icon_style = ""
+                    elif (
+                        "analyzing" in activity_lower or "extracting" in activity_lower
+                    ):
+                        icon = "🧠"
+                        color = "#673ab7"
+                        activity_type = "analysis"
+                        bg_color = "rgba(103, 58, 183, 0.08)"
+                        icon_style = ""
+                    elif (
+                        "synthesizing" in activity_lower or "complete" in activity_lower
+                    ):
+                        icon = "📝"
+                        color = "#4caf50"
+                        activity_type = "synthesis"
+                        bg_color = "rgba(76, 175, 80, 0.1)"
+                        icon_style = ""
+                    else:
+                        icon = "📋"
+                        color = "#9c27b0"
+                        activity_type = "general"
+                        bg_color = "rgba(156, 39, 176, 0.05)"
+                        icon_style = ""
+
+                    # Enhanced connector line styling based on activity relationship
+                    next_activity = (
+                        activity_log[i + 1] if i + 1 < len(activity_log) else ""
                     )
-                    st.caption(timeline_entry, unsafe_allow_html=True)
-        
+                    is_same_group = (
+                        ("agent" in activity_lower and "agent" in next_activity.lower())
+                        or (
+                            "searching" in activity_lower
+                            and (
+                                "found" in next_activity.lower()
+                                or "reranking" in next_activity.lower()
+                            )
+                        )
+                        or (
+                            "found" in activity_lower
+                            and "reranking" in next_activity.lower()
+                        )
+                        or (
+                            "reranking" in activity_lower
+                            and "analyzing" in next_activity.lower()
+                        )
+                    )
+
+                    if i == len(activity_log) - 1:
+                        connector_line = ""
+                    elif is_same_group:
+                        connector_line = f'<div style="width: 2px; height: 16px; background: {color}; opacity: 0.4; margin-top: 4px;"></div>'
+                    else:
+                        connector_line = '<div style="width: 2px; height: 16px; background: rgba(179, 27, 27, 0.15); margin-top: 4px;"></div>'
+
+                    # Activity status styling
+                    if is_latest and not (
+                        "completed" in activity_lower or "complete" in activity_lower
+                    ):
+                        # Current active item
+                        opacity = "1"
+                        pulse_animation = (
+                            "animation: subtle-pulse 2s ease-in-out infinite;"
+                        )
+                        text_weight = "font-weight: 500;"
+                    elif "completed" in activity_lower or "complete" in activity_lower:
+                        # Completed items
+                        opacity = "0.9"
+                        pulse_animation = ""
+                        text_weight = "font-weight: 400;"
+                    else:
+                        # Older items
+                        opacity = "0.75"
+                        pulse_animation = ""
+                        text_weight = "font-weight: 400;"
+
+                    # Spacing based on activity type (phase transitions get more space)
+                    margin_bottom = "0.4rem" if activity_type == "phase" else "0.1rem"
+
+                    # Enhanced timeline entry with visual grouping
+                    timeline_entry = (
+                        f'<div style="display: flex; margin-bottom: {margin_bottom}; padding: 0.3rem 0.5rem; border-radius: 6px; background: {bg_color}; transition: all 0.2s ease;">'
+                        '<div style="display: flex; flex-direction: column; align-items: center; margin-right: 0.75rem; min-width: 20px;">'
+                        f'<div style="width: 20px; height: 20px; background: {color}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; {icon_style} {pulse_animation} box-shadow: 0 1px 3px rgba(0,0,0,0.1);">{icon}</div>'
+                        f"{connector_line}"
+                        "</div>"
+                        f'<div style="flex: 1; font-size: 0.8rem; color: var(--text-color); opacity: {opacity}; line-height: 1.3; padding-top: 2px; {text_weight}">{clean_activity}</div>'
+                        "</div>"
+                    )
+
+                    # Add subtle pulse animation for active items
+                    if is_latest and not (
+                        "completed" in activity_lower or "complete" in activity_lower
+                    ):
+                        if i == 0:  # Only add the CSS once
+                            timeline_entry = (
+                                "<style>"
+                                "@keyframes subtle-pulse {"
+                                "0% { box-shadow: 0 1px 3px rgba(0,0,0,0.1); }"
+                                "50% { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }"
+                                "100% { box-shadow: 0 1px 3px rgba(0,0,0,0.1); }"
+                                "}"
+                                "</style>" + timeline_entry
+                            )
+
+                    st.markdown(timeline_entry, unsafe_allow_html=True)
+
         # Compact stats column (right - narrower)
         with layout_cols[1]:
             # Compact vertical stats using app's design system
@@ -1582,7 +1708,6 @@ def render_research_progress(status_widget, progress_state: dict):
             """
             st.markdown(stats_html, unsafe_allow_html=True)
 
-
         # Add some breathing room at the bottom
         st.markdown(
             "<div style='margin-bottom: 0.5rem;'></div>", unsafe_allow_html=True
@@ -1601,7 +1726,8 @@ def get_initial_query_value() -> str:
 def render_research_settings_panel() -> dict:
     """Render settings expander, return selected values."""
     with st.expander("⚙️ Response Settings", expanded=False):
-        settings_cols = st.columns(3)
+        # First row - main settings
+        settings_cols = st.columns(4)
 
         with settings_cols[0]:
             response_length = st.select_slider(
@@ -1612,7 +1738,7 @@ def render_research_settings_panel() -> dict:
             )
         with settings_cols[1]:
             max_sources = st.select_slider(
-                "Maximum Sources",
+                "Maximum Sources per Agent",
                 options=[1, 5, 15, 30, 50],
                 value=15,
             )
@@ -1620,8 +1746,15 @@ def render_research_settings_panel() -> dict:
             max_agents = st.select_slider(
                 "Research Agents",
                 options=[1, 2, 3, 4, 5],
-                value=3,
+                value=1,
                 help="Number of specialized agents to deploy for parallel research. More agents = more comprehensive but slower.",
+            )
+        with settings_cols[3]:
+            llm_model = st.selectbox(
+                "LLM Model",
+                options=["gpt-4.1-nano", "gpt-4.1-mini"],
+                index=0,
+                help="Model to use for research analysis and synthesis.",
             )
 
         show_only_sources = st.checkbox(
@@ -1633,6 +1766,7 @@ def render_research_settings_panel() -> dict:
         "response_length": response_length,
         "max_sources": max_sources,
         "max_agents": max_agents,
+        "llm_model": llm_model,
         "show_only_sources": show_only_sources,
     }
 
@@ -1640,8 +1774,10 @@ def render_research_settings_panel() -> dict:
 def display_research_results(
     title: str,
     response: str,
-    referenced_codes: List[str],
-    relevant_codes: List[str],
+    referenced_arxiv_codes: List[str],
+    referenced_reddit_codes: List[str],
+    additional_arxiv_codes: List[str],
+    additional_reddit_codes: List[str],
     papers_df: pd.DataFrame,
 ):
     """Display research results with paper citations."""
@@ -1649,48 +1785,294 @@ def display_research_results(
     st.markdown(f"#### {title}")
     st.markdown(response)
 
-    if len(referenced_codes) > 0:
+    # Use the already separated codes directly
+    arxiv_codes = referenced_arxiv_codes
+
+    # Extract Reddit citations with metadata from response text
+    reddit_citations_data = extract_reddit_citations_with_metadata(response)
+    
+    if len(arxiv_codes) > 0 or reddit_citations_data:
         st.divider()
 
-        # View selector for paper display format
-        display_format = st.radio(
-            "Display Format",
-            options=["Grid View", "Citation List"],
-            horizontal=True,
-            label_visibility="collapsed",
-            key="papers_display_format",
-        )
-
-        # Check if response contains Reddit citations
-        reddit_citations = len([line for line in response.split('\n') if 'r/' in line and '](' in line and 'reddit.com' in line])
-        
-        if reddit_citations > 0:
-            st.markdown(f"<h4>Referenced Sources ({len(referenced_codes)} papers, {reddit_citations} discussions):</h4>", unsafe_allow_html=True)
+        # View selector for paper display format (only show if there are papers)
+        if len(arxiv_codes) > 0:
+            display_format = st.radio(
+                "Display Format",
+                options=["Grid View", "Citation List"],
+                horizontal=True,
+                label_visibility="collapsed",
+                key="papers_display_format",
+            )
         else:
+            display_format = "Citation List"  # Default when no papers
+
+        # Count sources for header
+        total_sources = len(arxiv_codes) + len(reddit_citations_data)
+        # Display arXiv papers if present
+        if len(arxiv_codes) > 0:
             st.markdown("<h4>Referenced Papers:</h4>", unsafe_allow_html=True)
-            
-        # Get referenced papers
-        reference_df = papers_df.loc[[c for c in referenced_codes if c in papers_df.index]]
-        if display_format == "Grid View":
-            generate_grid_gallery(reference_df, n_cols=5, extra_key="_chat", image_type=st.session_state.global_image_type)
-        else:
-            generate_citations_list(reference_df)
-            
-        # Add note about Reddit discussions if present
-        if reddit_citations > 0:
-            st.caption(f"💬 Additionally referenced {reddit_citations} Reddit community discussions (see links in text above)")
+            # Get referenced papers
+            reference_df = papers_df.loc[
+                [c for c in arxiv_codes if c in papers_df.index]
+            ]
+            if not reference_df.empty:
+                if display_format == "Grid View":
+                    generate_grid_gallery(
+                        reference_df,
+                        n_cols=5,
+                        extra_key="_chat",
+                        image_type=st.session_state.global_image_type,
+                    )
+                else:
+                    generate_citations_list(reference_df)
 
-        if len(relevant_codes) > 0:
+        # Display Reddit citations if present
+        if reddit_citations_data:
+            if len(arxiv_codes) > 0:  # Add divider only if papers were shown above
+                st.divider()
+            st.markdown("<h4>Referenced Discussions:</h4>", unsafe_allow_html=True)
+            if display_format == "Grid View":
+                generate_reddit_grid_gallery(reddit_citations_data)
+            else:
+                generate_reddit_citations_list(reddit_citations_data)
+
+        # Display additional relevant papers
+        if len(additional_arxiv_codes) > 0:
             st.divider()
             st.markdown("<h4>Other Relevant Papers:</h4>", unsafe_allow_html=True)
             # Filter out codes that don't exist in the dataframe to avoid KeyError
-            valid_relevant_codes = [c for c in relevant_codes if c in papers_df.index]
+            valid_relevant_codes = [c for c in additional_arxiv_codes if c in papers_df.index]
             if len(valid_relevant_codes) > 0:
                 relevant_df = papers_df.loc[valid_relevant_codes]
                 if display_format == "Grid View":
-                    generate_grid_gallery(relevant_df, n_cols=5, extra_key="_chat", image_type=st.session_state.global_image_type)
+                    generate_grid_gallery(
+                        relevant_df,
+                        n_cols=5,
+                        extra_key="_chat",
+                        image_type=st.session_state.global_image_type,
+                    )
                 else:
                     generate_citations_list(relevant_df)
+
+
+def get_reddit_citation_metadata(reddit_citations: List[str]) -> List[Dict]:
+    """Fetch Reddit post metadata for citation display. Expects format: r/subreddit:post_id"""
+    if not reddit_citations:
+        return []
+
+    from utils.db import db_utils
+
+    metadata_list = []
+    for citation in reddit_citations:
+        # Parse subreddit:post_id format (r/ prefix already removed)
+        subreddit, reddit_id = citation.split(":", 1)
+
+        # Query database for Reddit post metadata  
+        query = """
+            SELECT reddit_id, subreddit, title, selftext as content, author, 
+                   score, num_comments, post_timestamp as published_date, permalink
+            FROM reddit_posts 
+            WHERE reddit_id = :reddit_id AND subreddit = :subreddit 
+            LIMIT 1
+        """
+        result = db_utils.execute_read_query(
+            query, {"reddit_id": reddit_id, "subreddit": subreddit}
+        )
+
+        if not result.empty:
+            row = result.iloc[0]
+            metadata = {
+                "reddit_id": row["reddit_id"],
+                "subreddit": row["subreddit"],
+                "title": row["title"],
+                "content": row.get("content", "") or "",
+                "author": row.get("author", "") or "",
+                "score": int(row.get("score", 0)),
+                "num_comments": int(row.get("num_comments", 0)),
+                "published_date": row["published_date"],
+                "permalink": row.get("permalink", 
+                    f"https://www.reddit.com/r/{row['subreddit']}/comments/{row['reddit_id']}/"),
+                "original_citation": citation,
+            }
+            metadata_list.append(metadata)
+
+    return metadata_list
+
+
+def extract_reddit_citations_with_metadata(response: str) -> List[Dict]:
+    """Extract Reddit citations from response text and fetch their metadata."""
+    from utils.app_utils import extract_reddit_codes
+
+    # Extract Reddit citations using existing function
+    reddit_codes = extract_reddit_codes(response)
+
+    # Fetch metadata for each citation
+    return get_reddit_citation_metadata(reddit_codes)
+
+
+def generate_reddit_grid_gallery(reddit_citations: List[Dict], n_cols=5) -> None:
+    """Create streamlit grid gallery of Reddit cards matching arXiv card style."""
+    if not reddit_citations:
+        return
+    
+    n_rows = int(np.ceil(len(reddit_citations) / n_cols))
+    for i in range(n_rows):
+        cols = st.columns(n_cols)
+        for j in range(n_cols):
+            if i * n_cols + j < len(reddit_citations):
+                citation = reddit_citations[i * n_cols + j]
+                
+                # Extract Reddit information
+                title = citation["title"]
+                subreddit = citation["subreddit"]
+                author = citation["author"]
+                reddit_id = citation["reddit_id"]
+                score = citation["score"]
+                num_comments = citation["num_comments"]
+                permalink = citation["permalink"]
+                content = citation.get("content", "")
+                
+                # Format published date
+                published_date = citation["published_date"]
+                if published_date:
+                    if hasattr(published_date, "strftime"):
+                        date_str = published_date.strftime("%b %d, %Y")
+                    else:
+                        import pandas as pd
+                        date_str = pd.to_datetime(published_date).strftime("%b %d, %Y")
+                else:
+                    date_str = "Unknown date"
+                
+                # Create content preview for back of card
+                content_preview = "No content available."
+                if content and content.strip():
+                    clean_content = content.strip()
+                    if len(clean_content) > 150:
+                        content_preview = clean_content[:150] + "..."
+                    else:
+                        content_preview = clean_content
+                
+                # Sanitize for HTML
+                safe_title = html_escape(title)
+                safe_content = html_escape(content_preview)
+                
+                with cols[j]:
+                    # Reddit card with similar structure to arXiv cards
+                    card_html = f"""
+                    <div class="flip-card">
+                      <div class="flip-card-inner">
+                        <div class="flip-card-front" style="background: linear-gradient(135deg, #FF4500 0%, #FF6B35 100%); color: white;">
+                          <div style="padding: var(--space-lg); height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+                            <div style="font-size: 2rem; margin-bottom: var(--space-base);">💬</div>
+                            <div style="font-size: var(--font-size-sm); opacity: 0.9; margin-bottom: var(--space-xs);">r/{subreddit}</div>
+                            <div class="flip-title" style="color: white;">{safe_title}</div>
+                          </div>
+                        </div>
+                        <div class="flip-card-back">
+                          <div class="flip-card-back-content">{safe_content}</div>
+                        </div>
+                      </div>
+                    </div>
+                    """
+                    st.markdown(card_html, unsafe_allow_html=True)
+                    
+                    # Metadata below card (similar to arXiv date/star display)
+                    upvote_display = "⬆️" if score > 0 else ""
+                    metadata_html = f"""
+                    <div class="centered" style="text-align: center; font-size: var(--font-size-sm); margin-top: calc(-1 * var(--space-sm)); margin-bottom: var(--space-sm);">
+                        <code>{upvote_display} {date_str}</code>
+                    </div>
+                    """
+                    st.markdown(metadata_html, unsafe_allow_html=True)
+                    
+                    # Clickable link to Reddit post
+                    st.markdown(
+                        f'<div style="text-align: center; margin-top: var(--space-xs);"><a href="{permalink}" target="_blank" style="color: #FF4500; text-decoration: none; font-size: var(--font-size-xs);">View Discussion ↗</a></div>',
+                        unsafe_allow_html=True
+                    )
+
+
+def generate_reddit_citations_list(reddit_citations: List[Dict]) -> None:
+    """Generate formatted list of Reddit citations with rich styling."""
+    if not reddit_citations:
+        return
+
+    for citation in reddit_citations:
+        # Extract Reddit information
+        title = citation["title"]
+        subreddit = citation["subreddit"]
+        author = citation["author"]
+        reddit_id = citation["reddit_id"]
+        score = citation["score"]
+        num_comments = citation["num_comments"]
+        permalink = citation["permalink"]
+        content = citation.get("content", "")
+
+        # Format published date
+        published_date = citation["published_date"]
+        if published_date:
+            if hasattr(published_date, "strftime"):
+                date_str = published_date.strftime("%b %d, %Y")
+            else:
+                import pandas as pd
+
+                date_str = pd.to_datetime(published_date).strftime("%b %d, %Y")
+        else:
+            date_str = "Unknown date"
+
+        # Create content preview (first 200 characters)
+        content_preview = ""
+        if content and content.strip():
+            # Clean and truncate content
+            clean_content = content.strip()
+            if len(clean_content) > 200:
+                content_preview = clean_content[:200] + "..."
+            else:
+                content_preview = clean_content
+
+        # Create styled HTML similar to arXiv citations but with Reddit theme
+        citation_html = f"""
+        <div style="margin: var(--space-xl) 0; padding: var(--space-xl); border-radius: var(--radius-base); border-left: 4px solid #FF4500;">
+            <div style="margin-bottom: var(--space-base);">
+                <a href="{permalink}" target="_blank" style="color: #FF4500; text-decoration: none; font-size: var(--font-size-lg); font-weight: bold;">
+                    {title}
+                </a>
+            </div>
+            <div style="color: var(--text-color, #666); font-size: var(--font-size-sm); margin-bottom: var(--space-sm);">
+                u/{author}
+            </div>
+            <div style="display: flex; gap: var(--space-base); margin-top: var(--space-sm); font-size: var(--font-size-sm); flex-wrap: wrap;">
+                <span style="background-color: rgba(255, 69, 0, 0.05); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm);">
+                    📅 {date_str}
+                </span>
+                <span style="background-color: rgba(255, 69, 0, 0.05); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm);">
+                    r/{subreddit}
+                </span>
+                <span style="background-color: rgba(255, 69, 0, 0.05); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm);">
+                    ⬆️ {score} upvotes
+                </span>
+                <span style="background-color: rgba(255, 69, 0, 0.05); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm);">
+                    💬 {num_comments} comments
+                </span>
+                <a href="{permalink}" target="_blank" style="text-decoration: none;">
+                    <span style="background-color: rgba(255, 69, 0, 0.05); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm);">
+                        <span style="color: #FF4500;">🔗</span> r/{subreddit}:{reddit_id} <span style="font-size: var(--font-size-xs);">↗</span>
+                    </span>
+                </a>
+            </div>"""
+
+        # Add content preview if available
+        if content_preview:
+            citation_html += f"""
+            <div style="margin-top: var(--space-base); font-style: italic; color: var(--text-color, #666); font-size: var(--font-size-sm);">
+                {content_preview}
+            </div>"""
+        
+        citation_html += """
+        </div>
+        """
+
+        st.markdown(citation_html, unsafe_allow_html=True)
 
 
 def inject_flip_card_css():

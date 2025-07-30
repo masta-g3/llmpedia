@@ -23,7 +23,7 @@ def test_basic_query(user_question: str):
     
     try:
         # Run deep research with progress reporting and verbose mode
-        response, referenced_codes, additional_codes = deep_research_query(
+        title, workflow_id, response, referenced_arxiv_codes, referenced_reddit_codes, additional_arxiv_codes, additional_reddit_codes = deep_research_query(
             user_question=user_question,
             max_agents=3,
             max_sources_per_agent=15,
@@ -38,22 +38,34 @@ def test_basic_query(user_question: str):
         print("=" * 50)
         print("\n📋 Results Summary:")
         print(f"Response length: {len(response.split())} words")
-        print(f"Referenced papers: {len(referenced_codes)}")
-        print(f"Additional relevant papers: {len(additional_codes)}")
+        print(f"Referenced arXiv papers: {len(referenced_arxiv_codes)}")
+        print(f"Referenced Reddit posts: {len(referenced_reddit_codes)}")
+        print(f"Additional arXiv papers: {len(additional_arxiv_codes)}")
+        print(f"Additional Reddit posts: {len(additional_reddit_codes)}")
         
         print("\n📄 Full Response:")
         print("-" * 30)
         print(response)
         
-        if referenced_codes:
-            print(f"\n📚 Referenced Papers:")
-            for code in referenced_codes[:5]:
+        if referenced_arxiv_codes:
+            print(f"\n📚 Referenced arXiv Papers:")
+            for code in referenced_arxiv_codes[:5]:
                 print(f"  - arxiv:{code}")
         
-        if additional_codes:
-            print(f"\n📖 Additional Relevant Papers:")
-            for code in additional_codes[:5]:
+        if referenced_reddit_codes:
+            print(f"\n💬 Referenced Reddit Posts:")
+            for code in referenced_reddit_codes[:5]:
+                print(f"  - r/{code}")
+        
+        if additional_arxiv_codes:
+            print(f"\n📖 Additional arXiv Papers:")
+            for code in additional_arxiv_codes[:5]:
                 print(f"  - arxiv:{code}")
+        
+        if additional_reddit_codes:
+            print(f"\n💭 Additional Reddit Posts:")
+            for code in additional_reddit_codes[:5]:
+                print(f"  - r/{code}")
     except Exception as e:
         print(f"\n❌ Test failed with error: {str(e)}")
         import traceback

@@ -60,11 +60,17 @@ if "global_image_type" not in st.session_state:
 if "chat_response" not in st.session_state:
     st.session_state.chat_response = None
 
-if "referenced_codes" not in st.session_state:
-    st.session_state.referenced_codes = []
+if "referenced_arxiv_codes" not in st.session_state:
+    st.session_state.referenced_arxiv_codes = []
 
-if "relevant_codes" not in st.session_state:
-    st.session_state.relevant_codes = []
+if "referenced_reddit_codes" not in st.session_state:
+    st.session_state.referenced_reddit_codes = []
+
+if "additional_arxiv_codes" not in st.session_state:
+    st.session_state.additional_arxiv_codes = []
+
+if "additional_reddit_codes" not in st.session_state:
+    st.session_state.additional_reddit_codes = []
 
 
 collection_map = {
@@ -287,8 +293,10 @@ def chat_fragment():
     if st.session_state.chat_response:
         if chat_cols[1].button("Clear", type="secondary"):
             st.session_state.chat_response = None
-            st.session_state.referenced_codes = []
-            st.session_state.relevant_codes = []
+            st.session_state.referenced_arxiv_codes = []
+            st.session_state.referenced_reddit_codes = []
+            st.session_state.additional_arxiv_codes = []
+            st.session_state.additional_reddit_codes = []
             st.rerun(scope="fragment")
 
     # Check for auto-execute flag (programmatic trigger)
@@ -331,11 +339,11 @@ def chat_fragment():
                     su.render_research_progress(status, progress_state)
 
                 try:
-                    response_title, response, referenced_codes, relevant_codes = (
+                    response_title, response, referenced_arxiv_codes, referenced_reddit_codes, additional_arxiv_codes, additional_reddit_codes = (
                         au.query_llmpedia_new(
                             user_question=user_question,
                             response_length=settings["response_length"],
-                            llm_model="gpt-4.1-nano",
+                            llm_model="gpt-4.1-mini",
                             max_sources=settings["max_sources"],
                             max_agents=settings["max_agents"],
                             debug=True,
@@ -368,8 +376,10 @@ def chat_fragment():
         if "response" in locals():
             st.session_state.chat_response = response
             st.session_state.chat_response_title = response_title
-            st.session_state.referenced_codes = referenced_codes
-            st.session_state.relevant_codes = relevant_codes
+            st.session_state.referenced_arxiv_codes = referenced_arxiv_codes
+            st.session_state.referenced_reddit_codes = referenced_reddit_codes
+            st.session_state.additional_arxiv_codes = additional_arxiv_codes
+            st.session_state.additional_reddit_codes = additional_reddit_codes
             logging_db.log_qna_db(user_question, response)
             st.session_state.auto_execute_research = False
             try:
@@ -382,8 +392,10 @@ def chat_fragment():
         su.display_research_results(
             title=st.session_state.chat_response_title,
             response=st.session_state.chat_response,
-            referenced_codes=st.session_state.referenced_codes,
-            relevant_codes=st.session_state.relevant_codes,
+            referenced_arxiv_codes=st.session_state.referenced_arxiv_codes,
+            referenced_reddit_codes=st.session_state.referenced_reddit_codes,
+            additional_arxiv_codes=st.session_state.additional_arxiv_codes,
+            additional_reddit_codes=st.session_state.additional_reddit_codes,
             papers_df=st.session_state["papers"]
         )
 

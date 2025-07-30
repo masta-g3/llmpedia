@@ -80,7 +80,7 @@ if __name__ == "__main__":
     print(f"\n--- Running query_llmpedia_new ({'Deep' if args.deep_research else 'Standard'} Search) ---")
     
     try:
-        answer, referenced_codes, relevant_codes = query_llmpedia_new(
+        title, answer, referenced_arxiv_codes, referenced_reddit_codes, additional_arxiv_codes, additional_reddit_codes = query_llmpedia_new(
             user_question=args.question,
             response_length=args.response_length,
             query_llm_model=args.query_model, 
@@ -100,9 +100,13 @@ if __name__ == "__main__":
         print("\n## Answer:")
         print(answer)
         print("\n## Referenced arXiv Codes:")
-        print(referenced_codes if referenced_codes else "None")
-        print("\n## Additional Relevant arXiv Codes:")
-        print(relevant_codes if relevant_codes else "None")
+        print(referenced_arxiv_codes if referenced_arxiv_codes else "None")
+        print("\n## Referenced Reddit Codes:")
+        print(referenced_reddit_codes if referenced_reddit_codes else "None")
+        print("\n## Additional arXiv Codes:")
+        print(additional_arxiv_codes if additional_arxiv_codes else "None")
+        print("\n## Additional Reddit Codes:")
+        print(additional_reddit_codes if additional_reddit_codes else "None")
         print("-------------")
 
     except Exception as e:

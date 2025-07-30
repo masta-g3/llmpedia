@@ -99,17 +99,17 @@ class AgentFindings(BaseModel):
     supporting_evidence: List[str] = Field(
         ..., description="Specific evidence and findings that support the key insights."
     )
-    community_insights: Optional[List[str]] = Field(
+    community_insights: List[str] = Field(
         default=[],
         description="Key insights from Reddit community discussions, including practical perspectives and real-world experiences.",
     )    
-    referenced_papers: Optional[List[str]] = Field(
+    referenced_papers: List[str] = Field(
         default=[],
         description="List of arxiv paper codes that provided key evidence. Format: ['arxiv:2507.03113', 'arxiv:2401.12345']"
     )
-    reddit_references: Optional[List[str]] = Field(
+    reddit_references: List[str] = Field(
         default=[],
-        description="List of Reddit post references that provided community insights. Format: ['reddit:MachineLearning:1l69w7i', 'reddit:LocalLLaMA:1k8x2p4']"
+        description="List of Reddit post references that provided community insights. Format: ['r/MachineLearning:1l69w7i', 'r/LocalLLaMA:1k8x2p4']"
     )
     research_gaps: List[str] = Field(
         ...,
@@ -122,7 +122,7 @@ class FinalReport(BaseModel):
         ..., description="A simple, short, punchy sentence summarizing your most insightful finding."
     )
     response: str = Field(
-        ..., description="Final formatted response ready for presentation to the user. Includes inline citations in the format: ['arxiv:2507.03113', 'reddit:LocalLLaMA:1k8x2p4']."
+        ..., description="Final formatted response ready for presentation to the user. Includes inline citations in the format: ['arxiv:2507.03113', 'r/LocalLLaMA:1k8x2p4']."
     )
 
 
@@ -135,7 +135,7 @@ Break down complex questions into independent, researchable subtopics that can b
 Current date: {TODAY_DATE}."""
 
 
-def create_research_brief_prompt(user_question: str) -> str:
+def create_research_brief_prompt(user_question: str, max_agents: int = 5) -> str:
     return f"""
 <user_question>
 {user_question}
@@ -143,7 +143,7 @@ def create_research_brief_prompt(user_question: str) -> str:
 
 <instructions>
 - Analyze the user's question and create a focused research brief.
-- Identify between 1 and 5 independent, orthogonal subtopics that together comprehensively address the question.
+- Identify between 1 and {max_agents} independent, orthogonal subtopics that together comprehensively address the question.
 - In many cases a single subtopic will be enough (particularly for targetted questions).
 - Ensure subtopics don't overlap and can be researched independently. Do not add more topics than necessary.
 - Define clear research scope and the relevant time periods.
@@ -242,7 +242,7 @@ def create_agent_research_prompt(
             if source.content_type == 'reddit_post':
                 doc_context += f"""
 **📱 Reddit Discussion**
-**r/{source.subreddit}** • {source.published_date.strftime('%Y-%m-%d')} • ID: {source.reddit_id}
+**r/{source.subreddit}:{source.reddit_id}** • {source.published_date.strftime('%Y-%m-%d')}
 **{source.title}**
 👤 u/{source.author} • ⬆️ {source.score} upvotes • 💬 {source.num_comments} comments
 
@@ -283,7 +283,7 @@ Analyze the provided sources and extract findings specifically related to your a
 3. For community sources: Analyze practical perspectives, implementation challenges, user experiences, and real-world applications.
 4. Provide supporting evidence from the sources, copying verbatim when possible.
 5. List the arxiv codes of papers that provided key evidence (if any).
-6. For Reddit sources: Use the exact Reddit ID shown after "ID:" (e.g., reddit:1l69w7i) when citing community insights.
+6. For Reddit sources: Use the format "r/subreddit:post_id" (e.g., r/MachineLearning:1l69w7i).
 7. Be decisive with your conclusions. Identify any research gaps or limitations you notice.
 8. Note any discrepancies between academic claims and community experiences (when both are available).
 9. If you are not able to find any evidence for your subtopic, just say so.
@@ -292,7 +292,7 @@ Guidelines:
 - Stay focused on your specific subtopic.
 - Ground all insights in the provided sources.
 - Be specific about which sources support which insights.
-- When citing sources: Use "arxiv:paper_id" for academic papers and the exact Reddit ID shown after "ID:" for community discussions. List multiple citations as [reddit:1l69w7i, reddit:1l6opyh].
+- When citing sources: Use "arxiv:paper_id" for academic papers and "r/subreddit:post_id" for Reddit discussions. List multiple citations as [r/MachineLearning:1l69w7i, r/LocalLLaMA:1l6opyh].
 - Consider that some papers are about specific models and not general AI behavior.
 - Avoid referencing niche models unless they are very relevant to the subtopic.
 - Note if certain aspects of your subtopic lack sufficient evidence.
@@ -396,7 +396,7 @@ Synthesize the research findings into a comprehensive answer that directly answe
 - Avoid being pedantic, obnoxious or overtly-critical.
 - Don't frame ideas as revelatory paradigm shifts or contrarian declarations.
 - Ensure the response directly addresses the original research question.
-- Seamlessly integrate citations (using [arxiv:XXXX.YYYYY, reddit:0X00X0X] format) into the narrative flow to support claims and guide further reading.
+- Seamlessly integrate citations (using [arxiv:XXXX.YYYYY, r/subreddit:post_id] format) into the narrative flow to support claims and guide further reading.
 - Use markdown formatting to enhance readability and structure.
 - Maintain narrative momentum and logical flow.
 - Focus on actionable insights and be insightful/clever when possible.
@@ -582,12 +582,6 @@ class ResearchAgent:
 
         ## For Reddit posts, fetch top comments to enrich context
         if "reddit" in self.assignment.sources and high_relevance_docs:
-            # Debug: Check what types of documents we have
-            reddit_docs = [doc for doc in high_relevance_docs if isinstance(doc, RedditContent)]
-            if verbose and progress_callback and reddit_docs:
-                content_types = [doc.content_type for doc in reddit_docs]
-                progress_callback(f"      🔍 Found {len(reddit_docs)} Reddit docs with types: {content_types}")
-            
             reddit_post_ids = [
                 doc.reddit_id for doc in high_relevance_docs 
                 if isinstance(doc, RedditContent) and doc.content_type == 'reddit_post'
@@ -596,12 +590,8 @@ class ResearchAgent:
             if reddit_post_ids:
                 if verbose and progress_callback:
                     progress_callback(f"      💬 Fetching top comments for {len(reddit_post_ids)} Reddit posts...")
-                    progress_callback(f"      📋 Reddit post IDs: {reddit_post_ids}")
                 
                 comments_df = db.get_top_reddit_comments(reddit_post_ids, max_comments=3, min_score=5)
-                
-                if verbose and progress_callback:
-                    progress_callback(f"      📊 Comments query returned {len(comments_df) if not comments_df.empty else 0} rows")
                 
                 if not comments_df.empty:
                     reddit_comments = [
@@ -682,6 +672,7 @@ class ResearchSupervisor:
         self,
         user_question: str,
         workflow_id: str,
+        max_agents: int = 5,
         progress_callback: Optional[Callable[[str], None]] = None,
         verbose: bool = False,
     ) -> ResearchBrief:
@@ -691,7 +682,7 @@ class ResearchSupervisor:
 
         brief = run_instructor_query(
             system_message=RESEARCH_BRIEF_SYSTEM_PROMPT,
-            user_message=create_research_brief_prompt(user_question),
+            user_message=create_research_brief_prompt(user_question, max_agents),
             model=ResearchBrief,
             llm_model=self.llm_model,
             temperature=0.4,
@@ -701,6 +692,7 @@ class ResearchSupervisor:
             step_metadata={
                 "original_question": user_question,
                 "llm_model": self.llm_model,
+                "max_agents": max_agents,
             },
             # thinking_budget=1024
         )
@@ -783,7 +775,7 @@ class DeepResearchOrchestrator:
         response_length: int = 4000,
         progress_callback: Optional[Callable[[str], None]] = None,
         verbose: bool = False,
-    ) -> Tuple[str, str, List[str], List[str]]:
+    ) -> Tuple[str, str, str, List[str], List[str], List[str], List[str]]:
         """Execute the full three-phase deep research process."""
 
         ## Generate unique workflow ID for this research session
@@ -794,7 +786,7 @@ class DeepResearchOrchestrator:
 
         ## Phase 1: Scope - Create Research Brief
         research_brief = self.supervisor.create_research_brief(
-            user_question, workflow_id, progress_callback, verbose
+            user_question, workflow_id, max_agents, progress_callback, verbose
         )
 
         if progress_callback:
@@ -898,36 +890,74 @@ class DeepResearchOrchestrator:
         )
 
         ## Process final response
-        print(final_report)
         response_with_links = add_links_to_text_blob(final_report.response)
-        referenced_codes = extract_all_citations(final_report.response)
+        citations_dict = extract_all_citations(final_report.response)
+        
+        ## Extract referenced sources from report
+        referenced_arxiv_codes = citations_dict["arxiv_papers"]
+        referenced_reddit_codes = citations_dict["reddit_posts"]
 
-        ## Collect all relevant papers from agents
-        all_relevant_codes = set()
-        all_reddit_refs = set()
+        ## Collect all sources found by agents
+        all_arxiv_found = set()
+        all_reddit_found = set()
         for findings in self.all_findings:
-            all_relevant_codes.update(findings.referenced_papers)
-            if findings.reddit_references:
-                all_reddit_refs.update(findings.reddit_references)
+            # Clean arxiv prefixes from agent findings
+            for paper in findings.referenced_papers:
+                if paper.startswith("arxiv:"):
+                    all_arxiv_found.add(paper[6:])  # Remove prefix
+                else:
+                    all_arxiv_found.add(paper)
+            
+            # Add reddit references as-is
+            all_reddit_found.update(findings.reddit_references)
 
-        additional_relevant_codes = list(all_relevant_codes - set(referenced_codes))
+        ## Calculate additional sources (found but not referenced)
+        additional_arxiv_codes = list(all_arxiv_found - set(referenced_arxiv_codes))
+        additional_reddit_codes = list(all_reddit_found - set(referenced_reddit_codes))
         
-        ## Count total sources (papers + reddit posts)
-        total_sources = len(referenced_codes) + len(all_reddit_refs)
-        source_label = "sources" if total_sources != 1 else "source"
+        ## Count total sources
+        total_referenced_sources = len(referenced_arxiv_codes) + len(referenced_reddit_codes)
+        source_label = "sources" if total_referenced_sources != 1 else "source"
         
+        ## Log comprehensive citation summary
         if progress_callback:
             word_count = len(response_with_links.split())
-            if all_reddit_refs:
+            
+            ## Brief completion message
+            if referenced_reddit_codes:
                 progress_callback(
-                    f"🎉 Research complete! Generated {word_count} word response with {total_sources} referenced {source_label} ({len(referenced_codes)} papers, {len(all_reddit_refs)} discussions)"
+                    f"🎉 Research complete! Generated {word_count} word response with {total_referenced_sources} referenced {source_label} ({len(referenced_arxiv_codes)} papers, {len(referenced_reddit_codes)} discussions)"
                 )
             else:
                 progress_callback(
-                    f"🎉 Research complete! Generated {word_count} word response with {len(referenced_codes)} referenced papers"
+                    f"🎉 Research complete! Generated {word_count} word response with {len(referenced_arxiv_codes)} referenced papers"
                 )
+            
+            ## Detailed citation summary
+            progress_callback("📚 CITATION SUMMARY:")
+            progress_callback(f"   Referenced in report: {len(referenced_arxiv_codes)} arxiv papers, {len(referenced_reddit_codes)} reddit posts")
+            progress_callback(f"   All sources found: {len(all_arxiv_found)} arxiv papers, {len(all_reddit_found)} reddit posts")
+            progress_callback(f"   Additional relevant: {len(additional_arxiv_codes)} arxiv papers, {len(additional_reddit_codes)} reddit posts")
+            
+            ## Detailed source listings
+            if referenced_arxiv_codes:
+                arxiv_list = ", ".join([f"arxiv:{code}" for code in referenced_arxiv_codes])
+                progress_callback(f"📄 Referenced ArXiv: {arxiv_list}")
+            
+            if referenced_reddit_codes:
+                reddit_list = ", ".join(referenced_reddit_codes)
+                progress_callback(f"💬 Referenced Reddit: {reddit_list}")
+                
+            if additional_arxiv_codes:
+                additional_arxiv_list = ", ".join([f"arxiv:{code}" for code in additional_arxiv_codes])
+                progress_callback(f"📋 Additional ArXiv: {additional_arxiv_list}")
+                
+            if additional_reddit_codes:
+                additional_reddit_list = ", ".join(additional_reddit_codes)
+                progress_callback(f"💭 Additional Reddit: {additional_reddit_list}")
 
-        return final_report.title, workflow_id, response_with_links, referenced_codes, additional_relevant_codes
+        ## Return sources as separate lists
+        return final_report.title, workflow_id, response_with_links, referenced_arxiv_codes, referenced_reddit_codes, additional_arxiv_codes, additional_reddit_codes
 
 
 ## Main Entry Point
@@ -941,7 +971,7 @@ def deep_research_query(
     llm_model: str = "gpt-4.1-nano",
     progress_callback: Optional[Callable[[str], None]] = None,
     verbose: bool = False,
-) -> Tuple[str, List[str], List[str]]:
+) -> Tuple[str, str, str, List[str], List[str], List[str], List[str]]:
     """
     Conduct LangChain-style deep research using multi-agent approach.
 
@@ -955,7 +985,7 @@ def deep_research_query(
         verbose: Enable detailed progress reporting (default: False)
 
     Returns:
-        Tuple of (title, workflow_id, final_response, referenced_arxiv_codes, additional_relevant_codes)
+        Tuple of (title, workflow_id, final_response, referenced_arxiv_codes, referenced_reddit_codes, additional_arxiv_codes, additional_reddit_codes)
     """
     orchestrator = DeepResearchOrchestrator(llm_model)
     return orchestrator.conduct_deep_research(
