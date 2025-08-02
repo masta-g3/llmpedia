@@ -1757,16 +1757,29 @@ def render_research_settings_panel() -> dict:
                 help="Model to use for research analysis and synthesis.",
             )
 
-        show_only_sources = st.checkbox(
-            "Show me only the sources",
-            help="Skip generating a response and just show the most relevant papers for this query.",
-        )
+        # Second row - sources and options
+        sources_cols = st.columns([2, 2])
+        
+        with sources_cols[0]:
+            research_sources = st.multiselect(
+                "Research Sources",
+                options=["arxiv", "reddit"],
+                default=["arxiv", "reddit"],
+                help="Select which data sources to search. ArXiv provides academic papers, Reddit provides community discussions.",
+            )
+        
+        with sources_cols[1]:
+            show_only_sources = st.checkbox(
+                "Show me only the sources",
+                help="Skip generating a response and just show the most relevant papers for this query.",
+            )
 
     return {
         "response_length": response_length,
         "max_sources": max_sources,
         "max_agents": max_agents,
         "llm_model": llm_model,
+        "research_sources": research_sources,
         "show_only_sources": show_only_sources,
     }
 
@@ -1783,7 +1796,10 @@ def display_research_results(
     """Display research results with paper citations."""
     st.divider()
     st.markdown(f"#### {title}")
-    st.markdown(response)
+    
+    # Only show response if not in sources-only mode
+    if response != "Sources retrieved successfully. See referenced sources below.":
+        st.markdown(response)
 
     # Use the already separated codes directly
     arxiv_codes = referenced_arxiv_codes
@@ -1944,7 +1960,7 @@ def generate_reddit_grid_gallery(reddit_citations: List[Dict], n_cols=5) -> None
                     date_str = "Unknown date"
                 
                 # Create content preview for back of card
-                content_preview = "No content available."
+                content_preview = "No preview available."
                 if content and content.strip():
                     clean_content = content.strip()
                     if len(clean_content) > 150:

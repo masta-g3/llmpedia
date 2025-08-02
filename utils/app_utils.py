@@ -593,6 +593,7 @@ def query_llmpedia_new(
     debug: bool = False,
     progress_callback: Optional[Callable[[str], None]] = None,
     show_only_sources: bool = False,
+    research_sources: Optional[List[str]] = None,
 ) -> Tuple[str, str, List[str], List[str], List[str], List[str]]:
     """Query LLMpedia using unified multi-agent deep research approach."""
     if progress_callback:
@@ -644,6 +645,8 @@ def query_llmpedia_new(
             llm_model=llm_model,
             progress_callback=progress_callback,
             verbose=debug,
+            research_sources=research_sources,
+            show_only_sources=show_only_sources,
         )
 
         if debug:

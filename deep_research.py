@@ -151,12 +151,47 @@ def create_research_brief_prompt(user_question: str, max_agents: int = 5) -> str
 </instructions>"""
 
 
-SUPERVISOR_SYSTEM_PROMPT = f"""You are a research supervisor coordinating a team of specialized research agents. Your job is to take a research brief and create a comprehensive list of specific assignments for individual agents, ensuring comprehensive coverage without overlap.
+# Source definitions with descriptions and query guidance
+RESEARCH_SOURCES = {
+    "arxiv": {
+        "description": "Academic papers and research literature",
+        "query_style": "Use formal academic language typical of research abstracts - phrase queries as they would appear in paper titles or abstracts",
+        "content_focus": "Technical methodologies, performance benchmarks, theoretical foundations, algorithm details, empirical evaluations",
+    },
+    "reddit": {
+        "description": "Community discussions and practitioner experiences", 
+        "query_style": "Use practical, conversational language that practitioners and enthusiasts use when discussing real-world applications",
+        "content_focus": "User experiences, implementation challenges, adoption patterns, community sentiment, practical applications, real-world deployment issues",
+    },
+}
 
-Each agent will focus on one subtopic and conduct semantic search across different information sources. You can assign agents to search:
-- "arxiv": Academic papers and research literature
-- "reddit": Community discussions and practitioner experiences  
-- Both sources when comprehensive coverage is needed
+def create_supervisor_system_prompt(available_sources: List[str]) -> str:
+    """Create supervisor system prompt with dynamic source options."""
+    
+    # Build available sources description
+    source_lines = []
+    for source in available_sources:
+        if source in RESEARCH_SOURCES:
+            info = RESEARCH_SOURCES[source]
+            source_lines.append(f'- "{source}": {info["description"]}')
+    
+    sources_text = "\n".join(source_lines)
+    
+    # Build assignment guidance
+    if len(available_sources) == 1:
+        assignment_text = f'Assign agents to search: ["{available_sources[0]}"]'
+    else:
+        source_list = ', '.join(f'"{s}"' for s in available_sources)
+        assignment_text = f'You can assign agents to search individual sources like ["{available_sources[0]}"] or combine multiple sources like [{source_list}] when comprehensive coverage is needed'
+    
+    return f"""You are a research supervisor coordinating a team of specialized research agents. Your job is to take a research brief and create a comprehensive list of specific assignments for individual agents, ensuring comprehensive coverage without overlap.
+
+Each agent will focus on one subtopic and conduct semantic search across available information sources.
+
+Available research sources:
+{sources_text}
+
+{assignment_text}
 
 Design assignments that are independent, focused, and together address the full research brief.
 
@@ -165,7 +200,7 @@ You must return ALL assignments in a single response as a complete list - do not
 Current date: {TODAY_DATE}. Consider temporal context when creating search strategies - recent work refers to content from the last 2-3 months."""
 
 
-def create_supervisor_assignment_prompt(research_brief: ResearchBrief) -> str:
+def create_supervisor_assignment_prompt(research_brief: ResearchBrief, available_sources: List[str]) -> str:
     return f"""
 <research_brief>
 Focused Question: {research_brief.focused_question}
@@ -185,18 +220,53 @@ Create a comprehensive list of research assignments. For each subtopic in the re
 6. Optional publication date constraints (min/max) when temporal focus is important.
 </instructions>
 
+<guidelines_for_search_queries>"""
+
+    # Build dynamic source guidelines
+    source_query_guidelines = []
+    source_selection_guidelines = []
+    
+    for source in available_sources:
+        if source in RESEARCH_SOURCES:
+            info = RESEARCH_SOURCES[source]
+            source_query_guidelines.append(f'- For "{source}": {info["query_style"]}')
+            source_selection_guidelines.append(f'- Use "{source}" for: {info["content_focus"]}')
+    
+    query_guidelines_text = "\n".join(source_query_guidelines)
+    selection_guidelines_text = "\n".join(source_selection_guidelines)
+    
+    if len(available_sources) > 1:
+        combination_text = f"\n- Use multiple sources for: Comprehensive analysis where different perspectives are valuable"
+        selection_guidelines_text += combination_text
+    
+    return f"""
+<research_brief>
+Focused Question: {research_brief.focused_question}
+Research Scope: {research_brief.research_scope}
+Key Subtopics: {', '.join(research_brief.key_subtopics)}
+Expected Timeline: {research_brief.expected_timeline}
+</research_brief>
+
+<instructions>
+Create a comprehensive list of research assignments. For each subtopic in the research brief, include a detailed assignment that contains:
+
+1. Clear, direct, and targeted subtopic definition.
+2. Specific search strategy tailored to that subtopic.
+3. 2-3 diverse and non-overlapping semantic search queries using appropriate language for the chosen sources.
+4. Expected type of findings this subtopic should contribute.
+5. Appropriate data sources from available options: {available_sources}
+6. Optional publication date constraints (min/max) when temporal focus is important.
+</instructions>
+
 <guidelines_for_search_queries>
-- Use language typical of academic abstracts - phrase queries as if they were part of the text found in abstracts.
-- Consider that there are likely few or no relevant papers to very niche subtopics, so try to effectively balance between breadth and depth of search.
-- Focus on key terms and methodological language common in research papers about the subtopic.
-- Make queries diverse enough to capture different aspects of the subtopic. Think about how to avoid situations where your queries all return the same set of papers.
-- Make your queries concise and to the point, aiming to maximize semantic similarity between the query and the axiv documents you expect to find.
+{query_guidelines_text}
+- Consider that there are likely few or no relevant sources for very niche subtopics, so balance breadth and depth effectively.
+- Make queries diverse enough to capture different aspects of the subtopic.
+- Make your queries concise and to the point, aiming to maximize semantic similarity.
 </guidelines_for_search_queries>
 
 <guidelines_for_source_selection>
-- Use "arxiv" for: Technical methodologies, performance benchmarks, theoretical foundations, algorithm details, empirical evaluations
-- Use "reddit" for: User experiences, implementation challenges, adoption patterns, community sentiment, practical applications, real-world deployment issues
-- Use both ["arxiv", "reddit"] for: Comprehensive analysis where both academic rigor and practical perspectives are valuable
+{selection_guidelines_text}
 - Choose sources based on the type of insights needed for each subtopic
 </guidelines_for_source_selection>
 
@@ -643,7 +713,7 @@ class ResearchAgent:
             model=AgentFindings,
             llm_model=self.llm_model,
             temperature=0.7,
-            process_id=f"agent_research_{self.assignment.subtopic}",
+            process_id="parallel_agent_research",
             workflow_id=workflow_id,
             step_type="agent_research",
             step_metadata={
@@ -708,6 +778,7 @@ class ResearchSupervisor:
         self,
         research_brief: ResearchBrief,
         workflow_id: str,
+        research_sources: List[str],
         progress_callback: Optional[Callable[[str], None]] = None,
         verbose: bool = False,
     ) -> SubTopicAssignments:
@@ -717,8 +788,8 @@ class ResearchSupervisor:
 
         ## Use LLM to create detailed assignments with proper date constraints
         assignments_response = run_instructor_query(
-            system_message=SUPERVISOR_SYSTEM_PROMPT,
-            user_message=create_supervisor_assignment_prompt(research_brief),
+            system_message=create_supervisor_system_prompt(research_sources),
+            user_message=create_supervisor_assignment_prompt(research_brief, research_sources),
             model=SubTopicAssignments,
             llm_model=self.llm_model,
             temperature=0.5,
@@ -729,6 +800,7 @@ class ResearchSupervisor:
                 "subtopics_count": len(research_brief.key_subtopics),
                 "research_scope": research_brief.research_scope,
                 "expected_timeline": research_brief.expected_timeline,
+                "research_sources": research_sources,
             },
             # thinking_budget=1024
         )
@@ -775,6 +847,8 @@ class DeepResearchOrchestrator:
         response_length: int = 4000,
         progress_callback: Optional[Callable[[str], None]] = None,
         verbose: bool = False,
+        research_sources: Optional[List[str]] = None,
+        show_only_sources: bool = False,
     ) -> Tuple[str, str, str, List[str], List[str], List[str], List[str]]:
         """Execute the full three-phase deep research process."""
 
@@ -809,7 +883,7 @@ class DeepResearchOrchestrator:
             progress_callback("🤖 PHASE 2: Deploying research agents...")
 
         assignments = self.supervisor.create_agent_assignments(
-            research_brief, workflow_id, progress_callback, verbose
+            research_brief, workflow_id, research_sources, progress_callback, verbose
         )
 
         ## Limit agents if needed
@@ -859,6 +933,33 @@ class DeepResearchOrchestrator:
 
             self.agents.append(agent)
             self.all_findings.append(findings)
+
+        ## Early return for sources-only mode (skip Phase 3)
+        if show_only_sources:
+            if progress_callback:
+                total_papers = len(processed_codes)
+                progress_callback(f"📋 Sources-only mode: Found {total_papers} relevant sources")
+            
+            ## Collect all sources found by agents for sources-only response
+            all_arxiv_found = set()
+            all_reddit_found = set()
+            for findings in self.all_findings:
+                for paper in findings.referenced_papers:
+                    if paper.startswith("arxiv:"):
+                        all_arxiv_found.add(paper[6:])  # Remove prefix
+                    else:
+                        all_arxiv_found.add(paper)
+                all_reddit_found.update(findings.reddit_references)
+            
+            return (
+                "Research Sources Found",
+                workflow_id,
+                "Sources retrieved successfully. See referenced sources below.",
+                list(all_arxiv_found),
+                list(all_reddit_found),
+                [],  # No additional sources in sources-only mode
+                []   # No additional Reddit sources in sources-only mode
+            )
 
         ## Phase 3: Report Writing - Synthesize Final Report
         if progress_callback:
@@ -971,6 +1072,8 @@ def deep_research_query(
     llm_model: str = "gpt-4.1-nano",
     progress_callback: Optional[Callable[[str], None]] = None,
     verbose: bool = False,
+    research_sources: Optional[List[str]] = None,
+    show_only_sources: bool = False,
 ) -> Tuple[str, str, str, List[str], List[str], List[str], List[str]]:
     """
     Conduct LangChain-style deep research using multi-agent approach.
@@ -983,10 +1086,15 @@ def deep_research_query(
         llm_model: LLM model to use for all stages
         progress_callback: Optional callback function to receive progress updates
         verbose: Enable detailed progress reporting (default: False)
+        research_sources: List of sources to search (e.g., ["arxiv", "reddit"])
 
     Returns:
         Tuple of (title, workflow_id, final_response, referenced_arxiv_codes, referenced_reddit_codes, additional_arxiv_codes, additional_reddit_codes)
     """
+    ## Default to both sources if none specified
+    if research_sources is None:
+        research_sources = ["arxiv", "reddit"]
+    
     orchestrator = DeepResearchOrchestrator(llm_model)
     return orchestrator.conduct_deep_research(
         user_question=user_question,
@@ -995,4 +1103,6 @@ def deep_research_query(
         response_length=response_length,
         progress_callback=progress_callback,
         verbose=verbose,
+        research_sources=research_sources,
+        show_only_sources=show_only_sources,
     )

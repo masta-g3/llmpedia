@@ -343,12 +343,13 @@ def chat_fragment():
                         au.query_llmpedia_new(
                             user_question=user_question,
                             response_length=settings["response_length"],
-                            llm_model="gpt-4.1-mini",
+                            llm_model=settings["llm_model"],
                             max_sources=settings["max_sources"],
                             max_agents=settings["max_agents"],
                             debug=True,
                             progress_callback=update_progress,
                             show_only_sources=settings["show_only_sources"],
+                            research_sources=settings["research_sources"],
                         )
                     )
                     status.update(
@@ -682,8 +683,8 @@ def main():
         with row2_cols[0]:
             # Make sure papers_df is available here
             # If papers_df can be None or empty, handle appropriately before calling
-            if papers_df is not None and not papers_df.empty:
-                display_top_cited_trending_panel(papers_df)
+            if full_papers_df is not None and not full_papers_df.empty:
+                display_top_cited_trending_panel(full_papers_df)
             else:
                 st.info("Paper data is not available for this panel.")
 
@@ -745,7 +746,7 @@ def main():
             discussions_toggle_panel()
             st.divider()
 
-            highlight_paper = get_featured_paper(papers_df)
+            highlight_paper = get_featured_paper(full_papers_df)
             su.create_featured_paper_card(highlight_paper)
 
         st.divider()
