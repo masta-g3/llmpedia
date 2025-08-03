@@ -4,7 +4,12 @@ from typing import Optional, Dict, List, Set
 from datetime import datetime, timedelta
 import pandas as pd
 
-from .db_utils import execute_read_query, simple_select_query, query_db, get_arxiv_title_dict
+from .db_utils import (
+    execute_read_query,
+    simple_select_query,
+    query_db,
+    get_arxiv_title_dict,
+)
 from utils.embeddings import convert_query_to_vector
 
 ############
@@ -12,21 +17,30 @@ from utils.embeddings import convert_query_to_vector
 ############
 
 
-def load_arxiv(arxiv_code: Optional[str] = None, drop_tstp: bool = True, **kwargs) -> pd.DataFrame:
+def load_arxiv(
+    arxiv_code: Optional[str] = None, drop_tstp: bool = True, **kwargs
+) -> pd.DataFrame:
     """Load paper details from arxiv_details table."""
     return simple_select_query(
         table="arxiv_details",
         conditions={"arxiv_code": arxiv_code} if arxiv_code else None,
-        drop_cols=["tstp"] if drop_tstp else None,
+        select_cols=(
+            ["arxiv_code", "published", "updated", "title", "authors"]
+            if drop_tstp
+            else None
+        ),
         **kwargs,
     )
 
 
-def load_summaries(drop_tstp: bool = True) -> pd.DataFrame:
+def load_summaries(
+    arxiv_code: Optional[str] = None, drop_tstp: bool = True
+) -> pd.DataFrame:
     """Load paper summaries from summaries table."""
     return simple_select_query(
-        table="summaries", 
-        drop_cols=["tstp"] if drop_tstp else None
+        table="summaries",
+        conditions={"arxiv_code": arxiv_code} if arxiv_code else None,
+        drop_cols=["tstp"] if drop_tstp else None,
     )
 
 
@@ -73,9 +87,12 @@ def load_topics(arxiv_code: Optional[str] = None) -> pd.DataFrame:
     )
 
 
-def load_similar_documents() -> pd.DataFrame:
+def load_similar_documents(arxiv_code: Optional[str] = None) -> pd.DataFrame:
     """Load similar documents from similar_documents table."""
-    df = simple_select_query(table="similar_documents")
+    df = simple_select_query(
+        table="similar_documents",
+        conditions={"arxiv_code": arxiv_code} if arxiv_code else None,
+    )
     if not df.empty:
         df["similar_docs"] = df["similar_docs"].apply(
             lambda x: x.strip("{}").split(",")
@@ -243,10 +260,10 @@ def format_query_condition(
 
 
 def generate_semantic_search_query(
-    criteria: dict, 
-    config: dict, 
+    criteria: dict,
+    config: dict,
     embedding_model: str = "embed-english-v3.0",
-    exclude_arxiv_codes: Optional[Set[str]] = None
+    exclude_arxiv_codes: Optional[Set[str]] = None,
 ) -> str:
     """Generate SQL query for semantic search using pgvector, optionally excluding specific arxiv_codes."""
     query_parts = [
@@ -280,7 +297,9 @@ def generate_semantic_search_query(
     # Add exclusion clause if exclude_arxiv_codes is provided
     if exclude_arxiv_codes and len(exclude_arxiv_codes) > 0:
         # Format codes for SQL IN clause: ('code1', 'code2')
-        formatted_excluded_codes = ", ".join(f"'{code}'" for code in exclude_arxiv_codes)
+        formatted_excluded_codes = ", ".join(
+            f"'{code}'" for code in exclude_arxiv_codes
+        )
         query_parts.append(f"AND a.arxiv_code NOT IN ({formatted_excluded_codes})")
 
     ## Add similarity conditions if present.
@@ -305,12 +324,14 @@ def generate_semantic_search_query(
         )
         # Ensure comma is added if n.notes was the last thing
         if query_parts[0].endswith("n.notes"):
-             query_parts[0] += f", {similarity_select}"
-        else: # If it already had a comma (e.g. if you add other fields later)
-             query_parts[0] = query_parts[0].rstrip(",") + f", {similarity_select}"
-        
+            query_parts[0] += f", {similarity_select}"
+        else:  # If it already had a comma (e.g. if you add other fields later)
+            query_parts[0] = query_parts[0].rstrip(",") + f", {similarity_select}"
+
         # Only add ORDER BY if it's not already present from some other logic
-        if not any("ORDER BY" in part for part in query_parts[1:]): # Check parts after SELECT
+        if not any(
+            "ORDER BY" in part for part in query_parts[1:]
+        ):  # Check parts after SELECT
             query_parts.append("ORDER BY similarity_score DESC")
 
     # Add LIMIT if specified in criteria
@@ -393,9 +414,13 @@ def get_random_interesting_facts(n=10, recency_days=7) -> List[Dict]:
 
     for fact in all_facts:
         ## Recency score: 1 for most recent, 0 for oldest, linear in between
-        recency_score = (pd.to_datetime(fact["tstp"]) - min_time).total_seconds() / time_range
+        recency_score = (
+            pd.to_datetime(fact["tstp"]) - min_time
+        ).total_seconds() / time_range
         ## Weight recency slightly (0.4) and citations more (0.6)
-        citation_score = 0.6 * (fact["citation_count"] / max_citations) if max_citations > 0 else 0
+        citation_score = (
+            0.6 * (fact["citation_count"] / max_citations) if max_citations > 0 else 0
+        )
         fact["score"] = 0.4 * recency_score + citation_score
 
     all_facts.sort(key=lambda x: x["score"], reverse=True)
@@ -409,9 +434,34 @@ def get_random_interesting_facts(n=10, recency_days=7) -> List[Dict]:
 
     titles_dict = get_arxiv_title_dict()
     for fact in unique_facts:
-        fact["paper_title"] = titles_dict.get(fact['arxiv_code'], "Unknown paper")
+        fact["paper_title"] = titles_dict.get(fact["arxiv_code"], "Unknown paper")
 
     return unique_facts
+
+
+def load_paper_details(arxiv_code: str) -> pd.DataFrame:
+    """Load all detail components for a paper in single query."""
+    query = """
+    SELECT s.contribution_title, s.contribution_content, s.takeaway_title, s.takeaway_content, 
+           s.takeaway_example, s.category, s.novelty_score, s.novelty_analysis,
+           s.technical_score, s.technical_analysis, s.enjoyable_score, s.enjoyable_analysis,
+           rs.summary as recursive_summary,
+           bl.summary as bullet_list_summary,
+           sm.summary as markdown_notes,
+           ti.review as tweet_insight,
+           sd.similar_docs
+    FROM summaries s
+    LEFT JOIN recursive_summaries rs ON s.arxiv_code = rs.arxiv_code
+    LEFT JOIN bullet_list_summaries bl ON s.arxiv_code = bl.arxiv_code
+    LEFT JOIN summary_markdown sm ON s.arxiv_code = sm.arxiv_code
+    LEFT JOIN tweet_reviews ti ON s.arxiv_code = ti.arxiv_code 
+        AND ti.tweet_type IN ('insight_v1', 'insight_v2', 'insight_v3', 'insight_v4', 'insight_v5')
+    LEFT JOIN similar_documents sd ON s.arxiv_code = sd.arxiv_code
+    WHERE s.arxiv_code = :arxiv_code
+    ORDER BY ti.tstp DESC
+    LIMIT 1
+    """
+    return execute_read_query(query, {"arxiv_code": arxiv_code})
 
 
 def read_last_n_tweet_analyses(n: int = 10) -> pd.DataFrame:
@@ -436,7 +486,9 @@ def read_last_n_reddit_analyses(n: int = 10) -> pd.DataFrame:
     )
 
 
-def load_reddit_posts(arxiv_code: Optional[str] = None, drop_tstp: bool = True) -> pd.DataFrame:
+def load_reddit_posts(
+    arxiv_code: Optional[str] = None, drop_tstp: bool = True
+) -> pd.DataFrame:
     """Load Reddit posts from reddit_posts table."""
     return simple_select_query(
         table="reddit_posts",
@@ -446,7 +498,9 @@ def load_reddit_posts(arxiv_code: Optional[str] = None, drop_tstp: bool = True) 
     )
 
 
-def load_reddit_comments(post_reddit_id: Optional[str] = None, drop_tstp: bool = True) -> pd.DataFrame:
+def load_reddit_comments(
+    post_reddit_id: Optional[str] = None, drop_tstp: bool = True
+) -> pd.DataFrame:
     """Load Reddit comments from reddit_comments table."""
     return simple_select_query(
         table="reddit_comments",
@@ -456,11 +510,13 @@ def load_reddit_comments(post_reddit_id: Optional[str] = None, drop_tstp: bool =
     )
 
 
-def get_top_reddit_comments(post_reddit_ids: List[str], max_comments: int = 5, min_score: int = 1) -> pd.DataFrame:
+def get_top_reddit_comments(
+    post_reddit_ids: List[str], max_comments: int = 5, min_score: int = 1
+) -> pd.DataFrame:
     """Get top-scoring comments for specific Reddit posts."""
     if not post_reddit_ids:
         return pd.DataFrame()
-    
+
     query = """
         SELECT 
             reddit_id,
@@ -476,29 +532,30 @@ def get_top_reddit_comments(post_reddit_ids: List[str], max_comments: int = 5, m
           AND score >= :min_score
         ORDER BY post_reddit_id, score DESC
     """
-    
-    df = execute_read_query(query, {
-        "post_ids": tuple(post_reddit_ids),
-        "min_score": min_score
-    })
-    
+
+    df = execute_read_query(
+        query, {"post_ids": tuple(post_reddit_ids), "min_score": min_score}
+    )
+
     if df.empty:
         return df
-    
+
     ## Limit to top comments per post
     top_comments = []
     for post_id in post_reddit_ids:
-        post_comments = df[df['post_reddit_id'] == post_id].head(max_comments)
+        post_comments = df[df["post_reddit_id"] == post_id].head(max_comments)
         top_comments.append(post_comments)
-    
-    return pd.concat(top_comments, ignore_index=True) if top_comments else pd.DataFrame()
+
+    return (
+        pd.concat(top_comments, ignore_index=True) if top_comments else pd.DataFrame()
+    )
 
 
 def load_reddit_for_papers(arxiv_codes: List[str]) -> pd.DataFrame:
     """Load Reddit posts and comments for specific arXiv papers."""
     if not arxiv_codes:
         return pd.DataFrame()
-    
+
     query = """
         SELECT 
             p.arxiv_code,
@@ -523,7 +580,7 @@ def load_reddit_for_papers(arxiv_codes: List[str]) -> pd.DataFrame:
           AND p.arxiv_code != 'null'
         ORDER BY p.post_score DESC, c.score DESC
     """
-    
+
     return execute_read_query(query, {"arxiv_codes": tuple(arxiv_codes)})
 
 
@@ -534,10 +591,10 @@ def get_reddit_metrics(arxiv_code: str) -> Dict[str, int]:
         conditions={"arxiv_code": arxiv_code},
         select_cols=["score", "num_comments"],
     )
-    
+
     if df.empty:
         return {"total_posts": 0, "total_score": 0, "total_comments": 0, "avg_score": 0}
-    
+
     return {
         "total_posts": len(df),
         "total_score": int(df["score"].sum()),
@@ -550,7 +607,7 @@ def get_reddit_discussions_summary(arxiv_codes: List[str]) -> pd.DataFrame:
     """Get aggregated Reddit discussion metrics for multiple papers."""
     if not arxiv_codes:
         return pd.DataFrame()
-    
+
     query = """
         SELECT 
             p.arxiv_code,
@@ -570,7 +627,7 @@ def get_reddit_discussions_summary(arxiv_codes: List[str]) -> pd.DataFrame:
         GROUP BY p.arxiv_code
         ORDER BY total_post_score DESC
     """
-    
+
     return execute_read_query(query, {"arxiv_codes": tuple(arxiv_codes)})
 
 
@@ -586,7 +643,7 @@ def generate_reddit_semantic_search_query(
         "max_publication_date": "p.post_timestamp <= '%s'",
         "semantic_search_queries": "(%s)",
     }
-    
+
     query_parts = [
         ## Select Reddit post/comment info
         """SELECT 
@@ -610,10 +667,7 @@ def generate_reddit_semantic_search_query(
     ## Add similarity conditions if present - use reddit_config instead of passed config for date constraints
     similarity_scores = []
     for field, value in criteria.items():
-        if (
-            value is not None
-            and field not in ["response_length", "limit"]
-        ):
+        if value is not None and field not in ["response_length", "limit"]:
             # Use reddit_config for date constraints, fall back to passed config for other fields
             if field in reddit_config:
                 condition_str, similarity_expr = format_query_condition(
@@ -625,7 +679,7 @@ def generate_reddit_semantic_search_query(
                 )
             else:
                 continue
-                
+
             query_parts.append(f"AND {condition_str}")
             if similarity_expr != "0 as max_similarity":
                 similarity_scores.append(similarity_expr)
@@ -636,7 +690,7 @@ def generate_reddit_semantic_search_query(
             f"GREATEST({', '.join(similarity_scores)}) as similarity_score"
         )
         query_parts[0] += f", {similarity_select}"
-        
+
         # Add ORDER BY for similarity
         if not any("ORDER BY" in part for part in query_parts[1:]):
             query_parts.append("ORDER BY similarity_score DESC")
@@ -655,7 +709,9 @@ def generate_reddit_semantic_search_query(
 
 def get_trending_papers(n: int = 5, time_window_days: int = 7) -> pd.DataFrame:
     """Return papers with highest total like count on tweets within the given window, including individual tweet details."""
-    cutoff_date = (datetime.now() - timedelta(days=time_window_days)).strftime("%Y-%m-%d")
+    cutoff_date = (datetime.now() - timedelta(days=time_window_days)).strftime(
+        "%Y-%m-%d"
+    )
 
     query = f"""
         SELECT 

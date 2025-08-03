@@ -81,26 +81,32 @@ collection_map = {
 
 
 def combine_input_data():
+    ## Load only core data for general rendering
+    start_time = time.time()
     arxiv_df = db.load_arxiv(drop_tstp=False)
-    summaries_df = db.load_summaries()
+    print(f"load_arxiv took {time.time() - start_time:.3f} seconds")
+    
+    start_time = time.time()
     topics_df = db.load_topics()
+    print(f"load_topics took {time.time() - start_time:.3f} seconds")
+    
+    start_time = time.time()
     citations_df = db.load_citations()
-    recursive_summaries_df = db.load_recursive_summaries()
-    bullet_list_df = db.load_bullet_list_summaries()
-    markdown_summaries = db.load_summary_markdown()
-    tweets = db.load_tweet_insights()
-    similar_docs_df = db.load_similar_documents()
+    print(f"load_citations took {time.time() - start_time:.3f} seconds")
+    
+    start_time = time.time()
     punchlines_df = db.load_punchlines()
+    print(f"load_punchlines took {time.time() - start_time:.3f} seconds")
+    
+    start_time = time.time()
+    ## Load only category field from summaries (needed for filtering)
+    categories_df = db_utils.simple_select_query(table="summaries", select_cols=["category"])
+    print(f"load_categories took {time.time() - start_time:.3f} seconds")
 
-    papers_df = summaries_df.join(arxiv_df, how="left")
-    papers_df = papers_df.join(topics_df, how="left")
+    papers_df = arxiv_df.join(topics_df, how="left")
     papers_df = papers_df.join(citations_df, how="left")
-    papers_df = papers_df.join(recursive_summaries_df, how="left")
-    papers_df = papers_df.join(bullet_list_df, how="left")
-    papers_df = papers_df.join(markdown_summaries, how="left")
-    papers_df = papers_df.join(tweets, how="left")
-    papers_df = papers_df.join(similar_docs_df, how="left")
     papers_df = papers_df.join(punchlines_df, how="left")
+    papers_df = papers_df.join(categories_df, how="left")
 
     papers_df["arxiv_code"] = papers_df.index
     papers_df["url"] = papers_df["arxiv_code"].map(
@@ -478,27 +484,11 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
 
 
 def main():
-    # Initialize session tracking and log visit
+    # Initialize session tracking
     if "session_id" not in st.session_state:
         import uuid
         st.session_state.session_id = str(uuid.uuid4())
         st.session_state.visit_logged = False
-    
-    # Log visit once per session
-    if not st.session_state.visit_logged:
-        try:
-            # Determine entrypoint type
-            url_query = st.query_params
-            if "arxiv_code" in url_query:
-                entrypoint = f"arxiv_referral:{url_query['arxiv_code']}"
-            else:
-                entrypoint = "general_visit"
-            
-            logging_db.log_visit(entrypoint)
-            st.session_state.visit_logged = True
-        except Exception as e:
-            # Don't break the app if logging fails
-            logging_db.log_error_db(f"Visit logging error: {e}")
 
     st.markdown(
         """<div class="pixel-font" style="margin-bottom: -0.5em;">LLMpedia</div>
@@ -1221,6 +1211,20 @@ def main():
             report_highlights_cols[0].image(highlight_img, use_container_width=True)
             report_highlights_cols[1].markdown(weekly_highlight)
             st.markdown(weekly_repos)
+
+    ## Log visit after page loads (better UX)
+    if not st.session_state.visit_logged:
+        try:
+            url_query = st.query_params
+            if "arxiv_code" in url_query:
+                entrypoint = f"arxiv_referral:{url_query['arxiv_code']}"
+            else:
+                entrypoint = "general_visit"
+            logging_db.log_visit(entrypoint)
+            st.session_state.visit_logged = True
+        except Exception as e:
+            logging_db.log_error_db(f"Visit logging error: {e}")
+            st.session_state.visit_logged = True
 
     ## URL info extraction (moved to end after all components are initialized).
     su.parse_query_params()

@@ -335,10 +335,6 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
 
         # Quick action suggestions (elegant pills interface)
         if not paper_question.strip():  # Only show when text area is empty
-            st.markdown(
-                "<div style='margin: 0.5em 0; padding: 0.8em; background: rgba(179, 27, 27, 0.03); border-radius: 8px; border-left: 3px solid rgba(179, 27, 27, 0.2);'>",
-                unsafe_allow_html=True,
-            )
 
             # Question options mapping
             question_options = {
@@ -364,9 +360,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
                 )
                 # Reset pills selection to avoid repeated triggers
                 st.session_state[f"quick_pills_{paper_code}{name}"] = None
-
             # Subtle caption below pills
-            st.caption("💡 *Quick questions to get started*")
             st.markdown("</div>", unsafe_allow_html=True)
 
         # Check for auto-send trigger (from quick action buttons)
@@ -584,13 +578,11 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
     with tabs[tab_index]:  # Similar Papers
         papers_df = st.session_state["papers"]
         if paper_code in papers_df.index:
-            similar_codes = pd.Series(papers_df.loc[paper_code]["similar_docs"])
-            if pd.isna(similar_codes).any():
+            ## Use lazy loading for similar docs
+            similar_codes, similar_titles, publish_dates = au.get_similar_docs(paper_code, papers_df, n=5)
+            if not similar_codes:
                 st.write("Not available yet. Check back soon!")
             else:
-                similar_codes = [d for d in similar_codes if d in papers_df.index]
-                if len(similar_codes) > 5:
-                    similar_codes = np.random.choice(similar_codes, 5, replace=False)
                 similar_df = papers_df.loc[similar_codes]
                 generate_grid_gallery(
                     similar_df,
@@ -879,21 +871,41 @@ def create_bottom_navigation(label: str):
         st.rerun()
 
 
+def _add_paper_fallbacks(paper: dict):
+    """Add fallback values for missing paper detail fields."""
+    if 'markdown_notes' not in paper:
+        paper['markdown_notes'] = ""
+    if 'recursive_summary' not in paper:
+        paper['recursive_summary'] = ""
+    if 'bullet_list_summary' not in paper:
+        paper['bullet_list_summary'] = ""
+    if 'tweet_insight' not in paper:
+        paper['tweet_insight'] = ""
+    if 'similar_docs' not in paper:
+        paper['similar_docs'] = []
+
+
 def display_paper_details_fragment(paper_code: str):
-    """Displays the paper details card or an error message within a fragment."""
+    """Displays the paper details card with lazy-loaded details."""
     st.session_state.details_canvas = st.session_state.details_canvas.empty()
     with st.session_state.details_canvas:
         if len(paper_code) > 0:
-            # Access full papers data frame from session state
             if "papers" in st.session_state:
                 full_papers_df = st.session_state.papers
                 if paper_code in full_papers_df.index:
                     paper = full_papers_df.loc[paper_code].to_dict()
+                    
+                    ## Load details with spinner (cache handled internally)
+                    with st.spinner("Loading paper details..."):
+                        paper_details = au.hydrate_all_paper_details(paper_code)
+                        paper.update(paper_details)
+                    
+                    ## Add fallbacks and render
+                    _add_paper_fallbacks(paper)
                     create_paper_card(paper, mode="open", name="_focus")
                 else:
                     st.error("Paper not found.")
             else:
-                # Handle case where papers haven't loaded yet (might happen on initial load)
                 st.warning("Paper data is still loading...")
 
 

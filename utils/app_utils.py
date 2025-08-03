@@ -532,20 +532,34 @@ def get_similar_titles(
 def get_similar_docs(
     arxiv_code: str, df: pd.DataFrame, n: int = 5
 ) -> Tuple[List[str], List[str], List[str]]:
-    """Get most similar documents based on cosine similarity."""
-    if arxiv_code in df.index:
-        similar_docs = df.loc[arxiv_code]["similar_docs"]
-        similar_docs = [d for d in similar_docs if d in df.index]
-
-        if len(similar_docs) > n:
-            similar_docs = np.random.choice(similar_docs, n, replace=False)
-
-        similar_titles = [df.loc[doc]["title"] for doc in similar_docs]
-        publish_dates = [df.loc[doc]["published"] for doc in similar_docs]
-
-        return similar_docs, similar_titles, publish_dates
-    else:
+    """Get most similar documents using lazy loading."""
+    init_paper_details_cache()
+    similar_docs_data = load_single_paper_detail(arxiv_code, 'similar_docs')
+    
+    if similar_docs_data is None:
         return [], [], []
+    
+    ## Extract similar_docs from pandas Series or dict
+    if hasattr(similar_docs_data, 'similar_docs'):
+        similar_docs = similar_docs_data.similar_docs
+    elif isinstance(similar_docs_data, dict):
+        similar_docs = similar_docs_data.get('similar_docs', [])
+    else:
+        similar_docs = []
+    
+    ## Ensure it's a list (database function already processes it)
+    if not isinstance(similar_docs, list):
+        similar_docs = []
+    
+    similar_docs = [d.strip() for d in similar_docs if d.strip() in df.index]
+    
+    if len(similar_docs) > n:
+        similar_docs = np.random.choice(similar_docs, n, replace=False).tolist()
+    
+    similar_titles = [df.loc[doc]["title"] for doc in similar_docs]
+    publish_dates = [df.loc[doc]["published"] for doc in similar_docs]
+    
+    return similar_docs, similar_titles, publish_dates
 
 
 def get_paper_markdown(arxiv_code: str) -> Tuple[str, bool]:
@@ -1031,3 +1045,81 @@ def enhance_documents_with_reddit(documents: List[Document]) -> List[Document]:
         enhanced_documents.append(doc)
 
     return enhanced_documents
+
+
+############################
+## LAZY LOADING & CACHING ##
+############################
+
+def init_paper_details_cache():
+    """Initialize paper details cache in session state."""
+    import streamlit as st
+    if "paper_details_cache" not in st.session_state:
+        st.session_state.paper_details_cache = {}
+        st.session_state.cache_access_order = []
+        st.session_state.cache_max_size = 50
+
+
+def cleanup_cache_if_needed():
+    """Remove oldest entries when cache gets too large."""
+    import streamlit as st
+    while len(st.session_state.cache_access_order) > st.session_state.cache_max_size:
+        oldest_key = st.session_state.cache_access_order.pop(0)
+        del st.session_state.paper_details_cache[oldest_key]
+
+
+def load_single_paper_detail(arxiv_code: str, detail_type: str):
+    """Load specific detail type for one paper."""
+    detail_loaders = {
+        'summaries': lambda: db.load_summaries(arxiv_code=arxiv_code),
+        'recursive_summary': lambda: db.load_recursive_summaries(arxiv_code=arxiv_code),
+        'bullet_list': lambda: db.load_bullet_list_summaries(arxiv_code=arxiv_code),
+        'markdown_summary': lambda: db.load_summary_markdown(arxiv_code=arxiv_code),
+        'tweets': lambda: db.load_tweet_insights(arxiv_code=arxiv_code),
+        'similar_docs': lambda: db.load_similar_documents(arxiv_code=arxiv_code)
+    }
+    
+    try:
+        df = detail_loaders[detail_type]()
+        if df.empty:
+            return None
+        
+        ## Get the row data
+        if len(df) == 1:
+            return df.iloc[0]
+        elif arxiv_code in df.index:
+            return df.loc[arxiv_code]
+        else:
+            ## If arxiv_code not in index but df not empty, take first row
+            return df.iloc[0]
+    except (KeyError, IndexError, Exception):
+        return None
+
+
+def hydrate_all_paper_details(arxiv_code: str):
+    """Load and cache all detail components for a paper."""
+    import streamlit as st
+    
+    init_paper_details_cache()
+    
+    paper_cache_key = f"{arxiv_code}_hydrated"
+    if paper_cache_key in st.session_state.paper_details_cache:
+        st.session_state.cache_access_order.remove(paper_cache_key)
+        st.session_state.cache_access_order.append(paper_cache_key)
+        return st.session_state.paper_details_cache[paper_cache_key]
+    
+    try:
+        import time
+        start_time = time.time()
+        df = db.load_paper_details(arxiv_code)
+        end_time = time.time()
+        print(f"load_paper_details({arxiv_code}) took {end_time - start_time:.3f} seconds")
+        paper_details = df.iloc[0].to_dict() if not df.empty else {}
+    except Exception:
+        paper_details = {}
+    
+    st.session_state.paper_details_cache[paper_cache_key] = paper_details
+    st.session_state.cache_access_order.append(paper_cache_key)
+    cleanup_cache_if_needed()
+    
+    return paper_details
