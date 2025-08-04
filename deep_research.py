@@ -56,9 +56,12 @@ class SubTopicAssignment(BaseModel):
         ...,
         description="Tailored search approach for this subtopic, including key terms and concepts to focus on.",
     )
+    search_type: str = Field(
+        description="Search type: 'semantic' for concept-based search or 'exact' for keyword/title/author matching.",
+    )
     semantic_queries: List[str] = Field(
         ...,
-        description="2-3 semantic search queries optimized for this subtopic using academic language. Do not include date-related terms (use the date fields for that).",
+        description="2-3 search queries optimized for this subtopic. For semantic: use academic concepts. For exact: use specific titles, author names, or paper identifiers.",
     )
     expected_findings: str = Field(
         ...,
@@ -142,13 +145,13 @@ def create_research_brief_prompt(user_question: str, max_agents: int = 5) -> str
 - Analyze the user's question and create a focused research brief.
 - Questions are generally about Large Language Models or related AI technologies.
 - Identify between 1 and {max_agents} independent, orthogonal subtopics that together comprehensively address the question.
-- In many cases a single subtopic will be enough (particularly for targetted questions).
+- Generally a single subtopic will be enough (particularly for targetted questions).
 - Ensure subtopics don't overlap and can be researched independently. Do not add more topics than necessary.
 - Define clear research scope and the relevant time periods.
 - Make each subtopic fully self-contained and contextual - agents should not assume knowledge from other subtopics.
 - When the user asks about "up-to-date", "recent" or "latest" information, focus on content from the last 1-3 months.
 - IMPORTANT: Be sure to keep the focused question, research scope, and key subtopics thighly aligned. 
-- IMPORTANT: If the user asks to retrieve information about a particular paper, enlist this task explicitly as a subtopic (include the paper title). If they don't specify a time period, use all time periods.
+- IMPORTANT: If the user asks to retrieve information about a particular paper, enlist this task explicitly as the main subtopic (include the paper title). If they don't specify a time period, use all time periods.
 </instructions>"""
 
 
@@ -232,23 +235,24 @@ Create a comprehensive list of research assignments. For each subtopic in the re
 
 1. Clear, direct, and targeted subtopic definition.
 2. Specific search strategy tailored to that subtopic.
-3. 2-3 diverse and non-overlapping semantic search queries using appropriate language for the chosen sources.
-4. Expected type of findings this subtopic should contribute.
-5. Appropriate data sources from available options: {available_sources}
-6. Optional publication date constraints (min/max) when temporal focus is important.
+3. Search type: 'semantic' for concept-based research or 'exact' for specific keywords/titles/authors.
+4. 1-3 diverse search queries appropriate for the search type and chosen sources.
+5. Expected type of findings this subtopic should contribute.
+6. Appropriate data sources from available options: {available_sources}
+7. Optional publication date constraints (min/max) when temporal focus is important.
 </instructions>
 
 <guidelines_for_search_queries>
 {query_guidelines_text}
 - Consider that there are likely few or no relevant sources for very niche subtopics, so balance breadth and depth effectively.
-- Make queries diverse enough to capture different aspects of the subtopic.
-- Make your queries concise and to the point, aiming to maximize semantic similarity.
-- IMPORTANT: When the question asks for a specific paper title or similar title, use the EXACT TITLE WORDS as semantic queries rather than broader conceptual terms.
+- For semantic search: Make queries diverse and conceptual to capture different aspects of the subtopic.
+- For exact search: Use specific titles, keywords, author names, or paper identifiers. Avoid adding additional terms or modifiers (e.g.: "findings from paper X" is not a good query, but "paper X" is).
+- Use search_type='exact' when the question asks for specific papers by title, author, or identifier. Use search_type='semantic' for conceptual research questions.
 </guidelines_for_search_queries>
 
 <guidelines_for_source_selection>
 {selection_guidelines_text}
-- Choose sources based on the type of insights needed for each subtopic
+- Choose sources based on the type of insights needed for each subtopic.
 </guidelines_for_source_selection>
 
 <guidelines_for_date_constraints>
@@ -342,6 +346,7 @@ Analyze the provided sources and extract findings specifically related to your a
 Guidelines:
 - Stay focused on your specific subtopic.
 - Ground all insights in the provided sources.
+- If no evidence is provided, or it is not relevant or sufficient to inform an answer, just say so.
 - Be specific about which sources support which insights.
 - When citing sources: Use "arxiv:paper_id" for academic papers and "r/subreddit:post_id" for Reddit discussions. List multiple citations as [r/MachineLearning:1l69w7i, r/LocalLLaMA:1l6opyh].
 - Consider that some papers are about specific models and not general AI behavior.
@@ -360,7 +365,7 @@ Maintain a friendly, technically precise, and conversational tone while combinin
 
 Current date: {TODAY_DATE}.
 
-IMPORTANT: Prioritize the knowledge from the provided agent findings as your primary source. If the document evidence is insufficient for comprehensive coverage, you may complement with your internal knowledge and logical reasoning, but clearly distinguish such content by noting it clearly."""
+IMPORTANT: Prioritize the knowledge from the provided agent findings as your primary source. If the document evidence is insufficient for comprehensive coverage, note this clearly in your response. You may complement with your internal knowledge and logical reasoning, but clearly distinguish such content and do not speculate too much."""
 
 
 def create_report_synthesis_prompt(
@@ -532,12 +537,19 @@ class ResearchAgent:
             if verbose and progress_callback:
                 progress_callback(f"      📚 Searching arXiv papers...")
             
-            arxiv_sql = db.generate_semantic_search_query(
-                search_criteria,
-                query_config,
-                embedding_model=VS_EMBEDDING_MODEL,
-                exclude_arxiv_codes=exclude_codes or set(),
-            )
+            if self.assignment.search_type == "exact":
+                arxiv_sql = db.generate_exact_search_query(
+                    search_criteria,
+                    query_config,
+                    exclude_arxiv_codes=exclude_codes or set(),
+                )
+            else:
+                arxiv_sql = db.generate_semantic_search_query(
+                    search_criteria,
+                    query_config,
+                    embedding_model=VS_EMBEDDING_MODEL,
+                    exclude_arxiv_codes=exclude_codes or set(),
+                )
             arxiv_df = db_utils.execute_read_query(arxiv_sql)
             
             if not arxiv_df.empty:
@@ -725,6 +737,7 @@ class ResearchAgent:
             step_type="agent_research",
             step_metadata={
                 "subtopic": self.assignment.subtopic,
+                "search_type": self.assignment.search_type,
                 "sources": self.assignment.sources,
                 "documents_found": len(all_documents),
                 "documents_selected": len(high_relevance_docs),

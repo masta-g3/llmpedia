@@ -341,6 +341,74 @@ def generate_semantic_search_query(
     return "\n".join(query_parts)
 
 
+def generate_exact_search_query(
+    criteria: dict,
+    config: dict,
+    exclude_arxiv_codes: Optional[Set[str]] = None,
+) -> str:
+    """Generate SQL query for exact text search on title and abstract, optionally excluding specific arxiv_codes."""
+    query_parts = [
+        ## Select same fields as semantic search with dummy similarity score
+        """SELECT 
+            a.arxiv_code, 
+            a.title, 
+            a.published as published_date, 
+            s.citation_count as citations, 
+            a.summary AS abstract,
+            n.notes,
+            n.tokens,
+            0.0 as similarity_score""",
+        ## From same tables but no embeddings needed
+        """FROM arxiv_details a, 
+             semantic_details s, 
+             topics t, 
+             (SELECT DISTINCT ON (arxiv_code) arxiv_code, summary as notes, tokens 
+              FROM summary_notes 
+              ORDER BY arxiv_code, ABS(tokens - 3000) ASC) n""",
+        ## Join conditions (no embeddings table)
+        """WHERE a.arxiv_code = s.arxiv_code
+        AND a.arxiv_code = t.arxiv_code 
+        AND a.arxiv_code = n.arxiv_code""",
+    ]
+
+    # Add exclusion clause if exclude_arxiv_codes is provided
+    if exclude_arxiv_codes and len(exclude_arxiv_codes) > 0:
+        formatted_excluded_codes = ", ".join(
+            f"'{code}'" for code in exclude_arxiv_codes
+        )
+        query_parts.append(f"AND a.arxiv_code NOT IN ({formatted_excluded_codes})")
+
+    ## Add exact text search conditions
+    if "semantic_search_queries" in criteria and criteria["semantic_search_queries"]:
+        text_conditions = []
+        for query in criteria["semantic_search_queries"]:
+            # Search in title + summary (abstract) with case-insensitive matching
+            escaped_query = query.replace("'", "''")
+            text_conditions.append(
+                f"(CONCAT(a.title, ' ', a.summary) ILIKE '%{escaped_query}%')"
+            )
+        
+        if text_conditions:
+            query_parts.append(f"AND ({' OR '.join(text_conditions)})")
+
+    ## Add other date/filter conditions using existing config
+    for field, value in criteria.items():
+        if (
+            value is not None
+            and field in config
+            and field not in ["response_length", "limit", "semantic_search_queries"]
+        ):
+            # Reuse existing date/filter logic without similarity scoring
+            if field in ["min_publication_date", "max_publication_date"]:
+                query_parts.append(f"AND {config[field] % value}")
+
+    ## Add default ordering and limit
+    query_parts.append("ORDER BY s.citation_count DESC, a.published DESC")
+    query_parts.append("LIMIT 150")
+
+    return "\n".join(query_parts)
+
+
 ###############
 ## TWEETS ##
 ###############

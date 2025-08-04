@@ -605,7 +605,7 @@ def get_paper_markdown(arxiv_code: str) -> Tuple[str, bool]:
 def query_llmpedia_new(
     user_question: str,
     response_length: int = 4000,
-    llm_model: str = "openai/gpt-4.1-nano",
+    llm_model: str = "openai/gpt-4.1-mini",
     max_sources: int = 15,
     max_agents: int = 4,
     debug: bool = False,

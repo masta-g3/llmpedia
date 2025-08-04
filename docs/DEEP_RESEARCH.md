@@ -122,9 +122,14 @@ Each research agent follows this optimized pipeline:
 └─────────────────┘    └──────────────────┘    └─────────────────┘
                                                          │
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│  Insight        │◀───│  LLM Analysis    │◀───│  Relevance      │
+│  Insight        │◀───│  LLM Analysis    │◀───│  LLM Relevance  │
 │  Extraction     │    │  & Synthesis     │    │  Reranking      │ 
 └─────────────────┘    └──────────────────┘    └─────────────────┘
+                                                         │
+                                               ┌─────────────────┐
+                                               │  Deduplication  │
+                                               │  (Cross-Agent)  │
+                                               └─────────────────┘
 ```
 
 ## Data Sources & Integration
@@ -136,10 +141,10 @@ Each research agent follows this optimized pipeline:
 - **Deduplication**: arXiv code tracking across agents
 
 ### Reddit Discussions  
-- **Access Method**: Semantic search across post content and top comments
-- **Content Types**: Posts, comment threads, community insights
+- **Access Method**: Semantic search across post content with automatic top comment fetching
+- **Content Types**: Posts, comment threads (top 3 comments per post), community insights
 - **Metadata**: Subreddit, author, score, publication date, comment count
-- **Enhancement**: Top comment fetching for additional context
+- **Enhancement**: Automatic top comment retrieval (min 5 score) for enriched context
 
 ### Cross-Source Intelligence
 - **Complementary Perspectives**: Academic rigor + practitioner experiences
@@ -228,7 +233,8 @@ referenced_papers: List[str]  # Complete arXiv code list
 
 ### Quality Control Mechanisms  
 - **Multi-Stage Filtering**: Vector similarity → LLM relevance → human-calibrated thresholds
-- **Source Diversification**: Enforces variety in paper selection across agents
+- **Source Diversification**: Cross-agent deduplication prevents duplicate papers across agents
+- **Progress Streaming**: Real-time progress updates via callback system for transparency
 - **Temporal Intelligence**: Adaptive date constraints based on query intent ("recent" = last 1-2 months)
 
 ### Performance Features
@@ -241,7 +247,7 @@ referenced_papers: List[str]  # Complete arXiv code list
 
 | Parameter | Range | Default | Impact |
 |-----------|-------|---------|---------|
-| **Agent Count** | 1-5 | 3 | Parallel research breadth |
+| **Agent Count** | 1-5 | 4 | Parallel research breadth |
 | **Sources per Agent** | 5-20 | 10 | Research depth vs. speed |
 | **Response Length** | 1000-8000 | 4000 | Synthesis comprehensiveness |
 | **LLM Temperature** | 0.0-2.0 | 0.4-1.0 | Creativity vs. accuracy |

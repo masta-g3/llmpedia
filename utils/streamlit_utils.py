@@ -180,6 +180,30 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
             unsafe_allow_html=True,
         )
 
+        # arXiv code badge
+        meta_col.markdown(
+            f"""<div style="margin-bottom: 0.75em;">
+                <span style="
+                    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+                    font-size: 0.75em;
+                    background: linear-gradient(135deg, rgba(255, 75, 75, 0.1) 0%, rgba(255, 75, 75, 0.05) 100%);
+                    color: #FF4B4B;
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    border: 1px solid rgba(255, 75, 75, 0.2);
+                    display: inline-block;
+                    cursor: pointer;
+                    user-select: all;
+                    transition: all 0.2s ease;
+                " 
+                title="Click to copy arXiv code"
+                onclick="navigator.clipboard.writeText('{paper_code}'); this.style.background='rgba(255, 75, 75, 0.2)'; setTimeout(() => this.style.background='linear-gradient(135deg, rgba(255, 75, 75, 0.1) 0%, rgba(255, 75, 75, 0.05) 100%)', 200);">
+                    arXiv:{paper_code}
+                </span>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
         # Publication date
         pub_date = pd.to_datetime(paper["published"]).strftime("%d %b %Y")
         meta_col.markdown(
@@ -373,7 +397,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         if (send_clicked or auto_send) and paper_question.strip():
             with st.spinner("🤖 GPT Maestro is analyzing..."):
                 response = au.interrogate_paper(
-                    paper_question, paper_code, model="gpt-4.1-nano"
+                    paper_question, paper_code, model="gpt-4.1-mini"
                 )
                 logging_db.log_qna_db(f"[{paper_code}] ::: {paper_question}", response)
                 st.chat_message("assistant").write(response)
@@ -1765,7 +1789,7 @@ def render_research_settings_panel() -> dict:
             llm_model = st.selectbox(
                 "LLM Model",
                 options=["gpt-4.1-nano", "gpt-4.1-mini"],
-                index=0,
+                index=1,
                 help="Model to use for research analysis and synthesis.",
             )
 
