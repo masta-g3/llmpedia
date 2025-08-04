@@ -410,7 +410,8 @@ def analyze_and_update_scratchpad(
 
 
 def rerank_documents_new(
-    user_question: str, documents: list, llm_model="gpt-4o", temperature=0.2
+    user_question: str, documents: list, llm_model="gpt-4o", temperature=0.2,
+    workflow_id: Optional[str] = None, step_metadata: Optional[dict] = None
 ) -> po.RerankedDocuments:
     system_message = "You are an expert system that can identify and select relevant arxiv papers that can be used to answer a user query."
     rerank_msg = ps.create_rerank_user_prompt(user_question, documents)
@@ -421,6 +422,9 @@ def rerank_documents_new(
         llm_model=llm_model,
         temperature=temperature,
         process_id="rerank_documents",
+        workflow_id=workflow_id,
+        step_type="document_reranking",
+        step_metadata=step_metadata,
     )
     return response
 
@@ -688,7 +692,7 @@ def query_llmpedia_new(
             log_debug(
                 "~~Finished LLMpedia query pipeline (non-LLM query)~~", indent_level=0
             )
-        return answer, [], []
+        return answer, answer, [], [], [], []
 
 
 ######################

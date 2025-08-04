@@ -69,6 +69,7 @@ def create_decision_user_prompt(user_question: str) -> str:
     </response_format>
     
     If you are not sure, bias your classification towards large language model related queries.
+    Queries asking for specific papers or academic research should be classified as LLM-related regardless of topic.
     """
     return user_prompt
 
@@ -172,6 +173,7 @@ def create_rerank_user_prompt(user_question: str, documents: list) -> str:
       * 0.0: Not relevant to the specific query
     - Make sure to be stringent in scoring - only assign 1.0 to papers that are **directly** relevant to answer the specific user query.
     - Some papers are about specific model implementations and not about LLMs in general. These papers might not be so useful when drawing general conclusions.
+    - If the query asks to identify a specific paper, only assign 1.0 to exact matches, 0.5 to similar topics with distinct names, and 0.0 to unrelated documents.
     - Be sure to include all the documents in the list, even if scored 0.0.
     </response_format>"""
     return rerank_msg

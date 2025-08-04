@@ -191,14 +191,20 @@ def initialize_weekly_summary(date_report: str):
 @st.cache_data(ttl=timedelta(hours=1))
 def get_random_interesting_facts(n=10, recency_days=7, _trigger: int = 0) -> List[Dict]:
     """Get random interesting facts from the database with caching."""
-    return db.get_random_interesting_facts(n=n, recency_days=recency_days)
+    start_time = time.time()
+    result = db.get_random_interesting_facts(n=n, recency_days=recency_days)
+    print(f"get_random_interesting_facts took {time.time() - start_time:.3f} seconds")
+    return result
 
 
 @st.cache_data(ttl=timedelta(hours=6))
 def get_featured_paper(papers_df: pd.DataFrame) -> Dict:
     """Get featured paper with caching."""
+    start_time = time.time()
     arxiv_code = au.get_latest_weekly_highlight()
-    return papers_df[papers_df["arxiv_code"] == arxiv_code].iloc[0].to_dict()
+    result = papers_df[papers_df["arxiv_code"] == arxiv_code].iloc[0].to_dict()
+    print(f"get_featured_paper took {time.time() - start_time:.3f} seconds")
+    return result
 
 
 @st.cache_data(ttl=timedelta(minutes=15))
@@ -241,9 +247,12 @@ def get_cached_top_cited_papers_app(
     papers_df_fragment: pd.DataFrame, n: int, time_window_days: int
 ) -> pd.DataFrame:
     """Cached wrapper in app.py to get top cited papers."""
-    return au.get_top_cited_papers(
+    start_time = time.time()
+    result = au.get_top_cited_papers(
         papers_df_fragment, n=n, time_window_days=time_window_days
     )
+    print(f"get_cached_top_cited_papers_app took {time.time() - start_time:.3f} seconds")
+    return result
 
 
 @st.cache_data(ttl=timedelta(minutes=30))
@@ -251,7 +260,10 @@ def get_cached_raw_trending_data_app(
     n_fetch: int, time_window_days_db: int
 ) -> pd.DataFrame:
     """Cached wrapper in app.py to fetch raw trending paper data from DB with TTL."""
-    return db.get_trending_papers(n=n_fetch, time_window_days=time_window_days_db)
+    start_time = time.time()
+    result = db.get_trending_papers(n=n_fetch, time_window_days=time_window_days_db)
+    print(f"get_cached_raw_trending_data_app took {time.time() - start_time:.3f} seconds")
+    return result
 
 
 def get_processed_trending_papers(
@@ -640,7 +652,7 @@ def main():
                 🔬 Ask the GPT Maestro
             </div>
             <div class="trending-panel-subtitle">
-                Try our AI-powered multi-agent research with cited sources
+                Try our AI-powered multi-agent research for papers and LLM topics with cited sources.
             </div>
         </div>
         """

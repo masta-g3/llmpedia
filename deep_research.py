@@ -15,11 +15,8 @@ from utils.app_utils import (
     RedditContent,
     VS_EMBEDDING_MODEL,
     query_config,
-    extract_arxiv_codes,
-    extract_reddit_codes,
     extract_all_citations,
     add_links_to_text_blob,
-    enhance_documents_with_reddit,
 )
 from utils.db import db, db_utils
 
@@ -47,7 +44,7 @@ class ResearchBrief(BaseModel):
     )
     expected_timeline: str = Field(
         ...,
-        description="Relevant time period for the research (e.g., 'recent papers from April and May 2025', 'foundational work from 2017-2020'). Might vary for different subtopics.",
+        description="Relevant time period for the research (e.g., 'recent papers from April, May & June 2025', 'foundational work from 2017-2020'). Might vary for different subtopics.",
     )
 
 
@@ -128,7 +125,7 @@ class FinalReport(BaseModel):
 
 ## Prompt Templates
 
-RESEARCH_BRIEF_SYSTEM_PROMPT = f"""You are a research planning expert. Your job is to analyze a user's research question and create a focused, actionable research plan that will guide a team of specialized research agents.
+RESEARCH_BRIEF_SYSTEM_PROMPT = f"""You are a AI & LLM research planning expert. Your job is to analyze a user's research question and create a focused, actionable research plan that will guide a team of specialized research agents.
 
 Break down complex questions into independent, researchable subtopics that can be investigated in parallel. In many cases, particularly for targetted questions, a single subtopic will be enough. Otherwise, focus on creating subtopics that don't overlap and together provide comprehensive coverage of the research question. Be sure topics are not too broad and directly address the user's question (less is more).
 
@@ -143,11 +140,15 @@ def create_research_brief_prompt(user_question: str, max_agents: int = 5) -> str
 
 <instructions>
 - Analyze the user's question and create a focused research brief.
+- Questions are generally about Large Language Models or related AI technologies.
 - Identify between 1 and {max_agents} independent, orthogonal subtopics that together comprehensively address the question.
 - In many cases a single subtopic will be enough (particularly for targetted questions).
 - Ensure subtopics don't overlap and can be researched independently. Do not add more topics than necessary.
 - Define clear research scope and the relevant time periods.
-- When the user asks about "up-to-date", "recent" or "latest" information, focus on content from the last 1-2 months.
+- Make each subtopic fully self-contained and contextual - agents should not assume knowledge from other subtopics.
+- When the user asks about "up-to-date", "recent" or "latest" information, focus on content from the last 1-3 months.
+- IMPORTANT: Be sure to keep the focused question, research scope, and key subtopics thighly aligned. 
+- IMPORTANT: If the user asks to retrieve information about a particular paper, enlist this task explicitly as a subtopic (include the paper title). If they don't specify a time period, use all time periods.
 </instructions>"""
 
 
@@ -201,27 +202,6 @@ Current date: {TODAY_DATE}. Consider temporal context when creating search strat
 
 
 def create_supervisor_assignment_prompt(research_brief: ResearchBrief, available_sources: List[str]) -> str:
-    return f"""
-<research_brief>
-Focused Question: {research_brief.focused_question}
-Research Scope: {research_brief.research_scope}
-Key Subtopics: {', '.join(research_brief.key_subtopics)}
-Expected Timeline: {research_brief.expected_timeline}
-</research_brief>
-
-<instructions>
-Create a comprehensive list of research assignments. For each subtopic in the research brief, include a detailed assignment that contains:
-
-1. Clear, direct, and targeted subtopic definition.
-2. Specific search strategy tailored to that subtopic.
-3. 2-3 diverse and non-overlapping semantic search queries using targeted academic language.
-4. Expected type of findings this subtopic should contribute.
-5. Appropriate data sources: ["arxiv"], ["reddit"], or ["arxiv", "reddit"] based on the information needs.
-6. Optional publication date constraints (min/max) when temporal focus is important.
-</instructions>
-
-<guidelines_for_search_queries>"""
-
     # Build dynamic source guidelines
     source_query_guidelines = []
     source_selection_guidelines = []
@@ -239,7 +219,7 @@ Create a comprehensive list of research assignments. For each subtopic in the re
         combination_text = f"\n- Use multiple sources for: Comprehensive analysis where different perspectives are valuable"
         selection_guidelines_text += combination_text
     
-    return f"""
+    combined = f"""
 <research_brief>
 Focused Question: {research_brief.focused_question}
 Research Scope: {research_brief.research_scope}
@@ -263,6 +243,7 @@ Create a comprehensive list of research assignments. For each subtopic in the re
 - Consider that there are likely few or no relevant sources for very niche subtopics, so balance breadth and depth effectively.
 - Make queries diverse enough to capture different aspects of the subtopic.
 - Make your queries concise and to the point, aiming to maximize semantic similarity.
+- IMPORTANT: When the question asks for a specific paper title or similar title, use the EXACT TITLE WORDS as semantic queries rather than broader conceptual terms.
 </guidelines_for_search_queries>
 
 <guidelines_for_source_selection>
@@ -273,12 +254,12 @@ Create a comprehensive list of research assignments. For each subtopic in the re
 <guidelines_for_date_constraints>
 - Consider the specified timeline only when relevant (e.g. when the user asks for specific time range or recent findings).
 - Set min_publication_date and/or max_publication_date (YYYY-MM-DD format) only when temporal focus is critical for the subtopic.
-- Consider that this is a very fast moving field; "recent advances" or "latest developments" likely refers papers from the last 2-3 months.
+- Consider that this is a very fast moving field; "recent advances" or "latest developments" likely refers papers from the last 3 or 4 months.
 - Leave date fields unset (None) when the subtopic should search across all time periods.
 - Consider that different subtopics may need different temporal constraints.
 </guidelines_for_date_constraints>
 """
-
+    return combined
 
 AGENT_RESEARCH_SYSTEM_PROMPT = f"""You are a specialized research agent focused on investigating a specific subtopic. Your job is to analyze the documents you've found and extract key insights that directly address your assigned subtopic.
 
@@ -636,11 +617,37 @@ class ResearchAgent:
             )
 
         ## Rerank documents for relevance to subtopic
+        rerank_input_docs = []
+        for doc in all_documents:
+            if isinstance(doc, Document):
+                rerank_input_docs.append({
+                    "type": "arxiv",
+                    "id": doc.arxiv_code,
+                    "title": doc.title[:100],
+                    "similarity_score": doc.distance,
+                    "citations": doc.citations,
+                })
+            elif isinstance(doc, RedditContent):
+                rerank_input_docs.append({
+                    "type": "reddit", 
+                    "id": f"r/{doc.subreddit}:{doc.reddit_id}",
+                    "title": doc.title[:100],
+                    "similarity_score": doc.distance,
+                    "score": doc.score,
+                })
+        
         reranked_docs = rerank_documents_new(
             user_question=f"""{self.assignment.subtopic} - {self.assignment.search_strategy}. 
             Expected findings: {self.assignment.expected_findings}""",
             documents=all_documents,
             llm_model=self.llm_model,
+            workflow_id=workflow_id,
+            step_metadata={
+                "subtopic": self.assignment.subtopic,
+                "semantic_queries": self.assignment.semantic_queries,
+                "input_documents": rerank_input_docs,
+                "sources": self.assignment.sources,
+            },
         )
 
         ## Select top relevant documents
