@@ -289,7 +289,7 @@ def generate_semantic_search_query(
         AND a.arxiv_code = t.arxiv_code 
         AND a.arxiv_code = n.arxiv_code 
         AND a.arxiv_code = e.arxiv_code 
-        AND e.doc_type = 'abstract'
+        AND e.doc_type = 'title_abstract'
         AND e.embedding_type = '%s'"""
         % embedding_model,
     ]
