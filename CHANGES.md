@@ -1,5 +1,41 @@
 # Changes Log
 
+## Enhanced LLM Logging and Cost Tracking Integration (2025-07-27)
+
+Integrated advanced LLM logging capabilities from `instruct-alt.py` into production:
+
+### Key Improvements
+- **Real Cost Calculation**: Added `tokencost` library integration for actual dollar cost tracking of LLM API calls
+- **Cache Optimization**: Implemented Claude cache creation/read cost tracking for prompt caching features
+- **Enhanced Database Logging**: Expanded `log_instructor_query()` to capture cache metrics, costs, and detailed usage statistics
+- **Detailed Verbose Output**: Added beautiful formatted cost breakdowns with token usage and pricing information
+- **Better Error Handling**: Implemented progressive retry delays (0s, 30s, 60s, 300s) with detailed error reporting and full tracebacks
+- **Cache Control Support**: Added `add_cache_control()` function for Claude models to optimize API costs through prompt caching
+
+### Technical Changes
+- Updated `utils/db/logging_db.py` to accept optional cache parameters in `log_instructor_query()`
+- Replaced `utils/instruct.py` with enhanced version featuring cost calculation and advanced logging
+- Added `log_llm_usage()` function with comprehensive cost breakdown and database logging
+- Improved function signature flexibility (optional system_message and user_message parameters)
+- Enhanced retry mechanism with exponential backoff and detailed error diagnostics
+- Maintained full backward compatibility with existing function calls
+
+### Cost Monitoring Features
+- Real-time cost calculation for prompt and completion tokens
+- Cache creation cost tracking (2x input token rate for Claude models)
+- Cache read cost tracking (reduced rates for cached content)
+- Comprehensive logging to database with all cost and usage metrics
+- Optional verbose output with formatted statistics display
+
+### Database Schema Extensions
+- Extended `token_usage_logs` table to include cache-related columns:
+  - `cache_creation_input_tokens`
+  - `cache_read_input_tokens` 
+  - `cache_creation_cost`
+  - `cache_read_cost`
+
+This integration provides enterprise-grade LLM cost monitoring and optimization capabilities while maintaining seamless compatibility with existing codebase functionality.
+
 ## Trending/Cited Papers Section Redesign (2025-01-XX)
 
 Completely redesigned the trending and most cited papers section to improve user experience and visual appeal:

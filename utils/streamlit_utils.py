@@ -1755,6 +1755,8 @@ def get_initial_query_value() -> str:
     initial_query_value = ""
     if "query_to_pass_to_chat" in st.session_state:
         initial_query_value = st.session_state.query_to_pass_to_chat
+        ## Store in text area's session state to preserve through reruns
+        st.session_state["chat_user_question_area"] = initial_query_value
         del st.session_state.query_to_pass_to_chat  # Clear after use
     return initial_query_value
 
@@ -1788,7 +1790,7 @@ def render_research_settings_panel() -> dict:
         with settings_cols[3]:
             llm_model = st.selectbox(
                 "LLM Model",
-                options=["gpt-4.1-nano", "gpt-4.1-mini"],
+                options=["gpt-4.1-nano", "gpt-4.1-mini", "gpt-4.1"],
                 index=1,
                 help="Model to use for research analysis and synthesis.",
             )

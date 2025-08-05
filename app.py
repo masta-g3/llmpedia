@@ -286,14 +286,13 @@ def get_processed_trending_papers(
 @st.fragment
 def chat_fragment():
     """Handles the entire chat interface logic within a Streamlit fragment."""
-    # Get initial query value and render header
-    user_question = su.get_initial_query_value()
+    # Handle initial query value and render header
+    su.get_initial_query_value()  # This sets session state if needed
     su.render_research_header()
     
     # User input
     user_question = st.text_area(
         label="Ask any question about LLMs or the arxiv papers.",
-        value=user_question,
         key="chat_user_question_area",
     )
     chat_btn_disabled = len(user_question) == 0

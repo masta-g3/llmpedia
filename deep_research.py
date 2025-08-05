@@ -448,7 +448,7 @@ Synthesize the research findings into a comprehensive answer that directly answe
 - Use direct, concise wording with a technical edge that reflects AI research discourse on X.com.
 - Avpid being too academic, techincal or boring.
 - Don't shy away from technical terms - assume your audience has domain knowledge.
-- Be informal when it serves the content - subtle humor is welcome.
+- Be informal - subtle humor is welcome.
 - Avoid being pedantic, obnoxious or overtly-critical.
 - Don't frame ideas as revelatory paradigm shifts or contrarian declarations.
 - Ensure the response directly addresses the original research question.
@@ -461,6 +461,7 @@ Synthesize the research findings into a comprehensive answer that directly answe
 - Avoid repetitive conclusions or final remarks.
 - Avoid these prohibited phrases: fascinating, mind-blowing, wild, surprising, reveals, crucial, turns out that, the twist/secret, sweet spot, here's the kicker, irony/ironic, makes you think/wonder, really makes you, we might need to (rethink), the real [constraint/question/etc.] is, its no surprise, we are basically, fundamentally changes, peak 2024/25, crushing it, feels like, here's the scoop, etc.
 - Do not include any other text or comments in your response, just the answer to the user formatted as a markdown document. Do not include triple backticks or any other formatting.
+- REMEMBER: Keep the X.com research vibe - technical but approachable, informal but insightful.
 </style_guidelines>
 """
 
