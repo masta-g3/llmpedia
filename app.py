@@ -545,7 +545,7 @@ def main():
                 📅 {year} Release Calendar
             </div>
             <div class="trending-panel-subtitle">
-                Click on any day to filter papers by publication date
+                Click on any day to filter papers on the <em>Release Feed</em>
             </div>
         </div>
         """
@@ -617,8 +617,8 @@ def main():
         last_week = today.date() - pd.Timedelta(days=7)
 
         # Filter dataframes for recent papers - convert datetime64[ns] to date for comparison
-        papers_1d = papers_df[papers_df["tstp"] >= yesterday]
-        papers_7d = papers_df[papers_df["published"].dt.date >= last_week]
+        papers_1d = full_papers_df[full_papers_df["tstp"] >= yesterday]
+        papers_7d = full_papers_df[full_papers_df["published"].dt.date >= last_week]
 
         # Display all metrics in a single row of 5 columns
         metric_cols = st.columns(5)  # Adjusted for 5 metrics
@@ -629,7 +629,7 @@ def main():
             )
         with metric_cols[1]:
             if not st.session_state.all_years:
-                value = f"{len(papers_df[papers_df['published'].dt.year == year]):,d}"
+                value = f"{len(full_papers_df[full_papers_df['published'].dt.year == year]):,d}"
                 st.metric(
                     label=f"🔮 Published in {year}",
                     value=value,

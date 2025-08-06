@@ -151,6 +151,8 @@ def get_base_component_styles():
             background: var(--arxiv-red);
             color: white;
         }
+
+        
         
         /* =============================================================================
            TYPOGRAPHY COMPONENTS
@@ -732,7 +734,10 @@ def get_streamlit_overrides():
     """Generate CSS overrides for Streamlit default components."""
     return """
         /* Streamlit Button Overrides */
-        .stButton button {
+        /* Primary buttons (default and type="primary") */
+        .stButton button[kind="primary"],
+        .stButton button[data-testid="baseButton-primary"],
+        .stButton button:not([kind]):not([data-testid]):not([class*="tertiary"]):not([class*="secondary"]) {
             background-color: var(--arxiv-red) !important;
             color: white !important;
             border: none !important;
@@ -740,9 +745,59 @@ def get_streamlit_overrides():
             transition: all var(--transition-fast) !important;
         }
         
-        .stButton button:hover {
+        .stButton button[kind="primary"]:hover,
+        .stButton button[data-testid="baseButton-primary"]:hover,
+        .stButton button:not([kind]):not([data-testid]):not([class*="tertiary"]):not([class*="secondary"]):hover {
             background-color: var(--arxiv-red-light) !important;
             transform: translateY(-1px) !important;
+        }
+        
+        /* Secondary buttons */
+        .stButton button[kind="secondary"],
+        .stButton button[data-testid="baseButton-secondary"] {
+            background: transparent !important;
+            color: var(--arxiv-red) !important;
+            border: 1px solid var(--arxiv-red) !important;
+            border-radius: var(--radius-base) !important;
+            transition: all var(--transition-fast) !important;
+        }
+        
+        .stButton button[kind="secondary"]:hover,
+        .stButton button[data-testid="baseButton-secondary"]:hover {
+            background: var(--arxiv-red) !important;
+            color: white !important;
+        }
+        
+        /* Tertiary buttons - plain text without border or background */
+        .stButton button[kind="tertiary"],
+        .stButton button[data-testid="baseButton-tertiary"],
+        .stButton button[class*="tertiary"] {
+            background: transparent !important;
+            color: var(--arxiv-red) !important;
+            border: none !important;
+            border-radius: var(--radius-base) !important;
+            transition: all var(--transition-fast) !important;
+            padding: var(--space-sm) var(--space-base) !important;
+            box-shadow: none !important;
+        }
+        
+        .stButton button[kind="tertiary"]:hover,
+        .stButton button[data-testid="baseButton-tertiary"]:hover,
+        .stButton button[class*="tertiary"]:hover {
+            background: rgba(179, 27, 27, 0.08) !important;
+            color: var(--arxiv-red-light) !important;
+            text-decoration: underline;
+            box-shadow: none !important;
+        }
+        
+        /* Fallback: Override any remaining button styling for tertiary */
+        .stButton button[kind="tertiary"],
+        .stButton button[data-testid="baseButton-tertiary"] {
+            background-color: transparent !important;
+            background-image: none !important;
+            border-width: 0 !important;
+            border-style: none !important;
+            outline: none !important;
         }
 
         /* Streamlit Link Overrides */
@@ -951,6 +1006,42 @@ def get_advanced_trending_card_styles():
             box-shadow: var(--shadow-sm);
         }
         
+        /* Ensure Streamlit components inside trending cards inherit proper styling */
+        .trending-card .stButton {
+            margin-bottom: var(--space-xs);
+        }
+        
+        .trending-card .stImage {
+            margin-bottom: 0;
+        }
+        
+        /* Tighter spacing for card content */
+        .trending-card .stColumns {
+            gap: var(--space-sm) !important;
+        }
+        
+        .trending-card .stColumn {
+            padding: 0 !important;
+        }
+        
+        /* Style expanders within trending cards to look clean and integrated */
+        .trending-card .stExpander {
+            margin-top: var(--space-base);
+            border: none;
+        }
+        
+        .trending-card .stExpander > details {
+            border: 1px solid rgba(179, 27, 27, 0.08);
+            border-radius: var(--radius-base);
+            background: rgba(179, 27, 27, 0.02);
+        }
+        
+        .trending-card .stExpander > details > summary {
+            padding: var(--space-sm);
+            font-weight: 500;
+            color: var(--text-color, #333);
+        }
+        
         .trending-card:hover {
             transform: translateY(-1px);
             box-shadow: var(--shadow-base);
@@ -1058,13 +1149,40 @@ def get_advanced_trending_card_styles():
             display: flex;
             align-items: center;
             gap: var(--space-xs);
-            background: var(--secondary-background-color, rgba(179, 27, 27, 0.04));
-            padding: var(--space-xs) var(--space-sm);
-            border-radius: var(--radius-full);
             font-size: var(--font-size-sm);
-            font-weight: 600;
-            color: var(--arxiv-red);
+            font-weight: 500;
+            color: var(--text-color, #666);
             white-space: nowrap;
+        }
+        
+        /* New cleaner metadata layout */
+        .trending-metadata-row {
+            margin-top: var(--space-base);
+            padding: var(--space-sm) 0;
+            border-top: 1px solid rgba(128, 128, 128, 0.08);
+        }
+        
+        .trending-authors-metrics {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: var(--font-size-xs);
+            color: var(--text-color, #666);
+            gap: var(--space-base);
+        }
+        
+        .authors-section {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .metrics-section {
+            flex-shrink: 0;
+            font-weight: 500;
+            opacity: 0.8;
         }
         
         .trending-metric-icon {

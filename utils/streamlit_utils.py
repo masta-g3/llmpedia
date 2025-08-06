@@ -974,13 +974,14 @@ def generate_mini_paper_table(
     # Format function for titles
     def format_title(row):
         title = row["title"].replace("\n", "")
-        star = "⭐ " if row.get("influential_citation_count", 0) > 0 else ""
-        return f"{star}{title}"
+        star = "⭐ " if row.get("influential_citation_count", 0) > 0 else "&nbsp;&nbsp;"
+        return f"{star} {title}&nbsp;&nbsp;&nbsp;&nbsp;"
 
     # Create enhanced card layout
     for rank, (_, paper) in enumerate(display_df.iterrows(), 1):
         paper_code = paper["arxiv_code"]
-        title = format_title(paper)
+        # title = format_title(paper)
+        title = paper["title"].replace("\n", "").strip()
         metric_value = int(paper.get(metric_col, 0))
         punchline = paper.get("punchline", "")
         authors = paper.get("authors", "")
@@ -998,51 +999,69 @@ def generate_mini_paper_table(
         else:
             image_url = f"https://arxiv-art.s3.amazonaws.com/{paper_code}.png"
 
-        # Use columns to place buttons to the right of the card
-        card_col, button_col = st.columns([10, 1])
-
-        with card_col:
-            # Create the enhanced card HTML
-            card_html = f"""
-            <div class="trending-card">
-                <div class="trending-rank">{rank}</div>
-                <div class="trending-header">
-                    <div class="trending-image">
-                        <img src="{image_url}" alt="{html_escape(title)}" 
-                             onerror="this.style.display='none'; this.parentElement.style.backgroundColor='var(--secondary-background-color, #f0f0f0)'; this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-size:0.7em;color:var(--text-color,#999);\\'>No Image</div>';">
-                    </div>
-                    <div class="trending-content">
-                        <div class="trending-title">
-                            <a href="{paper_url}" target="_blank">{html_escape(title)}</a>
-                        </div>
-                        {f'<div class="trending-punchline">{html_escape(punchline)}</div>' if punchline and pd.notna(punchline) else ''}
-                    </div>
-                </div>
-                <div class="trending-metadata">
-                    <div class="trending-authors">{html_escape(authors)}</div>
-                    <div class="trending-metric">
-                        <span class="trending-metric-icon">{'📈' if metric_name == 'Likes' else '📊'}</span>
-                        <span>{metric_value:,} {metric_name}</span>
-                    </div>
-                </div>
-            </div>
-            """
-            st.markdown(card_html, unsafe_allow_html=True)
-
-        # Buttons stacked vertically
-        with button_col:
-            # Vertical alignment hack for the button
+        # Create the card using native Streamlit components with clean, minimal design
+        with st.container():
+            # Apply custom CSS class to the container to mimic the trending-card styling
+            st.markdown('<div class="trending-card">', unsafe_allow_html=True)
+            
+            # Rank badge (top-right corner)
             st.markdown(
-                "<div style='height: calc(3 * var(--space-base));'></div>",
-                unsafe_allow_html=True,
+                f'<div class="trending-rank">{rank}</div>', 
+                unsafe_allow_html=True
             )
-            if st.button(
-                "🔍", key=f"details_btn_{paper_code}_{extra_key}", help="Details"
-            ):
-                st.session_state.arxiv_code = paper_code
-                click_tab(3)
-
-            # Tweet toggle button (if enabled and tweets exist) - below the arrow button
+            
+            # Main card content with image and text
+            img_col, content_col = st.columns([1, 6], gap="medium")
+            
+            with img_col:
+                # Display image with error handling
+                try:
+                    st.image(image_url, caption="", use_container_width=True)
+                except:
+                    st.markdown(
+                        '<div style="width:80px; height:80px; background-color:var(--secondary-background-color, #f0f0f0); '
+                        'display:flex; align-items:center; justify-content:center; border-radius:8px; '
+                        'font-size:0.7em; color:var(--text-color,#999);">No Image</div>', 
+                        unsafe_allow_html=True
+                    )
+            
+            with content_col:
+                # Title button with star icon if influential
+                show_star = paper.get("influential_citation_count", 0) > 0
+                title_key = f"title_btn_{paper_code}_{extra_key}"
+                
+                if st.button(
+                    title, 
+                    type="tertiary", 
+                    icon="⭐" if show_star else None,
+                    key=title_key,
+                    help=f"Open paper: {title}" + (" (Influential paper!)" if show_star else "")
+                ):
+                    st.session_state.arxiv_code = paper_code
+                    click_tab(3)
+    
+                # Punchline/summary
+                if punchline and pd.notna(punchline):
+                    st.markdown(
+                        f'<div class="trending-punchline">{html_escape(punchline)}</div>', 
+                        unsafe_allow_html=True
+                    )
+            
+                # Clean metadata section - single row, better organized
+                st.markdown('<div class="trending-metadata-row">', unsafe_allow_html=True)
+                
+                # Authors and metrics in a single, flowing line
+                st.markdown(
+                    f'<div class="trending-authors-metrics">'
+                    f'<span class="authors-section">👥 {html_escape(authors)}</span>'
+                    f'<span class="metrics-section">📊 {metric_value:,} {metric_name.lower()}</span>'
+                    f'</div>', 
+                    unsafe_allow_html=True
+                )
+                
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+            # Tweets section as elegant expander (if available)
             if (
                 show_tweets_toggle
                 and "tweets" in paper
@@ -1050,46 +1069,41 @@ def generate_mini_paper_table(
                 and len(paper["tweets"]) > 0
             ):
                 tweet_count = paper.get("tweet_count", len(paper["tweets"]))
-                tweet_toggle_key = f"show_tweets_{paper_code}_{extra_key}"
-                current_active_key = st.session_state.get("active_tweet_panel", None)
+                with st.expander(f"💬 Discussion ({tweet_count} posts)", expanded=False):
+                    # Display tweets in the expander
+                    for i, tweet in enumerate(paper["tweets"][:3]):  # Show max 3 tweets
+                        if tweet and isinstance(tweet, dict) and tweet.get("text", "").strip():
+                            author = tweet.get("author", "Unknown")
+                            username = tweet.get("username", "")
+                            text = tweet.get("text", "")
+                            like_count = tweet.get("like_count", 0)
+                            tweet_link = tweet.get("link", "")
+                            
+                            # Truncate long tweets for clean display
+                            if len(text) > 2500:
+                                text = text[:2500] + "..."
+                            
+                            # Clean tweet display with author and link
+                            author_display = f"**{author}**"
+                            if username:
+                                author_display += f" `@{username}`"
+                            
+                            if tweet_link:
+                                author_display += f" • [View Tweet]({tweet_link})"
+                            
+                            st.markdown(author_display)
+                            st.markdown(f"> {text}")
+                            
+                            # Show engagement if available
+                            if like_count > 0:
+                                st.markdown(f"*❤️ {like_count:,} likes*")
+                            
+                            if i < len(paper["tweets"][:3]) - 1:  # Add separator except for last tweet
+                                st.markdown("---")
+            
+            st.markdown('</div>', unsafe_allow_html=True)  # Close trending-card
 
-                if st.button(
-                    f"🐦",
-                    key=tweet_toggle_key,
-                    help=f"View {tweet_count} tweet(s) for this paper",
-                ):
-                    # Toggle tweet display - only one panel open at a time
-                    if current_active_key == tweet_toggle_key:
-                        # Close the currently open panel
-                        st.session_state["active_tweet_panel"] = None
-                    else:
-                        # Close any other panel and open this one
-                        st.session_state["active_tweet_panel"] = tweet_toggle_key
-                    st.rerun(scope="fragment")
 
-        # Display tweets if expanded
-        if (
-            show_tweets_toggle
-            and "tweets" in paper
-            and paper["tweets"]
-            and st.session_state.get("active_tweet_panel")
-            == f"show_tweets_{paper_code}_{extra_key}"
-        ):
-
-            st.markdown(
-                "<div style='margin-left: var(--space-base); margin-top: var(--space-sm);'>",
-                unsafe_allow_html=True,
-            )
-
-            # Limit to top 8 tweets by likes and ensure they're properly parsed
-            tweets_data = (
-                paper["tweets"][:8] if len(paper["tweets"]) > 8 else paper["tweets"]
-            )
-
-            for tweet in tweets_data:
-                display_individual_tweet(tweet, compact=True)
-
-            st.markdown("</div>", unsafe_allow_html=True)
 
     # Summary information
     if len(df) > n:
