@@ -13,6 +13,13 @@ import instructor
 
 import utils.db.logging_db as logging_db
 
+def safe_calculate_cost_by_tokens(num_tokens: int, model_name: str, cost_type: str):
+    """Return token cost or None when unavailable (e.g., new model without pricing)."""
+    try:
+        return calculate_cost_by_tokens(num_tokens, model_name, cost_type)
+    except Exception:
+        return None
+
 def format_vision_messages(
     images: List[str],  # base64 encoded images or URLs
     text: str,
@@ -62,8 +69,8 @@ def log_llm_usage(
     usage, llm_model: str, process_id: str = None, verbose: bool = False
 ) -> None:
     """Log LLM usage statistics and costs."""
-    prompt_cost = calculate_cost_by_tokens(usage.prompt_tokens, llm_model, "input")
-    completion_cost = calculate_cost_by_tokens(
+    prompt_cost = safe_calculate_cost_by_tokens(usage.prompt_tokens, llm_model, "input")
+    completion_cost = safe_calculate_cost_by_tokens(
         usage.completion_tokens, llm_model, "output"
     )
 
@@ -74,14 +81,12 @@ def log_llm_usage(
         hasattr(usage, "cache_creation_input_tokens")
         and usage.cache_creation_input_tokens
     ):
-        cache_creation_cost = (
-            calculate_cost_by_tokens(
-                usage.cache_creation_input_tokens, llm_model, "input"
-            )
-            * 2
+        _base_creation_cost = safe_calculate_cost_by_tokens(
+            usage.cache_creation_input_tokens, llm_model, "input"
         )
+        cache_creation_cost = _base_creation_cost * 2 if _base_creation_cost is not None else None
     if hasattr(usage, "cache_read_input_tokens") and usage.cache_read_input_tokens:
-        cache_read_cost = calculate_cost_by_tokens(
+        cache_read_cost = safe_calculate_cost_by_tokens(
             usage.cache_read_input_tokens, llm_model, "cached"
         )
 
