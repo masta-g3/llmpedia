@@ -28,7 +28,7 @@ def test_basic_query(user_question: str):
             max_agents=3,
             max_sources_per_agent=15,
             response_length=250,
-            llm_model="openai/gpt-4.1-nano",
+            llm_model="gpt-5-nano",
             progress_callback=progress_reporter,
             verbose=True
         )

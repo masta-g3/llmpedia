@@ -12,7 +12,7 @@ langchain-groq==0.1.4
 langchain-together==0.0.2.post1
 langchain-openai==0.1.8
 latex2mathml==3.5.0
-litellm==1.71.1
+litellm==1.75.0
 markdown2==2.5.2
 nltk==3.8.1
 numpy>=1.25.0
@@ -27,5 +27,5 @@ pgvector==0.2.5
 pydantic==2.9.1
 openai==1.76.0
 demjson3==3.0.6
-tokencost==0.1.24
+tokencost==0.1.25
 voyageai~=0.3.2

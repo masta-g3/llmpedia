@@ -155,7 +155,7 @@ def extract_reddit_codes(text: str):
     reddit_codes = []
     for subreddit, post_id in matches:
         reddit_codes.append(f"{subreddit}:{post_id}")
-    
+
     return list(set(reddit_codes))
 
 
@@ -164,10 +164,7 @@ def extract_all_citations(text: str):
     arxiv_codes = extract_arxiv_codes(text)
     reddit_codes = extract_reddit_codes(text)
 
-    return {
-        "arxiv_papers": arxiv_codes,
-        "reddit_posts": reddit_codes
-    }
+    return {"arxiv_papers": arxiv_codes, "reddit_posts": reddit_codes}
 
 
 def get_img_link_for_blob(text_blob: str):
@@ -306,7 +303,7 @@ query_config_json = """
 query_config = json.loads(query_config_json)
 
 
-def interrogate_paper(question: str, arxiv_code: str, model="gpt-4o") -> str:
+def interrogate_paper(question: str, arxiv_code: str, model="gpt-5") -> str:
     """Ask a question about a paper using full markdown content with fallback to extended notes."""
     ## Try to get full paper markdown content first (preferred)
     context, markdown_success = get_paper_markdown(arxiv_code)
@@ -325,7 +322,7 @@ def interrogate_paper(question: str, arxiv_code: str, model="gpt-4o") -> str:
         user_message=user_message,
         model=None,
         llm_model=model,
-        temperature=0.3,
+        temperature=1,
         process_id="paper_qna",
     )
     response = response.replace("<response>", "").replace("</response>", "")
@@ -333,7 +330,7 @@ def interrogate_paper(question: str, arxiv_code: str, model="gpt-4o") -> str:
 
 
 def decide_query_action(
-    user_question: str, llm_model: str = "gpt-4o-mini"
+    user_question: str, llm_model: str = "gpt-5-nano"
 ) -> po.QueryDecision:
     """Decide the query action based on the user question."""
     system_message = "Please analyze the following user query and answer the question."
@@ -354,7 +351,7 @@ def generate_query_object(user_question: str, llm_model: str):
         ps.create_query_user_prompt(user_question),
         po.SearchCriteria,
         llm_model=llm_model,
-        temperature=0.5,
+        temperature=1,
         process_id="generate_query_object",
     )
     return query_obj
@@ -377,7 +374,7 @@ def decide_deep_search_step(
         user_message,
         po.NextSearchStepDecision,
         llm_model=llm_model,
-        temperature=0.3,  # Lower temp for more deterministic decision
+        temperature=1,
         process_id="decide_deep_search_step",
     )
     return response
@@ -402,7 +399,7 @@ def analyze_and_update_scratchpad(
         user_message,
         po.ScratchpadAnalysisResult,
         llm_model=llm_model,
-        temperature=0.5,
+        temperature=1,
         process_id="analyze_scratchpad",
         thinking={"type": "enabled", "budget_tokens": 2048},
     )
@@ -410,8 +407,12 @@ def analyze_and_update_scratchpad(
 
 
 def rerank_documents_new(
-    user_question: str, documents: list, llm_model="gpt-4o", temperature=0.2,
-    workflow_id: Optional[str] = None, step_metadata: Optional[dict] = None
+    user_question: str,
+    documents: list,
+    llm_model="gpt-5",
+    temperature=1,
+    workflow_id: Optional[str] = None,
+    step_metadata: Optional[dict] = None,
 ) -> po.RerankedDocuments:
     system_message = "You are an expert system that can identify and select relevant arxiv papers that can be used to answer a user query."
     rerank_msg = ps.create_rerank_user_prompt(user_question, documents)
@@ -448,7 +449,7 @@ def resolve_query(
         user_message=user_message,
         model=po.ResolveQuery,
         llm_model=llm_model,
-        temperature=0.8,
+        temperature=1,
         process_id="resolve_query",
     )
     return response
@@ -475,7 +476,7 @@ def resolve_from_scratchpad(
         user_message=user_message,
         model=po.ResolveScratchpadResponse,  # Use the new simple model
         llm_model=llm_model,
-        temperature=0.7,  # Balance creativity and factuality for synthesis
+        temperature=1,
         process_id="resolve_from_scratchpad",
     )
 
@@ -490,7 +491,7 @@ def resolve_query_other(user_question: str) -> str:
         system_message,
         user_message,
         None,
-        llm_model="gpt-4o-mini",
+        llm_model="gpt-5-nano",
         process_id="resolve_query_other",
     )
     return response
@@ -538,31 +539,31 @@ def get_similar_docs(
 ) -> Tuple[List[str], List[str], List[str]]:
     """Get most similar documents using lazy loading."""
     init_paper_details_cache()
-    similar_docs_data = load_single_paper_detail(arxiv_code, 'similar_docs')
-    
+    similar_docs_data = load_single_paper_detail(arxiv_code, "similar_docs")
+
     if similar_docs_data is None:
         return [], [], []
-    
+
     ## Extract similar_docs from pandas Series or dict
-    if hasattr(similar_docs_data, 'similar_docs'):
+    if hasattr(similar_docs_data, "similar_docs"):
         similar_docs = similar_docs_data.similar_docs
     elif isinstance(similar_docs_data, dict):
-        similar_docs = similar_docs_data.get('similar_docs', [])
+        similar_docs = similar_docs_data.get("similar_docs", [])
     else:
         similar_docs = []
-    
+
     ## Ensure it's a list (database function already processes it)
     if not isinstance(similar_docs, list):
         similar_docs = []
-    
+
     similar_docs = [d.strip() for d in similar_docs if d.strip() in df.index]
-    
+
     if len(similar_docs) > n:
         similar_docs = np.random.choice(similar_docs, n, replace=False).tolist()
-    
+
     similar_titles = [df.loc[doc]["title"] for doc in similar_docs]
     publish_dates = [df.loc[doc]["published"] for doc in similar_docs]
-    
+
     return similar_docs, similar_titles, publish_dates
 
 
@@ -605,7 +606,7 @@ def get_paper_markdown(arxiv_code: str) -> Tuple[str, bool]:
 def query_llmpedia_new(
     user_question: str,
     response_length: int = 4000,
-    llm_model: str = "openai/gpt-4.1-mini",
+    llm_model: str = "gpt-5-nano",
     max_sources: int = 15,
     max_agents: int = 4,
     debug: bool = False,
@@ -1055,9 +1056,11 @@ def enhance_documents_with_reddit(documents: List[Document]) -> List[Document]:
 ## LAZY LOADING & CACHING ##
 ############################
 
+
 def init_paper_details_cache():
     """Initialize paper details cache in session state."""
     import streamlit as st
+
     if "paper_details_cache" not in st.session_state:
         st.session_state.paper_details_cache = {}
         st.session_state.cache_access_order = []
@@ -1067,6 +1070,7 @@ def init_paper_details_cache():
 def cleanup_cache_if_needed():
     """Remove oldest entries when cache gets too large."""
     import streamlit as st
+
     while len(st.session_state.cache_access_order) > st.session_state.cache_max_size:
         oldest_key = st.session_state.cache_access_order.pop(0)
         del st.session_state.paper_details_cache[oldest_key]
@@ -1075,19 +1079,19 @@ def cleanup_cache_if_needed():
 def load_single_paper_detail(arxiv_code: str, detail_type: str):
     """Load specific detail type for one paper."""
     detail_loaders = {
-        'summaries': lambda: db.load_summaries(arxiv_code=arxiv_code),
-        'recursive_summary': lambda: db.load_recursive_summaries(arxiv_code=arxiv_code),
-        'bullet_list': lambda: db.load_bullet_list_summaries(arxiv_code=arxiv_code),
-        'markdown_summary': lambda: db.load_summary_markdown(arxiv_code=arxiv_code),
-        'tweets': lambda: db.load_tweet_insights(arxiv_code=arxiv_code),
-        'similar_docs': lambda: db.load_similar_documents(arxiv_code=arxiv_code)
+        "summaries": lambda: db.load_summaries(arxiv_code=arxiv_code),
+        "recursive_summary": lambda: db.load_recursive_summaries(arxiv_code=arxiv_code),
+        "bullet_list": lambda: db.load_bullet_list_summaries(arxiv_code=arxiv_code),
+        "markdown_summary": lambda: db.load_summary_markdown(arxiv_code=arxiv_code),
+        "tweets": lambda: db.load_tweet_insights(arxiv_code=arxiv_code),
+        "similar_docs": lambda: db.load_similar_documents(arxiv_code=arxiv_code),
     }
-    
+
     try:
         df = detail_loaders[detail_type]()
         if df.empty:
             return None
-        
+
         ## Get the row data
         if len(df) == 1:
             return df.iloc[0]
@@ -1103,27 +1107,30 @@ def load_single_paper_detail(arxiv_code: str, detail_type: str):
 def hydrate_all_paper_details(arxiv_code: str):
     """Load and cache all detail components for a paper."""
     import streamlit as st
-    
+
     init_paper_details_cache()
-    
+
     paper_cache_key = f"{arxiv_code}_hydrated"
     if paper_cache_key in st.session_state.paper_details_cache:
         st.session_state.cache_access_order.remove(paper_cache_key)
         st.session_state.cache_access_order.append(paper_cache_key)
         return st.session_state.paper_details_cache[paper_cache_key]
-    
+
     try:
         import time
+
         start_time = time.time()
         df = db.load_paper_details(arxiv_code)
         end_time = time.time()
-        print(f"load_paper_details({arxiv_code}) took {end_time - start_time:.3f} seconds")
+        print(
+            f"load_paper_details({arxiv_code}) took {end_time - start_time:.3f} seconds"
+        )
         paper_details = df.iloc[0].to_dict() if not df.empty else {}
     except Exception:
         paper_details = {}
-    
+
     st.session_state.paper_details_cache[paper_cache_key] = paper_details
     st.session_state.cache_access_order.append(paper_cache_key)
     cleanup_cache_if_needed()
-    
+
     return paper_details

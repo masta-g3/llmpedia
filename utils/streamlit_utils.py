@@ -397,7 +397,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         if (send_clicked or auto_send) and paper_question.strip():
             with st.spinner("🤖 GPT Maestro is analyzing..."):
                 response = au.interrogate_paper(
-                    paper_question, paper_code, model="gpt-4.1-mini"
+                    paper_question, paper_code, model="gpt-5-mini"
                 )
                 logging_db.log_qna_db(f"[{paper_code}] ::: {paper_question}", response)
                 st.chat_message("assistant").write(response)
@@ -1804,7 +1804,7 @@ def render_research_settings_panel() -> dict:
         with settings_cols[3]:
             llm_model = st.selectbox(
                 "LLM Model",
-                options=["gpt-4.1-nano", "gpt-4.1-mini", "gpt-4.1"],
+                options=["gpt-5-nano", "gpt-5-mini", "gpt-5"],
                 index=1,
                 help="Model to use for research analysis and synthesis.",
             )

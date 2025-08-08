@@ -155,8 +155,8 @@ def run_instructor_query(
     system_message: Optional[str] = None,
     user_message: Optional[str] = None,
     model: Optional[Type[BaseModel]] = None,
-    llm_model: str = "gpt-4",
-    temperature: float = 0.5,
+    llm_model: str = "gpt-5",
+    temperature: float = 1,
     process_id: str = None,
     messages: Optional[List[Dict]] = None,
     verbose: bool = False,
@@ -215,9 +215,11 @@ def run_instructor_query(
                 usage = completion_obj.usage
             break
         except Exception as e:
+            import traceback
             print(f"\nError on attempt {attempt + 1}/{max_retries}:")
             print(f"Error type: {type(e).__name__}")
             print(f"Error message: {str(e)}")
+            print(traceback.format_exc())
 
             if attempt < max_retries - 1:
                 delay = retry_delays[attempt + 1]
@@ -251,7 +253,7 @@ def run_instructor_query(
 
 
 def add_cache_control(
-    messages: List[Dict], cache_message_index: int = 0, llm_model: str = "gpt-4"
+    messages: List[Dict], cache_message_index: int = 0, llm_model: str = "gpt-5"
 ) -> List[Dict]:
     """Add cache control to messages for prompt caching support."""
     # Check if model supports caching (Claude models only)
