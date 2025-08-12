@@ -112,7 +112,7 @@ def combine_input_data():
     papers_df["url"] = papers_df["arxiv_code"].map(
         lambda l: f"https://arxiv.org/abs/{l}"
     )
-    papers_df.sort_values("published", ascending=False, inplace=True)
+    papers_df = papers_df.sort_values("published", ascending=False)
     return papers_df
 
 
@@ -502,19 +502,16 @@ def main():
         st.session_state.visit_logged = False
 
     st.markdown(
-        """<div class="pixel-font" style="margin-bottom: -0.5em;">LLMpedia</div>
+        """<div class="pixel-font heading-display" style="margin-bottom: -0.5em;">LLMpedia</div>
     """,
         unsafe_allow_html=True,
     )
     st.markdown(
-        "##### The Illustrated Large Language Model Encyclopedia"
-        # help="Welcome to LLMpedia, your curated guide to Large Language Model research, brought to you by GPT Maestro. "
-        # "Our pixel art illustrations and structured summaries make complex research accessible. "
-        # "Have questions or interested in LLM research? Chat with the Maestro or follow us [@GPTMaestro](https://twitter.com/GPTMaestro) for the latest updates.\n\n"
-        # "*Buona lettura!*",
+        """<h5 class="heading-geometric text-precise" style="margin-top: 0.5em; margin-bottom: 0.5em; color: var(--text-color, #666);">The Illustrated Large Language Model Encyclopedia</h5>""",
+        unsafe_allow_html=True,
     )
     st.markdown(
-        """<div style="font-size: 0.85em; opacity: 0.7; margin-top: 0.5em; margin-bottom: 0.5em;">
+        """<div class="text-precise" style="font-size: 0.85em; opacity: 0.7; margin-top: 0.5em; margin-bottom: 0.5em;">
         💡 <em>Use filters sidebar (←) to search papers, adjust year, or switch between artwork/page views</em>
         </div>""",
         unsafe_allow_html=True,
@@ -643,20 +640,28 @@ def main():
             active_users_count = get_active_users_count()
             st.metric(label="👥 Active Users", value=f"{active_users_count:,d}")
 
-        st.divider()
-        # Deep Research promotion section - moved to top for prominence
-        header_html = """
-        <div class="trending-panel-header">
+        # st.markdown('<div class="geometric-divider"></div>', unsafe_allow_html=True)
+        
+        # Enhanced Deep Research portal
+        research_portal_html = """
+        <div class="research-portal">
             <div class="trending-panel-title">
                 🔬 Ask the GPT Maestro
             </div>
             <div class="trending-panel-subtitle">
-                Try our AI-powered multi-agent research for papers and LLM topics with cited sources.
+                AI-powered multi-agent research for papers and LLM topics with cited sources.
             </div>
+            <!--
+            <div class="research-suggestions">
+                <span class="suggestion-chip" onclick="document.querySelector('[data-testid=&quot;stTextInput&quot;] input').value='Why do LLMs sometimes exhibit ADHD-like symptoms?'; document.querySelector('[data-testid=&quot;stTextInput&quot;] input').dispatchEvent(new Event('input', {bubbles: true}));">ADHD symptoms in LLMs</span>
+                <span class="suggestion-chip" onclick="document.querySelector('[data-testid=&quot;stTextInput&quot;] input').value='How do transformer attention patterns relate to human cognition?'; document.querySelector('[data-testid=&quot;stTextInput&quot;] input').dispatchEvent(new Event('input', {bubbles: true}));">Attention & cognition</span>
+                <span class="suggestion-chip" onclick="document.querySelector('[data-testid=&quot;stTextInput&quot;] input').value='What are the latest advances in multimodal reasoning?'; document.querySelector('[data-testid=&quot;stTextInput&quot;] input').dispatchEvent(new Event('input', {bubbles: true}));">Multimodal reasoning</span>
+                <span class="suggestion-chip" onclick="document.querySelector('[data-testid=&quot;stTextInput&quot;] input').value='How effective are constitutional AI approaches?'; document.querySelector('[data-testid=&quot;stTextInput&quot;] input').dispatchEvent(new Event('input', {bubbles: true}));">Constitutional AI</span>
+            </div>
+            -->
         </div>
         """
-        st.markdown(header_html, unsafe_allow_html=True)
-        
+        st.markdown(research_portal_html, unsafe_allow_html=True)
 
         search_cols = st.columns((6, 1))
         with search_cols[0]:
@@ -666,33 +671,38 @@ def main():
                 placeholder="E.g., Why do LLMs sometimes exhibit ADHD like symptoms?",
             )
         with search_cols[1]:
-            st.write(" ") # Add some vertical spacing
-            st.write(" ") # Add some vertical spacing
+            st.write(" ")
+            st.write(" ")
             if st.button(
                 "Run Deep Research", key="explore_deep_research_news_promo", use_container_width=True
             ):
                 query_to_pass = st.session_state.get("news_tab_shared_query_input", "")
-                if query_to_pass:  # Only pass if there's actual text
+                if query_to_pass:
                     st.session_state.query_to_pass_to_chat = query_to_pass
-                    st.session_state.auto_execute_research = True  # Auto-trigger research
-                su.click_tab(2)  # Navigate to the Deep Research tab
+                    st.session_state.auto_execute_research = True
+                su.click_tab(2)
 
-        st.divider()
-        row2_cols = st.columns([4, 0.1, 2])
-
-        # Panel 2.1: Top Cited / Trending Papers (Left)
-        with row2_cols[0]:
-            # Make sure papers_df is available here
-            # If papers_df can be None or empty, handle appropriately before calling
-            if full_papers_df is not None and not full_papers_df.empty:
-                display_top_cited_trending_panel(full_papers_df)
-            else:
-                st.info("Paper data is not available for this panel.")
-
-        # Panel 2.2: X.com/Reddit & Featured Paper (Right)
-        with row2_cols[2]:
-            @st.fragment
-            def discussions_toggle_panel():
+        # st.markdown('<div class="geometric-divider"></div>', unsafe_allow_html=True)
+        
+        # Enhanced content grid with geometric separator
+        st.markdown('<div class="content-grid">', unsafe_allow_html=True)
+        
+        # Main content panel (left)
+        st.markdown('<div class="content-panel content-panel-main">', unsafe_allow_html=True)
+        if full_papers_df is not None and not full_papers_df.empty:
+            display_top_cited_trending_panel(full_papers_df)
+        else:
+            st.info("Paper data is not available for this panel.")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Geometric separator
+        # st.markdown('<div class="content-grid-separator"></div>', unsafe_allow_html=True)
+        
+        # Sidebar content panel (right)  
+        st.markdown('<div class="content-panel content-panel-sidebar">', unsafe_allow_html=True)
+        
+        @st.fragment
+        def discussions_toggle_panel():
                 """Displays discussions toggle panel similar to trending papers toggle."""
                 current_discussions_toggle = st.session_state.get("toggle_discussions_platform", True)
                 
@@ -744,13 +754,17 @@ def main():
                     else:
                         st.info("No recent Reddit discussions found.")
 
-            discussions_toggle_panel()
-            st.divider()
+        discussions_toggle_panel()
+        st.markdown('<div class="geometric-divider"></div>', unsafe_allow_html=True)
 
-            highlight_paper = get_featured_paper(full_papers_df)
-            su.create_featured_paper_card(highlight_paper)
+        highlight_paper = get_featured_paper(full_papers_df)
+        su.create_featured_paper_card(highlight_paper)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Close content grid
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        st.divider()
+        st.markdown('<div class="geometric-divider"></div>', unsafe_allow_html=True)
         row3_cols = st.columns([1, 1])
 
         # Column 1: Random Interesting Fact
@@ -1242,10 +1256,10 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
+    # try:
         main()
-    except Exception as e:
-        logging_db.log_error_db(e)
-        st.error(
-            "Something went wrong. Please refresh the app and try again, we will look into it."
-        )
+    # except Exception as e:
+    #     logging_db.log_error_db(e)
+    #     st.error(
+    #         "Something went wrong. Please refresh the app and try again, we will look into it."
+    #     )

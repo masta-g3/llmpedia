@@ -182,26 +182,42 @@ def get_base_component_styles():
             font-size: var(--font-size-sm);
         }
         
-        .pixel-font {
+        .heading-display {
             font-family: var(--font-family-display);
             font-size: var(--font-size-3xl);
-            margin-bottom: var(--space-base);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            margin-bottom: var(--space-lg);
+            text-rendering: optimizeLegibility;
+        }
+        
+        .heading-geometric {
+            font-family: var(--font-family-display);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            line-height: 1.2;
+        }
+        
+        .text-monospace {
+            font-family: var(--font-family-mono);
+            font-weight: 500;
+            letter-spacing: -0.01em;
+        }
+        
+        .text-precise {
+            line-height: 1.4;
+            letter-spacing: 0.01em;
         }
         
         /* =============================================================================
            LAYOUT UTILITIES
            ============================================================================= */
         
-        .container-centered {
-            display: flex;
-            justify-content: center;
-            margin-bottom: var(--space-base);
-        }
-        
         .centered {
             display: flex;
             justify-content: center;
-            margin-bottom: var(--space-sm);
+            margin-bottom: var(--space-base);
         }
         
         .flex-between {
@@ -220,6 +236,112 @@ def get_base_component_styles():
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: var(--space-base);
+        }
+        
+        /* Enhanced Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1px 1fr;
+            gap: var(--space-xl);
+            align-items: start;
+            margin: var(--space-xl) 0;
+        }
+        
+        .content-grid-separator {
+            width: 1px;
+            background: linear-gradient(180deg, transparent 0%, rgba(179, 27, 27, 0.1) 20%, rgba(179, 27, 27, 0.2) 50%, rgba(179, 27, 27, 0.1) 80%, transparent 100%);
+            min-height: 200px;
+            justify-self: center;
+        }
+        
+        .content-panel {
+            position: relative;
+        }
+        
+        .content-panel-main {
+            padding-right: var(--space-lg);
+        }
+        
+        .content-panel-sidebar {
+            padding-left: var(--space-lg);
+        }
+        
+        /* =============================================================================
+           MOBILE LAYOUT & UTILITIES (768px and below)
+           ============================================================================= */
+        
+        @media (max-width: 768px) {
+            /* Layout grid system */
+            .content-grid {
+                grid-template-columns: 1fr;
+                gap: var(--space-lg);
+                margin: var(--space-lg) 0;
+            }
+            
+            .content-grid-separator {
+                display: none;
+            }
+            
+            .content-panel-main,
+            .content-panel-sidebar {
+                padding: 0;
+            }
+            
+            /* Mobile research portal */
+            .research-portal {
+                padding: var(--space-lg);
+                margin: var(--space-base) 0;
+            }
+            
+            .research-suggestions {
+                flex-direction: column;
+                gap: var(--space-xs);
+            }
+            
+            .suggestion-chip {
+                text-align: center;
+                padding: var(--space-sm) var(--space-base);
+                font-size: var(--font-size-base);
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            /* Mobile discovery elements */
+            .discovery-actions {
+                flex-direction: column;
+                gap: var(--space-xs);
+                opacity: 1;
+            }
+            
+            .action-btn {
+                padding: var(--space-sm) var(--space-base);
+                min-height: 44px;
+                justify-content: center;
+                font-size: var(--font-size-sm);
+            }
+            
+            /* Mobile fact cards */
+            .fact-card {
+                padding: var(--space-sm);
+                margin-bottom: var(--space-sm);
+            }
+            
+            /* Base component mobile styles */
+            .card-base {
+                padding: var(--space-sm);
+                margin-bottom: var(--space-sm);
+            }
+            
+            .grid-auto-fit {
+                grid-template-columns: 1fr;
+                gap: var(--space-sm);
+            }
+            
+            .metric-enhanced {
+                padding: var(--space-sm);
+            }
         }
         
         /* =============================================================================
@@ -261,21 +383,6 @@ def get_base_component_styles():
            RESPONSIVE BREAKPOINTS
            ============================================================================= */
         
-        @media (max-width: 768px) {
-            .card-base {
-                padding: var(--space-sm);
-                margin-bottom: var(--space-sm);
-            }
-            
-            .grid-auto-fit {
-                grid-template-columns: 1fr;
-                gap: var(--space-sm);
-            }
-            
-            .metric-enhanced {
-                padding: var(--space-sm);
-            }
-        }
         
         /* =============================================================================
            DARK MODE ADAPTATIONS - Subtle and Elegant
@@ -508,31 +615,6 @@ def generate_table_styles():
 # UTILITY FUNCTIONS
 # =============================================================================
 
-def generate_metric_badge_style(metric_type: str = "default"):
-    """Generate CSS for metric badges with different styles."""
-    color_map = {
-        "citations": "var(--arxiv-red)",
-        "trending": "#28a745",
-        "likes": "#1da1f2",
-        "default": "var(--arxiv-red)"
-    }
-    
-    color = color_map.get(metric_type, color_map["default"])
-    
-    return f"""
-        .metric-badge-{metric_type} {{
-            display: inline-flex;
-            align-items: center;
-            gap: var(--space-xs);
-            background: rgba({color.replace('var(--arxiv-red)', '179, 27, 27')}, 0.1);
-            padding: var(--space-xs) var(--space-sm);
-            border-radius: var(--radius-full);
-            font-size: var(--font-size-sm);
-            font-weight: 600;
-            color: {color};
-            white-space: nowrap;
-        }}
-    """
 
 def apply_design_system():
     """Apply the complete design system to the Streamlit app."""
@@ -562,6 +644,7 @@ def apply_complete_app_styles():
             {get_trending_panel_styles()}
             {get_sidebar_footer_styles()}
             {get_markdown_viewer_styles()}
+            {get_geometric_dividers()}
             {get_streamlit_overrides()}
         </style>
         
@@ -613,6 +696,7 @@ def get_trending_panel_styles():
         }
         
         .trending-panel-title {
+            font-family: var(--font-family-display);
             font-size: var(--font-size-xl);
             font-weight: 600;
             color: var(--text-color, #333);
@@ -620,13 +704,17 @@ def get_trending_panel_styles():
             display: flex;
             align-items: center;
             gap: var(--space-sm);
+            letter-spacing: -0.01em;
+            line-height: 1.2;
         }
         
         .trending-panel-subtitle {
             font-size: var(--font-size-sm);
             color: var(--text-color, #666);
             margin: 0;
-            opacity: 0.8;
+            opacity: 0.75;
+            line-height: 1.4;
+            letter-spacing: 0.01em;
         }
         
         @media (prefers-color-scheme: dark) {
@@ -730,6 +818,203 @@ def get_markdown_viewer_styles():
         }
     """
 
+def get_geometric_dividers():
+    """Generate CSS for geometric section dividers with arXiv red gradients."""
+    return """
+        /* Geometric Dividers */
+        .geometric-divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, var(--arxiv-red) 20%, var(--arxiv-red-light) 50%, var(--arxiv-red) 80%, transparent 100%);
+            margin: var(--space-xl) 0;
+            opacity: 0.6;
+            transition: opacity 0.2s linear;
+        }
+        
+        .geometric-divider:hover {
+            opacity: 0.8;
+        }
+        
+        .section-spacer {
+            margin: var(--space-2xl) 0;
+        }
+        
+        /* Enhanced section containers */
+        .main-section {
+            position: relative;
+            margin-bottom: var(--space-2xl);
+        }
+        
+        .main-section::after {
+            content: '';
+            position: absolute;
+            bottom: calc(-1 * var(--space-xl));
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(179, 27, 27, 0.1) 20%, rgba(179, 27, 27, 0.2) 50%, rgba(179, 27, 27, 0.1) 80%, transparent 100%);
+        }
+        
+        .main-section:last-child::after {
+            display: none;
+        }
+        
+        /* Enhanced Research Portal */
+        .research-portal {
+            background: linear-gradient(135deg, rgba(179, 27, 27, 0.02) 0%, rgba(179, 27, 27, 0.04) 100%);
+            border: 1px solid rgba(179, 27, 27, 0.08);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            margin: var(--space-lg) 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .research-portal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--arxiv-red) 0%, var(--arxiv-red-light) 50%, var(--arxiv-red) 100%);
+            opacity: 0.8;
+        }
+        
+        .research-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-sm);
+            margin: var(--space-base) 0;
+        }
+        
+        .suggestion-chip {
+            background: rgba(179, 27, 27, 0.08);
+            border: 1px solid rgba(179, 27, 27, 0.15);
+            border-radius: var(--radius-sm);
+            padding: var(--space-xs) var(--space-sm);
+            font-size: var(--font-size-sm);
+            color: var(--arxiv-red);
+            cursor: pointer;
+            transition: all 0.2s linear;
+            font-family: var(--font-family-base);
+            font-weight: 500;
+        }
+        
+        .suggestion-chip:hover {
+            background: rgba(179, 27, 27, 0.12);
+            border-color: rgba(179, 27, 27, 0.25);
+            transform: translateY(-1px);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .geometric-divider {
+                background: linear-gradient(90deg, transparent 0%, var(--arxiv-red) 20%, var(--arxiv-red-light) 50%, var(--arxiv-red) 80%, transparent 100%);
+                opacity: 0.5;
+            }
+            
+            .main-section::after {
+                background: linear-gradient(90deg, transparent 0%, rgba(179, 27, 27, 0.15) 20%, rgba(179, 27, 27, 0.3) 50%, rgba(179, 27, 27, 0.15) 80%, transparent 100%);
+            }
+            
+            .research-portal {
+                background: linear-gradient(135deg, rgba(179, 27, 27, 0.04) 0%, rgba(179, 27, 27, 0.08) 100%);
+                border-color: rgba(179, 27, 27, 0.15);
+            }
+            
+            .suggestion-chip {
+                background: rgba(179, 27, 27, 0.12);
+                border-color: rgba(179, 27, 27, 0.2);
+            }
+            
+            .suggestion-chip:hover {
+                background: rgba(179, 27, 27, 0.18);
+                border-color: rgba(179, 27, 27, 0.3);
+            }
+        }
+        
+        /* Interactive Discovery Elements */
+        .discovery-card {
+            position: relative;
+            transition: all 0.2s linear;
+        }
+        
+        .discovery-card:hover {
+            transform: translateY(-1px);
+        }
+        
+        .discovery-actions {
+            display: flex;
+            gap: var(--space-sm);
+            margin-top: var(--space-base);
+            opacity: 0;
+            transition: opacity 0.2s linear;
+        }
+        
+        .discovery-card:hover .discovery-actions {
+            opacity: 1;
+        }
+        
+        .action-btn {
+            background: rgba(179, 27, 27, 0.08);
+            border: 1px solid rgba(179, 27, 27, 0.15);
+            border-radius: var(--radius-sm);
+            padding: var(--space-xs) var(--space-sm);
+            font-size: var(--font-size-xs);
+            color: var(--arxiv-red);
+            cursor: pointer;
+            transition: all 0.2s linear;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+            font-weight: 500;
+        }
+        
+        .action-btn:hover {
+            background: rgba(179, 27, 27, 0.12);
+            border-color: rgba(179, 27, 27, 0.25);
+            transform: translateY(-1px);
+        }
+        
+        .preview-tooltip {
+            position: absolute;
+            top: -10px;
+            left: 0;
+            right: 0;
+            background: var(--surface-light);
+            border: 1px solid rgba(179, 27, 27, 0.15);
+            border-radius: var(--radius-base);
+            padding: var(--space-sm);
+            font-size: var(--font-size-sm);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s linear;
+            z-index: 1000;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .discovery-card:hover .preview-tooltip {
+            opacity: 1;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .action-btn {
+                background: rgba(179, 27, 27, 0.12);
+                border-color: rgba(179, 27, 27, 0.2);
+            }
+            
+            .action-btn:hover {
+                background: rgba(179, 27, 27, 0.18);
+                border-color: rgba(179, 27, 27, 0.3);
+            }
+            
+            .preview-tooltip {
+                background: var(--surface-dark);
+                border-color: rgba(179, 27, 27, 0.2);
+            }
+        }
+    """
+
 def get_streamlit_overrides():
     """Generate CSS overrides for Streamlit default components."""
     return """
@@ -768,13 +1053,13 @@ def get_streamlit_overrides():
             color: white !important;
         }
         
-        /* Tertiary buttons - plain text without border or background */
+        /* Tertiary buttons - subtle border for better clickability affordance */
         .stButton button[kind="tertiary"],
         .stButton button[data-testid="baseButton-tertiary"],
         .stButton button[class*="tertiary"] {
             background: transparent !important;
             color: var(--arxiv-red) !important;
-            border: none !important;
+            border: 1px solid rgba(179, 27, 27, 0.12) !important;
             border-radius: var(--radius-base) !important;
             transition: all var(--transition-fast) !important;
             padding: var(--space-sm) var(--space-base) !important;
@@ -785,19 +1070,10 @@ def get_streamlit_overrides():
         .stButton button[data-testid="baseButton-tertiary"]:hover,
         .stButton button[class*="tertiary"]:hover {
             background: rgba(179, 27, 27, 0.08) !important;
+            border-color: rgba(179, 27, 27, 0.25) !important;
             color: var(--arxiv-red-light) !important;
             text-decoration: underline;
             box-shadow: none !important;
-        }
-        
-        /* Fallback: Override any remaining button styling for tertiary */
-        .stButton button[kind="tertiary"],
-        .stButton button[data-testid="baseButton-tertiary"] {
-            background-color: transparent !important;
-            background-image: none !important;
-            border-width: 0 !important;
-            border-style: none !important;
-            outline: none !important;
         }
 
         /* Streamlit Link Overrides */
@@ -828,22 +1104,22 @@ def get_streamlit_overrides():
             border-bottom-color: var(--arxiv-red) !important;
         }
 
-        /* Streamlit Metric Overrides - Subtle and Elegant */
+        /* Streamlit Metric Overrides - Pixel-Art Precision */
         .stMetric {
             background: linear-gradient(180deg, var(--surface-light) 0%, var(--surface-light-alt) 100%);
-            border: 1px solid rgba(179, 27, 27, 0.06);
-            border-radius: var(--radius-base);
+            border: 1px solid rgba(179, 27, 27, 0.08);
+            border-radius: var(--radius-sm);
             padding: var(--space-base);
-            transition: all var(--transition-fast);
+            transition: all 0.2s linear;
             position: relative;
             overflow: hidden;
             box-shadow: var(--shadow-sm);
         }
         
         .stMetric:hover {
-            border-color: rgba(179, 27, 27, 0.08);
+            border-color: rgba(179, 27, 27, 0.15);
             box-shadow: var(--shadow-base);
-            transform: translateY(-1px);
+            transform: translateY(-2px);
         }
         
         .stMetric::before {
@@ -852,14 +1128,38 @@ def get_streamlit_overrides():
             bottom: 0;
             left: 0;
             right: 0;
-            height: 2px;
+            height: 3px;
             background: linear-gradient(90deg, var(--arxiv-red) 0%, var(--arxiv-red-light) 100%);
             opacity: 0;
-            transition: opacity var(--transition-fast);
+            transition: opacity 0.2s linear;
         }
         
         .stMetric:hover::before {
-            opacity: 0.5;
+            opacity: 0.7;
+        }
+        
+        /* Metric connecting lines - geometric precision */
+        .stMetric::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -1px;
+            width: 1px;
+            height: 60%;
+            background: rgba(179, 27, 27, 0.1);
+            transform: translateY(-50%);
+            transition: opacity 0.2s linear;
+        }
+        
+        .stMetric:last-child::after {
+            display: none;
+        }
+        
+        /* Enhanced metric value styling */
+        .stMetric [data-testid="metric-container"] > div:first-child {
+            font-family: var(--font-family-mono);
+            font-weight: 600;
+            letter-spacing: -0.02em;
         }
         
         @media (prefers-color-scheme: dark) {
@@ -870,140 +1170,46 @@ def get_streamlit_overrides():
             }
             
             .stMetric:hover {
-                border-color: rgba(179, 27, 27, 0.12);
+                border-color: rgba(179, 27, 27, 0.25);
                 box-shadow: var(--shadow-dark-base);
             }
             
             .stMetric:hover::before {
-                opacity: 0.3;
+                opacity: 0.5;
+            }
+            
+            .stMetric::after {
+                background: rgba(179, 27, 27, 0.2);
             }
         }
     """
 
-# =============================================================================
-# LEGACY FUNCTIONS (MAINTAINED FOR COMPATIBILITY)
-# =============================================================================
-
-def apply_arxiv_theme():
-    """Apply the arXiv-themed styling to the Streamlit app."""
-    st.markdown(f"""
-        <style>
-            {get_css_variables()}
-
-            /* Buttons */
-            .stButton button {{
-                background-color: var(--arxiv-red) !important;
-                color: white !important;
-                border: none !important;
-            }}
-
-            /* Links */
-            a {{
-                color: var(--arxiv-red) !important;
-                text-decoration: none;
-            }}
-            a:hover {{
-                color: var(--arxiv-red-light) !important;
-                text-decoration: underline;
-            }}
-
-            /* Sliders and progress bars */
-            .stSlider [aria-valuemax] {{
-                background-color: var(--arxiv-red) !important;
-            }}
-
-            .stProgress > div > div > div > div {{
-                background-color: var(--arxiv-red) !important;
-            }}
-
-            /* Tabs */
-            .stTabs [data-baseweb="tab-list"] button[role="tab"][aria-selected="true"] {{
-                color: var(--arxiv-red) !important;
-                border-bottom-color: var(--arxiv-red) !important;
-            }}
-        </style>
-
-        <script>
-            // Function to set background color based on theme
-            function setBackgroundColor() {{
-                const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                const containers = document.querySelectorAll('[data-testid="stAppViewContainer"], [data-testid="stSidebarContent"]');
-                containers.forEach(container => {{
-                    container.style.backgroundColor = isDark ? '#0e1117' : '#ffffff';
-                }});
-            }}
-
-            // Run on load
-            setBackgroundColor();
-
-            // Watch for theme changes
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setBackgroundColor);
-        </script>
-    """, unsafe_allow_html=True)
-
-def apply_custom_fonts():
-    """Apply custom font styling."""
-    st.markdown("""
-        <style>
-            @import 'https://fonts.googleapis.com/css2?family=Orbitron&display=swap';
-            .pixel-font {
-                font-family: var(--font-family-display);
-                font-size: var(--font-size-3xl);
-                margin-bottom: var(--space-base);
-            }
-        </style>
-    """, unsafe_allow_html=True)
-
-def apply_centered_style():
-    """Apply centered styling for elements."""
-    st.markdown("""
-        <style>
-            .centered {
-                display: flex;
-                justify-content: center;
-                margin-bottom: var(--space-base);
-            }
-        </style>
-    """, unsafe_allow_html=True)
 
 # =============================================================================
-# COMPONENT-SPECIFIC STYLE INJECTORS
+# COMPONENT-SPECIFIC STYLES
 # =============================================================================
-
-def inject_flip_card_css():
-    """Inject CSS for flip card components."""
-    st.markdown(f"""
-        <style>
-            {get_flip_card_styles()}
-        </style>
-    """, unsafe_allow_html=True)
-
-def inject_table_css():
-    """Inject CSS for table components."""
-    st.markdown(f"""
-        <style>
-            {generate_table_styles()}
-        </style>
-    """, unsafe_allow_html=True)
 
 def get_advanced_trending_card_styles():
     """Generate comprehensive CSS for trending card components."""
     return """
-        .trending-container {
-            padding: 0;
-            margin: 0;
+        /* Apply trending card styling to Streamlit containers */
+        .stContainer > div[data-testid="column"] {
+            position: relative;
         }
         
         .trending-card {
             background: linear-gradient(180deg, var(--surface-light) 0%, var(--surface-light-alt) 100%);
             border: 1px solid rgba(179, 27, 27, 0.08);
             border-radius: var(--radius-lg);
-            padding: var(--space-base);
-            margin-bottom: var(--space-base);
-            transition: all var(--transition-base);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-lg);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             position: relative;
             overflow: hidden;
-            box-shadow: var(--shadow-sm);
+            box-shadow: 
+                0 1px 3px rgba(0, 0, 0, 0.12),
+                0 1px 2px rgba(0, 0, 0, 0.24);
+            backdrop-filter: blur(10px);
         }
         
         /* Ensure Streamlit components inside trending cards inherit proper styling */
@@ -1017,35 +1223,20 @@ def get_advanced_trending_card_styles():
         
         /* Tighter spacing for card content */
         .trending-card .stColumns {
-            gap: var(--space-sm) !important;
+            gap: var(--space-base) !important;
         }
         
         .trending-card .stColumn {
             padding: 0 !important;
         }
         
-        /* Style expanders within trending cards to look clean and integrated */
-        .trending-card .stExpander {
-            margin-top: var(--space-base);
-            border: none;
-        }
-        
-        .trending-card .stExpander > details {
-            border: 1px solid rgba(179, 27, 27, 0.08);
-            border-radius: var(--radius-base);
-            background: rgba(179, 27, 27, 0.02);
-        }
-        
-        .trending-card .stExpander > details > summary {
-            padding: var(--space-sm);
-            font-weight: 500;
-            color: var(--text-color, #333);
-        }
-        
         .trending-card:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-base);
-            border-color: rgba(179, 27, 27, 0.12);
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 
+                0 14px 28px rgba(0, 0, 0, 0.25),
+                0 10px 10px rgba(0, 0, 0, 0.22),
+                0 0 0 1px rgba(179, 27, 27, 0.1);
+            border-color: rgba(179, 27, 27, 0.15);
         }
         
         .trending-card::before {
@@ -1061,8 +1252,11 @@ def get_advanced_trending_card_styles():
         }
         
         .trending-card:hover::before {
-            opacity: 0.6;
+            opacity: 1;
+            background: linear-gradient(90deg, var(--arxiv-red) 0%, var(--arxiv-red-light) 50%, var(--arxiv-red) 100%);
+            height: 3px;
         }
+        
         
         .trending-header {
             display: flex;
@@ -1073,23 +1267,48 @@ def get_advanced_trending_card_styles():
         
         .trending-image {
             flex-shrink: 0;
-            width: 80px;
-            height: 80px;
-            border-radius: var(--radius-base);
+            width: 90px;
+            height: 90px;
+            border-radius: var(--radius-lg);
             overflow: hidden;
             background: var(--secondary-background-color, #f0f0f0);
             position: relative;
+            box-shadow: 
+                0 4px 8px rgba(0, 0, 0, 0.12),
+                0 2px 4px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .trending-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 0%, rgba(179, 27, 27, 0.02) 100%);
+            z-index: 1;
+            pointer-events: none;
         }
         
         .trending-image img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform var(--transition-base);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            filter: brightness(0.95) contrast(1.05);
+        }
+        
+        .trending-card:hover .trending-image {
+            transform: scale(1.05) rotate(1deg);
+            box-shadow: 
+                0 8px 16px rgba(0, 0, 0, 0.2),
+                0 4px 8px rgba(179, 27, 27, 0.15);
         }
         
         .trending-card:hover .trending-image img {
-            transform: scale(1.02);
+            transform: scale(1.1);
+            filter: brightness(1.02) contrast(1.1) saturate(1.1);
         }
         
         .trending-content {
@@ -1098,11 +1317,13 @@ def get_advanced_trending_card_styles():
         }
         
         .trending-title {
-            font-size: var(--font-size-base);
+            font-family: var(--font-family-display);
+            font-size: var(--font-size-lg);
             font-weight: 600;
-            line-height: 1.3;
-            margin: 0 0 var(--space-xs) 0;
+            line-height: 1.25;
+            margin: 0 0 var(--space-sm) 0;
             color: var(--text-color, #333);
+            letter-spacing: -0.01em;
         }
         
         .trending-title a {
@@ -1116,13 +1337,78 @@ def get_advanced_trending_card_styles():
             text-decoration: underline;
         }
         
-        .trending-punchline {
-            font-size: var(--font-size-sm);
-            color: var(--text-color, #666);
-            line-height: 1.4;
-            margin: 0 0 var(--space-sm) 0;
-            font-style: italic;
+        
+        /* Card Content System */
+        .card-content {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+            position: relative;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-sm);
+            gap: var(--space-base);
+        }
+        
+        .badge-left,
+        .badge-right {
+            font-family: var(--font-family-mono);
+            font-size: var(--font-size-xs);
+            font-weight: 500;
+            color: var(--arxiv-red);
+            background: rgba(179, 27, 27, 0.04);
+            border: 1px solid rgba(179, 27, 27, 0.08);
+            border-radius: var(--radius-sm);
+            padding: calc(var(--space-xs) * 0.75) var(--space-sm);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+            transition: all var(--transition-fast);
+            letter-spacing: -0.01em;
+            position: relative;
+            overflow: hidden;
+            cursor: default;
+            user-select: none;
             opacity: 0.9;
+        }
+        
+        .badge-left::before,
+        .badge-right::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(179, 27, 27, 0.06) 50%, transparent 100%);
+            transition: left var(--transition-base);
+        }
+        
+        .badge-left:hover,
+        .badge-right:hover {
+            background: rgba(179, 27, 27, 0.06);
+            border-color: rgba(179, 27, 27, 0.12);
+            opacity: 1;
+            transform: translateY(-0.5px);
+        }
+        
+        .badge-left:hover::before,
+        .badge-right:hover::before {
+            left: 100%;
+        }
+        
+        .trending-punchline {
+            font-size: var(--font-size-base);
+            color: var(--text-color, #666);
+            line-height: 1.5;
+            margin: 0 0 var(--space-base) 0;
+            opacity: 0.85;
+            font-weight: 400;
+            letter-spacing: 0.01em;
         }
         
         .trending-metadata {
@@ -1135,24 +1421,47 @@ def get_advanced_trending_card_styles():
             flex-wrap: wrap;
         }
         
-        .trending-authors {
+        .authors {
+            flex: 1;
+            min-width: 0;
             font-size: var(--font-size-xs);
-            color: var(--text-color, #888);
+            color: var(--text-color, #666);
+            font-weight: 400;
+            opacity: 0.8;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            transition: opacity var(--transition-fast);
+        }
+        
+        .authors:hover {
+            opacity: 1;
+        }
+        
+        .trending-authors {
+            font-size: var(--font-size-sm);
+            color: var(--text-color, #777);
             flex: 1;
             min-width: 0;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            font-weight: 400;
         }
         
         .trending-metric {
             display: flex;
             align-items: center;
             gap: var(--space-xs);
-            font-size: var(--font-size-sm);
-            font-weight: 500;
-            color: var(--text-color, #666);
+            font-size: var(--font-size-base);
+            font-weight: 600;
+            color: var(--arxiv-red);
             white-space: nowrap;
+            font-family: var(--font-family-mono);
+            background: rgba(179, 27, 27, 0.06);
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-full);
+            border: 1px solid rgba(179, 27, 27, 0.1);
         }
         
         /* New cleaner metadata layout */
@@ -1166,9 +1475,11 @@ def get_advanced_trending_card_styles():
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: var(--font-size-xs);
+            font-size: var(--font-size-sm);
             color: var(--text-color, #666);
-            gap: var(--space-base);
+            gap: var(--space-lg);
+            padding-top: var(--space-sm);
+            border-top: 1px solid rgba(179, 27, 27, 0.06);
         }
         
         .authors-section {
@@ -1177,12 +1488,20 @@ def get_advanced_trending_card_styles():
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            font-weight: 400;
+            opacity: 0.8;
         }
         
         .metrics-section {
             flex-shrink: 0;
-            font-weight: 500;
-            opacity: 0.8;
+            font-weight: 600;
+            font-family: var(--font-family-mono);
+            color: var(--arxiv-red);
+            background: rgba(179, 27, 27, 0.08);
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-xs);
+            letter-spacing: -0.01em;
         }
         
         .trending-metric-icon {
@@ -1246,28 +1565,84 @@ def get_advanced_trending_card_styles():
             .trending-card {
                 background: linear-gradient(180deg, var(--surface-dark) 0%, var(--surface-dark-alt) 100%);
                 border-color: rgba(179, 27, 27, 0.15);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                box-shadow: 
+                    0 1px 3px rgba(0, 0, 0, 0.4),
+                    0 1px 2px rgba(0, 0, 0, 0.6);
+                backdrop-filter: blur(20px);
             }
             
             .trending-card:hover {
-                box-shadow: var(--shadow-dark-accent);
-                border-color: rgba(179, 27, 27, 0.15);
+                box-shadow: 
+                    0 14px 28px rgba(0, 0, 0, 0.4),
+                    0 10px 10px rgba(0, 0, 0, 0.3),
+                    0 0 0 1px rgba(179, 27, 27, 0.2);
+                border-color: rgba(179, 27, 27, 0.25);
             }
             
             .trending-card:hover::before {
-                opacity: 0.4;
+                opacity: 0.8;
             }
             
             .trending-image {
                 background: var(--secondary-background-color, #1a1c23);
+                box-shadow: 
+                    0 4px 8px rgba(0, 0, 0, 0.3),
+                    0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            
+            .trending-card:hover .trending-image {
+                box-shadow: 
+                    0 8px 16px rgba(0, 0, 0, 0.4),
+                    0 4px 8px rgba(179, 27, 27, 0.3);
             }
             
             .trending-title {
                 color: var(--text-color, #FAFAFA);
             }
             
+            
+            .badge-left,
+            .badge-right {
+                background: rgba(179, 27, 27, 0.08);
+                border-color: rgba(179, 27, 27, 0.15);
+                color: var(--arxiv-red-light);
+                opacity: 0.85;
+            }
+            
+            .badge-left:hover,
+            .badge-right:hover {
+                background: rgba(179, 27, 27, 0.12);
+                border-color: rgba(179, 27, 27, 0.2);
+                opacity: 1;
+            }
+            
+            .badge-left::before,
+            .badge-right::before {
+                background: linear-gradient(90deg, transparent 0%, rgba(179, 27, 27, 0.12) 50%, transparent 100%);
+            }
+            
             .trending-punchline {
                 color: var(--text-color, #CCCCCC);
+                opacity: 0.85;
+            }
+            
+            .trending-metadata {
+                border-top-color: rgba(179, 27, 27, 0.1);
+            }
+            
+            .authors {
+                color: var(--text-color, #AAAAAA);
+                opacity: 0.75;
+            }
+            
+            .authors:hover {
+                opacity: 0.95;
+            }
+            
+            
+            .trending-punchline {
+                color: var(--text-color, #CCCCCC);
+                opacity: 0.9;
             }
             
             .trending-authors {
@@ -1275,22 +1650,22 @@ def get_advanced_trending_card_styles():
             }
             
             .trending-metric {
-                background: rgba(179, 27, 27, 0.08);
+                background: rgba(179, 27, 27, 0.15);
+                border-color: rgba(179, 27, 27, 0.2);
                 color: var(--arxiv-red-light);
+            }
+            
+            .metrics-section {
+                background: rgba(179, 27, 27, 0.15);
+                color: var(--arxiv-red-light);
+            }
+            
+            .trending-authors-metrics {
+                border-top-color: rgba(179, 27, 27, 0.1);
             }
             
             .trending-summary {
                 color: var(--text-color, #AAAAAA);
-            }
-            
-            .stMetric {
-                background: linear-gradient(180deg, var(--surface-dark) 0%, var(--surface-dark-alt) 100%);
-                border-color: rgba(179, 27, 27, 0.08);
-            }
-            
-            .stMetric:hover {
-                border-color: rgba(179, 27, 27, 0.15);
-                box-shadow: 0 2px 8px rgba(179, 27, 27, 0.15);
             }
         }
         
@@ -1766,21 +2141,6 @@ def get_individual_tweet_card_styles():
         }
     """
 
-def inject_trending_card_css():
-    """Inject CSS for trending card components."""
-    st.markdown(f"""
-        <style>
-            {get_advanced_trending_card_styles()}
-        </style>
-    """, unsafe_allow_html=True)
-
-def inject_interesting_facts_css():
-    """Inject CSS for interesting facts components."""
-    st.markdown(f"""
-        <style>
-            {get_interesting_facts_styles()}
-        </style>
-    """, unsafe_allow_html=True)
 
 def get_featured_card_styles():
     """Generate CSS for featured paper card, aligning with trending design."""
@@ -1900,6 +2260,7 @@ def get_featured_card_styles():
         @media (max-width: 768px) {
             .featured-card {
                 max-width: 100%;
+                margin-bottom: var(--space-lg);
             }
 
             .featured-image {

@@ -697,8 +697,8 @@ def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
 
 @st.fragment
 def generate_citations_list(df: pd.DataFrame) -> None:
-    """Generate a formatted list of paper citations with rich styling."""
-    for _, paper in df.iterrows():
+    """Generate a formatted list of paper citations with clean Streamlit styling."""
+    for i, (_, paper) in enumerate(df.iterrows()):
         # Extract paper information
         title = paper["title"].replace("\n", "")
         authors = paper["authors"]
@@ -709,42 +709,35 @@ def generate_citations_list(df: pd.DataFrame) -> None:
         influential_count = int(paper.get("influential_citation_count", 0))
         punchline = paper.get("punchline", "")
 
-        # Build HTML components separately
-        star_badge = " ⭐️" if influential_count > 0 else ""
-        citation_text = f"citation{'s' if citation_count != 1 else ''}"
-        punchline_div = (
-            f'<div style="margin-top: 12px; font-style: italic; color: var(--text-color, #666);">{punchline}</div>'
-            if punchline
-            else ""
-        )
-
-        citation_html = f"""
-        <div style="margin: var(--space-xl) 0; padding: var(--space-xl); border-radius: var(--radius-base); border-left: 4px solid var(--arxiv-red);">
-            <div style="margin-bottom: var(--space-base);">
-                <span onclick="parent.postMessage({{cmd: 'streamlit:setComponentValue', args: {{value: '{paper_code}', dataType: 'str', key: 'arxiv_code'}}}}, '*')" style="color: var(--arxiv-red); text-decoration: none; font-size: var(--font-size-lg); font-weight: bold; cursor: pointer;">{title}</span>{star_badge}
-            </div>
-            <div style="color: var(--text-color, #666); font-size: var(--font-size-sm); margin-bottom: var(--space-sm);">
-                {authors}
-            </div>
-            <div style="display: flex; gap: var(--space-base); margin-top: var(--space-sm); font-size: var(--font-size-sm);">
-                <span style="background-color: rgba(179, 27, 27, 0.05); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm);">📅 {publish_date}</span>
-                <span style="background-color: rgba(179, 27, 27, 0.05); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm);">📊 {citation_count} {citation_text}</span>
-                <a href="{paper_url}" target="_blank" style="text-decoration: none;">
-                    <span style="background-color: rgba(179, 27, 27, 0.05); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm);">
-                        <span style="color: var(--arxiv-red);">📄</span> arXiv:{paper_code} <span style="font-size: var(--font-size-xs);">↗</span>
-                    </span>
-                </a>
-            </div>
-            {punchline_div}
-        </div>
-        """
-
-        st.markdown(citation_html, unsafe_allow_html=True)
-
-        # Hidden button to handle tab switching after state is set
-        if paper_code == st.session_state.arxiv_code:
+        # Title with click handler
+        if st.button(
+            title + (" ⭐️" if influential_count > 0 else ""),
+            key=f"citation_title_{paper_code}_{i}",
+            help=punchline if punchline else None,
+            use_container_width=True,
+        ):
+            st.session_state.arxiv_code = paper_code
             click_tab(3)
-            # st.session_state.pop("arxiv_code", None)  # Clear it after use
+        
+        # Authors
+        st.caption(authors)
+        
+        # Metadata row
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col1:
+            st.markdown(f"📅 {publish_date}")
+        with col2:
+            citation_text = f"citation{'s' if citation_count != 1 else ''}"
+            st.markdown(f"📊 {citation_count} {citation_text}")
+        with col3:
+            st.link_button(f"📄 arXiv:{paper_code}", paper_url)
+        
+        # Punchline if available
+        if punchline:
+            st.markdown(f"*{punchline}*")
+        
+        # Add subtle separator
+        st.markdown("---")
 
 
 @st.fragment
@@ -982,14 +975,14 @@ def generate_mini_paper_table(
         paper_code = paper["arxiv_code"]
         # title = format_title(paper)
         title = paper["title"].replace("\n", "").strip()
+        published = pd.to_datetime(paper["updated"]).strftime("%b %d, %Y")
         metric_value = int(paper.get(metric_col, 0))
         punchline = paper.get("punchline", "")
         authors = paper.get("authors", "")
         paper_url = paper.get("url", "")
 
-        # Truncate long author lists
-        if len(authors) > 60:
-            authors = authors[:60] + "..."
+        if len(authors) > 130:
+            authors = authors[:130] + "... "
 
         # Image URL with fallback
         if st.session_state.global_image_type == "first_page":
@@ -999,19 +992,22 @@ def generate_mini_paper_table(
         else:
             image_url = f"https://arxiv-art.s3.amazonaws.com/{paper_code}.png"
 
-        # Create the card using native Streamlit components with clean, minimal design
         with st.container():
-            # Apply custom CSS class to the container to mimic the trending-card styling
-            st.markdown('<div class="trending-card">', unsafe_allow_html=True)
-            
-            # Rank badge (top-right corner)
-            st.markdown(
-                f'<div class="trending-rank">{rank}</div>', 
-                unsafe_allow_html=True
-            )
-            
+            show_star = paper.get("influential_citation_count", 0) > 0
+            title_key = f"title_btn_{paper_code}_{extra_key}"
+            title_large = rf"$\textsf{{\Large {title}}}$"
+            if st.button(
+                title_large, 
+                type="tertiary", 
+                icon="⭐" if show_star else None,
+                key=title_key,
+                use_container_width=True,
+            ):
+                st.session_state.arxiv_code = paper_code
+                click_tab(3)
+
             # Main card content with image and text
-            img_col, content_col = st.columns([1, 6], gap="medium")
+            img_col, content_col = st.columns([2, 6], gap="medium")
             
             with img_col:
                 # Display image with error handling
@@ -1024,84 +1020,64 @@ def generate_mini_paper_table(
                         'font-size:0.7em; color:var(--text-color,#999);">No Image</div>', 
                         unsafe_allow_html=True
                     )
-            
+
             with content_col:
-                # Title button with star icon if influential
-                show_star = paper.get("influential_citation_count", 0) > 0
-                title_key = f"title_btn_{paper_code}_{extra_key}"
+                # Unified card content with clean header badges
+                st.markdown(f"""
+                <div class="card-content">
+                    <div class="card-header">
+                        <div class="badge-left">📅 {published}</div>
+                        <div class="badge-right">📊 {metric_value:,} {metric_name.lower()}</div>
+                    </div>
+                    {f'<div class="trending-punchline">{html_escape(punchline)}</div>' if punchline and pd.notna(punchline) else '&nbsp;'}
+                    <div class="trending-metadata">
+                        <span class="authors">👥 {html_escape(authors)}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
                 
-                if st.button(
-                    title, 
-                    type="tertiary", 
-                    icon="⭐" if show_star else None,
-                    key=title_key,
-                    help=f"Open paper: {title}" + (" (Influential paper!)" if show_star else "")
+                # Tweets section as elegant expander (if available)
+                if (
+                    show_tweets_toggle
+                    and "tweets" in paper
+                    and paper["tweets"]
+                    and len(paper["tweets"]) > 0
                 ):
-                    st.session_state.arxiv_code = paper_code
-                    click_tab(3)
-    
-                # Punchline/summary
-                if punchline and pd.notna(punchline):
-                    st.markdown(
-                        f'<div class="trending-punchline">{html_escape(punchline)}</div>', 
-                        unsafe_allow_html=True
-                    )
-            
-                # Clean metadata section - single row, better organized
-                st.markdown('<div class="trending-metadata-row">', unsafe_allow_html=True)
+                    tweet_count = paper.get("tweet_count", len(paper["tweets"]))
+                    with st.expander(f"💬 Discussion ({tweet_count} posts)", expanded=False):
+                        # Display tweets in the expander
+                        for i, tweet in enumerate(paper["tweets"][:3]):  # Show max 3 tweets
+                            if tweet and isinstance(tweet, dict) and tweet.get("text", "").strip():
+                                author = tweet.get("author", "Unknown")
+                                username = tweet.get("username", "")
+                                text = tweet.get("text", "")
+                                like_count = tweet.get("like_count", 0)
+                                tweet_link = tweet.get("link", "")
+                                
+                                # Truncate long tweets for clean display
+                                if len(text) > 2500:
+                                    text = text[:2500].strip() + "..."
+                                
+                                # Clean tweet display with author and link
+                                author_display = f"**{author}**"
+                                if username:
+                                    author_display += f" [`@{username}`]"
+                                                                
+                                st.markdown(author_display)
+                                st.markdown(f"<em>{text}</em>", unsafe_allow_html=True)
+                                
+                                # Show engagement if available
+                                if like_count > 0:
+                                    st.markdown(f"*❤️ {like_count:,} likes*")
+                                if tweet_link:
+                                    # author_display += f" • [View Tweet]({tweet_link})"
+                                    st.markdown(f"[{tweet_link}]({tweet_link})")
+                                
+                                
+                                if i < len(paper["tweets"][:3]) - 1:  # Add separator except for last tweet
+                                    st.markdown("---")
                 
-                # Authors and metrics in a single, flowing line
-                st.markdown(
-                    f'<div class="trending-authors-metrics">'
-                    f'<span class="authors-section">👥 {html_escape(authors)}</span>'
-                    f'<span class="metrics-section">📊 {metric_value:,} {metric_name.lower()}</span>'
-                    f'</div>', 
-                    unsafe_allow_html=True
-                )
-                
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-            # Tweets section as elegant expander (if available)
-            if (
-                show_tweets_toggle
-                and "tweets" in paper
-                and paper["tweets"]
-                and len(paper["tweets"]) > 0
-            ):
-                tweet_count = paper.get("tweet_count", len(paper["tweets"]))
-                with st.expander(f"💬 Discussion ({tweet_count} posts)", expanded=False):
-                    # Display tweets in the expander
-                    for i, tweet in enumerate(paper["tweets"][:3]):  # Show max 3 tweets
-                        if tweet and isinstance(tweet, dict) and tweet.get("text", "").strip():
-                            author = tweet.get("author", "Unknown")
-                            username = tweet.get("username", "")
-                            text = tweet.get("text", "")
-                            like_count = tweet.get("like_count", 0)
-                            tweet_link = tweet.get("link", "")
-                            
-                            # Truncate long tweets for clean display
-                            if len(text) > 2500:
-                                text = text[:2500] + "..."
-                            
-                            # Clean tweet display with author and link
-                            author_display = f"**{author}**"
-                            if username:
-                                author_display += f" `@{username}`"
-                            
-                            if tweet_link:
-                                author_display += f" • [View Tweet]({tweet_link})"
-                            
-                            st.markdown(author_display)
-                            st.markdown(f"> {text}")
-                            
-                            # Show engagement if available
-                            if like_count > 0:
-                                st.markdown(f"*❤️ {like_count:,} likes*")
-                            
-                            if i < len(paper["tweets"][:3]) - 1:  # Add separator except for last tweet
-                                st.markdown("---")
-            
-            st.markdown('</div>', unsafe_allow_html=True)  # Close trending-card
+            st.divider()
 
 
 
@@ -1115,7 +1091,7 @@ def generate_mini_paper_table(
 
 @st.fragment
 def create_featured_paper_card(paper: Dict) -> None:
-    """Display the weekly highlighted paper using a unified card design."""
+    """Display the weekly highlighted paper using enhanced discovery design."""
 
     # Section header with consistent styling
     header_html = """
@@ -1145,9 +1121,9 @@ def create_featured_paper_card(paper: Dict) -> None:
     safe_title = html_escape(title)
     safe_punchline = html_escape(punchline)
 
-    # Build HTML card using shared design tokens
+    # Enhanced discovery card with interactive actions
     card_html = f"""
-    <div class="featured-card">
+    <div class="featured-card discovery-card">
         <div class="featured-image">
             <img src=\"{image_url}\" alt=\"{safe_title}\"
                  onerror=\"this.style.display='none'; this.parentElement.style.backgroundColor='var(--secondary-background-color, #f0f0f0)'; this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-size:0.7em;color:var(--text-color,#999);\\'>No Image</div>';\">
@@ -1155,6 +1131,13 @@ def create_featured_paper_card(paper: Dict) -> None:
         <div class="featured-content">
             <div class="featured-title"><a href=\"{paper_url}\" target=\"_blank\">{safe_title}</a></div>
             <div class="featured-punchline">{safe_punchline}</div>
+            <!--
+            <div class="discovery-actions">
+                <a href="#" class="action-btn" onclick="navigator.clipboard.writeText('{paper_code}'); this.innerHTML='✓ Copied'; setTimeout(() => this.innerHTML='📋 Copy arXiv', 2000)">📋 Copy arXiv</a>
+                <a href="{paper_url}" target="_blank" class="action-btn">📖 Read Paper</a>
+                <a href="#" class="action-btn" onclick="document.querySelector('[data-testid=&quot;stTextInput&quot;] input').value='Tell me about {paper_code}'; document.querySelector('[data-testid=&quot;stTextInput&quot;] input').dispatchEvent(new Event('input', {{bubbles: true}}));">🔬 Research This</a>
+            </div>
+            -->
         </div>
     </div>
     """
@@ -1164,7 +1147,7 @@ def create_featured_paper_card(paper: Dict) -> None:
     btn_cols = st.columns([2, 2, 2])
     with btn_cols[1]:
         if st.button(
-            "Read More", key=f"featured_details_{paper_code}", use_container_width=True
+            "View Details", key=f"featured_details_{paper_code}", use_container_width=True
         ):
             st.session_state.arxiv_code = paper_code
             click_tab(3)
@@ -1209,7 +1192,7 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
                     )
 
                 st.markdown(
-                    f"""<div class="fact-card">
+                    f"""<div class="fact-card discovery-card">
                     <div class="fact-content">{fact['fact']}</div>
                     <div class="fact-metadata">{topic_html}
                     <div class="fact-paper-link">
@@ -1217,6 +1200,10 @@ def display_interesting_facts(facts_list, n_cols=2, papers_df=None):
                             {fact['paper_title'][:75] + ('...' if len(fact['paper_title']) > 75 else '')}
                         </a>
                         </div>
+                    </div>
+                    <div class="discovery-actions">
+                        <a href="#" class="action-btn" onclick="navigator.clipboard.writeText('{fact['arxiv_code']}'); this.innerHTML='✓ Copied'; setTimeout(() => this.innerHTML='📋 Copy arXiv', 2000)">📋 Copy arXiv</a>
+                        <a href="#" class="action-btn" onclick="document.querySelector('[data-testid=&quot;stTextInput&quot;] input').value='Tell me more about {fact['arxiv_code']}'; document.querySelector('[data-testid=&quot;stTextInput&quot;] input').dispatchEvent(new Event('input', {{bubbles: true}}));">🔬 Research</a>
                     </div>
                     </div>""",
                     unsafe_allow_html=True,
@@ -1804,7 +1791,7 @@ def render_research_settings_panel() -> dict:
         with settings_cols[3]:
             llm_model = st.selectbox(
                 "LLM Model",
-                options=["gpt-5-nano", "gpt-5-mini", "gpt-5"],
+                options=["gpt-4.1-mini", "gpt-4.1-nano", "gpt-4.1"],
                 index=1,
                 help="Model to use for research analysis and synthesis.",
             )
@@ -1905,11 +1892,11 @@ def display_research_results(
                 generate_reddit_citations_list(reddit_citations_data)
 
         # Display additional relevant papers
-        if len(additional_arxiv_codes) > 0:
+        valid_relevant_codes = [c for c in additional_arxiv_codes if c in papers_df.index]
+        if len(valid_relevant_codes) > 0:
             st.divider()
             st.markdown("<h4>Other Relevant Papers:</h4>", unsafe_allow_html=True)
             # Filter out codes that don't exist in the dataframe to avoid KeyError
-            valid_relevant_codes = [c for c in additional_arxiv_codes if c in papers_df.index]
             if len(valid_relevant_codes) > 0:
                 relevant_df = papers_df.loc[valid_relevant_codes]
                 if display_format == "Grid View":
@@ -2143,6 +2130,3 @@ def generate_reddit_citations_list(reddit_citations: List[Dict]) -> None:
         st.markdown(citation_html, unsafe_allow_html=True)
 
 
-def inject_flip_card_css():
-    """Injects CSS for the flip card effect."""
-    # Flip card styles are now applied globally via apply_complete_app_styles()
