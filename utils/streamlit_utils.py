@@ -1043,7 +1043,7 @@ def generate_mini_paper_table(
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Tweets section as elegant expander (if available)
+                # Modern discussion section with custom styling
                 if (
                     show_tweets_toggle
                     and "tweets" in paper
@@ -1051,38 +1051,228 @@ def generate_mini_paper_table(
                     and len(paper["tweets"]) > 0
                 ):
                     tweet_count = paper.get("tweet_count", len(paper["tweets"]))
-                    with st.expander(f"💬 Discussion ({tweet_count} posts)", expanded=False):
-                        # Display tweets in the expander
-                        for i, tweet in enumerate(paper["tweets"][:3]):  # Show max 3 tweets
+                    
+                    # Custom styled expander with CSS
+                    expander_styles = """
+                    <style>
+                    .discussion-expander {
+                        background: linear-gradient(180deg, var(--surface-light, #ffffff) 0%, var(--surface-light-alt, #fafbfc) 100%);
+                        border: 1px solid rgba(179, 27, 27, 0.08);
+                        border-radius: var(--radius-lg, 12px);
+                        margin: var(--space-base, 1rem) 0;
+                        overflow: hidden;
+                        transition: all var(--transition-base, 0.3s ease);
+                        box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
+                    }
+                    
+                    .discussion-header {
+                        display: flex;
+                        align-items: center;
+                        padding: var(--space-base, 1rem);
+                        background: linear-gradient(135deg, rgba(179, 27, 27, 0.03) 0%, rgba(179, 27, 27, 0.01) 100%);
+                        border-bottom: 1px solid rgba(179, 27, 27, 0.06);
+                        cursor: pointer;
+                        transition: all var(--transition-fast, 0.15s ease);
+                    }
+                    
+                    .discussion-header:hover {
+                        background: linear-gradient(135deg, rgba(179, 27, 27, 0.05) 0%, rgba(179, 27, 27, 0.02) 100%);
+                    }
+                    
+                    .discussion-icon {
+                        margin-right: var(--space-sm, 0.5rem);
+                        font-size: var(--font-size-lg, 1.1rem);
+                        opacity: 0.8;
+                    }
+                    
+                    .discussion-title {
+                        font-weight: 600;
+                        font-size: var(--font-size-sm, 0.95rem);
+                        color: var(--text-color, currentColor);
+                        flex: 1;
+                    }
+                    
+                    .discussion-count {
+                        font-size: var(--font-size-xs, 0.875rem);
+                        opacity: 0.7;
+                        background: rgba(179, 27, 27, 0.08);
+                        padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+                        border-radius: var(--radius-full, 50%);
+                        margin-left: var(--space-sm, 0.5rem);
+                    }
+                    
+                    .discussion-content {
+                        padding: var(--space-base, 1rem);
+                        padding-top: var(--space-sm, 0.5rem);
+                    }
+                    
+                    .tweet-card {
+                        background: rgba(255, 255, 255, 0.4);
+                        border: 1px solid rgba(179, 27, 27, 0.04);
+                        border-radius: var(--radius-base, 8px);
+                        padding: var(--space-base, 1rem);
+                        margin-bottom: var(--space-sm, 0.5rem);
+                        transition: all var(--transition-fast, 0.15s ease);
+                        position: relative;
+                    }
+                    
+                    .tweet-card:hover {
+                        border-color: rgba(179, 27, 27, 0.08);
+                        transform: translateY(-1px);
+                        box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
+                    }
+                    
+                    .tweet-card:last-child {
+                        margin-bottom: 0;
+                    }
+                    
+                    .tweet-author {
+                        display: flex;
+                        align-items: center;
+                        margin-bottom: var(--space-xs, 0.25rem);
+                        font-size: var(--font-size-sm, 0.95rem);
+                    }
+                    
+                    .tweet-author-name {
+                        font-weight: 600;
+                        color: var(--text-color, currentColor);
+                        margin-right: var(--space-xs, 0.25rem);
+                    }
+                    
+                    .tweet-username {
+                        font-family: var(--font-family-mono, Monaco, monospace);
+                        font-size: var(--font-size-xs, 0.875rem);
+                        opacity: 0.6;
+                        background: rgba(179, 27, 27, 0.06);
+                        padding: 2px var(--space-xs, 0.25rem);
+                        border-radius: var(--radius-sm, 4px);
+                    }
+                    
+                    .tweet-text {
+                        font-size: var(--font-size-sm, 0.95rem);
+                        line-height: 1.5;
+                        color: var(--text-color, currentColor);
+                        margin: var(--space-sm, 0.5rem) 0;
+                        font-style: italic;
+                    }
+                    
+                    .tweet-engagement {
+                        display: flex;
+                        align-items: center;
+                        gap: var(--space-base, 1rem);
+                        margin-top: var(--space-sm, 0.5rem);
+                        font-size: var(--font-size-xs, 0.875rem);
+                        opacity: 0.7;
+                    }
+                    
+                    .tweet-metric {
+                        display: flex;
+                        align-items: center;
+                        gap: var(--space-xs, 0.25rem);
+                    }
+                    
+                    .tweet-link {
+                        color: var(--arxiv-red, #b31b1b);
+                        text-decoration: none;
+                        font-weight: 500;
+                        transition: opacity var(--transition-fast, 0.15s ease);
+                    }
+                    
+                    .tweet-link:hover {
+                        opacity: 0.8;
+                        text-decoration: underline;
+                    }
+                    
+                    /* Dark mode support */
+                    @media (prefers-color-scheme: dark) {
+                        .discussion-expander {
+                            background: linear-gradient(180deg, var(--surface-dark, #0E1117) 0%, var(--surface-dark-alt, #13151b) 100%);
+                            border-color: rgba(179, 27, 27, 0.15);
+                            box-shadow: var(--shadow-dark-sm, 0 1px 3px rgba(0, 0, 0, 0.3));
+                        }
+                        
+                        .discussion-header {
+                            background: linear-gradient(135deg, rgba(179, 27, 27, 0.08) 0%, rgba(179, 27, 27, 0.03) 100%);
+                            border-bottom-color: rgba(179, 27, 27, 0.12);
+                        }
+                        
+                        .discussion-header:hover {
+                            background: linear-gradient(135deg, rgba(179, 27, 27, 0.12) 0%, rgba(179, 27, 27, 0.05) 100%);
+                        }
+                        
+                        .discussion-count {
+                            background: rgba(179, 27, 27, 0.15);
+                        }
+                        
+                        .tweet-card {
+                            background: rgba(0, 0, 0, 0.2);
+                            border-color: rgba(179, 27, 27, 0.08);
+                        }
+                        
+                        .tweet-card:hover {
+                            border-color: rgba(179, 27, 27, 0.15);
+                            box-shadow: var(--shadow-dark-sm, 0 1px 3px rgba(0, 0, 0, 0.3));
+                        }
+                        
+                        .tweet-username {
+                            background: rgba(179, 27, 27, 0.12);
+                        }
+                    }
+                    </style>
+                    """
+                    
+                    st.markdown(expander_styles, unsafe_allow_html=True)
+                    
+                    with st.expander(f"💬 Discussion ({tweet_count} posts)", expanded=True):
+                        # Display tweets with modern styling
+                        for tweet_idx, tweet in enumerate(paper["tweets"][:3]):  # Show max 3 tweets
                             if tweet and isinstance(tweet, dict) and tweet.get("text", "").strip():
                                 author = tweet.get("author", "Unknown")
                                 username = tweet.get("username", "")
                                 text = tweet.get("text", "")
                                 like_count = tweet.get("like_count", 0)
+                                repost_count = tweet.get("repost_count", 0)
+                                reply_count = tweet.get("reply_count", 0)
                                 tweet_link = tweet.get("link", "")
                                 
                                 # Truncate long tweets for clean display
-                                if len(text) > 2500:
-                                    text = text[:2500].strip() + "..."
+                                if len(text) > 280:
+                                    text = text[:277].strip() + "..."
                                 
-                                # Clean tweet display with author and link
-                                author_display = f"**{author}**"
-                                if username:
-                                    author_display += f" [`@{username}`]"
-                                                                
-                                st.markdown(author_display)
-                                st.markdown(f"<em>{text}</em>", unsafe_allow_html=True)
+                                # Escape HTML in text content
+                                safe_text = html_escape(text)
+                                safe_author = html_escape(author)
+                                safe_username = html_escape(username) if username else ""
                                 
-                                # Show engagement if available
+                                # Build engagement metrics
+                                engagement_metrics = []
                                 if like_count > 0:
-                                    st.markdown(f"*❤️ {like_count:,} likes*")
+                                    engagement_metrics.append(f'<span class="tweet-metric">❤️ {like_count:,}</span>')
+                                if repost_count > 0:
+                                    engagement_metrics.append(f'<span class="tweet-metric">🔄 {repost_count:,}</span>')
+                                if reply_count > 0:
+                                    engagement_metrics.append(f'<span class="tweet-metric">💬 {reply_count:,}</span>')
+                                
+                                engagement_html = "".join(engagement_metrics)
                                 if tweet_link:
-                                    # author_display += f" • [View Tweet]({tweet_link})"
-                                    st.markdown(f"[{tweet_link}]({tweet_link})")
+                                    if engagement_html:
+                                        engagement_html += f'<a href="{tweet_link}" target="_blank" class="tweet-link">View on X →</a>'
+                                    else:
+                                        engagement_html = f'<a href="{tweet_link}" target="_blank" class="tweet-link">View on X →</a>'
                                 
+                                # Create clean tweet card
+                                tweet_html = f"""
+                                <div class="tweet-card">
+                                    <div class="tweet-author">
+                                        <span class="tweet-author-name">{safe_author}</span>
+                                        {f'<span class="tweet-username">@{safe_username}</span>' if safe_username else ''}
+                                    </div>
+                                    <div class="tweet-text">{safe_text}</div>
+                                    {f'<div class="tweet-engagement">{engagement_html}</div>' if engagement_html else ''}
+                                </div>
+                                """
                                 
-                                if i < len(paper["tweets"][:3]) - 1:  # Add separator except for last tweet
-                                    st.markdown("---")
+                                st.markdown(tweet_html, unsafe_allow_html=True)
                 
             st.divider()
 
