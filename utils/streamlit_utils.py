@@ -226,6 +226,13 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
                 unsafe_allow_html=True,
             )
 
+        punchline = paper.get("punchline", "")
+        if isinstance(punchline, str) and punchline.strip():
+            meta_col.markdown(
+                f"<div class=\"trending-punchline\">{html_escape(punchline.strip())}</div>",
+                unsafe_allow_html=True,
+            )
+
         # Authors and citations in smaller text
         influential_citations = int(paper["influential_citation_count"])
         citation_count = int(paper["citation_count"])
@@ -520,9 +527,9 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         # Add Application Ideas section
         st.markdown("---")
         st.markdown("### 💡 Application Ideas")
-        if not pd.isna(paper["takeaway_title"]):
+        if not pd.isna(paper.get("takeaway_title")):
             st.markdown(f"#### {paper['takeaway_title']}")
-        st.markdown(paper["takeaway_example"])
+            st.markdown(paper.get("takeaway_example", ""))
 
     with tabs[3]:  # Full Paper Content
         # Fetch paper content
