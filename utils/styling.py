@@ -16,13 +16,13 @@ def get_css_variables():
             /* NEW – Surface tokens for subtle gradients */
             --surface-light: #ffffff;
             --surface-light-alt: #fafbfc;   /* just ~2-3% darker */
-            --surface-dark: #0E1117;
-            --surface-dark-alt: #13151b;    /* very subtle lift */
+            --surface-dark: #1e1e1e;        /* softer dark gray for better eye comfort */
+            --surface-dark-alt: #252526;    /* very subtle lift */
             
             /* Typography */
             --font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
             --font-family-mono: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            --font-family-display: 'Orbitron', sans-serif;
+            --font-family-display: 'Libertinus Serif', 'Latin Modern Roman', 'Computer Modern', 'Times New Roman', serif;
             
             /* Font Sizes */
             --font-size-xs: 0.875rem;
@@ -405,7 +405,7 @@ def get_base_component_styles():
             }
             
             .metric-enhanced {
-                background: linear-gradient(135deg, var(--background-color, #0E1117) 0%, var(--secondary-background-color, #1a1c23) 100%);
+                background: linear-gradient(135deg, var(--background-color, #1e1e1e) 0%, var(--secondary-background-color, #252526) 100%);
                 border-color: rgba(179, 27, 27, 0.06);
             }
             
@@ -530,11 +530,11 @@ def get_flip_card_styles():
         
         @media (prefers-color-scheme: dark) {
             .flip-card-front {
-                background-color: var(--secondary-background-color, #262730);
+                background-color: var(--secondary-background-color, #252526);
             }
             
             .flip-card-back {
-                background-color: var(--background-color, #0E1117);
+                background-color: var(--background-color, #1e1e1e);
                 color: var(--text-color, #FAFAFA);
             }
             
@@ -630,7 +630,7 @@ def apply_complete_app_styles():
     """Single point of truth for all app styling - Master function."""
     css = f"""
         <style>
-            @import 'https://fonts.googleapis.com/css2?family=Orbitron&display=swap';
+            @import 'https://fonts.googleapis.com/css2?family=Libertinus+Serif:ital,wght@0,400;0,600;1,400&display=swap';
             
             {get_css_variables()}
             {get_base_component_styles()}
@@ -654,7 +654,7 @@ def apply_complete_app_styles():
                 const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
                 const containers = document.querySelectorAll('[data-testid="stAppViewContainer"], [data-testid="stSidebarContent"]');
                 containers.forEach(container => {{
-                    container.style.backgroundColor = isDark ? '#0e1117' : '#ffffff';
+                    container.style.backgroundColor = isDark ? '#1e1e1e' : '#ffffff';
                 }});
             }}
 
@@ -809,7 +809,7 @@ def get_markdown_viewer_styles():
         
         @media (prefers-color-scheme: dark) {
             .markdown-body pre {
-                background-color: var(--secondary-background-color, #262730);
+                background-color: var(--secondary-background-color, #252526);
             }
             
             .markdown-body code {
@@ -1584,7 +1584,7 @@ def get_advanced_trending_card_styles():
             }
             
             .trending-image {
-                background: var(--secondary-background-color, #1a1c23);
+                background: var(--secondary-background-color, #252526);
                 box-shadow: 
                     0 4px 8px rgba(0, 0, 0, 0.3),
                     0 2px 4px rgba(0, 0, 0, 0.2);
@@ -2093,7 +2093,7 @@ def get_individual_tweet_card_styles():
         
         @media (prefers-color-scheme: dark) {
             .individual-tweet-card {
-                background: var(--background-color, #0E1117);
+                background: var(--background-color, #1e1e1e);
                 border-color: rgba(179, 27, 27, 0.15);
             }
             
@@ -2245,7 +2245,7 @@ def get_featured_card_styles():
             }
 
             .featured-image {
-                background: var(--secondary-background-color, #1a1c23);
+                background: var(--secondary-background-color, #252526);
             }
 
             .featured-title {
