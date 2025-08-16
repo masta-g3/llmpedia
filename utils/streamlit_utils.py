@@ -176,7 +176,7 @@ def create_paper_card(paper: Dict, mode="closed", name=""):
         paper_title = paper["title"]
         paper_url = paper["url"]
         meta_col.markdown(
-            f'<h2 style="margin-top: 0; margin-bottom: 0.5em;"><a href="{paper_url}" style="color: #FF4B4B; text-decoration: none;">{paper_title}</a></h2>',
+            f'<h2 class="latex-style" style="margin-top: 0; margin-bottom: 0.5em;"><a href="{paper_url}" style="color: #FF4B4B; text-decoration: none;">{paper_title}</a></h2>',
             unsafe_allow_html=True,
         )
 
@@ -663,7 +663,7 @@ def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
                       <div class="flip-card-inner">
                         <div class="flip-card-front">
                           <img src="{image_url}" alt="{safe_title}" onerror="this.style.display='none'; this.parentElement.style.justifyContent='center'; this.parentElement.innerHTML += '<div class=\\'flip-card-image-error-text\\'>Image not available</div>';">
-                          <div class="flip-title">{safe_title}</div>
+                          <div class="flip-title latex-style">{safe_title}</div>
                         </div>
                         <div class="flip-card-back">
                           <div class="flip-card-back-content">{safe_punchline}</div>
@@ -934,26 +934,25 @@ def display_paper_details_fragment(paper_code: str):
 
 
 def click_tab(tab_num):
-    js = f"""
-    <script>
+    timestamp = time.time()
+    js = f"""<script>
         (() => {{
-            var tabs = window.parent.document.querySelectorAll("[id^='tabs-bui'][id$='-tab-{tab_num}']");
+            var tabs = window.parent.document.querySelectorAll("[id^='tabs-bui'][id*='-tab-{tab_num}']");
             if (tabs.length > 0) {{
                 tabs[0].click();
-            }} else {{
-                console.log("Tab with id '-tab-{tab_num}' not found");
             }}
+            // {timestamp}
         }})();
-    </script>
-    """
-    st.components.v1.html(js)
+    </script>"""
+    st.components.v1.html(js, height=0)
     if tab_num == 3:
         display_paper_details_fragment(st.session_state.arxiv_code)
-    try:
-        st.rerun(scope="fragment")
-        time.sleep(1)
-    except st.errors.StreamlitAPIException:
-        pass
+        try:
+            st.rerun(scope="fragment")
+            time.sleep(1)
+        except st.errors.StreamlitAPIException:
+            print("Could not rerun fragment.")
+            pass
 
 
 @st.fragment
@@ -1006,7 +1005,7 @@ def generate_mini_paper_table(
             if st.button(
                 title_large, 
                 type="tertiary", 
-                icon="⭐" if show_star else None,
+                icon=":material/star:" if show_star else None,
                 key=title_key,
                 use_container_width=True,
             ):
@@ -1033,12 +1032,12 @@ def generate_mini_paper_table(
                 st.markdown(f"""
                 <div class="card-content">
                     <div class="card-header">
-                        <div class="badge-left">📅 {published}</div>
-                        <div class="badge-right">📊 {metric_value:,} {metric_name.lower()}</div>
+                        <div class="badge-left"><span class="material-icons">calendar_today</span> {published}</div>
+                        <div class="badge-right"><span class="material-icons">analytics</span> {metric_value:,} {metric_name.lower()}</div>
                     </div>
                     {f'<div class="trending-punchline">{html_escape(punchline)}</div>' if punchline and pd.notna(punchline) else '&nbsp;'}
                     <div class="trending-metadata">
-                        <span class="authors">👥 {html_escape(authors)}</span>
+                        <span class="authors"><span class="material-icons">group</span> {html_escape(authors)}</span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1223,7 +1222,7 @@ def generate_mini_paper_table(
                     
                     st.markdown(expander_styles, unsafe_allow_html=True)
                     
-                    with st.expander(f"💬 Discussion ({tweet_count} posts)", expanded=True):
+                    with st.expander(f":material/chat: Discussion ({tweet_count} posts)", expanded=True):
                         # Display tweets with modern styling
                         for tweet_idx, tweet in enumerate(paper["tweets"][:3]):  # Show max 3 tweets
                             if tweet and isinstance(tweet, dict) and tweet.get("text", "").strip():
@@ -1247,11 +1246,11 @@ def generate_mini_paper_table(
                                 # Build engagement metrics
                                 engagement_metrics = []
                                 if like_count > 0:
-                                    engagement_metrics.append(f'<span class="tweet-metric">❤️ {like_count:,}</span>')
+                                    engagement_metrics.append(f'<span class="tweet-metric"><span class="material-icons">favorite</span> {like_count:,}</span>')
                                 if repost_count > 0:
-                                    engagement_metrics.append(f'<span class="tweet-metric">🔄 {repost_count:,}</span>')
+                                    engagement_metrics.append(f'<span class="tweet-metric"><span class="material-icons">repeat</span> {repost_count:,}</span>')
                                 if reply_count > 0:
-                                    engagement_metrics.append(f'<span class="tweet-metric">💬 {reply_count:,}</span>')
+                                    engagement_metrics.append(f'<span class="tweet-metric"><span class="material-icons">reply</span> {reply_count:,}</span>')
                                 
                                 engagement_html = "".join(engagement_metrics)
                                 if tweet_link:
@@ -1265,7 +1264,7 @@ def generate_mini_paper_table(
                                 <div class="tweet-card">
                                     <div class="tweet-author">
                                         <span class="tweet-author-name">{safe_author}</span>
-                                        {f'<span class="tweet-username">@{safe_username}</span>' if safe_username else ''}
+                                        {f'(<span class="tweet-username">{safe_username}</span>)' if safe_username else ''}
                                     </div>
                                     <div class="tweet-text">{safe_text}</div>
                                     {f'<div class="tweet-engagement">{engagement_html}</div>' if engagement_html else ''}
@@ -1294,7 +1293,7 @@ def create_featured_paper_card(paper: Dict) -> None:
     header_html = """
     <div class="trending-panel-header">
         <div class="trending-panel-title">
-            ⭐ Featured Paper
+            <span class="material-icons">star</span> Featured Paper
         </div>
         <div class="trending-panel-subtitle">
             Weekly highlight selected by GPT Maestro
@@ -1326,7 +1325,7 @@ def create_featured_paper_card(paper: Dict) -> None:
                  onerror=\"this.style.display='none'; this.parentElement.style.backgroundColor='var(--secondary-background-color, #f0f0f0)'; this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-size:0.7em;color:var(--text-color,#999);\\'>No Image</div>';\">
         </div>
         <div class="featured-content">
-            <div class="featured-title"><a href=\"{paper_url}\" target=\"_blank\">{safe_title}</a></div>
+            <div class="featured-title latex-style"><a href=\"{paper_url}\" target=\"_blank\">{safe_title}</a></div>
             <div class="featured-punchline">{safe_punchline}</div>
             <!--
             <div class="discovery-actions">
@@ -1455,7 +1454,7 @@ def display_tweet_summaries(df, max_entries: int = 8):
             '<div class="tweet-card" title="' + html_escape(full_timestamp) + '">'
         )
         card_html += (
-            '<div class="tweet-timestamp">🕑 '
+            '<div class="tweet-timestamp"><span class="material-icons">schedule</span>'
             + timestamp
             + " • "
             + relative_time
@@ -1527,7 +1526,7 @@ def display_reddit_summaries(df, max_entries: int = 8):
             '<div class="tweet-card" title="' + html_escape(full_timestamp) + '">'
         )
         card_html += (
-            '<div class="tweet-timestamp">🕑 '
+            '<div class="tweet-timestamp"><span class="material-icons">schedule</span>'
             + timestamp
             + " • "
             + relative_time
@@ -1610,7 +1609,7 @@ def render_research_header():
     header_html = """
     <div class="trending-panel-header">
         <div class="trending-panel-title">
-            🤖 Online Research Assistant
+            <span class="material-icons">smart_toy</span> Online Research Assistant
         </div>
         <div class="trending-panel-subtitle">
             AI-powered research with cited sources • Ask questions about LLMs and arXiv papers
@@ -1961,7 +1960,7 @@ def get_initial_query_value() -> str:
 
 def render_research_settings_panel() -> dict:
     """Render settings expander, return selected values."""
-    with st.expander("⚙️ Response Settings", expanded=False):
+    with st.expander(":material/settings: Response Settings", expanded=False):
         # First row - main settings
         settings_cols = st.columns(4)
 
@@ -2217,7 +2216,7 @@ def generate_reddit_grid_gallery(reddit_citations: List[Dict], n_cols=5) -> None
                           <div style="padding: var(--space-lg); height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
                             <div style="font-size: 2rem; margin-bottom: var(--space-base);">💬</div>
                             <div style="font-size: var(--font-size-sm); opacity: 0.9; margin-bottom: var(--space-xs);">r/{subreddit}</div>
-                            <div class="flip-title" style="color: white;">{safe_title}</div>
+                            <div class="flip-title latex-style" style="color: white;">{safe_title}</div>
                           </div>
                         </div>
                         <div class="flip-card-back">

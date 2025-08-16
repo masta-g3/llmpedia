@@ -92,7 +92,7 @@ def get_weekly_summary(date_str: str):
         grouped_repos = grouped_repos[grouped_repos["topic"] != "Miscellaneous"]
         grouped_repos = pd.concat([grouped_repos, miscellaneous_row], ignore_index=True)
 
-        repos_section = "## 💿 Repos & Libraries\n\n"
+        repos_section = "## :material/code: Repos & Libraries\n\n"
         repos_section += "Many web resources were shared this week. Below are some of them, grouped by topic.\n\n"
         for _, row in grouped_repos.iterrows():
             repos_section += f"#### {row['topic']}\n"

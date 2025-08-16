@@ -7,6 +7,8 @@ import streamlit as st
 def get_css_variables():
     """Define all CSS custom properties (design tokens) in one place."""
     return """
+        @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+        
         :root {
             /* Brand Colors */
             --arxiv-red: #b31b1b;
@@ -506,6 +508,15 @@ def get_flip_card_styles():
             text-overflow: ellipsis;
         }
         
+        .latex-style {
+            font-family: "KaTeX_SansSerif", "Avenir", "Avenir Next", "Segoe UI", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+            font-size: 1.05em;
+            font-weight: 400;
+            line-height: 1.2;
+            letter-spacing: 0;
+            text-rendering: auto;
+        }
+        
         .flip-card-back-content {
             font-size: var(--font-size-sm);
             line-height: 1.4;
@@ -706,6 +717,12 @@ def get_trending_panel_styles():
             gap: var(--space-sm);
             letter-spacing: -0.01em;
             line-height: 1.2;
+        }
+        
+        .material-icons {
+            font-size: inherit;
+            vertical-align: middle;
+            margin-right: 0.5em;
         }
         
         .trending-panel-subtitle {

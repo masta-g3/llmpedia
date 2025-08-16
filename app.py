@@ -433,7 +433,7 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
         header_html = f"""
         <div class="trending-panel-header">
             <div class="trending-panel-title">
-                📈 Trending on X.com
+                <span class="material-icons">trending_up</span> Trending on X.com
             </div>
             <div class="trending-panel-subtitle">
                 Most liked papers in the last {trending_window} days
@@ -444,7 +444,7 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
         header_html = f"""
         <div class="trending-panel-header">
             <div class="trending-panel-title">
-                🏆 Top Cited Papers
+                <span class="material-icons">emoji_events</span> Top Cited Papers
             </div>
             <div class="trending-panel-subtitle">
                 Most cited papers in the last {citation_window} days
@@ -456,9 +456,9 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
 
     # Toggle with improved styling
     toggle_label = (
-        "🏆 Switch to Citations"
+        ":material/emoji_events: Switch to Citations"
         if current_actual_toggle_state
-        else "📈 Switch to Trending"
+        else ":material/trending_up: Switch to Trending"
     )
     st.toggle(toggle_label, value=current_actual_toggle_state, key="toggle_trending_papers")
 
@@ -512,7 +512,7 @@ def main():
     )
     st.markdown(
         """<div class="text-precise" style="font-size: 0.85em; opacity: 0.7; margin-top: 0.5em; margin-bottom: 0.5em;">
-        💡 <em>Use filters sidebar (←) to search papers, adjust year, or switch between artwork/page views</em>
+        <span class='material-icons'>lightbulb</span> <em>Use filters sidebar (←) to search papers, adjust year, or switch between artwork/page views</em>
         </div>""",
         unsafe_allow_html=True,
     )
@@ -539,7 +539,7 @@ def main():
         header_html = f"""
         <div class="trending-panel-header">
             <div class="trending-panel-title">
-                📅 {year} Release Calendar
+                <span class="material-icons">calendar_month</span> {year} Release Calendar
             </div>
             <div class="trending-panel-subtitle">
                 Click on any day to filter papers on the <em>Release Feed</em>
@@ -597,13 +597,13 @@ def main():
     ## Content tabs.
     content_tabs = st.tabs(
         [
-            "🏠 Main",
-            "🧮 Release Feed",
-            "💬 Ask GPT Maestro",
-            "🔍 Paper Details",
-            "🗺️ Statistics & Topics",
-            "⚙️ Links & Repositories",
-            "🗞 Weekly Report",
+            ":material/home: Main",
+            ":material/feed: Release Feed",
+            ":material/chat: Ask GPT Maestro",
+            ":material/search: Paper Details",
+            ":material/analytics: Statistics & Topics",
+            ":material/settings: Links & Repositories",
+            ":material/article: Weekly Report",
         ]
     )
 
@@ -616,29 +616,28 @@ def main():
         # Filter dataframes for recent papers - convert datetime64[ns] to date for comparison
         papers_1d = full_papers_df[full_papers_df["tstp"] >= yesterday]
         papers_7d = full_papers_df[full_papers_df["published"].dt.date >= last_week]
-
         # Display all metrics in a single row of 5 columns
         metric_cols = st.columns(5)  # Adjusted for 5 metrics
         with metric_cols[0]:
             st.metric(
-                label="🗄️ Total Papers in Archive",
+                label=":material/folder: Total Papers in Archive",
                 value=f"{len(full_papers_df):,d}",
             )
         with metric_cols[1]:
             if not st.session_state.all_years:
                 value = f"{len(full_papers_df[full_papers_df['published'].dt.year == year]):,d}"
                 st.metric(
-                    label=f"🔮 Published in {year}",
+                    label=f":material/auto_awesome: Published in {year}",
                     value=value,
                 )
         with metric_cols[2]:
-            st.metric(label="📅 Last 7 days", value=len(papers_7d))
+            st.metric(label=":material/calendar_today: Last 7 days", value=len(papers_7d))
         with metric_cols[3]:
-            st.metric(label="⏰ Added in last 24 hours", value=len(papers_1d))
+            st.metric(label=":material/schedule: Added in last 24 hours", value=len(papers_1d))
 
         with metric_cols[4]:  # New metric for Active Users
             active_users_count = get_active_users_count()
-            st.metric(label="👥 Active Users", value=f"{active_users_count:,d}")
+            st.metric(label=":material/group: Active Users", value=f"{active_users_count:,d}")
 
         # st.markdown('<div class="geometric-divider"></div>', unsafe_allow_html=True)
         
@@ -646,7 +645,7 @@ def main():
         research_portal_html = """
         <div class="research-portal">
             <div class="trending-panel-title">
-                🔬 Ask the GPT Maestro
+                <span class="material-icons">science</span> Ask the GPT Maestro
             </div>
             <div class="trending-panel-subtitle">
                 AI-powered multi-agent research for papers and LLM topics with cited sources.
@@ -682,11 +681,20 @@ def main():
                     st.session_state.auto_execute_research = True
                 su.click_tab(2)
 
-        # st.markdown('<div class="geometric-divider"></div>', unsafe_allow_html=True)
+        # News Feed Navigation Button
+        st.write(" ")
+        st.write(" ")
+        feed_cols = st.columns(3)
+        feed_btn_html = r"$\textsf{\ Explore\ Release\ Feed}$"
+        if feed_cols[1].button(feed_btn_html, 
+                     key="news_feed_nav_button", 
+                     use_container_width=True,
+                     icon=":material/auto_stories:",
+                     type="primary"):
+            su.click_tab(1)
         
         # Enhanced content grid with geometric separator
         st.markdown('<div class="content-grid">', unsafe_allow_html=True)
-        
         # Main content panel (left)
         st.markdown('<div class="content-panel content-panel-main">', unsafe_allow_html=True)
         if full_papers_df is not None and not full_papers_df.empty:
@@ -711,7 +719,7 @@ def main():
                     header_html = """
                     <div class="trending-panel-header">
                         <div class="trending-panel-title">
-                            🐦 Latest LLM Discussions on X
+                            <span class="material-icons">chat</span> Latest LLM Discussions on X
                         </div>
                         <div class="trending-panel-subtitle">
                             Timestamped summaries updated every ~24 hours
@@ -722,7 +730,7 @@ def main():
                     header_html = """
                     <div class="trending-panel-header">
                         <div class="trending-panel-title">
-                            🦙 Latest LLM Discussions on Reddit
+                            <span class="material-icons">forum</span> Latest LLM Discussions on Reddit
                         </div>
                         <div class="trending-panel-subtitle">
                             Cross-subreddit summaries updated every ~24 hours
@@ -734,9 +742,9 @@ def main():
 
                 # Toggle with improved styling
                 toggle_label = (
-                    "🦙 Switch to Reddit"
+                    ":material/forum: Switch to Reddit"
                     if current_discussions_toggle
-                    else "🐦 Switch to X.com"
+                    else ":material/send: Switch to X.com"
                 )
                 st.toggle(toggle_label, value=current_discussions_toggle, key="toggle_discussions_platform")
 
@@ -775,7 +783,7 @@ def main():
                 # Section header with consistent styling
                 header_html = """<div class="trending-panel-header">
     <div class="trending-panel-title">
-        💡 Interesting Fact
+        <span class="material-icons">lightbulb</span> Interesting Fact
     </div>
     <div class="trending-panel-subtitle">
         Random discovery from recent research
@@ -796,7 +804,7 @@ def main():
                     fact_list, n_cols=1, papers_df=full_papers_df
                 )
                 # Refresh button to get a new fact
-                if st.button("🔄 New Fact", key="refresh_fact_single_fragment"):
+                if st.button("New Fact", icon=":material/refresh:", key="refresh_fact_single_fragment"):
                     st.session_state.facts_refresh_trigger += 1
                     st.rerun()  # This will rerun only this fragment
 
@@ -811,7 +819,7 @@ def main():
                 header_html = """
                 <div class="trending-panel-header">
                     <div class="trending-panel-title">
-                        🗳️ Feature Poll
+                        <span class="material-icons">poll</span> Feature Poll
                     </div>
                     <div class="trending-panel-subtitle">
                         Help us shape LLMpedia's future
@@ -929,7 +937,7 @@ def main():
         ## Focus on a paper.
         if len(st.session_state.arxiv_code) == 0:
             st.markdown(
-                "<div style='font-size: 0.9em; opacity: 0.8; margin-bottom: 1.5em;'>💡 <em>Search a paper by its arXiv code, or use the sidebar to search and filter papers by title, author, or other attributes.</em></div>",
+                "<div style='font-size: 0.9em; opacity: 0.8; margin-bottom: 1.5em;'><span class='material-icons'>lightbulb</span> <em>Search a paper by its arXiv code, or use the sidebar to search and filter papers by title, author, or other attributes.</em></div>",
                 unsafe_allow_html=True,
             )
 
@@ -954,7 +962,7 @@ def main():
             publication_header_html = f"""
             <div class="trending-panel-header">
                 <div class="trending-panel-title">
-                    📈 {year} Publication Trends
+                    <span class="material-icons">analytics</span> {year} Publication Trends
                 </div>
                 <div class="trending-panel-subtitle">
                     {total_papers:,} papers published • Interactive visualizations with filtering options
@@ -965,7 +973,7 @@ def main():
             publication_header_html = f"""
             <div class="trending-panel-header">
                 <div class="trending-panel-title">
-                    📈 Publication Trends Overview
+                    <span class="material-icons">analytics</span> Publication Trends Overview
                 </div>
                 <div class="trending-panel-subtitle">
                     {total_papers:,} papers total • Comprehensive analysis across all years
@@ -1020,7 +1028,7 @@ def main():
             topic_header_html = f"""
             <div class="trending-panel-header">
                 <div class="trending-panel-title">
-                    🗺️ {year} Research Topic Map
+                    <span class="material-icons">map</span> {year} Research Topic Map
                 </div>
                 <div class="trending-panel-subtitle">
                     Interactive clustering visualization • Click any point to explore paper details
@@ -1031,7 +1039,7 @@ def main():
             topic_header_html = f"""
             <div class="trending-panel-header">
                 <div class="trending-panel-title">
-                    🗺️ Research Topic Landscape
+                    <span class="material-icons">map</span> Research Topic Landscape
                 </div>
                 <div class="trending-panel-subtitle">
                     Complete topic model visualization • Click any point to explore paper details
@@ -1072,7 +1080,7 @@ def main():
         repos_header_html = """
         <div class="trending-panel-header">
             <div class="trending-panel-title">
-                ⚙️ Links & Repositories
+                <span class="material-icons">link</span> Links & Repositories
             </div>
             <div class="trending-panel-subtitle">
                 Discover code repositories and resources related to research papers
@@ -1123,7 +1131,7 @@ def main():
         if repo_count > 0:
             results_html = f"""
             <div style="margin: 1rem 0; padding: 0.75rem; background: linear-gradient(135deg, var(--background-color, #ffffff) 0%, var(--secondary-background-color, #f8f9fa) 100%); border: 1px solid rgba(179, 27, 27, 0.08); border-radius: var(--radius-base); font-size: var(--font-size-sm);">
-                <strong>📊 {repo_count:,} resources found</strong> • Use filters above to refine results
+                <strong><span class='material-icons'>bar_chart</span> {repo_count:,} resources found</strong> • Use filters above to refine results
             </div>
             """
         else:
@@ -1173,7 +1181,7 @@ def main():
         weekly_header_html = """
         <div class="trending-panel-header">
             <div class="trending-panel-title">
-                🗞️ Weekly Research Report
+                <span class="material-icons">article</span> Weekly Research Report
             </div>
             <div class="trending-panel-subtitle">
                 Curated weekly summaries of key developments in LLM research
@@ -1217,8 +1225,8 @@ def main():
 
             else:
                 weekly_report = (
-                    f"## 🔬 New Developments & Findings\n\n{weekly_content}\n\n"
-                    f"## 🌟 Highlight of the Week\n\n"
+                    f"## :material/science: New Developments & Findings\n\n{weekly_content}\n\n"
+                    f"## :material/star: Highlight of the Week\n\n"
                 )
 
             ## Plot.
