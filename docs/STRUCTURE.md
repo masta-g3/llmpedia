@@ -41,7 +41,7 @@
 
 ### Visual Identity & Aesthetics
 
-LLMpedia follows a **modern, minimalist design philosophy** that draws inspiration from arXiv's academic heritage while embracing contemporary web aesthetics. The design system is comprehensively implemented in `utils/styling.py` and follows these core principles:
+LLMpedia follows a **sophisticated academic minimalism** that combines scholarly authority with digital precision. The design system is comprehensively implemented in `utils/styling.py` and follows these core principles:
 
 #### **arXiv-Inspired Color Palette**
 - **Primary Brand Color**: arXiv red (`#b31b1b`) with subtle variations (`#c93232` light, `#8f1414` dark)
@@ -54,10 +54,10 @@ LLMpedia follows a **modern, minimalist design philosophy** that draws inspirati
 - **Subtle Interactions**: Gentle hover effects, smooth transitions, and elevated shadows that enhance without overwhelming
 - **Card-Based Layout**: Clean, floating card components with soft shadows and gradient backgrounds
 
-#### **Elegant Pixel Art Influence**
-- **Orbitron Font**: Futuristic, geometric typeface for headers that evokes retro-computing aesthetics
+#### **Sophisticated Academic Typography**
+- **Libertinus Serif Font**: Scholarly, authoritative typeface for headers that conveys academic credibility
 - **Geometric Elements**: Clean borders, consistent border radius scale, and structured layouts
-- **Nostalgic Touches**: Subtle references to classic computing interfaces through font choices and spacing
+- **Digital Precision**: Systematic design tokens and precise spacing that reflect modern web standards
 
 #### **Adaptive Design System**
 - **CSS Custom Properties**: Centralized design tokens for consistency across components
@@ -83,7 +83,7 @@ The styling system (`utils/styling.py`) provides:
 4. **Accessibility**: High contrast ratios, readable typography, and keyboard navigation support
 5. **Performance**: Lightweight CSS with efficient selectors and minimal reflows
 
-The design creates an environment that feels both **academically serious** and **technologically forward**, allowing users to focus on research content while enjoying a polished, contemporary interface that subtly celebrates the intersection of academia and digital innovation.
+The design creates an environment that feels both **academically credible** and **digitally precise**, allowing users to focus on research content while enjoying a polished, systematic interface that reflects the rigor and clarity of academic scholarship.
 
 ## Key Features
 

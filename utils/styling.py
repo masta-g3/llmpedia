@@ -1433,7 +1433,6 @@ def get_advanced_trending_card_styles():
             align-items: center;
             gap: var(--space-base);
             margin-top: var(--space-base);
-            padding-top: var(--space-sm);
             border-top: 1px solid rgba(128, 128, 128, 0.08);
             flex-wrap: wrap;
         }

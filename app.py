@@ -500,12 +500,21 @@ def main():
         import uuid
         st.session_state.session_id = str(uuid.uuid4())
         st.session_state.visit_logged = False
-
-    st.markdown(
+    
+    title_cols = st.columns((5, 0.5))
+    title_cols[0].markdown(
         """<div class="pixel-font heading-display" style="margin-bottom: -0.5em;">LLMpedia</div>
     """,
         unsafe_allow_html=True,
     )
+    if title_cols[1].button(":material/palette:", 
+                key="art_mode_nav_button", 
+                help="Switch between artwork and first page views",
+                type="tertiary"):
+        st.session_state.global_image_type = "artwork" if st.session_state.global_image_type == "first_page" else "first_page"
+
+
+
     st.markdown(
         """<h5 class="heading-geometric text-precise" style="margin-top: 0.5em; margin-bottom: 0.5em; color: var(--text-color, #666);">The Illustrated Large Language Model Encyclopedia</h5>""",
         unsafe_allow_html=True,
@@ -684,15 +693,15 @@ def main():
         # News Feed Navigation Button
         st.write(" ")
         st.write(" ")
-        feed_cols = st.columns(3)
-        feed_btn_html = r"$\textsf{\ Explore\ Release\ Feed}$"
+        feed_cols = st.columns((2, 3, 2))
+        feed_btn_html = r"$\textsf{\ Explore Release Feed}$"
         if feed_cols[1].button(feed_btn_html, 
                      key="news_feed_nav_button", 
                      use_container_width=True,
                      icon=":material/auto_stories:",
-                     type="primary"):
+                     type="secondary"):
             su.click_tab(1)
-        
+
         # Enhanced content grid with geometric separator
         st.markdown('<div class="content-grid">', unsafe_allow_html=True)
         # Main content panel (left)
