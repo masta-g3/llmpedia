@@ -908,13 +908,14 @@ def main():
             st.session_state.page_number = 0
 
         # Add view selector with radio buttons
-        view_mode = st.radio(
-            "Display Mode",
-            options=["Grid View", "Table View"],
-            horizontal=True,
-            key="view_selector",
-            index=0,
-        )
+        # view_mode = st.radio(
+        #     "Display Mode",
+        #     options=["Grid View", "Table View"],
+        #     horizontal=True,
+        #     key="view_selector",
+        #     index=0,
+        # )
+        view_mode = "Grid View"
 
         # Get paginated data
         papers_df_subset = su.create_pagination(
