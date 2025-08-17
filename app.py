@@ -79,28 +79,29 @@ collection_map = {
 }
 
 
-
 def combine_input_data():
     ## Load only core data for general rendering
     start_time = time.time()
     arxiv_df = db.load_arxiv(drop_tstp=False)
     print(f"load_arxiv took {time.time() - start_time:.3f} seconds")
-    
+
     start_time = time.time()
     topics_df = db.load_topics()
     print(f"load_topics took {time.time() - start_time:.3f} seconds")
-    
+
     start_time = time.time()
     citations_df = db.load_citations()
     print(f"load_citations took {time.time() - start_time:.3f} seconds")
-    
+
     start_time = time.time()
     punchlines_df = db.load_punchlines()
     print(f"load_punchlines took {time.time() - start_time:.3f} seconds")
-    
+
     start_time = time.time()
     ## Load only category field from summaries (needed for filtering)
-    categories_df = db_utils.simple_select_query(table="summaries", select_cols=["category"])
+    categories_df = db_utils.simple_select_query(
+        table="summaries", select_cols=["category"]
+    )
     print(f"load_categories took {time.time() - start_time:.3f} seconds")
 
     papers_df = arxiv_df.join(topics_df, how="left")
@@ -251,7 +252,9 @@ def get_cached_top_cited_papers_app(
     result = au.get_top_cited_papers(
         papers_df_fragment, n=n, time_window_days=time_window_days
     )
-    print(f"get_cached_top_cited_papers_app took {time.time() - start_time:.3f} seconds")
+    print(
+        f"get_cached_top_cited_papers_app took {time.time() - start_time:.3f} seconds"
+    )
     return result
 
 
@@ -262,7 +265,9 @@ def get_cached_raw_trending_data_app(
     """Cached wrapper in app.py to fetch raw trending paper data from DB with TTL."""
     start_time = time.time()
     result = db.get_trending_papers(n=n_fetch, time_window_days=time_window_days_db)
-    print(f"get_cached_raw_trending_data_app took {time.time() - start_time:.3f} seconds")
+    print(
+        f"get_cached_raw_trending_data_app took {time.time() - start_time:.3f} seconds"
+    )
     return result
 
 
@@ -289,7 +294,7 @@ def chat_fragment():
     # Handle initial query value and render header
     su.get_initial_query_value()  # This sets session state if needed
     su.render_research_header()
-    
+
     # User input
     user_question = st.text_area(
         label="Ask any question about LLMs or the arxiv papers.",
@@ -299,9 +304,9 @@ def chat_fragment():
 
     # Render settings panel and get configuration
     settings = su.render_research_settings_panel()
-    
+
     status_placeholder = st.empty()
-    
+
     # Action buttons
     chat_cols = st.columns((1, 1, 1))
     chat_btn = chat_cols[0].button("Run Deep Research", disabled=chat_btn_disabled)
@@ -318,12 +323,12 @@ def chat_fragment():
 
     # Check for auto-execute flag (programmatic trigger)
     auto_execute = st.session_state.pop("auto_execute_research", False)
-    
+
     # Execute research when Send is clicked OR auto-execute is triggered
     if (chat_btn and user_question) or (auto_execute and user_question):
         with status_placeholder.container():
             with st.status("Processing your query...", expanded=True) as status:
-                
+
                 # Initialize progress tracking with functional approach
                 progress_state = {
                     "current_phase": "Initializing",
@@ -338,36 +343,45 @@ def chat_fragment():
                     "insights_list": [],
                     "papers_list": [],
                 }
-                
+
                 def update_progress(message: str):
                     print(message)  # Keep console logging
-                    
+
                     # Parse message and update state
                     updates = su.parse_research_progress_message(message)
                     progress_state.update(updates)
-                    
+
                     # Add to activity log (keep last 4 entries) and increment total counter
                     progress_state["activity_log"].append(message)
-                    progress_state["total_activities"] = progress_state.get("total_activities", 0) + 1
+                    progress_state["total_activities"] = (
+                        progress_state.get("total_activities", 0) + 1
+                    )
                     if len(progress_state["activity_log"]) > 4:
-                        progress_state["activity_log"] = progress_state["activity_log"][-4:]
-                    
+                        progress_state["activity_log"] = progress_state["activity_log"][
+                            -4:
+                        ]
+
                     # Render updated progress
                     su.render_research_progress(status, progress_state)
 
                 try:
-                    response_title, response, referenced_arxiv_codes, referenced_reddit_codes, additional_arxiv_codes, additional_reddit_codes = (
-                        au.query_llmpedia_new(
-                            user_question=user_question,
-                            response_length=settings["response_length"],
-                            llm_model=settings["llm_model"],
-                            max_sources=settings["max_sources"],
-                            max_agents=settings["max_agents"],
-                            debug=True,
-                            progress_callback=update_progress,
-                            show_only_sources=settings["show_only_sources"],
-                            research_sources=settings["research_sources"],
-                        )
+                    (
+                        response_title,
+                        response,
+                        referenced_arxiv_codes,
+                        referenced_reddit_codes,
+                        additional_arxiv_codes,
+                        additional_reddit_codes,
+                    ) = au.query_llmpedia_new(
+                        user_question=user_question,
+                        response_length=settings["response_length"],
+                        llm_model=settings["llm_model"],
+                        max_sources=settings["max_sources"],
+                        max_agents=settings["max_agents"],
+                        debug=True,
+                        progress_callback=update_progress,
+                        show_only_sources=settings["show_only_sources"],
+                        research_sources=settings["research_sources"],
                     )
                     status.update(
                         label="Processing complete!",
@@ -384,6 +398,7 @@ def chat_fragment():
                         expanded=True,
                     )
                     import traceback
+
                     print("Error details:")
                     print(e)
                     print(traceback.format_exc())
@@ -414,7 +429,7 @@ def chat_fragment():
             referenced_reddit_codes=st.session_state.referenced_reddit_codes,
             additional_arxiv_codes=st.session_state.additional_arxiv_codes,
             additional_reddit_codes=st.session_state.additional_reddit_codes,
-            papers_df=st.session_state["papers"]
+            papers_df=st.session_state["papers"],
         )
 
 
@@ -426,7 +441,6 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
     top_n = 5  # Number of papers to display
 
     current_actual_toggle_state = st.session_state.get("toggle_trending_papers", True)
-
 
     # Create enhanced header
     if current_actual_toggle_state:
@@ -451,7 +465,7 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
             </div>
         </div>
         """
-    
+
     st.markdown(header_html, unsafe_allow_html=True)
 
     # Toggle with improved styling
@@ -460,7 +474,9 @@ def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
         if current_actual_toggle_state
         else ":material/trending_up: Switch to Trending"
     )
-    st.toggle(toggle_label, value=current_actual_toggle_state, key="toggle_trending_papers")
+    st.toggle(
+        toggle_label, value=current_actual_toggle_state, key="toggle_trending_papers"
+    )
 
     if current_actual_toggle_state:  # Show trending table
         raw_trending_df = get_cached_raw_trending_data_app(
@@ -498,22 +514,27 @@ def main():
     # Initialize session tracking
     if "session_id" not in st.session_state:
         import uuid
+
         st.session_state.session_id = str(uuid.uuid4())
         st.session_state.visit_logged = False
-    
+
     title_cols = st.columns((5, 0.5))
     title_cols[0].markdown(
         """<div class="pixel-font heading-display" style="margin-bottom: -0.5em;">LLMpedia</div>
     """,
         unsafe_allow_html=True,
     )
-    if title_cols[1].button(":material/palette:", 
-                key="art_mode_nav_button", 
-                help="Switch between artwork and first page views",
-                type="tertiary"):
-        st.session_state.global_image_type = "artwork" if st.session_state.global_image_type == "first_page" else "first_page"
-
-
+    if title_cols[1].button(
+        ":material/palette:",
+        key="art_mode_nav_button",
+        help="Switch between artwork and first page views",
+        type="tertiary",
+    ):
+        st.session_state.global_image_type = (
+            "artwork"
+            if st.session_state.global_image_type == "first_page"
+            else "first_page"
+        )
 
     st.markdown(
         """<h5 class="heading-geometric text-precise" style="margin-top: 0.5em; margin-bottom: 0.5em; color: var(--text-color, #666);">The Illustrated Large Language Model Encyclopedia</h5>""",
@@ -543,7 +564,7 @@ def main():
     if not st.session_state.all_years:
         heatmap_data = au.prepare_calendar_data(published_df, year)
         release_calendar, padded_date = pt.plot_activity_map(heatmap_data)
-        
+
         # Section header with consistent styling
         header_html = f"""
         <div class="trending-panel-header">
@@ -640,16 +661,22 @@ def main():
                     value=value,
                 )
         with metric_cols[2]:
-            st.metric(label=":material/calendar_today: Last 7 days", value=len(papers_7d))
+            st.metric(
+                label=":material/calendar_today: Last 7 days", value=len(papers_7d)
+            )
         with metric_cols[3]:
-            st.metric(label=":material/schedule: Added in last 24 hours", value=len(papers_1d))
+            st.metric(
+                label=":material/schedule: Added in last 24 hours", value=len(papers_1d)
+            )
 
         with metric_cols[4]:  # New metric for Active Users
             active_users_count = get_active_users_count()
-            st.metric(label=":material/group: Active Users", value=f"{active_users_count:,d}")
+            st.metric(
+                label=":material/group: Active Users", value=f"{active_users_count:,d}"
+            )
 
         # st.markdown('<div class="geometric-divider"></div>', unsafe_allow_html=True)
-        
+
         # Enhanced Deep Research portal
         research_portal_html = """
         <div class="research-portal">
@@ -682,7 +709,9 @@ def main():
             st.write(" ")
             st.write(" ")
             if st.button(
-                "Run Deep Research", key="explore_deep_research_news_promo", use_container_width=True
+                "Run Deep Research",
+                key="explore_deep_research_news_promo",
+                use_container_width=True,
             ):
                 query_to_pass = st.session_state.get("news_tab_shared_query_input", "")
                 if query_to_pass:
@@ -695,37 +724,45 @@ def main():
         st.write(" ")
         feed_cols = st.columns((2, 3, 2))
         feed_btn_html = r"$\textsf{\ Explore Release Feed}$"
-        if feed_cols[1].button(feed_btn_html, 
-                     key="news_feed_nav_button", 
-                     use_container_width=True,
-                     icon=":material/auto_stories:",
-                     type="secondary"):
+        if feed_cols[1].button(
+            feed_btn_html,
+            key="news_feed_nav_button",
+            use_container_width=True,
+            icon=":material/auto_stories:",
+            type="secondary",
+        ):
             su.click_tab(1)
 
         # Enhanced content grid with geometric separator
         st.markdown('<div class="content-grid">', unsafe_allow_html=True)
         # Main content panel (left)
-        st.markdown('<div class="content-panel content-panel-main">', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="content-panel content-panel-main">', unsafe_allow_html=True
+        )
         if full_papers_df is not None and not full_papers_df.empty:
             display_top_cited_trending_panel(full_papers_df)
         else:
             st.info("Paper data is not available for this panel.")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
+        st.markdown("</div>", unsafe_allow_html=True)
+
         # Geometric separator
         # st.markdown('<div class="content-grid-separator"></div>', unsafe_allow_html=True)
-        
-        # Sidebar content panel (right)  
-        st.markdown('<div class="content-panel content-panel-sidebar">', unsafe_allow_html=True)
-        
+
+        # Sidebar content panel (right)
+        st.markdown(
+            '<div class="content-panel content-panel-sidebar">', unsafe_allow_html=True
+        )
+
         @st.fragment
         def discussions_toggle_panel():
-                """Displays discussions toggle panel similar to trending papers toggle."""
-                current_discussions_toggle = st.session_state.get("toggle_discussions_platform", True)
-                
-                # Create enhanced header
-                if current_discussions_toggle:
-                    header_html = """
+            """Displays discussions toggle panel similar to trending papers toggle."""
+            current_discussions_toggle = st.session_state.get(
+                "toggle_discussions_platform", True
+            )
+
+            # Create enhanced header
+            if current_discussions_toggle:
+                header_html = """
                     <div class="trending-panel-header">
                         <div class="trending-panel-title">
                             <span class="material-icons">chat</span> Latest LLM Discussions on X
@@ -735,8 +772,8 @@ def main():
                         </div>
                     </div>
                     """
-                else:
-                    header_html = """
+            else:
+                header_html = """
                     <div class="trending-panel-header">
                         <div class="trending-panel-title">
                             <span class="material-icons">forum</span> Latest LLM Discussions on Reddit
@@ -746,40 +783,46 @@ def main():
                         </div>
                     </div>
                     """
-                
-                st.markdown(header_html, unsafe_allow_html=True)
 
-                # Toggle with improved styling
-                toggle_label = (
-                    ":material/forum: Switch to Reddit"
-                    if current_discussions_toggle
-                    else ":material/send: Switch to X.com"
-                )
-                st.toggle(toggle_label, value=current_discussions_toggle, key="toggle_discussions_platform")
+            st.markdown(header_html, unsafe_allow_html=True)
 
-                if current_discussions_toggle:  # Show X.com discussions
-                    tweet_summaries_df = db.read_last_n_tweet_analyses(n=8)
-                    tweet_summaries_df = tweet_summaries_df[tweet_summaries_df["tstp"] >= "2025-05-14"]
-                    if tweet_summaries_df is not None and not tweet_summaries_df.empty:
-                        su.display_tweet_summaries(tweet_summaries_df, max_entries=8)
-                    else:
-                        st.info("No recent X.com discussions found.")
-                else:  # Show Reddit discussions
-                    reddit_summaries_df = db.read_last_n_reddit_analyses(n=8)
-                    if reddit_summaries_df is not None and not reddit_summaries_df.empty:
-                        su.display_reddit_summaries(reddit_summaries_df, max_entries=8)
-                    else:
-                        st.info("No recent Reddit discussions found.")
+            # Toggle with improved styling
+            toggle_label = (
+                ":material/forum: Switch to Reddit"
+                if current_discussions_toggle
+                else ":material/send: Switch to X.com"
+            )
+            st.toggle(
+                toggle_label,
+                value=current_discussions_toggle,
+                key="toggle_discussions_platform",
+            )
+
+            if current_discussions_toggle:  # Show X.com discussions
+                tweet_summaries_df = db.read_last_n_tweet_analyses(n=8)
+                tweet_summaries_df = tweet_summaries_df[
+                    tweet_summaries_df["tstp"] >= "2025-05-14"
+                ]
+                if tweet_summaries_df is not None and not tweet_summaries_df.empty:
+                    su.display_tweet_summaries(tweet_summaries_df, max_entries=8)
+                else:
+                    st.info("No recent X.com discussions found.")
+            else:  # Show Reddit discussions
+                reddit_summaries_df = db.read_last_n_reddit_analyses(n=8)
+                if reddit_summaries_df is not None and not reddit_summaries_df.empty:
+                    su.display_reddit_summaries(reddit_summaries_df, max_entries=8)
+                else:
+                    st.info("No recent Reddit discussions found.")
 
         discussions_toggle_panel()
         st.markdown('<div class="geometric-divider"></div>', unsafe_allow_html=True)
 
         highlight_paper = get_featured_paper(full_papers_df)
         su.create_featured_paper_card(highlight_paper)
-        st.markdown('</div>', unsafe_allow_html=True)
-        
+        st.markdown("</div>", unsafe_allow_html=True)
+
         # Close content grid
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown('<div class="geometric-divider"></div>', unsafe_allow_html=True)
         row3_cols = st.columns([1, 1])
@@ -800,7 +843,7 @@ def main():
 </div>
 """
                 st.markdown(header_html, unsafe_allow_html=True)
-                
+
                 # Retrieve a single random fact (cached) and display it
                 fact_list = get_random_interesting_facts(
                     n=1,
@@ -813,7 +856,11 @@ def main():
                     fact_list, n_cols=1, papers_df=full_papers_df
                 )
                 # Refresh button to get a new fact
-                if st.button("New Fact", icon=":material/refresh:", key="refresh_fact_single_fragment"):
+                if st.button(
+                    "New Fact",
+                    icon=":material/refresh:",
+                    key="refresh_fact_single_fragment",
+                ):
                     st.session_state.facts_refresh_trigger += 1
                     st.rerun()  # This will rerun only this fragment
 
@@ -840,7 +887,9 @@ def main():
                 has_voted = st.session_state.get("user_has_voted_poll", False)
 
                 if has_voted:
-                    st.info("You have already voted in this session. Thank you for your feedback!")
+                    st.info(
+                        "You have already voted in this session. Thank you for your feedback!"
+                    )
                 else:
                     pass
                 default_options = [
@@ -858,14 +907,18 @@ def main():
 
                 # If user chooses Other, allow a custom input
                 custom_feature = ""
-                if selected_option == "Other (specify)" and not has_voted: # Added 'and not has_voted'
+                if (
+                    selected_option == "Other (specify)" and not has_voted
+                ):  # Added 'and not has_voted'
                     custom_feature = st.text_input(
                         "Your feature suggestion",
                         key="custom_feature_suggestion",
-                        disabled=has_voted, # Added disabled state
+                        disabled=has_voted,  # Added disabled state
                     )
 
-                if st.button("Vote", key="vote_feature_poll_button", disabled=has_voted):
+                if st.button(
+                    "Vote", key="vote_feature_poll_button", disabled=has_voted
+                ):
                     feature_name_to_log = ""
                     is_custom = False
 
@@ -891,7 +944,9 @@ def main():
                                 is_custom_suggestion=is_custom,
                                 session_id=current_session_id,
                             )
-                            st.session_state.user_has_voted_poll = True  # Set flag after successful vote
+                            st.session_state.user_has_voted_poll = (
+                                True  # Set flag after successful vote
+                            )
                             st.success("Thanks for voting!")
                             # Rerun only this fragment
                             st.rerun()
@@ -910,21 +965,21 @@ def main():
 
             feature_poll_fragment()
 
-
     with content_tabs[1]:
         ## Grid view or Table view
         if "page_number" not in st.session_state:
             st.session_state.page_number = 0
 
-        # Add view selector with radio buttons
-        # view_mode = st.radio(
-        #     "Display Mode",
-        #     options=["Grid View", "Table View"],
-        #     horizontal=True,
-        #     key="view_selector",
-        #     index=0,
-        # )
-        view_mode = "Grid View"
+        # Enhanced view selector with academic styling
+        view_mode = st.radio(
+            "Display Mode",
+            options=["Grid View", "Table View"],
+            horizontal=True,
+            key="view_selector",
+            index=0,
+            label_visibility="collapsed",
+            help="Choose between visual grid cards or detailed table format",
+        )
 
         # Get paginated data
         papers_df_subset = su.create_pagination(
@@ -933,7 +988,9 @@ def main():
 
         # Display content based on selected view
         if view_mode == "Grid View":
-            su.generate_grid_gallery(papers_df_subset, image_type=st.session_state.global_image_type)
+            su.generate_grid_gallery(
+                papers_df_subset, image_type=st.session_state.global_image_type
+            )
         elif view_mode == "Table View":
             su.generate_paper_table(papers_df_subset)
 
@@ -966,7 +1023,7 @@ def main():
 
     with content_tabs[4]:
         total_papers = len(papers_df)
-        
+
         # Publication Counts Section with consistent header styling
         if not st.session_state.all_years:
             publication_header_html = f"""
@@ -990,27 +1047,29 @@ def main():
                 </div>
             </div>
             """
-        
+
         st.markdown(publication_header_html, unsafe_allow_html=True)
-        
+
         # Default values for initial plot generation
         plot_view = st.session_state.get("stats_plot_view", "Total Volume")
         plot_type = st.session_state.get("stats_plot_type", "Daily")
         cumulative = plot_type == "Cumulative"
-        
+
         ## Generate appropriate plot based on selections
         if plot_view == "Total Volume":
             ts_plot = pt.plot_publication_counts(papers_df, cumulative=cumulative)
         else:
-            ts_plot = pt.plot_publication_counts_by_topics(papers_df, cumulative=cumulative, top_n=10)
-        
+            ts_plot = pt.plot_publication_counts_by_topics(
+                papers_df, cumulative=cumulative, top_n=10
+            )
+
         # Reduce top margin for the publication counts chart
         ts_plot.update_layout(margin=dict(t=0, b=0.5))
         st.plotly_chart(ts_plot, use_container_width=True)
-        
+
         ## Controls for plotting
         plot_controls_cols = st.columns([0.5, 1, 1, 0.5])
-        
+
         with plot_controls_cols[1]:
             plot_view = st.radio(
                 label="View Mode",
@@ -1018,9 +1077,9 @@ def main():
                 index=0 if plot_view == "Total Volume" else 1,
                 horizontal=True,
                 help="Choose between total publication volume or breakdown by research topics",
-                key="stats_plot_view"
+                key="stats_plot_view",
             )
-        
+
         with plot_controls_cols[2]:
             plot_type = st.radio(
                 label="Chart Type",
@@ -1028,7 +1087,7 @@ def main():
                 index=0 if plot_type == "Daily" else 1,
                 horizontal=True,
                 help="Daily shows publications per day, Cumulative shows running totals",
-                key="stats_plot_type"
+                key="stats_plot_type",
             )
 
         st.divider()
@@ -1056,7 +1115,7 @@ def main():
                 </div>
             </div>
             """
-        
+
         st.markdown(topic_header_html, unsafe_allow_html=True)
 
         cluster_map = pt.plot_cluster_map(papers_df)
@@ -1098,7 +1157,7 @@ def main():
         </div>
         """
         st.markdown(repos_header_html, unsafe_allow_html=True)
-        
+
         ## Repositories.
         repos_df = st.session_state["repos"]
         repos_search_cols = st.columns((1, 1, 1))
@@ -1136,7 +1195,7 @@ def main():
             repos_df, search_term, topic_filter, domain_filter
         )
         repo_count = len(filtered_repos)
-        
+
         # Results summary with enhanced styling
         if repo_count > 0:
             results_html = f"""
@@ -1199,7 +1258,7 @@ def main():
         </div>
         """
         st.markdown(weekly_header_html, unsafe_allow_html=True)
-        
+
         report_top_cols = st.columns((5, 2))
         with report_top_cols[0]:
             pass  # Header is now handled above
@@ -1275,9 +1334,9 @@ def main():
 
 if __name__ == "__main__":
     # try:
-        main()
-    # except Exception as e:
-    #     logging_db.log_error_db(e)
-    #     st.error(
-    #         "Something went wrong. Please refresh the app and try again, we will look into it."
-    #     )
+    main()
+# except Exception as e:
+#     logging_db.log_error_db(e)
+#     st.error(
+#         "Something went wrong. Please refresh the app and try again, we will look into it."
+#     )

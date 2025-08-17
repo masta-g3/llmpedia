@@ -674,16 +674,22 @@ def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
                     """
                     st.markdown(card_html, unsafe_allow_html=True)
 
-                    # Star and publish date (remains below the card)
+                    # Star, publish date, and topic (remains below the card)
                     star_count = paper_data["influential_citation_count"] > 0
                     publish_date = pd.to_datetime(paper_data["published"]).strftime(
                         "%b %d, %Y"
                     )
                     star = "⭐️" if star_count else ""
+                    
+                    # Get topic for subtle display
+                    topic = paper_data.get("topic", "")
+                    topic_html = f'<div style="text-align: center; font-size: var(--font-size-xs); opacity: 0.6; margin-top: -2px; margin-bottom: 8px; overflow: hidden; white-space: nowrap;"><span class="material-icons" style="font-size: 10px; vertical-align: middle; margin-right: 2px; opacity: 0.5;">topic</span>{html_escape(topic)}</div>' if topic else ""
+                    
                     centered_code = f"""
                     <div class="centered" style="text-align: center; font-size: var(--font-size-sm); margin-top: calc(-1 * var(--space-sm)); margin-bottom: var(--space-sm);">
-                        <code>{star} {publish_date}</code>
+                        <div><code>{star} {publish_date}</code></div>
                     </div>
+                    {topic_html}
                     """
                     st.markdown(centered_code, unsafe_allow_html=True)
 
@@ -749,102 +755,107 @@ def generate_citations_list(df: pd.DataFrame) -> None:
 
 @st.fragment
 def generate_paper_table(df, extra_key=""):
-    """Create a stylized table view of papers with key information."""
-    # Table styles are now applied globally via apply_complete_app_styles()
+    """Create an elegant table view following academic minimalism design principles."""
+    # Simplified column structure: Title (60%), Publication Date (20%), Citations (20%)
+    col_spec = [6, 2, 2]
 
-    # Updated column width ratios for better spacing
-    col_spec = [3.5, 0.9, 0.9, 1.2, 0.8]
+    # Enhanced header with academic typography
+    header_html = """
+    <div class="trending-panel-header" style="margin-bottom: var(--space-lg);">
+        <div class="trending-panel-title" style="font-family: var(--font-family-display);">
+            <span class="material-icons">table_view</span> Research Papers
+        </div>
+        <div class="trending-panel-subtitle">
+            Click any title to explore paper details
+        </div>
+    </div>
+    """
+    st.markdown(header_html, unsafe_allow_html=True)
 
-    # Create a header row with styled headers
+    # Create elegant header row
     header_cols = st.columns(col_spec)
-
     st.markdown("<div class='paper-header'>", unsafe_allow_html=True)
     header_cols[0].markdown("**Title**")
-    header_cols[1].markdown("**Citations**")
-    header_cols[2].markdown("**Influential**")
-    header_cols[3].markdown("**Published**")
-    header_cols[4].markdown("")  # Action column placeholder
+    header_cols[1].markdown("**Published**")
+    header_cols[2].markdown("**Citations**")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Format function for titles
-    def format_title(row):
-        title = row["title"].replace("\n", "")
-        star = "⭐️ " if row.get("influential_citation_count", 0) > 0 else ""
-        return f"{star}{title}"
-
-    # Create a simple table with all papers
+    # Process each paper with simplified display
     for i, paper in df.iterrows():
         paper_code = paper["arxiv_code"]
-        title = format_title(paper)
+        title = paper["title"].replace("\n", "").strip()
+        published = pd.to_datetime(paper["published"]).strftime("%b %d, %Y")
         citations = int(paper.get("citation_count", 0))
         influential = int(paper.get("influential_citation_count", 0))
-        published = pd.to_datetime(paper["published"]).strftime("%b %d, %Y")
+        
+        # Get data for display
+        punchline = paper.get("punchline", "")
+        authors = paper.get("authors", "")
 
-        # Create a container for the row
+        # Clean and prepare data
+        if len(authors) > 100:
+            authors = authors[:97] + "..."
+
+        # Create elegant row container
         st.markdown("<div class='paper-row'>", unsafe_allow_html=True)
-
-        # Create a row for each paper
         cols = st.columns(col_spec)
 
-        # Get punchline for tooltip if available
-        punchline = paper.get("punchline", "")
-        if isinstance(punchline, str) and punchline:
-            # Escape HTML and quotes in punchline to avoid breaking the HTML
-            punchline = (
-                punchline.replace("'", "&#39;")
-                .replace('"', "&quot;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-            )
-            punchline_text = f' title="{punchline}"'
+        # Column 1: Title (60% width)
+        with cols[0]:
+            # Clickable title button with academic LaTeX-style formatting (like mini_paper_table)
+            show_star = influential > 0
+            title_key = f"table_title_{paper_code}_{extra_key}"
+            
+            # Truncate title to prevent overflow in LaTeX format
+            title_display = title[:80] + "..." if len(title) > 80 else title
+            title_latex = rf"$\textsf{{{title_display}}}$"
+            
+            if st.button(
+                title_latex, 
+                type="tertiary", 
+                icon=":material/star:" if show_star else None,
+                key=title_key,
+                use_container_width=True,
+                help=f"{title}\n\n{punchline}" if punchline else title  # Show full title in tooltip
+            ):
+                st.session_state.arxiv_code = paper_code
+                click_tab(3)
+            
+            # Compact authors display
+            if authors:
+                authors_html = f'<div style="font-size: 0.7rem; color: var(--text-color); opacity: 0.5; margin-top: 2px; line-height: 1.2; font-weight: 300;"><span class="material-icons" style="font-size: 10px; vertical-align: middle; margin-right: 3px;">group</span>{html_escape(authors)}</div>'
+                st.markdown(authors_html, unsafe_allow_html=True)
+
+        # Column 2: Publication Date & Topic (20% width)
+        topic = paper.get("topic", "")
+        if isinstance(topic, str) and len(topic) > 25:
+            topic_display = topic[:22] + "..."
+            topic_tooltip = f' title="{html_escape(topic)}"'
         else:
-            punchline_text = ""
+            topic_display = topic if isinstance(topic, str) else ""
+            topic_tooltip = ""
 
-        # Add URL to title
-        paper_url = paper.get("url", "")
-        title_html = f"<a href='{paper_url}' target='_blank' class='title-link' style='color: var(--arxiv-red);'{punchline_text}>{title}</a>"
+        date_html = f"""
+        <div class='paper-cell' style='line-height: 1.5;'>
+            <div style="font-size: var(--font-size-sm); color: var(--text-color); margin-bottom: var(--space-xs);">
+                <span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 4px; opacity: 0.7;">calendar_today</span>{published}
+            </div>
+            {f'<div style="font-size: var(--font-size-xs); color: var(--text-color); opacity: 0.7;"><span class="material-icons" style="font-size: 12px; vertical-align: middle; margin-right: 4px; opacity: 0.7;">topic</span><span{topic_tooltip}>{html_escape(topic_display)}</span></div>' if topic_display else ''}
+        </div>
+        """
+        cols[1].markdown(date_html, unsafe_allow_html=True)
 
-        # Add authors truncated
-        authors = paper.get("authors", "")
-        if len(authors) > 70:
-            authors = authors[:70] + "..."
-        authors_html = f"<div style='font-size: 0.85em; color: var(--text-color, #666);'>{authors}</div>"
-
-        # Combine title and authors
-        cols[0].markdown(f"{title_html}{authors_html}", unsafe_allow_html=True)
-
-        # Format counts with nice styling and SVG icons
-        cols[1].markdown(
-            f"""<div class='paper-cell' style='text-align: center;'>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; opacity: 0.7; margin-right: 3px;"><path d="M17 6.1H3M21 12.1H3M21 18.1H3"></path></svg>
-            {citations}
-        </div>""",
-            unsafe_allow_html=True,
-        )
-
-        cols[2].markdown(
-            f"""<div class='paper-cell' style='text-align: center;'>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; opacity: 0.7; margin-right: 3px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-            {influential}
-        </div>""",
-            unsafe_allow_html=True,
-        )
-
-        # Date with nice styling and calendar icon
-        cols[3].markdown(
-            f"""<div class='paper-cell'>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; opacity: 0.7; margin-right: 3px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            {published}
-        </div>""",
-            unsafe_allow_html=True,
-        )
-
-        # Button styled as HTML but triggered by Streamlit button with width constraint (set in CSS)
-        if cols[4].button(
-            "Read More", key=f"btn_{paper_code}_{extra_key}", use_container_width=True
-        ):
-            st.session_state.arxiv_code = paper_code
-            click_tab(3)
+        # Column 3: Citations (20% width)
+        metrics_html = f"""
+        <div class='paper-cell' style='text-align: center; line-height: 1.6;'>
+            <div style='margin-bottom: var(--space-xs);'>
+                <span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 4px; opacity: 0.7;">format_quote</span>
+                <span style='font-weight: 500;'>{citations:,}</span>
+            </div>
+            {f'<div><span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 4px; color: #ff9800;">star</span><span style="font-weight: 500; color: #ff9800;">{influential:,}</span></div>' if influential > 0 else '<div style="opacity: 0.5; font-size: var(--font-size-xs);">No influential</div>'}
+        </div>
+        """
+        cols[2].markdown(metrics_html, unsafe_allow_html=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -857,14 +868,15 @@ def create_pagination(items, items_per_page, label="summaries", year=None):
 
     st.session_state["num_pages"] = num_pages
 
+    cols = st.columns((2, 6, 2))
     if not st.session_state.all_years and year is not None:
-        st.markdown(f"**{num_items} papers found for {year}.**")
+        papers_text = f"{num_items} papers found for {year}."
     else:
-        st.markdown(f"**{num_items} papers found.**")
-    st.markdown(f"**Pg. {st.session_state.page_number + 1} of {num_pages}**")
-    prev_button, mid, next_button = st.columns((1, 10, 1))
-    prev_clicked = prev_button.button("Prev", key=f"prev_{label}")
-    next_clicked = next_button.button("Next", key=f"next_{label}")
+        papers_text = f"{num_items} papers found."
+    cols[0].markdown(f"**{papers_text}**")
+    cols[2].markdown(f"**Pg. {st.session_state.page_number + 1} of {num_pages}**")
+    prev_clicked = cols[0].button("Prev", key=f"prev_{label}")
+    next_clicked = cols[2].button("Next", key=f"next_{label}")
 
     if prev_clicked and "page_number" in st.session_state:
         st.session_state.page_number = max(0, st.session_state.page_number - 1)
