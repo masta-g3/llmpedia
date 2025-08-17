@@ -30,6 +30,12 @@ LLMpedia follows a **sophisticated academic minimalism** that combines scholarly
 - Structured layouts with precise spacing relationships
 - Digital precision through geometric elements and systematic design tokens
 
+### **5. Material Design Icon System**
+- **Consistent iconography** using Material Design icons throughout the interface
+- **Two implementation patterns**: Streamlit syntax (`:material/icon:`) for markdown content, HTML tags for custom components
+- **Cross-platform consistency** - icons render uniformly across all devices and browsers
+- **Semantic clarity** - icons chosen for clear meaning and universal recognition
+
 ## Design System Architecture
 
 ### **CSS Custom Properties (Design Tokens)**
@@ -52,6 +58,9 @@ All visual properties are centralized using CSS custom properties for consistenc
   --font-family-display: 'Libertinus Serif', 'Latin Modern Roman', 'Computer Modern', serif;
   --font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --font-family-mono: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  
+  /* Material Icons */
+  @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
   
   /* Spacing Scale */
   --space-xs: 0.25rem;
@@ -138,7 +147,7 @@ All visual properties are centralized using CSS custom properties for consistenc
 
 #### **Trending Panel Headers**
 - **`.trending-panel-header`**: Consistent section headers across the app
-- **`.trending-panel-title`**: Large title with Orbitron font
+- **`.trending-panel-title`**: Large title with Libertinus Serif font
 - **`.trending-panel-subtitle`**: Descriptive subtitle text
 - **Top Gradient Bar**: Subtle brand color accent
 
@@ -175,7 +184,7 @@ All visual properties are centralized using CSS custom properties for consistenc
 - **Text Colors**: Maintain sufficient contrast ratios (4.5:1 minimum)
 
 ### **2. Typography Hierarchy**
-- **Display Headers**: Use Orbitron for main page titles
+- **Display Headers**: Use Libertinus Serif for main page titles
 - **Section Headers**: Geometric headers for content sections  
 - **Body Text**: System fonts for optimal readability
 - **Code/Data**: Monospace fonts for technical content
