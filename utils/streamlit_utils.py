@@ -674,7 +674,7 @@ def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
                     """
                     st.markdown(card_html, unsafe_allow_html=True)
 
-                    # Star, publish date, and topic (remains below the card)
+                    # Star and publish date (remains below the card)
                     star_count = paper_data["influential_citation_count"] > 0
                     publish_date = pd.to_datetime(paper_data["published"]).strftime(
                         "%b %d, %Y"
@@ -683,7 +683,7 @@ def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
                     
                     # Get topic for subtle display
                     topic = paper_data.get("topic", "")
-                    topic_html = f'<div style="text-align: center; font-size: var(--font-size-xs); opacity: 0.6; margin-top: -2px; margin-bottom: 8px; overflow: hidden; white-space: nowrap;"><span class="material-icons" style="font-size: 10px; vertical-align: middle; margin-right: 2px; opacity: 0.5;">topic</span>{html_escape(topic)}</div>' if topic else ""
+                    topic_html = f'<div style="text-align: center; font-size: var(--font-size-xs); opacity: 0.6; margin-top: -2px; margin-bottom: 8px; overflow: hidden; white-space: nowrap;" title="{html_escape(topic)}"><span class="material-icons" style="font-size: 10px; vertical-align: middle; margin-right: 2px; opacity: 0.5;">topic</span>{html_escape(topic)}</div>' if topic else ""
                     
                     centered_code = f"""
                     <div class="centered" style="text-align: center; font-size: var(--font-size-sm); margin-top: calc(-1 * var(--space-sm)); margin-bottom: var(--space-sm);">
@@ -706,6 +706,7 @@ def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
                     ):
                         st.session_state.arxiv_code = paper_code
                         click_tab(3)
+
 
 
 @st.fragment
@@ -1159,6 +1160,16 @@ def generate_mini_paper_table(
                         border-radius: var(--radius-sm, 4px);
                     }
                     
+                    .tweet-timestamp {
+                        font-size: var(--font-size-xs, 0.875rem);
+                        opacity: 0.5;
+                        color: var(--text-muted, #666);
+                        margin-left: auto;
+                        display: flex;
+                        align-items: center;
+                        gap: 2px;
+                    }
+                    
                     .tweet-text {
                         font-size: var(--font-size-sm, 0.95rem);
                         line-height: 1.5;
@@ -1228,6 +1239,10 @@ def generate_mini_paper_table(
                         .tweet-username {
                             background: rgba(179, 27, 27, 0.12);
                         }
+                        
+                        .tweet-timestamp {
+                            color: var(--text-muted-dark, #9ca3af);
+                        }
                     }
                     </style>
                     """
@@ -1245,6 +1260,17 @@ def generate_mini_paper_table(
                                 repost_count = tweet.get("repost_count", 0)
                                 reply_count = tweet.get("reply_count", 0)
                                 tweet_link = tweet.get("link", "")
+                                tweet_timestamp = tweet.get("tweet_timestamp")
+                                
+                                ## Format timestamp elegantly
+                                if tweet_timestamp:
+                                    try:
+                                        timestamp = pd.to_datetime(tweet_timestamp)
+                                        formatted_time = timestamp.strftime("%b %d, %H:%M")
+                                    except:
+                                        formatted_time = "Recent"
+                                else:
+                                    formatted_time = "Recent"
                                 
                                 # Truncate long tweets for clean display
                                 if len(text) > 280:
@@ -1277,6 +1303,10 @@ def generate_mini_paper_table(
                                     <div class="tweet-author">
                                         <span class="tweet-author-name">{safe_author}</span>
                                         {f'(<span class="tweet-username">{safe_username}</span>)' if safe_username else ''}
+                                        <div class="tweet-timestamp">
+                                            <span class="material-icons" style="font-size: 12px;">schedule</span>
+                                            {formatted_time}
+                                        </div>
                                     </div>
                                     <div class="tweet-text">{safe_text}</div>
                                     {f'<div class="tweet-engagement">{engagement_html}</div>' if engagement_html else ''}

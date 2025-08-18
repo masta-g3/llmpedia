@@ -243,7 +243,7 @@ def get_similar_docs(
     return au.get_similar_docs(arxiv_code, df, n)
 
 
-@st.cache_data
+@st.cache_data(ttl=timedelta(minutes=30))
 def get_cached_top_cited_papers_app(
     papers_df_fragment: pd.DataFrame, n: int, time_window_days: int
 ) -> pd.DataFrame:
@@ -436,8 +436,8 @@ def chat_fragment():
 @st.fragment
 def display_top_cited_trending_panel(papers_df_fragment: pd.DataFrame):
     """Displays the Top Cited / Trending Papers panel with toggle and caching."""
-    citation_window = 90
-    trending_window = 7  # For fetching raw data from DB (e.g., last 7 days of tweets)
+    citation_window = 30
+    trending_window = 3  # For fetching raw data from DB (e.g., last 7 days of tweets)
     top_n = 5  # Number of papers to display
 
     current_actual_toggle_state = st.session_state.get("toggle_trending_papers", True)
@@ -702,6 +702,7 @@ def main():
         with search_cols[0]:
             shared_query_news_tab = st.text_input(
                 "Ask your question here:",
+                label_visibility="collapsed",
                 key="news_tab_shared_query_input",
                 placeholder="E.g., Why do LLMs sometimes exhibit ADHD like symptoms?",
             )
@@ -723,13 +724,13 @@ def main():
         st.write(" ")
         st.write(" ")
         feed_cols = st.columns((2, 3, 2))
-        feed_btn_html = r"$\textsf{\ Explore Release Feed}$"
+        feed_btn_html = r"$\textsf{Explore Release Feed}$"
         if feed_cols[1].button(
             feed_btn_html,
             key="news_feed_nav_button",
             use_container_width=True,
             icon=":material/auto_stories:",
-            type="secondary",
+            type="primary",
         ):
             su.click_tab(1)
 
