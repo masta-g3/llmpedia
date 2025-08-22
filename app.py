@@ -243,7 +243,7 @@ def get_similar_docs(
     return au.get_similar_docs(arxiv_code, df, n)
 
 
-@st.cache_data(ttl=timedelta(minutes=30))
+@st.cache_data(ttl=timedelta(minutes=300))
 def get_cached_top_cited_papers_app(
     papers_df_fragment: pd.DataFrame, n: int, time_window_days: int
 ) -> pd.DataFrame:
@@ -518,6 +518,20 @@ def main():
         st.session_state.session_id = str(uuid.uuid4())
         st.session_state.visit_logged = False
 
+    ## Main content.
+    full_papers_df = load_data()
+    papers_df, year = su.create_sidebar(full_papers_df)
+
+    filter_by_year = not st.session_state.all_years
+    repositories_df = load_repositories(year, filter_by_year=filter_by_year)
+
+    st.session_state["papers"] = full_papers_df
+    st.session_state["repos"] = repositories_df
+
+    if len(papers_df) == 0:
+        st.error("No papers found. Try a different year.")
+        return
+
     title_cols = st.columns((5, 0.5))
     title_cols[0].markdown(
         """<div class="pixel-font heading-display" style="margin-bottom: -0.5em;">LLMpedia</div>
@@ -546,19 +560,6 @@ def main():
         </div>""",
         unsafe_allow_html=True,
     )
-    ## Main content.
-    full_papers_df = load_data()
-    papers_df, year = su.create_sidebar(full_papers_df)
-
-    filter_by_year = not st.session_state.all_years
-    repositories_df = load_repositories(year, filter_by_year=filter_by_year)
-
-    st.session_state["papers"] = full_papers_df
-    st.session_state["repos"] = repositories_df
-
-    if len(papers_df) == 0:
-        st.error("No papers found. Try a different year.")
-        return
 
     published_df = generate_calendar_df(papers_df)
     if not st.session_state.all_years:
@@ -1334,10 +1335,11 @@ def main():
 
 
 if __name__ == "__main__":
-    # try:
-    main()
-# except Exception as e:
-#     logging_db.log_error_db(e)
-#     st.error(
-#         "Something went wrong. Please refresh the app and try again, we will look into it."
-#     )
+    try:
+        main()
+    except Exception as e:
+        logging_db.log_error_db(e)
+        st.error(
+                "Something went wrong. Please refresh the app and try again, we will look into it."
+        )
+        st.stop()

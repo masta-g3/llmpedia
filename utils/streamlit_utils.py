@@ -59,6 +59,15 @@ def create_sidebar(full_papers_df: pd.DataFrame) -> Tuple[pd.DataFrame, int]:
         ["Published Date", "Last Updated", "Citations", "Random"],
     )
 
+    if st.sidebar.button(
+        "View Results",
+        key="view_results_button",
+        type="primary",
+        use_container_width=True,
+        help="View results of the current filters",
+    ):
+        click_tab(1)
+
     ## Global image display preference.
     st.sidebar.markdown("---")
     st.sidebar.markdown("#### 🖼️ Image Display")
@@ -96,10 +105,8 @@ def create_sidebar(full_papers_df: pd.DataFrame) -> Tuple[pd.DataFrame, int]:
             | papers_df["arxiv_code"].str.lower().str.contains(search_term)
             | papers_df["authors"].str.lower().str.contains(search_term)
             | papers_df["summary"].str.lower().str.contains(search_term)
-            | papers_df["contribution_title"].str.lower().str.contains(search_term)
-            | papers_df["contribution_content"].str.lower().str.contains(search_term)
-            | papers_df["takeaway_title"].str.lower().str.contains(search_term)
-            | papers_df["takeaway_content"].str.lower().str.contains(search_term)
+            | papers_df["tldr"].str.lower().str.contains(search_term)
+            | papers_df["punchline"].str.lower().str.contains(search_term)
         ]
 
     ## Categories.
@@ -683,6 +690,9 @@ def generate_grid_gallery(df, n_cols=5, extra_key="", image_type="artwork"):
                     
                     # Get topic for subtle display
                     topic = paper_data.get("topic", "")
+                    # Convert to string and handle NaN values
+                    if pd.isna(topic) or not isinstance(topic, str):
+                        topic = ""
                     topic_html = f'<div style="text-align: center; font-size: var(--font-size-xs); opacity: 0.6; margin-top: -2px; margin-bottom: 8px; overflow: hidden; white-space: nowrap;" title="{html_escape(topic)}"><span class="material-icons" style="font-size: 10px; vertical-align: middle; margin-right: 2px; opacity: 0.5;">topic</span>{html_escape(topic)}</div>' if topic else ""
                     
                     centered_code = f"""
@@ -924,6 +934,11 @@ def _add_paper_fallbacks(paper: dict):
 
 def display_paper_details_fragment(paper_code: str):
     """Displays the paper details card with lazy-loaded details."""
+    # Initialize details_canvas if it doesn't exist
+    if "details_canvas" not in st.session_state:
+        st.session_state.details_canvas = st.container()
+
+    # Clear the canvas for new content
     st.session_state.details_canvas = st.session_state.details_canvas.empty()
     with st.session_state.details_canvas:
         if len(paper_code) > 0:
